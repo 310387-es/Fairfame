@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+build
+coverage
+pnpm-lock.yaml
+public
+src/db/migrations
+
+# Authored documentation — kept exactly as written, not machine-formatted.
+docs
+*.md

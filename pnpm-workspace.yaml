@@ -1,0 +1,6 @@
+# Native postinstall builds we explicitly trust:
+#   sharp         — Next.js image optimization
+#   unrs-resolver — ESLint import resolver
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
