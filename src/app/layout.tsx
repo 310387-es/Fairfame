@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 
 // `--font-sans` / `--font-mono` are the names `globals.css` maps into the
@@ -19,14 +21,23 @@ export const metadata: Metadata = {
   description: "Review and customer-voice management for local businesses.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Drives both the messages and the `lang` attribute, so assistive technology
+  // and the browser agree with what is actually rendered.
+  const locale = await getLocale();
+
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+    <html
+      lang={locale}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="flex min-h-full flex-col bg-background text-foreground">
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+      </body>
     </html>
   );
 }

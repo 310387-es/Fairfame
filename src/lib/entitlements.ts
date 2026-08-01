@@ -44,6 +44,8 @@ export type ResolvedEntitlements = {
   effectivePlanKey: PlanKey;
   /** True while a live trial is granting top-tier access. */
   isTrialing: boolean;
+  /** When the live trial lapses. Null unless `isTrialing`. */
+  trialEndsAt: Date | null;
 };
 
 /**
@@ -64,6 +66,7 @@ export function resolveEntitlements(
     entitlements: PLAN_CATALOG[DEFAULT_PLAN_KEY].entitlements,
     effectivePlanKey: DEFAULT_PLAN_KEY,
     isTrialing: false,
+    trialEndsAt: null,
   });
 
   if (!subscription) return fallback();
@@ -86,6 +89,7 @@ export function resolveEntitlements(
         entitlements: withOverrides(PLAN_CATALOG[TRIAL_PLAN_KEY].entitlements),
         effectivePlanKey: TRIAL_PLAN_KEY,
         isTrialing: true,
+        trialEndsAt: subscription.currentPeriodEnd,
       };
     }
 
@@ -95,6 +99,7 @@ export function resolveEntitlements(
         entitlements: withOverrides(PLAN_CATALOG[subscription.planKey].entitlements),
         effectivePlanKey: subscription.planKey,
         isTrialing: false,
+        trialEndsAt: null,
       };
     }
 

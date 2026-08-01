@@ -3,7 +3,10 @@
 #   unrs-resolver — ESLint import resolver
 #   esbuild       — drizzle-kit's bundler
 #   msgpackr-extract — BullMQ's msgpack serializer (native accelerator)
+#   @swc/core, @parcel/watcher — next-intl's build-time toolchain
 allowBuilds:
+  "@parcel/watcher": true
+  "@swc/core": true
   esbuild: true
   msgpackr-extract: true
   sharp: true

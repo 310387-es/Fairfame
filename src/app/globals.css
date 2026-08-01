@@ -128,3 +128,81 @@
     @apply font-sans;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Revira brand tokens (docs/08-design-brief.md §Palette)
+ *
+ *   Indigo #3D5AF1  primary / trust
+ *   Amber  #F5A524  accent — ratings and energy
+ *   Ink    #10193A  text
+ *
+ * Layered over the shadcn scale rather than replacing it, so component
+ * internals keep working while the palette reads as ours. Values are the exact
+ * oklch equivalents of the brief's hex codes. Flat and confident, not
+ * gradient-heavy.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  --brand-indigo: oklch(0.5432 0.2275 268.84);
+  --brand-amber: oklch(0.7819 0.1585 72.33);
+  --brand-ink: oklch(0.2263 0.0649 269.21);
+
+  --foreground: var(--brand-ink);
+  --card-foreground: var(--brand-ink);
+  --popover-foreground: var(--brand-ink);
+
+  --primary: var(--brand-indigo);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: var(--brand-indigo);
+
+  /* Light neutrals with a trace of the brand hue, so greys never look muddy
+   * next to the indigo. */
+  --muted: oklch(0.968 0.006 268);
+  --muted-foreground: oklch(0.505 0.026 268);
+  --secondary: oklch(0.968 0.006 268);
+  --secondary-foreground: var(--brand-ink);
+  --accent: oklch(0.958 0.012 268);
+  --accent-foreground: var(--brand-ink);
+  --border: oklch(0.916 0.008 268);
+  --input: oklch(0.916 0.008 268);
+
+  --sidebar: oklch(0.985 0.004 268);
+  --sidebar-foreground: var(--brand-ink);
+  --sidebar-primary: var(--brand-indigo);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.955 0.012 268);
+  --sidebar-accent-foreground: var(--brand-ink);
+  --sidebar-border: oklch(0.916 0.008 268);
+  --sidebar-ring: var(--brand-indigo);
+
+  /* Amber is reserved for ratings and highlights — never a default surface. */
+  --rating: var(--brand-amber);
+}
+
+.dark {
+  --brand-indigo: oklch(0.66 0.19 268.84);
+  --brand-amber: oklch(0.8 0.15 72.33);
+
+  --primary: var(--brand-indigo);
+  --primary-foreground: oklch(0.16 0.03 269);
+  --ring: var(--brand-indigo);
+
+  --muted: oklch(0.27 0.02 268);
+  --muted-foreground: oklch(0.72 0.02 268);
+  --secondary: oklch(0.27 0.02 268);
+  --accent: oklch(0.3 0.025 268);
+
+  --sidebar: oklch(0.2 0.025 269);
+  --sidebar-primary: var(--brand-indigo);
+  --sidebar-accent: oklch(0.3 0.025 268);
+  --sidebar-ring: var(--brand-indigo);
+
+  --rating: var(--brand-amber);
+}
+
+@theme inline {
+  --color-rating: var(--rating);
+  --color-brand-indigo: var(--brand-indigo);
+  --color-brand-amber: var(--brand-amber);
+  --color-brand-ink: var(--brand-ink);
+}

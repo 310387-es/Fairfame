@@ -1,0 +1,93 @@
+{
+  "app": {
+    "name": "Revira",
+    "tagline": "Yorum ve müşteri sesi yönetimi"
+  },
+  "nav": {
+    "home": "Ana sayfa",
+    "inbox": "Gelen kutusu",
+    "locations": "Şubeler",
+    "team": "Ekip",
+    "settings": "Ayarlar",
+    "signOut": "Çıkış yap"
+  },
+  "shell": {
+    "locationSwitcher": "Aktif şube",
+    "allLocations": "Tüm şubeler",
+    "noLocations": "Henüz şube yok",
+    "localeSwitcher": "Dil",
+    "trialBadge": "Deneme · {days} gün kaldı",
+    "planBadge": "{plan} paketi"
+  },
+  "home": {
+    "title": "Ana sayfa",
+    "subtitle": "Yorumlarınızın özeti burada görünecek.",
+    "placeholder": "Aksiyon Özeti ve analizler sonraki aşamada geliyor."
+  },
+  "inbox": {
+    "title": "Gelen kutusu",
+    "subtitle": "Bağlı tüm kaynaklardan gelen yorumlar tek yerde.",
+    "empty": "Henüz yorum yok. Başlamak için bir şubeye kaynak bağlayın.",
+    "emptyAction": "Şubelere git",
+    "columnAuthor": "Yazan",
+    "columnRating": "Puan",
+    "columnReview": "Yorum",
+    "columnDate": "Tarih",
+    "columnSource": "Kaynak"
+  },
+  "locations": {
+    "title": "Şubeler",
+    "subtitle": "Yorum topladığınız şubeler ve mekanlar.",
+    "empty": "Henüz şube yok.",
+    "add": "Şube ekle",
+    "name": "Ad",
+    "address": "Adres",
+    "category": "Kategori",
+    "connect": "Kaynak bağla",
+    "connected": "Bağlı",
+    "notConnected": "Bağlı değil"
+  },
+  "team": {
+    "title": "Ekip",
+    "subtitle": "Bu organizasyona kimler erişebilir ve ne yapabilir.",
+    "placeholder": "Davetler ve rol yönetimi sonraki aşamada geliyor.",
+    "role": "Rol",
+    "roles": {
+      "owner": "Sahip",
+      "admin": "Yönetici",
+      "member": "Üye",
+      "client": "Müşteri"
+    }
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "subtitle": "Organizasyon tercihleri ve faturalandırma.",
+    "placeholder": "Faturalandırma ve organizasyon ayarları sonraki aşamada geliyor.",
+    "language": "Dil",
+    "organization": "Organizasyon"
+  },
+  "auth": {
+    "signInTitle": "Giriş yap",
+    "signInSubtitle": "Tekrar hoş geldiniz.",
+    "signUpTitle": "Hesabınızı oluşturun",
+    "signUpSubtitle": "14 günlük denemenizi başlatın. Kart gerekmez.",
+    "name": "Ad soyad",
+    "email": "E-posta",
+    "password": "Parola",
+    "signIn": "Giriş yap",
+    "signUp": "Hesap oluştur",
+    "haveAccount": "Zaten hesabınız var mı?",
+    "noAccount": "Hesabınız yok mu?",
+    "createOrgTitle": "Organizasyonunuzu oluşturun",
+    "createOrgSubtitle": "Şubeleriniz ve yorumlarınız bu çalışma alanında yaşar.",
+    "orgName": "Organizasyon adı",
+    "createOrg": "Organizasyon oluştur",
+    "passwordHint": "En az 12 karakter."
+  },
+  "errors": {
+    "generic": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
+    "signInFailed": "Bu bilgilerle giriş yapılamadı.",
+    "signUpFailed": "Hesap oluşturulamadı.",
+    "required": "Bu alan zorunludur."
+  }
+}

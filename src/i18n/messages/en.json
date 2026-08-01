@@ -1,0 +1,93 @@
+{
+  "app": {
+    "name": "Revira",
+    "tagline": "Review and customer-voice management"
+  },
+  "nav": {
+    "home": "Home",
+    "inbox": "Inbox",
+    "locations": "Locations",
+    "team": "Team",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "shell": {
+    "locationSwitcher": "Active location",
+    "allLocations": "All locations",
+    "noLocations": "No locations yet",
+    "localeSwitcher": "Language",
+    "trialBadge": "Trial · {days} days left",
+    "planBadge": "{plan} plan"
+  },
+  "home": {
+    "title": "Home",
+    "subtitle": "An overview of your reviews will appear here.",
+    "placeholder": "The Action Digest and analytics land in a later phase."
+  },
+  "inbox": {
+    "title": "Inbox",
+    "subtitle": "Every review from every connected source, in one place.",
+    "empty": "No reviews yet. Connect a source to a location to start ingesting.",
+    "emptyAction": "Go to Locations",
+    "columnAuthor": "Author",
+    "columnRating": "Rating",
+    "columnReview": "Review",
+    "columnDate": "Date",
+    "columnSource": "Source"
+  },
+  "locations": {
+    "title": "Locations",
+    "subtitle": "The branches and venues you collect reviews for.",
+    "empty": "No locations yet.",
+    "add": "Add location",
+    "name": "Name",
+    "address": "Address",
+    "category": "Category",
+    "connect": "Connect source",
+    "connected": "Connected",
+    "notConnected": "Not connected"
+  },
+  "team": {
+    "title": "Team",
+    "subtitle": "Who can access this organization, and what they can do.",
+    "placeholder": "Invitations and role management arrive in a later phase.",
+    "role": "Role",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member",
+      "client": "Client"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Organization preferences and billing.",
+    "placeholder": "Billing and organization settings arrive in a later phase.",
+    "language": "Language",
+    "organization": "Organization"
+  },
+  "auth": {
+    "signInTitle": "Sign in",
+    "signInSubtitle": "Welcome back.",
+    "signUpTitle": "Create your account",
+    "signUpSubtitle": "Start your 14-day trial. No card required.",
+    "name": "Full name",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "createOrgTitle": "Create your organization",
+    "createOrgSubtitle": "This is the workspace your locations and reviews live in.",
+    "orgName": "Organization name",
+    "createOrg": "Create organization",
+    "passwordHint": "At least 12 characters."
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "signInFailed": "Those credentials did not work.",
+    "signUpFailed": "We could not create that account.",
+    "required": "This field is required."
+  }
+}
