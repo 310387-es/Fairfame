@@ -1,12 +1,12 @@
-import pino, { type Logger } from "pino";
+import pino, { type Logger, type LoggerOptions } from "pino";
 
 /**
  * Structured application logger (pino).
  *
  * Server-side only — do not import from client components.
- * Output is newline-delimited JSON so logs stay machine-readable in every
- * environment; pretty-printing is a shell concern (pipe through a formatter),
- * not an application concern.
+ * Production emits newline-delimited JSON so logs stay machine-readable.
+ * Development pipes through pino-pretty for readability; set LOG_PRETTY=false
+ * to get raw JSON in dev too.
  *
  * T2 replaces the raw `process.env` reads below with the Zod-validated config.
  */
@@ -30,14 +30,35 @@ const redactPaths = [
   ...SECRET_KEYS.map((key) => `*.${key}`),
 ];
 
-export const logger: Logger = pino({
-  level: process.env.LOG_LEVEL ?? (process.env.NODE_ENV === "production" ? "info" : "debug"),
+const isProduction = process.env.NODE_ENV === "production";
+
+/**
+ * Base pino options, without any destination or transport.
+ * Exported so tests can build a logger over an in-memory stream and assert on
+ * the exact serialized output (see tests/lib/logger.test.ts).
+ */
+export const loggerOptions: LoggerOptions = {
+  level: process.env.LOG_LEVEL ?? (isProduction ? "info" : "debug"),
   base: { service: "revira" },
   redact: { paths: redactPaths, censor: "[redacted]" },
   formatters: {
     level: (label) => ({ level: label }),
   },
   timestamp: pino.stdTimeFunctions.isoTime,
+};
+
+const usePrettyTransport = !isProduction && process.env.LOG_PRETTY !== "false";
+
+export const logger: Logger = pino({
+  ...loggerOptions,
+  ...(usePrettyTransport
+    ? {
+        transport: {
+          target: "pino-pretty",
+          options: { colorize: true, translateTime: "HH:MM:ss.l", ignore: "pid,hostname,service" },
+        },
+      }
+    : {}),
 });
 
 /**
