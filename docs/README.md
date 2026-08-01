@@ -2,7 +2,7 @@
 
 Planning and design documentation for **Revira** *(provisional name)* — a review & customer-voice management SaaS. Launch market: Türkiye. Built global-ready.
 
-> Source-of-truth planning docs. `CLAUDE.md` (repo root) gives Claude Code its project context; start the build from `09-phase-0-build-plan.md`.
+> Source-of-truth planning docs. `CLAUDE.md` (repo root) gives Claude Code its project context. Active build plans: `09-phase-0-build-plan.md` (done) and `10-phase-1a-build-plan.md` (current).
 
 ## Index
 
@@ -16,7 +16,8 @@ Planning and design documentation for **Revira** *(provisional name)* — a revi
 | 06 | [Product UX, Roles & Flows](./06-ux-roles-and-flows.md) | Org/location/team model, roles, navigation, and step-by-step user journeys. |
 | 07 | [Ideas & Parking Lot](./07-ideas-parking-lot.md) | "Not now, don't forget" — premium-digest ideas, deferred bets, open decisions. |
 | 08 | [Design Brief](./08-design-brief.md) | Brand, principles, screens, components, and flows to hand to the design phase. |
-| 09 | [Phase 0 Build Plan](./09-phase-0-build-plan.md) | The first build sprint: ordered tasks, schema, connector interface, entitlements, RLS, definition of done. |
+| 09 | [Phase 0 Build Plan](./09-phase-0-build-plan.md) | ✅ Done — foundations: tenancy/RLS, auth, entitlements, mock connector, vertical slice. |
+| 10 | [Phase 1a Build Plan](./10-phase-1a-build-plan.md) | ▶ Current — AI analysis, notifications, AI replies, and the Action Digest, on the mock connector. |
 
 Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude Code.
 
@@ -25,12 +26,14 @@ Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude
 - [`assets/revira-logo-concepts.svg`](./assets/revira-logo-concepts.svg) — three logo directions (monogram chosen).
 - [`assets/revira-how-it-works.html`](./assets/revira-how-it-works.html) — visual product map (account model + user flows).
 
-## Stack (locked, Phase 0)
+## Roadmap status
 
-Next.js + TypeScript · self-hosted Postgres (Docker) · Drizzle · BetterAuth (org plugin) · Redis + BullMQ · Zod · next-intl (TR/EN) · Stripe skeleton.
+- **Phase 0 — Foundations:** ✅ done.
+- **Phase 1a — AI layer & Action Digest (on mock):** ▶ in progress.
+- **Phase 1b — real connectors (Google / first-party / WhatsApp / Instagram), İYS/consent, live sends:** deferred until the company is formed and the product is otherwise finished.
 
-## Status
+## Stack (locked)
 
-Planning complete. **Next: Phase 0 build via Claude Code** (see `09-phase-0-build-plan.md`), developing against a mock connector until the company is formed and real platform APIs (Google/Meta) are requested.
+Next.js + TypeScript · self-hosted Postgres + pgvector (Docker) · Drizzle · BetterAuth (org plugin) · Redis + BullMQ · Zod · next-intl (TR/EN) · LLM abstraction · Stripe skeleton.
 
 *Working name "Revira" is provisional — pending domain + trademark verification.*
