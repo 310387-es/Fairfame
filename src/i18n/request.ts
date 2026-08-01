@@ -1,4 +1,5 @@
 import { getRequestConfig } from "next-intl/server";
+import { formats } from "./formats";
 import { getLocale } from "./locale";
 
 /**
@@ -14,5 +15,8 @@ export default getRequestConfig(async () => {
     // Both launch markets use the same time zone today; making it explicit
     // stops server and client from disagreeing on formatted dates.
     timeZone: "Europe/Istanbul",
+    // Named formats must be declared, or `format.dateTime(d, "medium")`
+    // throws MISSING_FORMAT.
+    formats,
   };
 });
