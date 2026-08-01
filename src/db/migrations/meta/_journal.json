@@ -29,6 +29,13 @@
       "when": 1785606164118,
       "tag": "0003_auth_table_security",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785608215189,
+      "tag": "0004_connection_config",
+      "breakpoints": true
     }
   ]
 }

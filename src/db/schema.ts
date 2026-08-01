@@ -177,6 +177,13 @@ export const connections = pgTable(
     status: connectionStatusEnum("status").notNull().default("pending"),
     /** Snapshot of the connector's Capability at connect time. */
     capabilities: jsonb("capabilities").notNull().default({}),
+    /**
+     * Non-secret, connector-specific settings (a Google place id, the mock's
+     * drip interval). Credentials never go here — they belong in
+     * `encrypted_tokens`. Not in the original Phase 0 table spec, but every
+     * connector needs somewhere to keep its configuration.
+     */
+    config: jsonb("config").notNull().default({}),
     /** Encrypted at the application layer — never store plaintext credentials. */
     encryptedTokens: text("encrypted_tokens"),
     /** Opaque provider pagination/sync cursor. */
