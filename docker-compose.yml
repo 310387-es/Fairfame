@@ -1,0 +1,49 @@
+name: revira
+
+# Local development infrastructure for Phase 0.
+# Credentials here are intentionally weak dev-only defaults and match the
+# DATABASE_URL / REDIS_URL in .env.example. Never reuse them outside localhost.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: revira-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: revira
+      POSTGRES_PASSWORD: revira
+      POSTGRES_DB: revira
+      # Deterministic collation so ordering matches across machines.
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=und --encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U revira -d revira"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:8-alpine
+    container_name: revira-redis
+    restart: unless-stopped
+    # BullMQ requires keyspace eviction to be disabled: losing a job key to an
+    # eviction policy silently drops work.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  postgres-data:
+  redis-data:

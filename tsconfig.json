@@ -16,6 +16,9 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
+    // Lets scripts/ import src/ modules with explicit .ts extensions, which is
+    // what Node's native type stripping requires. Safe under noEmit.
+    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
