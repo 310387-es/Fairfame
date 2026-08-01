@@ -104,6 +104,23 @@ describe("plan catalog", () => {
     expect(PLAN_CATALOG.agency.priceMonth).toBeNull();
   });
 
+  it("prices the launch market in TRY, in whole minor units", () => {
+    for (const key of PLAN_KEYS) {
+      const plan = PLAN_CATALOG[key];
+      expect(plan.currency, `${key} should be priced for the launch market`).toBe("TRY");
+      if (plan.priceMonth !== null) {
+        expect(Number.isInteger(plan.priceMonth), `${key} price must be integer kuruş`).toBe(true);
+      }
+    }
+  });
+
+  it("caps widgets on Starter so the flag alone cannot imply unlimited", () => {
+    // The `widgets` boolean is true on every tier; only the limit distinguishes
+    // Starter's single widget from the higher tiers.
+    expect(PLAN_CATALOG.starter.entitlements.limits.max_widgets).toBe(1);
+    expect(PLAN_CATALOG.growth.entitlements.limits.max_widgets).toBeNull();
+  });
+
   it("rejects an entitlements blob with a missing key", () => {
     const { social_sources: _dropped, ...features } = PLAN_CATALOG.pro.entitlements.features;
     const broken = { ...PLAN_CATALOG.pro.entitlements, features };

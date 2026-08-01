@@ -10,6 +10,7 @@ import {
   text,
   timestamp,
   unique,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -19,9 +20,9 @@ import {
  * -----------
  * - Every tenant-owned row carries `organization_id`. Row-Level Security and
  *   the tenant-scoped data layer land in T4; this file only declares shape.
- * - Primary keys are `text`, not `uuid`. BetterAuth (T5) generates its own
- *   string ids for users / organizations / memberships, and foreign keys must
- *   match that type, so every table uses text ids for uniformity.
+ * - Primary keys are native `uuid`, defaulted by Postgres `gen_random_uuid()`.
+ *   BetterAuth must therefore be configured with `advanced.database.generateId:
+ *   "uuid"` in T5, which lets Postgres generate the id itself.
  * - Deleting an organization cascades to its tenant rows, which is what
  *   KVKK/GDPR erasure requires.
  * - Money is stored in integer minor units (cents), never floats.
@@ -58,10 +59,7 @@ export const consentTypeEnum = pgEnum("consent_type", ["kvkk", "iys"]);
 // Shared column builders
 // ---------------------------------------------------------------------------
 
-const primaryId = () =>
-  text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID());
+const primaryId = () => uuid("id").primaryKey().defaultRandom();
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -79,8 +77,13 @@ export const plans = pgTable("plans", {
   id: primaryId(),
   key: planKeyEnum("key").notNull().unique(),
   name: text("name").notNull(),
-  /** USD minor units (cents). Null for Agency, which is quoted per deal. */
+  /**
+   * Minor units of `currency` (kuruş for TRY). Null for Agency — quoted per deal.
+   * Integer, never a float: money must not round.
+   */
   priceMonth: integer("price_month"),
+  /** ISO 4217. TRY for the launch market; USD/EUR plans come with Stripe later. */
+  currency: text("currency").notNull().default("TRY"),
   interval: billingIntervalEnum("interval").notNull().default("month"),
   /** Feature flags, numeric limits and metered allowances. Config, not code. */
   entitlements: jsonb("entitlements").notNull(),
@@ -108,7 +111,7 @@ export const organizations = pgTable("organizations", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   logo: text("logo"),
-  planId: text("plan_id").references(() => plans.id, { onDelete: "set null" }),
+  planId: uuid("plan_id").references(() => plans.id, { onDelete: "set null" }),
   locale: text("locale").notNull().default("tr"),
   currency: text("currency").notNull().default("TRY"),
   settings: jsonb("settings").notNull().default({}),
@@ -119,10 +122,10 @@ export const memberships = pgTable(
   "memberships",
   {
     id: primaryId(),
-    organizationId: text("organization_id")
+    organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: text("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: membershipRoleEnum("role").notNull().default("member"),
@@ -143,7 +146,7 @@ export const locations = pgTable(
   "locations",
   {
     id: primaryId(),
-    organizationId: text("organization_id")
+    organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
@@ -159,10 +162,10 @@ export const connections = pgTable(
   "connections",
   {
     id: primaryId(),
-    organizationId: text("organization_id")
+    organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    locationId: text("location_id")
+    locationId: uuid("location_id")
       .notNull()
       .references(() => locations.id, { onDelete: "cascade" }),
     /** Connector provider key: 'mock' | 'google' | 'instagram' | ... */
@@ -191,10 +194,10 @@ export const reviews = pgTable(
   "reviews",
   {
     id: primaryId(),
-    organizationId: text("organization_id")
+    organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    locationId: text("location_id")
+    locationId: uuid("location_id")
       .notNull()
       .references(() => locations.id, { onDelete: "cascade" }),
     source: text("source").notNull(),
@@ -209,8 +212,17 @@ export const reviews = pgTable(
     ...timestamps,
   },
   (table) => [
-    // Dedup key from the build plan's canonical contract.
-    unique("reviews_source_source_review_id_key").on(table.source, table.sourceReviewId),
+    // Dedup key, scoped to the tenant. The build plan specifies
+    // unique(source, source_review_id), but a global constraint breaks the
+    // moment two organizations connect the same public place: the second
+    // tenant's ingest would collide, silently lose reviews, and leak the
+    // existence of another tenant's row. Dedup is only ever meaningful within
+    // an organization, so organization_id leads the key.
+    unique("reviews_org_source_source_review_id_key").on(
+      table.organizationId,
+      table.source,
+      table.sourceReviewId,
+    ),
     // Inbox listing: newest first, scoped to a location within a tenant.
     index("reviews_org_location_posted_at_idx").on(
       table.organizationId,
@@ -225,10 +237,10 @@ export const subscriptions = pgTable(
   "subscriptions",
   {
     id: primaryId(),
-    organizationId: text("organization_id")
+    organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    planId: text("plan_id")
+    planId: uuid("plan_id")
       .notNull()
       .references(() => plans.id, { onDelete: "restrict" }),
     status: subscriptionStatusEnum("status").notNull().default("trialing"),
@@ -244,7 +256,7 @@ export const usageCounters = pgTable(
   "usage_counters",
   {
     id: primaryId(),
-    organizationId: text("organization_id")
+    organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     /** Metered entitlement key, e.g. 'sms_credits'. */
@@ -267,11 +279,11 @@ export const auditLogs = pgTable(
   "audit_logs",
   {
     id: primaryId(),
-    organizationId: text("organization_id")
+    organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     /** Null when the actor is the system (a scheduled job, a webhook). */
-    actorUserId: text("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
     action: text("action").notNull(),
     entity: text("entity"),
     meta: jsonb("meta").notNull().default({}),
@@ -286,7 +298,7 @@ export const consentRecords = pgTable(
   "consent_records",
   {
     id: primaryId(),
-    organizationId: text("organization_id")
+    organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     /** Pointer to the contact (phone/email hash or contact id) — not the PII itself. */

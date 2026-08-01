@@ -5,9 +5,9 @@ CREATE TYPE "public"."membership_role" AS ENUM('owner', 'admin', 'member', 'clie
 CREATE TYPE "public"."plan_key" AS ENUM('starter', 'growth', 'pro', 'agency');--> statement-breakpoint
 CREATE TYPE "public"."subscription_status" AS ENUM('trialing', 'active', 'past_due', 'canceled', 'incomplete');--> statement-breakpoint
 CREATE TABLE "audit_logs" (
-	"id" text PRIMARY KEY NOT NULL,
-	"organization_id" text NOT NULL,
-	"actor_user_id" text,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"actor_user_id" uuid,
 	"action" text NOT NULL,
 	"entity" text,
 	"meta" jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -17,9 +17,9 @@ CREATE TABLE "audit_logs" (
 );
 --> statement-breakpoint
 CREATE TABLE "connections" (
-	"id" text PRIMARY KEY NOT NULL,
-	"organization_id" text NOT NULL,
-	"location_id" text NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"location_id" uuid NOT NULL,
 	"provider" text NOT NULL,
 	"status" "connection_status" DEFAULT 'pending' NOT NULL,
 	"capabilities" jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -31,8 +31,8 @@ CREATE TABLE "connections" (
 );
 --> statement-breakpoint
 CREATE TABLE "consent_records" (
-	"id" text PRIMARY KEY NOT NULL,
-	"organization_id" text NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"contact_ref" text NOT NULL,
 	"type" "consent_type" NOT NULL,
 	"granted_at" timestamp with time zone,
@@ -43,8 +43,8 @@ CREATE TABLE "consent_records" (
 );
 --> statement-breakpoint
 CREATE TABLE "locations" (
-	"id" text PRIMARY KEY NOT NULL,
-	"organization_id" text NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"name" text NOT NULL,
 	"address" text,
 	"category" text,
@@ -54,9 +54,9 @@ CREATE TABLE "locations" (
 );
 --> statement-breakpoint
 CREATE TABLE "memberships" (
-	"id" text PRIMARY KEY NOT NULL,
-	"organization_id" text NOT NULL,
-	"user_id" text NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"user_id" uuid NOT NULL,
 	"role" "membership_role" DEFAULT 'member' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -64,11 +64,11 @@ CREATE TABLE "memberships" (
 );
 --> statement-breakpoint
 CREATE TABLE "organizations" (
-	"id" text PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"slug" text NOT NULL,
 	"logo" text,
-	"plan_id" text,
+	"plan_id" uuid,
 	"locale" text DEFAULT 'tr' NOT NULL,
 	"currency" text DEFAULT 'TRY' NOT NULL,
 	"settings" jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -78,10 +78,11 @@ CREATE TABLE "organizations" (
 );
 --> statement-breakpoint
 CREATE TABLE "plans" (
-	"id" text PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"key" "plan_key" NOT NULL,
 	"name" text NOT NULL,
 	"price_month" integer,
+	"currency" text DEFAULT 'TRY' NOT NULL,
 	"interval" "billing_interval" DEFAULT 'month' NOT NULL,
 	"entitlements" jsonb NOT NULL,
 	"provider_price_id" text,
@@ -91,9 +92,9 @@ CREATE TABLE "plans" (
 );
 --> statement-breakpoint
 CREATE TABLE "reviews" (
-	"id" text PRIMARY KEY NOT NULL,
-	"organization_id" text NOT NULL,
-	"location_id" text NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"location_id" uuid NOT NULL,
 	"source" text NOT NULL,
 	"source_review_id" text NOT NULL,
 	"author_name" text,
@@ -105,14 +106,14 @@ CREATE TABLE "reviews" (
 	"raw_payload" jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "reviews_source_source_review_id_key" UNIQUE("source","source_review_id"),
+	CONSTRAINT "reviews_org_source_source_review_id_key" UNIQUE("organization_id","source","source_review_id"),
 	CONSTRAINT "reviews_rating_range" CHECK ("reviews"."rating" is null or "reviews"."rating" between 1 and 5)
 );
 --> statement-breakpoint
 CREATE TABLE "subscriptions" (
-	"id" text PRIMARY KEY NOT NULL,
-	"organization_id" text NOT NULL,
-	"plan_id" text NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"plan_id" uuid NOT NULL,
 	"status" "subscription_status" DEFAULT 'trialing' NOT NULL,
 	"current_period_end" timestamp with time zone,
 	"overrides" jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -121,8 +122,8 @@ CREATE TABLE "subscriptions" (
 );
 --> statement-breakpoint
 CREATE TABLE "usage_counters" (
-	"id" text PRIMARY KEY NOT NULL,
-	"organization_id" text NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"metric" text NOT NULL,
 	"period" text NOT NULL,
 	"count" integer DEFAULT 0 NOT NULL,
@@ -132,7 +133,7 @@ CREATE TABLE "usage_counters" (
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
-	"id" text PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
 	"name" text NOT NULL,
 	"email_verified" boolean DEFAULT false NOT NULL,

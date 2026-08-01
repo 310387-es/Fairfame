@@ -12,6 +12,16 @@ import { z } from "zod";
  * tunable defaults rather than settled product decisions.
  *
  * `null` means unlimited. It never means zero.
+ *
+ * Pricing is denominated in TRY (kuruş) because Türkiye is the launch market.
+ * docs/05 anchors the tiers to ~$29 / ~$79 / ~$199; the TRY figures below apply
+ * an assumed ~45 TRY/USD and are explicitly repriced for inflation, exactly as
+ * that doc says. Adding USD/EUR plans later means new catalog rows with a
+ * different `currency`, not a schema change.
+ *
+ * `max_widgets` is not in the build plan's key list. Without it the Starter
+ * "1 widget" entitlement from docs/05 §2.1 is unexpressible and Starter reads
+ * as unlimited widget access, so the key is added here deliberately.
  */
 
 export const FEATURE_KEYS = [
@@ -27,6 +37,7 @@ export const FEATURE_KEYS = [
 export const LIMIT_KEYS = [
   "max_locations",
   "max_team_members",
+  "max_widgets",
   "requests_per_month",
   "ai_analyses_per_month",
 ] as const;
@@ -69,8 +80,10 @@ export type PlanKey = (typeof PLAN_KEYS)[number];
 export type PlanConfig = {
   key: PlanKey;
   name: string;
-  /** USD minor units (cents). Null for Agency — quoted per deal. */
+  /** Minor units of `currency` (kuruş for TRY). Null for Agency — quoted per deal. */
   priceMonth: number | null;
+  /** ISO 4217. TRY is the launch-market currency. */
+  currency: string;
   interval: "month" | "year";
   entitlements: Entitlements;
 };
@@ -79,7 +92,8 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
   starter: {
     key: "starter",
     name: "Starter",
-    priceMonth: 2900,
+    priceMonth: 129_900, // ₺1.299,00
+    currency: "TRY",
     interval: "month",
     entitlements: {
       features: {
@@ -94,6 +108,7 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
       limits: {
         max_locations: 1,
         max_team_members: 2,
+        max_widgets: 1,
         requests_per_month: 100,
         ai_analyses_per_month: 250,
       },
@@ -107,7 +122,8 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
   growth: {
     key: "growth",
     name: "Growth",
-    priceMonth: 7900,
+    priceMonth: 349_900, // ₺3.499,00
+    currency: "TRY",
     interval: "month",
     entitlements: {
       features: {
@@ -122,6 +138,7 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
       limits: {
         max_locations: 3,
         max_team_members: 5,
+        max_widgets: null, // unlimited
         requests_per_month: null, // unlimited (fair use)
         ai_analyses_per_month: 2_000,
       },
@@ -135,7 +152,8 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
   pro: {
     key: "pro",
     name: "Pro",
-    priceMonth: 19900,
+    priceMonth: 899_900, // ₺8.999,00
+    currency: "TRY",
     interval: "month",
     entitlements: {
       features: {
@@ -150,6 +168,7 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
       limits: {
         max_locations: 10,
         max_team_members: 15,
+        max_widgets: null,
         requests_per_month: null,
         ai_analyses_per_month: 10_000,
       },
@@ -164,6 +183,7 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
     key: "agency",
     name: "Agency",
     priceMonth: null, // custom: per-seat + per-location
+    currency: "TRY",
     interval: "month",
     entitlements: {
       features: {
@@ -178,6 +198,7 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
       limits: {
         max_locations: null,
         max_team_members: null,
+        max_widgets: null,
         requests_per_month: null,
         ai_analyses_per_month: null,
       },

@@ -46,6 +46,7 @@ try {
         key: plan.key,
         name: plan.name,
         priceMonth: plan.priceMonth,
+        currency: plan.currency,
         interval: plan.interval,
         entitlements: plan.entitlements,
       })
@@ -54,6 +55,7 @@ try {
         set: {
           name: plan.name,
           priceMonth: plan.priceMonth,
+          currency: plan.currency,
           interval: plan.interval,
           entitlements: plan.entitlements,
           updatedAt: new Date(),
