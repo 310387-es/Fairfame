@@ -2,8 +2,9 @@
   "name": "revira",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.18.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "dev": "next dev",
