@@ -33,6 +33,12 @@ const booleanish = z
   .enum(["true", "false", "1", "0"])
   .transform((value) => value === "true" || value === "1");
 
+/** Empty means absent — an unset credential must not read as configured. */
+const optionalSecret = z
+  .string()
+  .optional()
+  .transform((value) => (value === "" ? undefined : value));
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
@@ -53,11 +59,12 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).optional(),
   LOG_PRETTY: booleanish.optional(),
 
-  // Stripe is a stub in Phase 0 — absent or empty is valid.
-  STRIPE_SECRET_KEY: z
-    .string()
-    .optional()
-    .transform((value) => (value === "" ? undefined : value)),
+  // Billing is skeleton-only in Phase 0, so every credential is optional and
+  // an empty string means "absent" rather than "configured with nothing".
+  STRIPE_SECRET_KEY: optionalSecret,
+  /** Türkiye billing (TRY + e-fatura). Stubbed until a later phase. */
+  IYZICO_API_KEY: optionalSecret,
+  IYZICO_SECRET_KEY: optionalSecret,
 });
 
 export type Env = z.infer<typeof envSchema>;
