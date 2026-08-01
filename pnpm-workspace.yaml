@@ -1,6 +1,8 @@
 # Native postinstall builds we explicitly trust:
 #   sharp         — Next.js image optimization
 #   unrs-resolver — ESLint import resolver
+#   esbuild       — drizzle-kit's bundler
 allowBuilds:
+  esbuild: true
   sharp: true
   unrs-resolver: true
