@@ -10,11 +10,19 @@ import { loggerOptions } from "@/lib/logger";
  */
 function captureLog(payload: Record<string, unknown>, message: string): Record<string, unknown> {
   const lines: string[] = [];
-  const log = pino(loggerOptions, {
-    write(chunk: string) {
-      lines.push(chunk);
+
+  // The level is pinned rather than inherited. loggerOptions.level comes from
+  // LOG_LEVEL, so these tests silently emitted nothing wherever that was set
+  // above "info" — they passed locally and failed in CI, which runs at "warn".
+  // What is under test here is serialization and redaction, not filtering.
+  const log = pino(
+    { ...loggerOptions, level: "trace" },
+    {
+      write(chunk: string) {
+        lines.push(chunk);
+      },
     },
-  });
+  );
 
   log.info(payload, message);
 
