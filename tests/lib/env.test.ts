@@ -27,6 +27,19 @@ describe("env config", () => {
     expect(env.STRIPE_SECRET_KEY).toBeUndefined();
   });
 
+  it("defaults the worker scan interval and coerces it from a string", () => {
+    expect(parseEnvForTesting(validEnv).SYNC_SCAN_INTERVAL_MS).toBe(60_000);
+    expect(
+      parseEnvForTesting({ ...validEnv, SYNC_SCAN_INTERVAL_MS: "5000" }).SYNC_SCAN_INTERVAL_MS,
+    ).toBe(5_000);
+  });
+
+  it("rejects a scan interval that would hammer the database", () => {
+    expect(() => parseEnvForTesting({ ...validEnv, SYNC_SCAN_INTERVAL_MS: "10" })).toThrow(
+      /SYNC_SCAN_INTERVAL_MS/,
+    );
+  });
+
   it("coerces LOG_PRETTY from its string forms", () => {
     expect(parseEnvForTesting({ ...validEnv, LOG_PRETTY: "true" }).LOG_PRETTY).toBe(true);
     expect(parseEnvForTesting({ ...validEnv, LOG_PRETTY: "0" }).LOG_PRETTY).toBe(false);

@@ -107,6 +107,9 @@ function dripReviews(config: MockConfig, now: Date): MockReviewPayload[] {
       spanDays: 1,
       seed: config.seed,
       batchTag: `drip${current}`,
+      // Exactly on the bucket boundary. Any backwards jitter could land the
+      // review before the stored cursor, and it would never be ingested.
+      jitterMs: 0,
     }),
   );
 }

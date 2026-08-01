@@ -2,7 +2,9 @@
 #   sharp         — Next.js image optimization
 #   unrs-resolver — ESLint import resolver
 #   esbuild       — drizzle-kit's bundler
+#   msgpackr-extract — BullMQ's msgpack serializer (native accelerator)
 allowBuilds:
   esbuild: true
+  msgpackr-extract: true
   sharp: true
   unrs-resolver: true

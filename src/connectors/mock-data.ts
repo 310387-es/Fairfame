@@ -302,6 +302,14 @@ export type CorpusOptions = {
   seed?: string;
   /** Marks generated ids, so drip batches never collide with the backfill. */
   batchTag?: string;
+  /**
+   * Random backwards scatter applied to each timestamp, in milliseconds.
+   *
+   * Harmless across a long backfill, but it must be 0 for a short drip batch:
+   * scattering a "new" review backwards can place it before the sync cursor,
+   * and the incremental fetch would then never return it.
+   */
+  jitterMs?: number;
 };
 
 /**
@@ -311,7 +319,15 @@ export type CorpusOptions = {
  * yields byte-identical ids — which is exactly what makes dedup testable.
  */
 export function generateCorpus(options: CorpusOptions): MockReviewPayload[] {
-  const { locationId, count, until, spanDays = 180, seed = "", batchTag = "bf" } = options;
+  const {
+    locationId,
+    count,
+    until,
+    spanDays = 180,
+    seed = "",
+    batchTag = "bf",
+    jitterMs = 3_600_000,
+  } = options;
   const random = rng(hashSeed(`${locationId}:${seed}:${batchTag}`));
   const shortId = hashSeed(locationId).toString(36).slice(0, 6);
 
@@ -336,7 +352,7 @@ export function generateCorpus(options: CorpusOptions): MockReviewPayload[] {
 
     // Spread backwards from `until`, newest first.
     const ageMs = Math.floor((index / Math.max(count, 1)) * spanDays * 86_400_000);
-    const jitter = Math.floor(random() * 3_600_000);
+    const jitter = jitterMs > 0 ? Math.floor(random() * jitterMs) : 0;
     const createdAt = new Date(until.getTime() - ageMs - jitter);
 
     const names = language === "tr" ? TR_NAMES : EN_NAMES;

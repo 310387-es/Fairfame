@@ -315,12 +315,14 @@ export async function recordUsage(
 }
 
 export class EntitlementError extends Error {
-  constructor(
-    message: string,
-    readonly key: FeatureKey | MetricKey,
-  ) {
+  // Explicit field, not a parameter property: Node's strip-only type stripping
+  // (used by scripts/ and the worker) does not support those.
+  readonly key: FeatureKey | MetricKey;
+
+  constructor(message: string, key: FeatureKey | MetricKey) {
     super(message);
     this.name = "EntitlementError";
+    this.key = key;
   }
 }
 

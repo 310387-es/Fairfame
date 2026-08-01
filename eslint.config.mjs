@@ -18,6 +18,10 @@ const eslintConfig = defineConfig([
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      // Parameter properties are unsupported by Node's strip-only type
+      // stripping, which is how scripts/ and the worker process execute.
+      // Vite transpiles them fine, so tests would not catch the breakage.
+      "@typescript-eslint/parameter-properties": ["error", { prefer: "class-property" }],
     },
   },
   // Keep formatting concerns in Prettier, not ESLint. Must stay last.

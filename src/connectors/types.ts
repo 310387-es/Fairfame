@@ -86,13 +86,17 @@ export type ReplyResult =
 
 /** Thrown for provider-side failures so the job layer can decide about retries. */
 export class ConnectorError extends Error {
-  constructor(
-    message: string,
-    readonly provider: string,
-    readonly retryable: boolean = true,
-  ) {
+  // Written out as explicit fields rather than TypeScript parameter
+  // properties: Node's strip-only type stripping — which is how scripts/ and
+  // the worker process run — rejects parameter properties outright.
+  readonly provider: string;
+  readonly retryable: boolean;
+
+  constructor(message: string, provider: string, retryable = true) {
     super(message);
     this.name = "ConnectorError";
+    this.provider = provider;
+    this.retryable = retryable;
   }
 }
 

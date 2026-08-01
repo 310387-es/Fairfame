@@ -47,6 +47,9 @@ const envSchema = z.object({
   }),
   BETTER_AUTH_URL: z.url({ message: "must be a valid URL" }),
 
+  /** How often the worker scans for connections to sync. Defaults to 60s. */
+  SYNC_SCAN_INTERVAL_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(60_000),
+
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).optional(),
   LOG_PRETTY: booleanish.optional(),
 

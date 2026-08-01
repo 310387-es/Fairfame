@@ -216,6 +216,46 @@ describe("fetchReviews()", () => {
     await expect(mockConnector.fetchReviews(failing)).rejects.toMatchObject({ retryable: false });
   });
 
+  it("places drip reviews exactly on their interval boundary", async () => {
+    // Regression guard. The generator scatters timestamps backwards by up to an
+    // hour, which is invisible across a 180-day backfill but fatal for a
+    // one-minute drip: a scattered "new" review can land before the stored
+    // cursor, so the incremental fetch never returns it and the drip silently
+    // stops after the first batch.
+    const intervalMinutes = 1;
+    const raw = await mockConnector.fetchReviews(
+      connection({
+        config: {
+          locationId: LOCATION_ID,
+          backfillCount: 0,
+          dripIntervalMinutes: intervalMinutes,
+        },
+      }),
+    );
+
+    expect(raw.length).toBeGreaterThan(0);
+
+    const intervalMs = intervalMinutes * 60_000;
+    for (const review of raw) {
+      const at = Date.parse(String(review.payload.createdAt));
+      expect(at % intervalMs, "drip timestamps must sit on the bucket boundary").toBe(0);
+    }
+  });
+
+  it("makes each drip bucket strictly newer than the last", async () => {
+    const raw = await mockConnector.fetchReviews(
+      connection({
+        config: { locationId: LOCATION_ID, backfillCount: 0, dripIntervalMinutes: 1 },
+      }),
+    );
+
+    const times = raw.map((review) => Date.parse(String(review.payload.createdAt)));
+    const ascending = [...times].sort((x, y) => x - y);
+
+    expect(new Set(times).size).toBe(times.length);
+    expect(times.slice().sort((x, y) => x - y)).toEqual(ascending);
+  });
+
   it("emits extra drip reviews when a drip interval is configured", async () => {
     const withoutDrip = await mockConnector.fetchReviews(
       connection({ config: { locationId: LOCATION_ID, backfillCount: 10 } }),
