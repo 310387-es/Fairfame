@@ -39,7 +39,10 @@ const isProduction = process.env.NODE_ENV === "production";
  */
 export const loggerOptions: LoggerOptions = {
   level: process.env.LOG_LEVEL ?? (isProduction ? "info" : "debug"),
-  base: { service: "revira" },
+  // Named `app`, not `service`: a base binding called "service" collides with
+  // the natural field name for "which dependency/queue/provider is this
+  // about?", and the pretty transport then hides the more specific one.
+  base: { app: "revira" },
   redact: { paths: redactPaths, censor: "[redacted]" },
   formatters: {
     level: (label) => ({ level: label }),
@@ -55,7 +58,7 @@ export const logger: Logger = pino({
     ? {
         transport: {
           target: "pino-pretty",
-          options: { colorize: true, translateTime: "HH:MM:ss.l", ignore: "pid,hostname,service" },
+          options: { colorize: true, translateTime: "HH:MM:ss.l", ignore: "pid,hostname,app" },
         },
       }
     : {}),

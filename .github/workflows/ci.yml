@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Real Postgres and Redis. The database suites are the only proof that RLS
+    # actually isolates tenants, so they must run on every change — never be
+    # skipped when a service is missing. A skipped isolation test that reports
+    # green is worse than no test at all.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: revira
+          POSTGRES_PASSWORD: revira
+          POSTGRES_DB: revira
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U revira -d revira"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+      redis:
+        image: redis:8-alpine
+        # BullMQ requires noeviction: any eviction policy can silently drop job keys.
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+        ports: ["6379:6379"]
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://revira:revira@localhost:5432/revira
+      APP_DATABASE_URL: postgres://revira_app:revira_app@localhost:5432/revira
+      REDIS_URL: redis://localhost:6379
+      BETTER_AUTH_SECRET: ci-secret-not-used-for-anything-real-000000
+      BETTER_AUTH_URL: http://localhost:3000
+      LOG_LEVEL: warn
+      LOG_PRETTY: "false"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The compose init script cannot run against a GitHub service container,
+      # so create the RLS-bound role here. It must be NOSUPERUSER/NOBYPASSRLS
+      # or every isolation test would pass for the wrong reason.
+      - name: Create the application role
+        env:
+          PGPASSWORD: revira
+        run: |
+          psql -h localhost -U revira -d revira -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'revira_app') THEN
+              CREATE ROLE revira_app LOGIN PASSWORD 'revira_app';
+            END IF;
+          END
+          $$;
+          ALTER ROLE revira_app NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+          GRANT CONNECT ON DATABASE revira TO revira_app;
+          SQL
+
+      - name: Write .env for the db-backed suites
+        run: |
+          {
+            echo "DATABASE_URL=$DATABASE_URL"
+            echo "APP_DATABASE_URL=$APP_DATABASE_URL"
+            echo "REDIS_URL=$REDIS_URL"
+            echo "BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET"
+            echo "BETTER_AUTH_URL=$BETTER_AUTH_URL"
+            echo "NODE_ENV=test"
+            echo "LOG_LEVEL=warn"
+            echo "LOG_PRETTY=false"
+          } > .env
+
+      - run: pnpm run db:migrate
+      - run: pnpm run db:seed
+
+      # Fail loudly if the runtime role can bypass RLS — that would make the
+      # tenant isolation suite meaningless while still reporting green.
+      - name: Assert the runtime role cannot bypass RLS
+        env:
+          PGPASSWORD: revira
+        run: |
+          RESULT=$(psql -h localhost -U revira -d revira -tAc \
+            "select rolsuper or rolbypassrls from pg_roles where rolname = 'revira_app'")
+          if [ "$RESULT" != "f" ]; then
+            echo "revira_app can bypass RLS — isolation tests would be worthless." >&2
+            exit 1
+          fi
+
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm run format:check
+      - run: pnpm run test
+      - run: pnpm run test:db
+      - run: pnpm run build

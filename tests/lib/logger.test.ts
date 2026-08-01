@@ -24,11 +24,11 @@ function captureLog(payload: Record<string, unknown>, message: string): Record<s
 }
 
 describe("logger", () => {
-  it("emits structured JSON with the service name and an ISO timestamp", () => {
+  it("emits structured JSON with the app name and an ISO timestamp", () => {
     const entry = captureLog({ orgId: "org_123" }, "hello");
 
     expect(entry.level).toBe("info");
-    expect(entry.service).toBe("revira");
+    expect(entry.app).toBe("revira");
     expect(entry.msg).toBe("hello");
     expect(entry.orgId).toBe("org_123");
     expect(String(entry.time)).toMatch(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/);
@@ -52,6 +52,15 @@ describe("logger", () => {
     expect(conn.refreshToken).toBe("[redacted]");
     // Non-secret fields must survive redaction.
     expect(conn.provider).toBe("mock");
+  });
+
+  it("does not claim the reserved `service` field, so callers may use it", () => {
+    // A base binding named "service" would shadow the far more useful
+    // per-record meaning: which dependency, queue or provider this is about.
+    const entry = captureLog({ service: "redis", ok: false }, "probe failed");
+
+    expect(entry.app).toBe("revira");
+    expect(entry.service).toBe("redis");
   });
 
   it("leaves non-secret tenant fields intact", () => {

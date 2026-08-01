@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:db": "vitest run --config vitest.db.config.mts",
+    "test:all": "pnpm run test && pnpm run test:db",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",
     "infra:check": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-infra.mts",
@@ -25,7 +26,8 @@
     "db:seed": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed.mts",
     "db:studio": "node --env-file=.env ./node_modules/drizzle-kit/bin.cjs studio",
     "worker": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/worker.mts",
-    "check": "pnpm run lint && pnpm run typecheck && pnpm run format:check && pnpm run test"
+    "check": "pnpm run lint && pnpm run typecheck && pnpm run format:check && pnpm run test",
+    "verify": "pnpm run check && pnpm run test:db && pnpm run build"
   },
   "dependencies": {
     "better-auth": "^1.6.25",
