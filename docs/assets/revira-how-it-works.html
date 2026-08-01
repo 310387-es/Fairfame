@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Revira — How It Works</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<style>
+  :root{ --indigo:#3D5AF1; --amber:#F5A524; --ink:#10193A; --muted:#6B7290; --bg:#F6F7FB; --line:#E3E6EF; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Poppins','Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.5;}
+  .wrap{max-width:1040px;margin:0 auto;padding:40px 24px 72px;}
+  header{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:8px;}
+  h1{font-size:28px;margin:0 0 4px;}
+  h1 span{color:var(--muted);font-weight:400;}
+  .sub{color:var(--muted);font-size:14px;margin:0;}
+  section{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px 26px;margin-top:24px;}
+  h2{font-size:18px;margin:0 0 4px;}
+  h2 .tag{display:inline-block;font-size:11px;font-weight:600;color:#fff;background:var(--indigo);
+    border-radius:6px;padding:2px 8px;margin-right:8px;vertical-align:middle;}
+  .cap{color:var(--muted);font-size:13px;margin:0 0 18px;}
+  .mermaid{display:flex;justify-content:center;background:#FBFCFE;border:1px dashed var(--line);
+    border-radius:12px;padding:18px;overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:4px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:#F1F3FB;font-weight:600;font-size:12.5px;letter-spacing:.02em;}
+  td.role{font-weight:600;color:var(--indigo);white-space:nowrap;}
+  .legend{font-size:12px;color:var(--muted);margin-top:12px;}
+  .swatch{display:inline-block;width:11px;height:11px;border-radius:3px;margin:0 4px 0 12px;vertical-align:middle;}
+  footer{color:#A2A7B8;font-size:12px;margin-top:28px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Revira <span>— how it works</span></h1>
+    <p class="sub">Account model · user flows · roles · multi-location &amp; agency · provisional name</p>
+  </header>
+
+  <section>
+    <h2><span class="tag">1</span>The Account Model</h2>
+    <p class="cap">One mental model for the whole app. Everything belongs to a <b>Location</b>; Locations belong to an <b>Organization</b>; a <b>Team</b> works across them with roles. Reviews roll up from Location → Organization.</p>
+    <div class="mermaid">
+flowchart TD
+  ORG["🏢 Organization<br/>(the paying account)"]
+  TEAM["👥 Team members<br/>Owner · Admin · Member · Client"]
+  L1["📍 Location A"]
+  L2["📍 Location B"]
+  G1["Google"]
+  I1["Instagram"]
+  W1["WhatsApp"]
+  F1["First-party"]
+  REV["Reviews &amp; social mentions"]
+  AI["AI insights<br/>sentiment · themes"]
+  DIG["📊 Weekly Action Digest"]
+  ORG --> TEAM
+  ORG --> L1
+  ORG --> L2
+  L1 --> G1
+  L1 --> I1
+  L1 --> W1
+  L1 --> F1
+  G1 --> REV
+  I1 --> REV
+  W1 --> REV
+  F1 --> REV
+  REV --> AI
+  AI --> DIG
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="tag">2</span>First-Run / Onboarding</h2>
+    <p class="cap">Target: under 10 minutes from signup to first value.</p>
+    <div class="mermaid">
+flowchart LR
+  A["Sign up"] --> B["Create<br/>Organization"]
+  B --> C["Add<br/>Location"]
+  C --> D["Connect sources<br/>Google · Instagram · WhatsApp"]
+  D --> E["Auto-import<br/>history"]
+  E --> F["Land in Inbox<br/>reply to 1st review with AI"]
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="tag">3</span>How It's Used — Daily &amp; Weekly Loops</h2>
+    <p class="cap">Two rhythms. The daily loop keeps reputation clean; the weekly Action Digest is the habit + the moat.</p>
+    <div class="mermaid">
+flowchart TD
+  subgraph DAILY["🔁 Daily loop — triage &amp; respond"]
+    direction LR
+    N["New review /<br/>mention"] --> NT["Notification<br/>(negative = urgent)"]
+    NT --> IN["Open Inbox"]
+    IN --> AID["AI sentiment<br/>+ draft reply"]
+    AID --> AP["Edit → approve<br/>→ post"]
+    AP --> TG["Tag / assign"]
+  end
+  subgraph WEEKLY["⭐ Weekly loop — the hero"]
+    direction LR
+    DG["Action Digest<br/>arrives"] --> ACT["3 recommended<br/>actions + assets"]
+    ACT --> DO["Take action"]
+    DO --> LP["Next digest reports<br/>if it worked"]
+    LP --> DG
+  end
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="tag">4</span>Team Access &amp; Roles</h2>
+    <p class="cap">Roles are set per Organization; visibility can be scoped to specific locations.</p>
+    <table>
+      <thead><tr><th>Role</th><th>Sees</th><th>Can do</th><th>Location scope</th></tr></thead>
+      <tbody>
+        <tr><td class="role">Owner</td><td>Everything</td><td>Full control incl. billing, delete org</td><td>All</td></tr>
+        <tr><td class="role">Admin</td><td>Everything</td><td>Manage sources, team, settings, reply</td><td>All or assigned</td></tr>
+        <tr><td class="role">Member</td><td>Assigned locations</td><td>View, reply (draft-only or post), tag, assign</td><td>Assigned only</td></tr>
+        <tr><td class="role">Client</td><td>Own locations only</td><td>View reports, limited reply (agency use)</td><td>Their locations</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="tag">5</span>Multi-Location &amp; Agency Structure</h2>
+    <p class="cap">The same model scales from one café to a franchise to an agency running many clients.</p>
+    <div class="mermaid">
+flowchart TD
+  AG["🏢 Agency<br/>(Organization)"]
+  CA["Client A<br/>locations"]
+  CB["Client B<br/>locations"]
+  U1["👤 Client A user<br/>Client role — sees only A"]
+  U2["👤 Client B user<br/>Client role — sees only B"]
+  STAFF["👥 Agency staff<br/>Admin across all clients"]
+  AG --> STAFF
+  AG --> CA
+  AG --> CB
+  CA --> U1
+  CB --> U2
+    </div>
+    <p class="legend">
+      <span class="swatch" style="background:#3D5AF1"></span>Indigo · structure
+      <span class="swatch" style="background:#F5A524"></span>Amber · the hero (digest)
+      <span class="swatch" style="background:#10193A"></span>Ink · text
+    </p>
+  </section>
+
+  <footer>Revira · product map v1 · Aug 2026 · provisional name — companion to the PRD &amp; UX docs</footer>
+</div>
+<script>
+  mermaid.initialize({
+    startOnLoad:true, theme:'base', securityLevel:'loose',
+    themeVariables:{
+      primaryColor:'#EEF1FE', primaryBorderColor:'#3D5AF1', primaryTextColor:'#10193A',
+      lineColor:'#9AA0B6', fontFamily:"'Poppins','Segoe UI',sans-serif", fontSize:'14px',
+      clusterBkg:'#FBFCFE', clusterBorder:'#E3E6EF'
+    }
+  });
+</script>
+</body>
+</html>
