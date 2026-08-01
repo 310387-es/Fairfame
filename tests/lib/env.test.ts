@@ -4,6 +4,7 @@ import { parseEnvForTesting } from "@/lib/env";
 const validEnv = {
   NODE_ENV: "development",
   DATABASE_URL: "postgres://revira:revira@localhost:5432/revira",
+  APP_DATABASE_URL: "postgres://revira_app:revira_app@localhost:5432/revira",
   REDIS_URL: "redis://localhost:6379",
   BETTER_AUTH_SECRET: "a".repeat(32),
   BETTER_AUTH_URL: "http://localhost:3000",
@@ -15,6 +16,7 @@ describe("env config", () => {
 
     expect(env.NODE_ENV).toBe("development");
     expect(env.DATABASE_URL).toBe(validEnv.DATABASE_URL);
+    expect(env.APP_DATABASE_URL).toBe(validEnv.APP_DATABASE_URL);
     expect(env.REDIS_URL).toBe(validEnv.REDIS_URL);
     // Stripe is a Phase 0 stub — absent is valid.
     expect(env.STRIPE_SECRET_KEY).toBeUndefined();
@@ -35,6 +37,14 @@ describe("env config", () => {
 
     expect(() => parseEnvForTesting(withoutDb)).toThrow(/DATABASE_URL/);
     expect(() => parseEnvForTesting(withoutDb)).toThrow(/Copy \.env\.example/);
+  });
+
+  it("requires the RLS-enforced runtime connection, not just the owner one", () => {
+    // Without APP_DATABASE_URL the app would have to fall back to the owner
+    // connection, which bypasses RLS entirely. That must never start silently.
+    const { APP_DATABASE_URL: _omitted, ...withoutAppDb } = validEnv;
+
+    expect(() => parseEnvForTesting(withoutAppDb)).toThrow(/APP_DATABASE_URL/);
   });
 
   it("rejects a database URL pointing at the wrong protocol", () => {

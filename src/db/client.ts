@@ -6,13 +6,16 @@ import { getEnv } from "../lib/env.ts";
 import * as schema from "./schema.ts";
 
 /**
- * Application database handle.
+ * Two database handles, deliberately named so misuse is obvious at the call site.
  *
- * IMPORTANT (from T4 onward): this is the *unscoped* connection. Reading tenant
- * data through it bypasses the per-request tenant context, so once the
- * tenant-scoped accessor exists, application code must go through that instead.
- * Legitimate direct uses are migrations, seeding, and global catalog tables
- * (`plans`).
+ * `adminDb` connects as the owning superuser. It is NOT subject to Row-Level
+ * Security and must never serve a user request — it exists for migrations,
+ * seeding, and the global `plans` catalog.
+ *
+ * `appDb` connects as `revira_app` (NOSUPERUSER, NOBYPASSRLS). RLS applies to
+ * it, so without a tenant context it reads as empty. Do not query it directly
+ * for tenant data either: go through `withTenant()` in src/lib/tenancy.ts,
+ * which is what actually sets the context.
  */
 
 export type Database = NodePgDatabase<typeof schema>;
@@ -20,24 +23,33 @@ export type Database = NodePgDatabase<typeof schema>;
 declare global {
   // Reused across Next.js dev hot reloads so we do not leak a pool per reload.
   // `var` is required here: only var declarations augment globalThis.
-  var __reviraPool: Pool | undefined;
+  var __reviraAdminPool: Pool | undefined;
+  var __reviraAppPool: Pool | undefined;
 }
 
-function createPool(): Pool {
+function createPool(connectionString: string, max: number): Pool {
   return new Pool({
-    connectionString: getEnv().DATABASE_URL,
-    max: 10,
+    connectionString,
+    max,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
   });
 }
 
-export const pool: Pool = globalThis.__reviraPool ?? createPool();
+const env = getEnv();
 
-if (getEnv().NODE_ENV !== "production") {
-  globalThis.__reviraPool = pool;
+export const adminPool: Pool = globalThis.__reviraAdminPool ?? createPool(env.DATABASE_URL, 4);
+export const appPool: Pool = globalThis.__reviraAppPool ?? createPool(env.APP_DATABASE_URL, 10);
+
+if (env.NODE_ENV !== "production") {
+  globalThis.__reviraAdminPool = adminPool;
+  globalThis.__reviraAppPool = appPool;
 }
 
-export const db: Database = drizzle(pool, { schema });
+/** Unrestricted. Migrations, seeding, and the global plans catalog only. */
+export const adminDb: Database = drizzle(adminPool, { schema });
+
+/** RLS-enforced. Reads as empty until a tenant context is set — see withTenant(). */
+export const appDb: Database = drizzle(appPool, { schema });
 
 export { schema };

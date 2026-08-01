@@ -36,7 +36,10 @@ const booleanish = z
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
+  /** Owner connection: migrations and seeds. Bypasses RLS — never serves requests. */
   DATABASE_URL: postgresUrl,
+  /** Runtime connection: non-superuser, RLS-enforced. All tenant queries use this. */
+  APP_DATABASE_URL: postgresUrl,
   REDIS_URL: redisUrl,
 
   BETTER_AUTH_SECRET: z.string().min(32, {
