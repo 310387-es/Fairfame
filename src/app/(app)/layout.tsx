@@ -7,6 +7,7 @@ import {
   requireActor,
   UnauthenticatedError,
 } from "@/auth/session";
+import { Logo } from "@/components/brand/logo";
 import { LocaleSwitcher } from "@/components/shell/locale-switcher";
 import { LocationSwitcher } from "@/components/shell/location-switcher";
 import { SidebarNav } from "@/components/shell/sidebar-nav";
@@ -59,10 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           href="/home"
           className="flex h-14 items-center gap-2 border-b border-sidebar-border px-5"
         >
-          <span className="size-5 rounded-[6px] bg-primary" aria-hidden />
-          <span className="text-base font-semibold tracking-tight text-sidebar-foreground">
-            {t("app.name")}
-          </span>
+          <Logo className="text-sidebar-foreground" markClassName="size-6" />
         </Link>
 
         <SidebarNav />
