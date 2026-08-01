@@ -1,6 +1,6 @@
 import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { adminDb, adminPool, appDb, appPool, schema } from "@/db/client";
+import { closeDatabasePools, getAdminDb, getAppDb, schema } from "@/db/client";
 import { readTenantContext, TenantContextError, withTenant } from "@/lib/tenancy";
 
 /**
@@ -42,19 +42,19 @@ async function captureDbError(run: () => Promise<unknown>): Promise<{
 const INSUFFICIENT_PRIVILEGE = "42501";
 
 async function createOrg(name: string, slug: string): Promise<Fixture> {
-  const [org] = await adminDb
+  const [org] = await getAdminDb()
     .insert(schema.organizations)
     .values({ name, slug })
     .returning({ id: schema.organizations.id });
   if (!org) throw new Error("fixture organization insert returned nothing");
 
-  const [location] = await adminDb
+  const [location] = await getAdminDb()
     .insert(schema.locations)
     .values({ organizationId: org.id, name: `${name} — Merkez` })
     .returning({ id: schema.locations.id });
   if (!location) throw new Error("fixture location insert returned nothing");
 
-  const [review] = await adminDb
+  const [review] = await getAdminDb()
     .insert(schema.reviews)
     .values({
       organizationId: org.id,
@@ -83,15 +83,15 @@ beforeAll(async () => {
 
 afterAll(async () => {
   // Cascades remove locations and reviews.
-  await adminDb
+  await getAdminDb()
     .delete(schema.organizations)
     .where(inArray(schema.organizations.id, [orgA.orgId, orgB.orgId]));
-  await Promise.all([appPool.end(), adminPool.end()]);
+  await closeDatabasePools();
 });
 
 describe("the runtime role", () => {
   it("is not a superuser and cannot bypass RLS", async () => {
-    const result = await appDb.execute<{
+    const result = await getAppDb().execute<{
       rolsuper: boolean;
       rolbypassrls: boolean;
       current_user: string;
@@ -107,17 +107,17 @@ describe("the runtime role", () => {
 
 describe("without tenant context", () => {
   it("reads no reviews at all, despite rows existing", async () => {
-    const rows = await appDb.select().from(schema.reviews);
+    const rows = await getAppDb().select().from(schema.reviews);
     expect(rows).toHaveLength(0);
   });
 
   it("reads no locations and no organizations", async () => {
-    expect(await appDb.select().from(schema.locations)).toHaveLength(0);
-    expect(await appDb.select().from(schema.organizations)).toHaveLength(0);
+    expect(await getAppDb().select().from(schema.locations)).toHaveLength(0);
+    expect(await getAppDb().select().from(schema.organizations)).toHaveLength(0);
   });
 
   it("cannot reach a specific row even when its id is known", async () => {
-    const rows = await appDb
+    const rows = await getAppDb()
       .select()
       .from(schema.reviews)
       .where(eq(schema.reviews.id, orgA.reviewId));
@@ -126,7 +126,7 @@ describe("without tenant context", () => {
   });
 
   it("still sees the global plans catalog, which is not tenant data", async () => {
-    const plans = await appDb.select().from(schema.plans);
+    const plans = await getAppDb().select().from(schema.plans);
     expect(plans.length).toBeGreaterThan(0);
   });
 });
@@ -174,7 +174,7 @@ describe("with tenant context", () => {
     expect(updated).toHaveLength(0);
 
     // Confirm through the unrestricted connection that nothing changed.
-    const [row] = await adminDb
+    const [row] = await getAdminDb()
       .select({ text: schema.reviews.text })
       .from(schema.reviews)
       .where(eq(schema.reviews.id, orgA.reviewId));
@@ -186,7 +186,7 @@ describe("with tenant context", () => {
       tx.delete(schema.reviews).where(eq(schema.reviews.id, orgA.reviewId)),
     );
 
-    const [row] = await adminDb
+    const [row] = await getAdminDb()
       .select({ id: schema.reviews.id })
       .from(schema.reviews)
       .where(eq(schema.reviews.id, orgA.reviewId));
@@ -208,7 +208,7 @@ describe("with tenant context", () => {
     expect(error.message).toMatch(/row-level security/i);
 
     // And nothing landed.
-    const [smuggled] = await adminDb
+    const [smuggled] = await getAdminDb()
       .select({ id: schema.locations.id })
       .from(schema.locations)
       .where(eq(schema.locations.name, "Smuggled location"));
@@ -246,7 +246,7 @@ describe("context lifetime", () => {
     });
 
     // Same pool, no context: the GUC was transaction-local and is gone.
-    const afterwards = await appDb.select().from(schema.reviews);
+    const afterwards = await getAppDb().select().from(schema.reviews);
     expect(afterwards).toHaveLength(0);
   });
 
@@ -257,7 +257,7 @@ describe("context lifetime", () => {
       }),
     ).rejects.toThrow("boom");
 
-    const afterwards = await appDb.select().from(schema.reviews);
+    const afterwards = await getAppDb().select().from(schema.reviews);
     expect(afterwards).toHaveLength(0);
   });
 
@@ -276,7 +276,7 @@ describe("auth internals", () => {
     "are unreadable by the runtime role (%s)",
     async (table) => {
       const error = await captureDbError(() =>
-        appDb.execute(sql.raw(`select 1 from public.${table} limit 1`)),
+        getAppDb().execute(sql.raw(`select 1 from public.${table} limit 1`)),
       );
 
       expect(error.code).toBe(INSUFFICIENT_PRIVILEGE);
@@ -285,14 +285,14 @@ describe("auth internals", () => {
   );
 
   it("keeps invitations tenant-scoped like any other organization data", async () => {
-    const rows = await appDb.select().from(schema.invitations);
+    const rows = await getAppDb().select().from(schema.invitations);
     expect(rows).toHaveLength(0);
   });
 });
 
 describe("the owner connection", () => {
   it("still sees every organization's data, which is why it must not serve requests", async () => {
-    const rows = await adminDb
+    const rows = await getAdminDb()
       .select({ id: schema.reviews.id })
       .from(schema.reviews)
       .where(inArray(schema.reviews.id, [orgA.reviewId, orgB.reviewId]));

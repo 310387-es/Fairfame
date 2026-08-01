@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import { adminDb, schema } from "@/db/client";
+import { getAdminDb, schema } from "@/db/client";
 import { isRole, roleAtLeast, type Role } from "@/auth/permissions";
 import { auth } from "@/auth/config";
 import { withTenant, type TenantContext, type TenantDatabase } from "@/lib/tenancy";
@@ -61,7 +61,7 @@ export async function requireActor(): Promise<AuthenticatedActor> {
   const organizationId = session.session.activeOrganizationId;
   if (!organizationId) throw new NoActiveOrganizationError();
 
-  const [membership] = await adminDb
+  const [membership] = await getAdminDb()
     .select({ role: schema.memberships.role })
     .from(schema.memberships)
     .where(

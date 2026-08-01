@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { appDb, type Database } from "../db/client.ts";
+import { getAppDb, type Database } from "../db/client.ts";
 
 /**
  * Tenant context — the only sanctioned path to tenant-owned data.
@@ -67,7 +67,7 @@ export async function withTenant<T>(
     assertUuid(context.userId, "userId");
   }
 
-  return appDb.transaction(async (tx) => {
+  return getAppDb().transaction(async (tx) => {
     // is_local => true scopes both settings to this transaction.
     await tx.execute(sql`select set_config('app.current_org', ${context.organizationId}, true)`);
     await tx.execute(sql`select set_config('app.current_user', ${context.userId ?? ""}, true)`);

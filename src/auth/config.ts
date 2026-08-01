@@ -1,8 +1,10 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins";
-import { adminDb, schema } from "../db/client.ts";
+import { getAdminDb, schema } from "../db/client.ts";
 import { getEnv } from "../lib/env.ts";
+import { childLogger } from "../lib/logger.ts";
+import { provisionTrialSubscription } from "../lib/provisioning.ts";
 import { ac, roles } from "./permissions.ts";
 
 /**
@@ -27,7 +29,7 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
 
-  database: drizzleAdapter(adminDb, {
+  database: drizzleAdapter(getAdminDb(), {
     provider: "pg",
     // Our tables are plural and `member` is called `memberships`, so the
     // mapping is explicit rather than usePlural.
@@ -81,6 +83,22 @@ export const auth = betterAuth({
       // Entitlements govern the real ceiling (max_team_members, max_locations);
       // this is only a backstop against runaway organization creation.
       organizationLimit: 20,
+      organizationHooks: {
+        // Every new organization starts on a 14-day trial with top-tier
+        // entitlements. Failing here would leave an organization with no
+        // subscription at all, which resolves to the Starter floor — degraded
+        // but not broken — so log loudly rather than failing the signup.
+        afterCreateOrganization: async ({ organization }) => {
+          try {
+            await provisionTrialSubscription(organization.id);
+          } catch (error) {
+            childLogger({ module: "auth/provisioning" }).error(
+              { organizationId: organization.id, err: error },
+              "Failed to provision trial subscription",
+            );
+          }
+        },
+      },
       schema: {
         organization: {
           additionalFields: {

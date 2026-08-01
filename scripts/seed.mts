@@ -15,7 +15,8 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { getEnv } from "../src/lib/env.ts";
 import * as schema from "../src/db/schema.ts";
-import { PLAN_CATALOG, PLAN_KEYS } from "../src/lib/plans.ts";
+import { PLAN_CATALOG, PLAN_KEYS, TRIAL_DAYS } from "../src/lib/plans.ts";
+import { provisionTrialSubscription } from "../src/lib/provisioning.ts";
 
 const DEMO_ORG = {
   name: "Demo İşletme",
@@ -101,6 +102,16 @@ try {
     }
   }
   console.log(`Seeded ${DEMO_LOCATIONS.length} demo locations.`);
+
+  // --- Demo subscription -------------------------------------------------
+  // Mirrors what BetterAuth's afterCreateOrganization hook does for real
+  // signups, so the demo org resolves entitlements like any other.
+  const { created } = await provisionTrialSubscription(org.id);
+  console.log(
+    created
+      ? `Provisioned a ${TRIAL_DAYS}-day trial for "${org.slug}".`
+      : `Trial already present for "${org.slug}" — left as is.`,
+  );
 
   console.log("\nSeed complete.");
 } catch (error) {

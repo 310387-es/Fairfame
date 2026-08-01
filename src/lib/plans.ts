@@ -216,6 +216,43 @@ export const TRIAL_PLAN_KEY: PlanKey = "agency";
 export const TRIAL_DAYS = 14;
 
 /**
+ * The floor an organization lands on when it has no usable subscription — a
+ * lapsed trial, a cancelled plan, or (defensively) no subscription row at all.
+ * Never leave an organization on top-tier entitlements by accident.
+ */
+export const DEFAULT_PLAN_KEY: PlanKey = "starter";
+
+/**
+ * Per-organization entitlement overrides stored on `subscriptions.overrides`:
+ * custom deals, comps, grandfathered packaging. Every section is partial, and
+ * anything absent falls through to the plan.
+ */
+export const entitlementOverridesSchema = z
+  .object({
+    features: z.partialRecord(z.enum(FEATURE_KEYS), z.boolean()),
+    limits: z.partialRecord(z.enum(LIMIT_KEYS), limitValue),
+    metered: z.partialRecord(z.enum(METERED_KEYS), limitValue),
+  })
+  .partial();
+
+export type EntitlementOverrides = z.infer<typeof entitlementOverridesSchema>;
+
+/** Tolerant parse: a malformed overrides blob must not take the app down. */
+export function parseOverrides(value: unknown): EntitlementOverrides {
+  const result = entitlementOverridesSchema.safeParse(value ?? {});
+  return result.success ? result.data : {};
+}
+
+/** Applies overrides on top of a plan's entitlements. Pure. */
+export function applyOverrides(base: Entitlements, overrides: EntitlementOverrides): Entitlements {
+  return {
+    features: { ...base.features, ...overrides.features },
+    limits: { ...base.limits, ...overrides.limits },
+    metered: { ...base.metered, ...overrides.metered },
+  };
+}
+
+/**
  * Parses an `entitlements` jsonb blob read back from the database.
  * The column is untyped at the DB level, so validate before trusting it.
  */
