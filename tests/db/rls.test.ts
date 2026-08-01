@@ -268,6 +268,28 @@ describe("context lifetime", () => {
   });
 });
 
+describe("auth internals", () => {
+  // Migration 0003 revokes these from the runtime role entirely: the app talks
+  // to BetterAuth, which uses the owner connection, so a bug in application
+  // code must not be able to read a password hash or mint a session.
+  it.each(["accounts", "sessions", "verifications"])(
+    "are unreadable by the runtime role (%s)",
+    async (table) => {
+      const error = await captureDbError(() =>
+        appDb.execute(sql.raw(`select 1 from public.${table} limit 1`)),
+      );
+
+      expect(error.code).toBe(INSUFFICIENT_PRIVILEGE);
+      expect(error.message).toMatch(/permission denied/i);
+    },
+  );
+
+  it("keeps invitations tenant-scoped like any other organization data", async () => {
+    const rows = await appDb.select().from(schema.invitations);
+    expect(rows).toHaveLength(0);
+  });
+});
+
 describe("the owner connection", () => {
   it("still sees every organization's data, which is why it must not serve requests", async () => {
     const rows = await adminDb

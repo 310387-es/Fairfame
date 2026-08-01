@@ -114,7 +114,11 @@ export const organizations = pgTable("organizations", {
   planId: uuid("plan_id").references(() => plans.id, { onDelete: "set null" }),
   locale: text("locale").notNull().default("tr"),
   currency: text("currency").notNull().default("TRY"),
+  /** Our own org configuration. */
   settings: jsonb("settings").notNull().default({}),
+  /** BetterAuth's organization metadata — it stores stringified JSON here, so
+   *  this is deliberately text and kept separate from `settings`. */
+  metadata: text("metadata"),
   ...timestamps,
 });
 
@@ -319,6 +323,94 @@ export const consentRecords = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// BetterAuth-managed tables (T5)
+//
+// Shapes are dictated by BetterAuth; src/auth/config.ts maps its singular model
+// names onto these plural table names. Columns beyond BetterAuth's requirements
+// are additive only — renaming or dropping one breaks auth at runtime, not at
+// compile time.
+// ---------------------------------------------------------------------------
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: primaryId(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    /** Set by the organization plugin; the source of the request's tenant. */
+    activeOrganizationId: uuid("active_organization_id").references(() => organizations.id, {
+      onDelete: "set null",
+    }),
+    ...timestamps,
+  },
+  (table) => [index("sessions_user_id_idx").on(table.userId)],
+);
+
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: primaryId(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    idToken: text("id_token"),
+    /** Argon2/scrypt hash for the credential provider — never a plaintext password. */
+    password: text("password"),
+    ...timestamps,
+  },
+  (table) => [
+    index("accounts_user_id_idx").on(table.userId),
+    unique("accounts_provider_id_account_id_key").on(table.providerId, table.accountId),
+  ],
+);
+
+export const verifications = pgTable(
+  "verifications",
+  {
+    id: primaryId(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (table) => [index("verifications_identifier_idx").on(table.identifier)],
+);
+
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: membershipRoleEnum("role").notNull().default("member"),
+    status: text("status").notNull().default("pending"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    inviterId: uuid("inviter_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    ...timestamps,
+  },
+  (table) => [
+    index("invitations_organization_id_idx").on(table.organizationId),
+    index("invitations_email_idx").on(table.email),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Inferred types
 // ---------------------------------------------------------------------------
 
@@ -335,8 +427,11 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type UsageCounter = typeof usageCounters.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type ConsentRecord = typeof consentRecords.$inferSelect;
+export type Session = typeof sessions.$inferSelect;
+export type Account = typeof accounts.$inferSelect;
+export type Invitation = typeof invitations.$inferSelect;
 
-/** Every tenant-owned table — the set RLS must cover in T4. */
+/** Every tenant-owned table — the set RLS must cover. */
 export const TENANT_TABLES = [
   "memberships",
   "locations",
@@ -346,4 +441,5 @@ export const TENANT_TABLES = [
   "usage_counters",
   "audit_logs",
   "consent_records",
+  "invitations",
 ] as const;
