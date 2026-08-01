@@ -33,7 +33,13 @@
     "columnRating": "Rating",
     "columnReview": "Review",
     "columnDate": "Date",
-    "columnSource": "Source"
+    "columnSource": "Source",
+    "forLocation": "Showing reviews for {location}",
+    "noLocationSelected": "Select a location to see its reviews.",
+    "ratingLabel": "{rating} out of 5",
+    "noRating": "No rating",
+    "count": "{count, plural, =0 {No reviews} =1 {1 review} other {# reviews}}",
+    "ownerReplied": "You replied"
   },
   "locations": {
     "title": "Locations",
@@ -45,7 +51,25 @@
     "category": "Category",
     "connect": "Connect source",
     "connected": "Connected",
-    "notConnected": "Not connected"
+    "notConnected": "Not connected",
+    "addTitle": "Add a location",
+    "addDescription": "A branch, venue or storefront you collect reviews for.",
+    "namePlaceholder": "e.g. Kadıköy branch",
+    "addressPlaceholder": "Street, district, city",
+    "categoryPlaceholder": "e.g. restaurant",
+    "adding": "Adding…",
+    "connecting": "Connecting…",
+    "syncNow": "Sync now",
+    "syncing": "Syncing…",
+    "source": "Source",
+    "mockSource": "Mock source",
+    "reviewCount": "{count, plural, =0 {No reviews} =1 {1 review} other {# reviews}}",
+    "usage": "{used} of {limit} locations used",
+    "usageUnlimited": "{used} locations",
+    "limitReached": "Your plan includes {limit} locations. Upgrade to add more.",
+    "viewInbox": "View in Inbox",
+    "lastSynced": "Last synced {when}",
+    "neverSynced": "Not synced yet"
   },
   "team": {
     "title": "Team",
@@ -88,6 +112,7 @@
     "generic": "Something went wrong. Please try again.",
     "signInFailed": "Those credentials did not work.",
     "signUpFailed": "We could not create that account.",
-    "required": "This field is required."
+    "required": "This field is required.",
+    "forbidden": "You do not have permission to do that."
   }
 }

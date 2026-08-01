@@ -29,9 +29,20 @@ function flatten(messages: Messages, prefix = ""): Map<string, string> {
   return entries;
 }
 
-/** ICU placeholders such as {days}. */
+/**
+ * ICU argument names, such as `days` in "{days}" or `count` in
+ * "{count, plural, ...}".
+ *
+ * Only the argument name counts. A plural's sub-messages are themselves brace
+ * delimited — "{count, plural, =0 {No reviews} other {# reviews}}" — and those
+ * are translated prose, not variables. Requiring an identifier immediately
+ * followed by a comma or closing brace excludes them, which matters because
+ * the two languages legitimately need different plural categories: Turkish
+ * keeps the noun singular after a numeral ("5 yorum"), so it has no separate
+ * "=1" form.
+ */
 function placeholders(value: string): string[] {
-  return [...value.matchAll(/\{(\w+)/g)].map((match) => match[1] ?? "").sort();
+  return [...value.matchAll(/\{\s*([A-Za-z_]\w*)\s*[,}]/g)].map((match) => match[1] ?? "").sort();
 }
 
 const english = flatten(en as Messages);

@@ -33,7 +33,13 @@
     "columnRating": "Puan",
     "columnReview": "Yorum",
     "columnDate": "Tarih",
-    "columnSource": "Kaynak"
+    "columnSource": "Kaynak",
+    "forLocation": "{location} şubesinin yorumları",
+    "noLocationSelected": "Yorumları görmek için bir şube seçin.",
+    "ratingLabel": "5 üzerinden {rating}",
+    "noRating": "Puan yok",
+    "count": "{count, plural, =0 {Yorum yok} other {# yorum}}",
+    "ownerReplied": "Yanıtladınız"
   },
   "locations": {
     "title": "Şubeler",
@@ -45,7 +51,25 @@
     "category": "Kategori",
     "connect": "Kaynak bağla",
     "connected": "Bağlı",
-    "notConnected": "Bağlı değil"
+    "notConnected": "Bağlı değil",
+    "addTitle": "Şube ekle",
+    "addDescription": "Yorum topladığınız bir şube, mekan veya mağaza.",
+    "namePlaceholder": "örn. Kadıköy şubesi",
+    "addressPlaceholder": "Sokak, ilçe, şehir",
+    "categoryPlaceholder": "örn. restoran",
+    "adding": "Ekleniyor…",
+    "connecting": "Bağlanıyor…",
+    "syncNow": "Şimdi eşitle",
+    "syncing": "Eşitleniyor…",
+    "source": "Kaynak",
+    "mockSource": "Örnek kaynak",
+    "reviewCount": "{count, plural, =0 {Yorum yok} other {# yorum}}",
+    "usage": "{limit} şubeden {used} tanesi kullanıldı",
+    "usageUnlimited": "{used} şube",
+    "limitReached": "Paketiniz {limit} şube içeriyor. Daha fazlası için yükseltin.",
+    "viewInbox": "Gelen kutusunda gör",
+    "lastSynced": "Son eşitleme {when}",
+    "neverSynced": "Henüz eşitlenmedi"
   },
   "team": {
     "title": "Ekip",
@@ -88,6 +112,7 @@
     "generic": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
     "signInFailed": "Bu bilgilerle giriş yapılamadı.",
     "signUpFailed": "Hesap oluşturulamadı.",
-    "required": "Bu alan zorunludur."
+    "required": "Bu alan zorunludur.",
+    "forbidden": "Bunu yapma yetkiniz yok."
   }
 }
