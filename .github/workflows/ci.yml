@@ -20,7 +20,10 @@ jobs:
     # green is worse than no test at all.
     services:
       postgres:
-        image: postgres:17-alpine
+        # pgvector's image, matching docker-compose. The official Postgres
+        # images do not ship the extension, so `CREATE EXTENSION vector` in
+        # migration 0008 fails on them — and it is the first thing that runs.
+        image: pgvector/pgvector:pg17
         env:
           POSTGRES_USER: revira
           POSTGRES_PASSWORD: revira
