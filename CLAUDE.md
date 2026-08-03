@@ -22,6 +22,10 @@ Build tasks **in order** within a phase, pausing after each for review.
 - **LLM** via a provider-agnostic abstraction (Anthropic/OpenAI); **Stripe** skeleton
 - **pnpm**; **pino** logging
 
+## Design system (in force)
+
+**Every screen follows `docs/15-design-system.md`. Read it before building any UI.** One theme only — there is no dark mode and no `dark:` variant; never add one. Tokens live in `src/app/globals.css`; shared components in `src/components/ds`; `src/app/(app)/home` is the reference implementation. Never type a hex code, font size or corner radius — the value is already a token. Reach for `SectionCard`, `Eyebrow`, `Metric`, `IconTile`, `Meter`, `Stars` before writing a div. The shell (dark rail, top bar, page container) is app-wide, so a new page inherits the layout by existing.
+
 ## Architecture principles
 
 - **Modular monolith.** One app, strong module boundaries. No microservices.
@@ -34,8 +38,9 @@ Build tasks **in order** within a phase, pausing after each for review.
 
 ## Repo conventions
 
-- Core dirs: `src/db`, `src/auth`, `src/lib` (tenancy, entitlements, logger), `src/connectors`, `src/jobs`, `src/server`, `src/app`, `src/i18n`, `src/prompts`, `tests/`.
+- Core dirs: `src/db`, `src/auth`, `src/lib` (tenancy, entitlements, logger), `src/connectors`, `src/jobs`, `src/search`, `src/server`, `src/app`, `src/i18n`, `src/prompts`, `src/components/ds` (design system), `tests/`.
 - TypeScript **strict**, no `any`. Validate all external input with **Zod**.
+- **A `"use client"` file must never import a runtime value from a module that reaches the database.** `db/client` pulls in `pg`, which needs Node's `dns`, and the build fails on the missing built-in. Types are erased and safe; constants are not — put shared constants in a db-free module (`search/types.ts`, `notifications/types.ts`).
 - Migrations explicit and reviewed; never destructive without a backfill.
 - Every mutation of a tenant resource goes through the **tenant-scoped data layer**.
 - Real connectors default to **mock in dev**; live only where credentials are present. Never commit secrets.
@@ -55,4 +60,4 @@ AI operator commands: `pnpm ai:smoke` (one call, checks the key and model), `pnp
 
 ## Docs
 
-`docs/` holds the full plan (01 master → 14). Read 02, 03, 06 before building; 09/10/11 are the build plans; 12 is the AI-guardrail evidence, 13 the go-live runbook, 14 the digest-surfaces plan. `home-live-dashboard.md` is the active Home redesign handoff.
+`docs/` holds the full plan (01 master → 15). Read 02, 03, 06 before building; 09/10/11 are the build plans; 12 is the AI-guardrail evidence, 13 the go-live runbook, 14 the digest-surfaces plan, **15 the design system — read it before any UI work**. `home-live-dashboard.md` is the superseded Home handoff, kept for its metric definitions.

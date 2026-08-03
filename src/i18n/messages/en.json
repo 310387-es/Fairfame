@@ -12,7 +12,13 @@
     "settings": "Settings",
     "signOut": "Sign out",
     "notifications": "Notifications",
-    "unreadBadge": "{count} unread"
+    "unreadBadge": "{count} unread",
+    "groupDaily": "Daily",
+    "groupGrowth": "Growth",
+    "groupAccount": "Account",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "menu": "Menu"
   },
   "shell": {
     "locationSwitcher": "Active location",
@@ -20,7 +26,20 @@
     "noLocations": "No locations yet",
     "localeSwitcher": "Language",
     "trialBadge": "Trial · {days} days left",
-    "planBadge": "{plan} plan"
+    "planBadge": "{plan} plan",
+    "trialEnds": "Ends on {date}",
+    "trialAction": "Choose a plan",
+    "planActive": "{plan} plan is active",
+    "searchTitle": "Search",
+    "searchPlaceholder": "Search reviews, themes or customers",
+    "searchHint": "Type at least 2 characters to search",
+    "searchEmpty": "No results for “{query}”",
+    "searchReviews": "Reviews",
+    "searchThemes": "Themes",
+    "searchMore": "See all in the Inbox",
+    "searchThemeCount": "{count} reviews",
+    "searchNoText": "No text",
+    "searchBusy": "Searching…"
   },
   "home": {
     "rangeLabel": "Time range",
@@ -79,7 +98,7 @@
     },
     "attention": {
       "title": "Needs attention",
-      "all": "Inbox →",
+      "all": "Inbox",
       "empty": "Nothing is waiting. Every unhappy review in this period has an answer.",
       "reply": "Reply",
       "negative": "Negative",
@@ -199,7 +218,7 @@
     },
     "themes": {
       "title": "Top themes",
-      "all": "All →",
+      "all": "All",
       "mostlyPositive": "{count} positive",
       "mostlyNegative": "{count} negative",
       "mixed": "mixed",
@@ -241,7 +260,14 @@
       "empty": "Nothing has happened in this period."
     },
     "metric": "Metric",
-    "value": "Value"
+    "value": "Value",
+    "breakdown": {
+      "label": "Show",
+      "title": "What customers said",
+      "themes": "Themes",
+      "ratings": "Ratings",
+      "sources": "Sources"
+    }
   },
   "inbox": {
     "title": "Inbox",
@@ -276,7 +302,12 @@
     "replyDraftBadge": "Draft",
     "replyApprovedBadge": "Approved",
     "replyPostedBadge": "Replied",
-    "showingFirst": "Showing the first {shown}"
+    "showingFirst": "Showing the first {shown}",
+    "filterSearch": "Search",
+    "pagination": "Pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "range": "{from}–{to} of {total}"
   },
   "locations": {
     "title": "Locations",
@@ -512,7 +543,11 @@
     "openReview": "Open in Inbox",
     "anonymous": "Anonymous",
     "ratingLabel": "{rating} out of 5",
-    "badgeLabel": "{count} unread notifications"
+    "badgeLabel": "{count} unread notifications",
+    "popoverTitle": "Notifications",
+    "loading": "Loading…",
+    "urgentHint": "Urgent — low rating or negative review",
+    "endOfList": "That's everything"
   },
   "replies": {
     "writeReply": "Write a reply",

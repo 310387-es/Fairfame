@@ -1,8 +1,7 @@
 import { Layers } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { HorizontalBarChart, type BarDatum } from "@/components/home/bar-chart";
+import { SectionCard } from "@/components/ds/section-card";
 import { ChartFallback } from "@/components/home/chart-fallback";
-import { WidgetCard } from "@/components/home/widget-card";
 import { describeProvider } from "@/connectors/capability-view";
 import type { SourceRow } from "@/dashboard/metrics";
 
@@ -11,8 +10,19 @@ import type { SourceRow } from "@/dashboard/metrics";
  *
  * Only sources that actually produced something appear — a permanent
  * "Trustpilot 0" row is a product brochure, not a breakdown of this week.
+ *
+ * Name and rating on the left, bar in the middle, count on the right. The bar
+ * is proportional to the busiest source rather than to the total, so with four
+ * sources the widest is full and the smallest is still visible.
  */
-export async function SourceBreakdown({ rows }: { rows: SourceRow[] }) {
+export async function SourceBreakdown({
+  rows,
+  bare = false,
+}: {
+  rows: SourceRow[];
+  /** Rows only, for the breakdown card's segmented view — see RatingDistribution. */
+  bare?: boolean;
+}) {
   const [t, format] = await Promise.all([getTranslations("home.sources"), getFormatter()]);
 
   const rating = (value: number | null) =>
@@ -23,35 +33,65 @@ export async function SourceBreakdown({ rows }: { rows: SourceRow[] }) {
           rating: format.number(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
         });
 
-  const data: BarDatum[] = rows.map((row) => ({
-    key: row.source,
-    label: describeProvider(row.source)?.label ?? row.source,
-    value: row.count,
-    fill: "fill-chart-1",
-    detail: rating(row.rating),
-  }));
-
-  return (
-    <WidgetCard title={t("title")} icon={Layers}>
+  const body = (
+    <>
       {rows.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">{t("empty")}</p>
+        <p className="py-10 text-center text-copy text-muted-foreground">{t("empty")}</p>
       ) : (
         <>
-          <HorizontalBarChart
-            data={data}
-            valueLabel={t("count")}
-            height={Math.max(160, rows.length * 44)}
-          />
+          <div className="flex flex-col gap-3">
+            {rows.map((row) => {
+              const label = describeProvider(row.source)?.label ?? row.source;
+
+              return (
+                <div key={row.source} className="flex items-center gap-3">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-copy font-semibold">{label}</span>
+                    <span className="block text-meta text-faint">{rating(row.rating)}</span>
+                  </span>
+
+                  <span
+                    role="img"
+                    aria-label={`${label}: ${row.count}`}
+                    className="h-2 w-24 shrink-0 overflow-hidden rounded-[5px] bg-surface-sunken"
+                  >
+                    <span
+                      aria-hidden
+                      className="block h-full rounded-[5px] bg-primary"
+                      style={{ width: `${row.share * 100}%` }}
+                    />
+                  </span>
+
+                  <span className="w-7 shrink-0 text-right font-mono text-[13px] font-semibold tabular-nums">
+                    {row.count}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
           <ChartFallback
             caption={t("title")}
             columns={[t("title"), t("count"), t("rating")]}
-            rows={data.map((datum, index) => ({
-              key: datum.key,
-              cells: [datum.label, datum.value, rating(rows[index]?.rating ?? null)],
+            rows={rows.map((row) => ({
+              key: row.source,
+              cells: [
+                describeProvider(row.source)?.label ?? row.source,
+                row.count,
+                rating(row.rating),
+              ],
             }))}
           />
         </>
       )}
-    </WidgetCard>
+    </>
+  );
+
+  if (bare) return body;
+
+  return (
+    <SectionCard title={t("title")} icon={Layers}>
+      {body}
+    </SectionCard>
   );
 }

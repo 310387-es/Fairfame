@@ -68,12 +68,20 @@ export function Sparkline({
   if (current.length > 1) segments.push(current.join(" "));
 
   return (
+    // Full width of whatever cell it sits in, not a fixed 70px box. At a fixed
+    // size it read as a stray squiggle parked next to the number rather than as
+    // that number's history, and four of them at four different widths made the
+    // KPI strip look unfinished.
+    //
+    // `preserveAspectRatio="none"` lets the line stretch to the cell; the shape
+    // of a trend is in its ups and downs, not its aspect ratio. Stroke weight is
+    // pinned with `non-scaling-stroke`, without which the horizontal stretch
+    // would thin the verticals and thicken the horizontals.
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      width={WIDTH}
-      height={HEIGHT}
+      preserveAspectRatio="none"
       aria-hidden
-      className={cn("shrink-0 overflow-visible", className)}
+      className={cn("h-6 w-full overflow-visible", className)}
     >
       {segments.map((segment) => (
         <polyline
@@ -81,9 +89,10 @@ export function Sparkline({
           points={segment}
           fill="none"
           stroke="currentColor"
-          strokeWidth={2.5}
+          strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
         />
       ))}
     </svg>

@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import type { ReviewNotificationPayload } from "./service.ts";
+export { FEED_PAGE_SIZE } from "./types.ts";
 
 /**
  * Reading the in-app feed (P1a-T5).
@@ -27,6 +28,19 @@ export type FeedItem = {
 
 export type FeedOptions = {
   limit?: number;
+  /**
+   * Rows to skip, for the bell's endless scroll.
+   *
+   * An offset rather than a keyset cursor: a cursor would have to carry the
+   * urgency, the timestamp *and* the id, and would still break the moment a
+   * notification is escalated to urgent and jumps up the list. At a feed's
+   * scale — tens of rows, not millions — an offset is the simpler honest tool.
+   *
+   * It only works because the sort below is a *total* order. An offset over a
+   * sort with ties returns overlapping pages, which is not a theoretical risk:
+   * it happened here.
+   */
+  offset?: number;
   /** Only unread — what the bell opens to. */
   unreadOnly?: boolean;
 };
@@ -65,11 +79,21 @@ export async function listFeed(
     )
     // `urgent` sorts before `normal` alphabetically only by accident, so order
     // on the comparison rather than on the enum's text.
+    //
+    // `id` is the tiebreaker, and it is load-bearing rather than cosmetic.
+    // Ingestion writes a whole sync's notifications in one transaction, so
+    // dozens share a `created_at` to the millisecond — 62 of them in one dev
+    // database. Without a unique final key the sort is only a partial order,
+    // Postgres may return tied rows differently on each query, and `offset 20`
+    // then overlaps the first page. That surfaced as React's "two children with
+    // the same key" as soon as the bell's list paged.
     .orderBy(
       sql`(${schema.notifications.urgency} = 'urgent') desc`,
       desc(schema.notifications.createdAt),
+      desc(schema.notifications.id),
     )
-    .limit(options.limit ?? 50);
+    .limit(options.limit ?? 50)
+    .offset(options.offset ?? 0);
 
   return rows.map((row) => ({
     ...row,

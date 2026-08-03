@@ -1,6 +1,7 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { IconTile } from "@/components/ds/icon-tile";
 import { Button } from "@/components/ui/button";
 import type { Insight } from "@/dashboard/insight";
 
@@ -47,15 +48,17 @@ export async function AiInsightStrip({ insight }: { insight: Insight }) {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-primary/6 px-5 py-4 ring-1 ring-primary/15 sm:flex-row sm:items-center sm:gap-4">
-      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
-        <Sparkles className="size-4.5" aria-hidden />
-      </span>
+    // Ink, not a tinted indigo wash. This is the page's one voice and it has to
+    // outrank four KPI cells and a chart directly beneath it; a 6% wash of the
+    // brand colour lost that contest and read as one more widget. Together with
+    // the rail it is the only full-bleed colour on the screen.
+    <div className="flex flex-col gap-3.5 rounded-lg bg-brief px-[22px] py-[18px] text-on-ink sm:flex-row sm:items-center sm:gap-[18px]">
+      <IconTile icon={Sparkles} tone="solid" size="lg" />
 
-      <p className="text-sm leading-relaxed text-pretty">{clauses.join(" ")}</p>
+      <p className="max-w-[780px] text-base leading-normal text-pretty">{clauses.join(" ")}</p>
 
       {insight.waiting > 0 ? (
-        <Button asChild size="sm" className="shrink-0 sm:ml-auto">
+        <Button asChild variant="brief" className="shrink-0 sm:ml-auto">
           {/* Straight to the filtered Inbox rather than a vague "open Inbox":
               the strip named a number, and the link has to show that number. */}
           <Link href="/inbox?sentiment=negative&reply=unanswered">

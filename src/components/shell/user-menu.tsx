@@ -44,8 +44,8 @@ export function UserMenu({ name, email, role }: { name: string; email: string; r
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel className="font-normal">
           <span className="block truncate font-medium">{name}</span>
-          <span className="block truncate text-xs text-muted-foreground">{email}</span>
-          <span className="mt-1 block text-xs text-muted-foreground">
+          <span className="block truncate text-copy text-muted-foreground">{email}</span>
+          <span className="mt-1 block text-copy text-muted-foreground">
             {tTeam(role as "owner" | "admin" | "member" | "client")}
           </span>
         </DropdownMenuLabel>

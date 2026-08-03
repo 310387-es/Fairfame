@@ -28,7 +28,7 @@ export function LocationSwitcher({
 
   if (locations.length === 0) {
     return (
-      <span className="flex items-center gap-2 text-sm text-muted-foreground">
+      <span className="flex items-center gap-2 text-body text-muted-foreground">
         <MapPin className="size-4" aria-hidden />
         {t("noLocations")}
       </span>

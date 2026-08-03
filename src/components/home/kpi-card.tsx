@@ -1,17 +1,8 @@
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  CheckCheck,
-  MessageSquare,
-  Star,
-  TrendingUp,
-} from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
-import type { ComponentType } from "react";
+import { Eyebrow } from "@/components/ds/eyebrow";
+import { Delta, Metric } from "@/components/ds/metric";
 import { Sparkline } from "@/components/home/sparkline";
-import { Card, CardContent } from "@/components/ui/card";
-import { isImprovement, type Kpi, type KpiKey } from "@/dashboard/metrics";
-import { cn } from "@/lib/utils";
+import { isImprovement, type Kpi } from "@/dashboard/metrics";
 
 /**
  * One headline number, its change, and the shape of how it got there.
@@ -19,27 +10,20 @@ import { cn } from "@/lib/utils";
  * The three answer different questions and all three are needed: 4.6 stars is
  * meaningless without knowing it was 4.4 last month, and "up 0.2" is meaningless
  * without knowing whether it climbed steadily or fell and recovered.
+ *
+ * This is a *cell*, not a card. Four cards in a row put a border, a corner and a
+ * shadow around each number and made the strip read as four unrelated facts;
+ * they are four readings of one thing, so they now share one card and are
+ * separated by a hairline. The lost chrome bought the space that the reputation
+ * chart underneath them needed.
+ *
+ * The old icon tile went with it. A star beside "Average rating" and a message
+ * bubble beside "New reviews" decorated labels that already said those words —
+ * and at 28px the number should be the only thing with weight in the cell.
  */
-
-const ICONS: Record<KpiKey, ComponentType<{ className?: string }>> = {
-  reputation: TrendingUp,
-  rating: Star,
-  volume: MessageSquare,
-  responseRate: CheckCheck,
-};
-
-/** Amber is the rating colour throughout the product; the rest are brand. */
-const ACCENT: Record<KpiKey, string> = {
-  reputation: "bg-primary/10 text-primary",
-  rating: "bg-rating/15 text-rating-ink",
-  volume: "bg-primary/10 text-primary",
-  responseRate: "bg-primary/10 text-primary",
-};
-
 export async function KpiCard({ kpi }: { kpi: Kpi }) {
   const [t, format] = await Promise.all([getTranslations("home.kpi"), getFormatter()]);
 
-  const Icon = ICONS[kpi.key];
   const better = isImprovement(kpi);
 
   const value =
@@ -69,66 +53,49 @@ export async function KpiCard({ kpi }: { kpi: Kpi }) {
             });
 
   return (
-    <Card className="rounded-2xl">
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          <span className={cn("grid size-7 place-items-center rounded-lg", ACCENT[kpi.key])}>
-            <Icon className="size-4" />
-          </span>
-          {t(`${kpi.key}.label`)}
-        </div>
+    <div className="px-[18px] py-4">
+      <Eyebrow className="mb-2">{t(`${kpi.key}.label`)}</Eyebrow>
 
-        <div className="flex items-end justify-between gap-2">
-          <p className="font-heading text-3xl leading-none font-bold tracking-tight">
-            {kpi.value === null ? (
-              <>
-                <span aria-hidden>{value}</span>
-                <span className="sr-only">{t("noData")}</span>
-              </>
-            ) : (
-              value
-            )}
-          </p>
-
-          <Sparkline
-            points={kpi.spark}
-            // `--destructive`, not `--sentiment-negative`: a falling KPI is a
-            // number going the wrong way, not a customer feeling bad. Keeping
-            // the sentiment tokens for sentiment is the whole point of naming
-            // them separately.
-            className={better === false ? "text-destructive" : "text-primary"}
-          />
-        </div>
-
-        <div>
-          {magnitude === null ? (
-            // No comparison rather than a fabricated one: a first period, or a
-            // previous period with nothing in it, has no honest delta.
-            <span className="text-[11px] text-muted-foreground">{t("noComparison")}</span>
+      <div className="flex items-end gap-2">
+        {/* Only the rating is tinted. It is the one number here that is itself a
+            judgement on the amber scale; colouring the other three would say
+            everything is significant, which says nothing. */}
+        <Metric tone={kpi.key === "rating" ? "rating" : "default"}>
+          {kpi.value === null ? (
+            <>
+              <span aria-hidden>{value}</span>
+              <span className="sr-only">{t("noData")}</span>
+            </>
           ) : (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
-                better === null && "bg-muted text-muted-foreground",
-                better === true && "bg-positive/12 text-positive-ink",
-                better === false && "bg-destructive/12 text-destructive-ink",
-              )}
-            >
-              {better === true ? (
-                <ArrowUpRight className="size-3" aria-hidden />
-              ) : better === false ? (
-                <ArrowDownRight className="size-3" aria-hidden />
-              ) : null}
-              {/* Direction is stated in words as well as colour and arrow: AA
-                  forbids colour as the only carrier of meaning. */}
-              <span className="sr-only">
-                {better === true ? t("up") : better === false ? t("down") : t("flat")}
-              </span>
-              {magnitude}
-            </span>
+            value
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </Metric>
+
+        {magnitude === null ? null : (
+          <Delta
+            direction={better}
+            label={better === true ? t("up") : better === false ? t("down") : t("flat")}
+            className="pb-[3px]"
+          >
+            {magnitude}
+          </Delta>
+        )}
+      </div>
+
+      {magnitude === null ? (
+        // No comparison rather than a fabricated one: a first period, or a
+        // previous period with nothing in it, has no honest delta.
+        <p className="mt-2 text-meta text-faint">{t("noComparison")}</p>
+      ) : null}
+
+      <Sparkline
+        points={kpi.spark}
+        // `--destructive`, not `--sentiment-negative`: a falling KPI is a
+        // number going the wrong way, not a customer feeling bad. Keeping
+        // the sentiment tokens for sentiment is the whole point of naming
+        // them separately.
+        className={better === false ? "mt-2.5 text-destructive" : "mt-2.5 text-primary"}
+      />
+    </div>
   );
 }

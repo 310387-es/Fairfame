@@ -92,15 +92,18 @@ export function LocationCard({
           <div className="min-w-0">
             <p className="truncate font-medium">{location.name}</p>
             {location.address ? (
-              <p className="truncate text-sm text-muted-foreground">{location.address}</p>
+              <p className="truncate text-body text-muted-foreground">{location.address}</p>
             ) : null}
           </div>
-          <Badge variant={location.sources.length > 0 ? "default" : "secondary"}>
+          {/* "Connected" is a reading, not a control, so it takes the positive
+              pair rather than the indigo `default` — indigo means "this is
+              interactive" everywhere else (docs/15 §Colour). */}
+          <Badge variant={location.sources.length > 0 ? "positive" : "secondary"}>
             {location.sources.length > 0 ? t("connected") : t("notConnected")}
           </Badge>
         </div>
 
-        <p className="text-sm text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           {t("reviewCount", { count: location.reviewCount })}
         </p>
 
@@ -109,7 +112,7 @@ export function LocationCard({
             {location.sources.map((source) => (
               <li key={source.connectionId} className="space-y-1.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-medium">{source.label}</span>
+                  <span className="text-title">{source.label}</span>
                   <SourceBadges
                     sync={source.sync}
                     reply={source.reply}
@@ -118,7 +121,7 @@ export function LocationCard({
                   />
                 </div>
 
-                <p className="text-xs text-muted-foreground">
+                <p className="text-copy text-muted-foreground">
                   {source.lastSyncedAt
                     ? ts("lastSynced", {
                         when: format.relativeTime(new Date(source.lastSyncedAt), now),
@@ -129,7 +132,7 @@ export function LocationCard({
                 </p>
 
                 {source.lastError && source.status === "error" ? (
-                  <p className="text-xs text-destructive">{source.lastError}</p>
+                  <p className="text-copy text-destructive">{source.lastError}</p>
                 ) : null}
 
                 {/* Mapping is the one genuinely provider-shaped step: "which of
@@ -167,7 +170,7 @@ export function LocationCard({
         ) : null}
 
         {error ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-body text-destructive">
             {error}
           </p>
         ) : null}
@@ -205,7 +208,7 @@ export function LocationCard({
                 )}
 
                 {source.isMock ? (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-copy text-muted-foreground">
                     {ts("notLiveYet")}
                     {source.modeReason === "missing_credentials"
                       ? ` ${ts("missingCredentials")}`

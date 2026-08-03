@@ -65,12 +65,12 @@ export default async function RequestsPage() {
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
-      <p className="mb-1 text-sm text-muted-foreground">
+      <p className="mb-1 text-body text-muted-foreground">
         {limit.limit === null
           ? t("usageUnlimited", { used: limit.current })
           : t("usage", { used: limit.current, limit: limit.limit })}
       </p>
-      <p className="mb-6 max-w-2xl text-sm text-pretty text-muted-foreground">
+      <p className="mb-6 max-w-2xl text-body text-pretty text-muted-foreground">
         {t("complianceNote")}
       </p>
 
@@ -78,7 +78,7 @@ export default async function RequestsPage() {
         <div className="mb-6">
           {locations.length === 0 ? (
             <Card>
-              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+              <CardContent className="py-8 text-center text-body text-muted-foreground">
                 {t("noLocations")}
               </CardContent>
             </Card>
@@ -90,7 +90,7 @@ export default async function RequestsPage() {
 
       {cards.length === 0 ? (
         <Card>
-          <CardContent className="py-14 text-center text-sm text-muted-foreground">
+          <CardContent className="py-14 text-center text-body text-muted-foreground">
             {t("empty")}
           </CardContent>
         </Card>
@@ -104,19 +104,19 @@ export default async function RequestsPage() {
         </ul>
       )}
 
-      <h2 className="mt-10 mb-3 text-sm font-medium">{t("recentTitle")}</h2>
+      <h2 className="mt-10 mb-3 text-title">{t("recentTitle")}</h2>
 
       {requests.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          <CardContent className="py-10 text-center text-body text-muted-foreground">
             {t("emptyRequests")}
           </CardContent>
         </Card>
       ) : (
         <Card>
           <CardContent className="overflow-x-auto p-0">
-            <table className="w-full text-sm">
-              <thead className="border-b text-left text-xs text-muted-foreground">
+            <table className="w-full text-body">
+              <thead className="border-b text-left text-copy text-muted-foreground">
                 <tr>
                   <th scope="col" className="px-4 py-2 font-medium">
                     {t("columnRecipient")}

@@ -35,7 +35,8 @@ export function SourceBadges({ sync, reply, isMock, status }: SourceBadgesProps)
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <Badge variant={sync === "live" ? "default" : "secondary"}>{syncLabel}</Badge>
+      {/* "Live" is a reading about the connection, not something to click. */}
+      <Badge variant={sync === "live" ? "positive" : "secondary"}>{syncLabel}</Badge>
       {replyLabel ? <Badge variant="outline">{replyLabel}</Badge> : null}
       {isMock ? <Badge variant="secondary">{t("sampleData")}</Badge> : null}
       {status === "error" ? <Badge variant="destructive">{t("needsAttention")}</Badge> : null}

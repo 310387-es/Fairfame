@@ -2,8 +2,17 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   clearNotificationPreferenceAction,
   saveNotificationPreferenceAction,
@@ -16,13 +25,7 @@ import {
  * Saving is explicit rather than on-change. These settings decide whether
  * someone's phone buzzes at 2am, and a toggle that commits as you drag past it
  * is the wrong interaction for that.
- *
- * Native `<select>`, matching the campaign form: the project has no select
- * primitive, and the native control is accessible and keyboard-complete.
  */
-
-const SELECT_CLASS =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
 export type PreferenceValue = {
   scope: "all" | "negative_only" | "off";
@@ -62,73 +65,78 @@ export function PreferenceForm({
   const disabled = draft.scope === "off";
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4">
+    <div className="flex flex-col gap-3 rounded-md border border-line p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium">{locationName}</span>
-        {overridden ? (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-            {t("overridden")}
-          </span>
-        ) : null}
+        <span className="text-copy font-semibold">{locationName}</span>
+        {overridden ? <Badge variant="secondary">{t("overridden")}</Badge> : null}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <Label htmlFor={`scope-${fieldId}`}>{t("scope")}</Label>
-          <select
-            id={`scope-${fieldId}`}
-            className={SELECT_CLASS}
+          <Select
             value={draft.scope}
-            onChange={(event) => update("scope", event.target.value as PreferenceValue["scope"])}
+            onValueChange={(next) => update("scope", next as PreferenceValue["scope"])}
           >
-            <option value="all">{t("scopeAll")}</option>
-            <option value="negative_only">{t("scopeNegative")}</option>
-            <option value="off">{t("scopeOff")}</option>
-          </select>
+            <SelectTrigger id={`scope-${fieldId}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("scopeAll")}</SelectItem>
+              <SelectItem value="negative_only">{t("scopeNegative")}</SelectItem>
+              <SelectItem value="off">{t("scopeOff")}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid gap-1.5">
           <Label htmlFor={`delivery-${fieldId}`}>{t("delivery")}</Label>
-          <select
-            id={`delivery-${fieldId}`}
-            className={SELECT_CLASS}
+          <Select
             value={draft.delivery}
             disabled={disabled}
-            onChange={(event) =>
-              update("delivery", event.target.value as PreferenceValue["delivery"])
-            }
+            onValueChange={(next) => update("delivery", next as PreferenceValue["delivery"])}
           >
-            <option value="instant">{t("deliveryInstant")}</option>
-            <option value="digest">{t("deliveryDigest")}</option>
-          </select>
+            <SelectTrigger id={`delivery-${fieldId}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="instant">{t("deliveryInstant")}</SelectItem>
+              <SelectItem value="digest">{t("deliveryDigest")}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="size-4 rounded border-input"
+        {/* `htmlFor`, not a wrapping `<label>`: Radix renders a button, and a
+            button inside a label is not a labelled control — clicking the text
+            would do nothing. */}
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={`in-app-${fieldId}`}
             checked={draft.inApp}
             disabled={disabled}
-            onChange={(event) => update("inApp", event.target.checked)}
+            onCheckedChange={(next) => update("inApp", next === true)}
           />
-          {t("inApp")}
-        </label>
+          <Label htmlFor={`in-app-${fieldId}`} className="text-copy">
+            {t("inApp")}
+          </Label>
+        </div>
 
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="size-4 rounded border-input"
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={`email-${fieldId}`}
             checked={draft.email}
             disabled={disabled}
-            onChange={(event) => update("email", event.target.checked)}
+            onCheckedChange={(next) => update("email", next === true)}
           />
-          {t("email")}
-        </label>
+          <Label htmlFor={`email-${fieldId}`} className="text-copy">
+            {t("email")}
+          </Label>
+        </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {saved ? <span className="text-xs text-muted-foreground">{t("saved")}</span> : null}
+          {saved ? <span className="text-copy text-muted-foreground">{t("saved")}</span> : null}
 
           {locationId && overridden ? (
             <Button

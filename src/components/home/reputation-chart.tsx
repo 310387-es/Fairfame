@@ -23,8 +23,14 @@ import {
  * Colours come from the token classes, never from hex. Recharts writes `fill`
  * and `stroke` as presentation attributes, and an attribute cannot resolve a
  * CSS variable — so the palette is applied through `className` instead, where
- * a real CSS declaration wins over the attribute. That is why these are
- * `fill-chart-2` and `stroke-chart-1` rather than props.
+ * a real CSS declaration wins over the attribute.
+ *
+ * `<Line>` is the exception: it does not forward `className` to the `<path>` it
+ * draws, so a class set there silently does nothing and the curve keeps
+ * Recharts' own `#3182bd` — which is why this chart used to draw a stock blue
+ * line under an indigo legend swatch. The line and the reference line are
+ * therefore coloured from the wrapper with descendant variants, which produce a
+ * real rule against the rendered path.
  */
 
 export type ChartPoint = {
@@ -49,20 +55,29 @@ export function ReputationChart({
 }) {
   return (
     // The card's data table carries the same series for screen readers.
-    <div aria-hidden className="[&_*]:outline-none">
+    <div
+      aria-hidden
+      className="[&_*]:outline-none [&_.recharts-line-curve]:stroke-chart-1 [&_.recharts-reference-line-line]:stroke-graphic-faint"
+    >
       <ResponsiveContainer width="100%" height={340}>
         <ComposedChart
           accessibilityLayer={false}
           data={points}
-          margin={{ top: 8, right: 8, bottom: 0, left: -20 }}
+          // No negative left margin. It used to be -20 against a 34px axis to
+          // claw back the gap Recharts reserves, which left 14px for the rating
+          // labels and clipped them in half at the SVG's left edge. The axis is
+          // narrowed instead — same recovered space, and the digits survive.
+          margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
         >
-          <CartesianGrid vertical={false} className="stroke-border" strokeDasharray="0" />
+          <CartesianGrid vertical={false} className="stroke-line-inner" strokeDasharray="0" />
 
           <XAxis
             dataKey="label"
             tickLine={false}
             axisLine={false}
-            className="fill-muted-foreground text-[10px]"
+            // `--graphic-faint`, not a text token: axis ticks are non-text
+            // graphics and sit one step below the AA text floor by design.
+            className="fill-graphic-faint font-mono text-[10px]"
             // Never every day on a 90-day range: overlapping labels are worse
             // than fewer of them.
             interval="preserveStartEnd"
@@ -77,8 +92,13 @@ export function ReputationChart({
             ticks={[1, 2, 3, 4, 5]}
             tickLine={false}
             axisLine={false}
-            width={34}
-            className="fill-muted-foreground text-[10px]"
+            // One mono digit plus breathing room to the first gridline. The
+            // scale is fixed at 1–5, so this never has to fit a wider label.
+            width={22}
+            tickMargin={6}
+            // `--graphic-faint`, not a text token: axis ticks are non-text
+            // graphics and sit one step below the AA text floor by design.
+            className="fill-graphic-faint font-mono text-[10px]"
           />
 
           {/* Volume rides its own hidden scale: the bars are context for the
@@ -94,14 +114,16 @@ export function ReputationChart({
               if (!point) return null;
 
               return (
-                <div className="rounded-lg bg-popover px-3 py-2 text-xs shadow-md ring-1 ring-foreground/10">
-                  <p className="mb-1 font-medium">{point.tooltipLabel}</p>
-                  <p className="text-muted-foreground">
-                    {volumeLabel}: <span className="text-foreground">{point.volume}</span>
+                <div className="rounded-md border border-line bg-popover px-3 py-2 text-meta shadow-md">
+                  <p className="mb-1 text-copy font-semibold">{point.tooltipLabel}</p>
+                  <p className="text-ink-400">
+                    {volumeLabel}:{" "}
+                    <span className="font-mono text-foreground tabular-nums">{point.volume}</span>
                   </p>
                   {point.rating !== null ? (
-                    <p className="text-muted-foreground">
-                      {ratingLabel}: <span className="text-foreground">{point.rating}</span>
+                    <p className="text-ink-400">
+                      {ratingLabel}:{" "}
+                      <span className="font-mono text-foreground tabular-nums">{point.rating}</span>
                     </p>
                   ) : null}
                 </div>
@@ -114,18 +136,14 @@ export function ReputationChart({
             the same figure as the KPI card above, passed down rather than
             recomputed, because two averages that disagree is worse than one. */}
           {average !== null ? (
-            <ReferenceLine
-              yAxisId="rating"
-              y={average}
-              strokeDasharray="5 5"
-              className="stroke-muted-foreground/60"
-            />
+            <ReferenceLine yAxisId="rating" y={average} strokeDasharray="5 5" />
           ) : null}
 
           <Bar
             yAxisId="volume"
             dataKey="volume"
-            className="fill-chart-1/15"
+            // The same token as the legend swatch, so the two cannot drift.
+            className="fill-indigo-100"
             radius={[4, 4, 0, 0]}
             // Wide enough to read on the 7-day view, where seven categories share
             // the full width and a 22px bar looks like a stray tick.

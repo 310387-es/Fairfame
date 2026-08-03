@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createCampaignAction } from "@/server/campaigns";
 import type { LocationOption } from "@/lib/active-location";
@@ -18,13 +25,18 @@ import type { LocationOption } from "@/lib/active-location";
  * threshold, and no per-rating destination. Where the request goes is one
  * choice made here, once, for everyone.
  *
- * Native `<select>` rather than a styled listbox: the project has no select
- * primitive yet, and the native control is accessible, keyboard-complete and
- * better on mobile than anything worth hand-rolling for four options.
+ * The selects are the system's `Select`, which renders a hidden native control
+ * behind it — so these still submit through `FormData` and still restore on
+ * `form.reset()` exactly as the native elements they replaced did.
+ *
+ * One sharp edge: Radix reserves the empty string for "no selection" and throws
+ * on an item whose value is `""`. The language field's "use the default" option
+ * therefore carries a sentinel, which is translated back on submit — see
+ * `LOCALE_DEFAULT`.
  */
 
-const SELECT_CLASS =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
+/** Stands in for "" on the language select, which Radix will not accept. */
+const LOCALE_DEFAULT = "default";
 
 export function CampaignForm({ locations }: { locations: LocationOption[] }) {
   const t = useTranslations("requests");
@@ -37,7 +49,7 @@ export function CampaignForm({ locations }: { locations: LocationOption[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{t("newCampaign")}</CardTitle>
+        <CardTitle>{t("newCampaign")}</CardTitle>
         <CardDescription>{t("newCampaignDescription")}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -45,6 +57,9 @@ export function CampaignForm({ locations }: { locations: LocationOption[] }) {
           ref={formRef}
           action={(formData) => {
             setError(null);
+            // Back to the empty string the action's schema expects. The sentinel
+            // exists only because Radix cannot represent "" as an item.
+            if (formData.get("locale") === LOCALE_DEFAULT) formData.set("locale", "");
             startTransition(async () => {
               const result = await createCampaignAction(formData);
               if (result.ok) {
@@ -71,41 +86,55 @@ export function CampaignForm({ locations }: { locations: LocationOption[] }) {
 
           <div className="space-y-2">
             <Label htmlFor="campaign-location">{t("location")}</Label>
-            <select id="campaign-location" name="locationId" required className={SELECT_CLASS}>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.name}
-                </option>
-              ))}
-            </select>
+            {/* Defaulted to the first location the way the native control did
+                implicitly — with no default, a `required` Radix select shows a
+                placeholder and submits nothing. */}
+            <Select name="locationId" required defaultValue={locations[0]?.id}>
+              <SelectTrigger id="campaign-location">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="campaign-channel">{t("channel")}</Label>
-            <select
-              id="campaign-channel"
+            <Select
               name="channel"
               defaultValue="email"
-              onChange={(event) => setEmailChannel(event.target.value === "email")}
-              className={SELECT_CLASS}
+              onValueChange={(next) => setEmailChannel(next === "email")}
             >
-              <option value="email">{t("channelEmail")}</option>
-              <option value="link">{t("channelLink")}</option>
-            </select>
+              <SelectTrigger id="campaign-channel">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">{t("channelEmail")}</SelectItem>
+                <SelectItem value="link">{t("channelLink")}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="campaign-destination">{t("destination")}</Label>
-            <select
-              id="campaign-destination"
+            <Select
               name="destination"
               defaultValue="firstparty"
-              onChange={(event) => setExternal(event.target.value === "external")}
-              className={SELECT_CLASS}
+              onValueChange={(next) => setExternal(next === "external")}
             >
-              <option value="firstparty">{t("destinationFirstparty")}</option>
-              <option value="external">{t("destinationExternal")}</option>
-            </select>
+              <SelectTrigger id="campaign-destination">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="firstparty">{t("destinationFirstparty")}</SelectItem>
+                <SelectItem value="external">{t("destinationExternal")}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {external ? (
@@ -123,11 +152,16 @@ export function CampaignForm({ locations }: { locations: LocationOption[] }) {
 
           <div className="space-y-2">
             <Label htmlFor="campaign-locale">{t("language")}</Label>
-            <select id="campaign-locale" name="locale" defaultValue="" className={SELECT_CLASS}>
-              <option value="">{t("languageDefault")}</option>
-              <option value="tr">Türkçe</option>
-              <option value="en">English</option>
-            </select>
+            <Select name="locale" defaultValue={LOCALE_DEFAULT}>
+              <SelectTrigger id="campaign-locale">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={LOCALE_DEFAULT}>{t("languageDefault")}</SelectItem>
+                <SelectItem value="tr">Türkçe</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Copy overrides only make sense for a channel that sends something. */}
@@ -156,7 +190,7 @@ export function CampaignForm({ locations }: { locations: LocationOption[] }) {
 
           <div className="sm:col-span-2">
             {error ? (
-              <p role="alert" className="mb-3 text-sm text-destructive">
+              <p role="alert" className="mb-3 text-body text-destructive">
                 {error}
               </p>
             ) : null}

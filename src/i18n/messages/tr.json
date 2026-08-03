@@ -12,7 +12,13 @@
     "settings": "Ayarlar",
     "signOut": "Çıkış yap",
     "notifications": "Bildirimler",
-    "unreadBadge": "{count} okunmamış"
+    "unreadBadge": "{count} okunmamış",
+    "groupDaily": "Günlük",
+    "groupGrowth": "Büyüme",
+    "groupAccount": "Hesap",
+    "openMenu": "Menüyü aç",
+    "closeMenu": "Menüyü kapat",
+    "menu": "Menü"
   },
   "shell": {
     "locationSwitcher": "Aktif şube",
@@ -20,7 +26,20 @@
     "noLocations": "Henüz şube yok",
     "localeSwitcher": "Dil",
     "trialBadge": "Deneme · {days} gün kaldı",
-    "planBadge": "{plan} paketi"
+    "planBadge": "{plan} paketi",
+    "trialEnds": "{date} tarihinde sona erer",
+    "trialAction": "Plan seç",
+    "planActive": "{plan} paketi etkin",
+    "searchTitle": "Ara",
+    "searchPlaceholder": "Yorum, tema veya müşteri ara",
+    "searchHint": "Aramak için en az 2 karakter yazın",
+    "searchEmpty": "“{query}” için sonuç yok",
+    "searchReviews": "Yorumlar",
+    "searchThemes": "Temalar",
+    "searchMore": "Gelen kutusunda tümünü gör",
+    "searchThemeCount": "{count} yorum",
+    "searchNoText": "Metin yok",
+    "searchBusy": "Aranıyor…"
   },
   "home": {
     "rangeLabel": "Zaman aralığı",
@@ -79,7 +98,7 @@
     },
     "attention": {
       "title": "İlgi bekleyenler",
-      "all": "Gelen Kutusu →",
+      "all": "Gelen kutusu",
       "empty": "Bekleyen yok. Bu dönemdeki her olumsuz yorum yanıtlanmış.",
       "reply": "Yanıtla",
       "negative": "Olumsuz",
@@ -199,7 +218,7 @@
     },
     "themes": {
       "title": "Öne çıkan temalar",
-      "all": "Tümü →",
+      "all": "Tümü",
       "mostlyPositive": "{count} olumlu",
       "mostlyNegative": "{count} olumsuz",
       "mixed": "karışık",
@@ -241,7 +260,14 @@
       "empty": "Bu dönemde bir hareket olmadı."
     },
     "metric": "Ölçüt",
-    "value": "Değer"
+    "value": "Değer",
+    "breakdown": {
+      "label": "Ne gösterilsin",
+      "title": "Müşteriler ne dedi",
+      "themes": "Temalar",
+      "ratings": "Puanlar",
+      "sources": "Kaynaklar"
+    }
   },
   "inbox": {
     "title": "Gelen kutusu",
@@ -276,7 +302,12 @@
     "replyDraftBadge": "Taslak",
     "replyApprovedBadge": "Onaylandı",
     "replyPostedBadge": "Yanıtlandı",
-    "showingFirst": "İlk {shown} yorum gösteriliyor"
+    "showingFirst": "İlk {shown} yorum gösteriliyor",
+    "filterSearch": "Arama",
+    "pagination": "Sayfalama",
+    "previous": "Önceki",
+    "next": "Sonraki",
+    "range": "{total} yorumdan {from}–{to} arası"
   },
   "locations": {
     "title": "Şubeler",
@@ -512,7 +543,11 @@
     "openReview": "Gelen Kutusu'nda aç",
     "anonymous": "Anonim",
     "ratingLabel": "5 üzerinden {rating}",
-    "badgeLabel": "{count} okunmamış bildirim"
+    "badgeLabel": "{count} okunmamış bildirim",
+    "popoverTitle": "Bildirimler",
+    "loading": "Yükleniyor…",
+    "urgentHint": "Acil — düşük puan veya olumsuz yorum",
+    "endOfList": "Hepsi bu"
   },
   "replies": {
     "writeReply": "Kendin yaz",

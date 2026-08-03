@@ -17,11 +17,14 @@ export function ChartTooltip({
   rows: { label: string; value: ReactNode }[];
 }) {
   return (
-    <div className="rounded-lg bg-popover px-3 py-2 text-xs shadow-md ring-1 ring-foreground/10">
-      <p className="mb-1 font-medium">{title}</p>
+    // A tooltip is one of the two things in this system that genuinely floats,
+    // so it keeps `shadow-md` — but the border is the system hairline rather
+    // than a `ring-foreground/10`, which resolved to a different grey.
+    <div className="rounded-md border border-line bg-popover px-3 py-2 text-meta shadow-md">
+      <p className="mb-1 text-copy font-semibold">{title}</p>
       {rows.map((row) => (
-        <p key={row.label} className="text-muted-foreground">
-          {row.label}: <span className="text-foreground">{row.value}</span>
+        <p key={row.label} className="text-ink-400">
+          {row.label}: <span className="font-mono text-foreground tabular-nums">{row.value}</span>
         </p>
       ))}
     </div>

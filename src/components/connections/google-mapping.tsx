@@ -49,11 +49,11 @@ export function GoogleMapping({ connectionId }: { connectionId: string }) {
 
   return (
     <div className="space-y-2 rounded-lg border border-dashed p-3">
-      <p className="text-sm font-medium">{t("finishSetup")}</p>
-      <p className="text-xs text-muted-foreground">{t("finishSetupHint")}</p>
+      <p className="text-title">{t("finishSetup")}</p>
+      <p className="text-copy text-muted-foreground">{t("finishSetupHint")}</p>
 
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body text-destructive">
           {error}
         </p>
       ) : null}
@@ -64,7 +64,7 @@ export function GoogleMapping({ connectionId }: { connectionId: string }) {
           {pending ? t("loadingLocations") : t("chooseLocation")}
         </Button>
       ) : targets.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("noGoogleLocations")}</p>
+        <p className="text-body text-muted-foreground">{t("noGoogleLocations")}</p>
       ) : (
         <ul className="space-y-1">
           {targets.map((target) => (
@@ -73,13 +73,13 @@ export function GoogleMapping({ connectionId }: { connectionId: string }) {
                 type="button"
                 disabled={pending}
                 onClick={() => choose(target)}
-                className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent disabled:opacity-50"
+                className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-body transition-colors hover:bg-accent disabled:opacity-50"
               >
                 <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{target.title}</span>
                   {target.address ? (
-                    <span className="block truncate text-xs text-muted-foreground">
+                    <span className="block truncate text-copy text-muted-foreground">
                       {target.address}
                     </span>
                   ) : null}

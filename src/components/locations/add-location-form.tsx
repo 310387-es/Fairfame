@@ -24,7 +24,7 @@ export function AddLocationForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{t("addTitle")}</CardTitle>
+        <CardTitle>{t("addTitle")}</CardTitle>
         <CardDescription>{t("addDescription")}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -58,12 +58,12 @@ export function AddLocationForm({
 
           <div className="sm:col-span-3">
             {error ? (
-              <p role="alert" className="mb-3 text-sm text-destructive">
+              <p role="alert" className="mb-3 text-body text-destructive">
                 {error}
               </p>
             ) : null}
             {disabled && disabledReason ? (
-              <p className="mb-3 text-sm text-muted-foreground">{disabledReason}</p>
+              <p className="mb-3 text-body text-muted-foreground">{disabledReason}</p>
             ) : null}
 
             <Button type="submit" disabled={pending || disabled}>

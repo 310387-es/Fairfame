@@ -1,11 +1,12 @@
-import { ExternalLink, Star } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
+import { Stars } from "@/components/ds/stars";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReplyComposer, type ReplyState } from "@/components/inbox/reply-composer";
 import type { ReplyAffordance } from "@/connectors/capability-view";
-import { cn } from "@/lib/utils";
 import { MAX_REPLY_CHARS } from "@/prompts/index";
 
 export type InboxReview = {
@@ -38,6 +39,8 @@ export type ReviewListOptions = {
   canUseAi: boolean;
   /** False for a member — approve and post are admin-only. */
   canApprove: boolean;
+  /** The review a deep link asked for, outlined so it can be found. */
+  highlightId?: string | null;
 };
 
 /**
@@ -54,42 +57,25 @@ function SentimentChip({
   sentiment: "positive" | "neutral" | "negative";
   label: string;
 }) {
-  return (
-    <span
-      className={cn(
-        "rounded px-1.5 py-0.5 text-[11px] font-medium",
-        sentiment === "positive"
-          ? "bg-primary/10 text-primary"
-          : sentiment === "negative"
-            ? "bg-destructive/10 text-destructive"
-            : "bg-muted text-muted-foreground",
-      )}
-    >
-      {label}
-    </span>
-  );
+  // Indigo used to carry "positive" here. Indigo means "this is interactive" in
+  // this system and nothing else — a green chip beside a blue reply button is
+  // the difference between a reading and a control (docs/15 §Colour).
+  return <Badge variant={sentiment === "neutral" ? "rating" : sentiment}>{label}</Badge>;
 }
 
-/** Amber stars, the one place the accent colour is spent. */
+/**
+ * Amber stars, the one place the accent colour is spent.
+ *
+ * Typographic ★☆ rather than five repeated Lucide SVGs — same glyph as Home's
+ * queue, and it inherits colour and size instead of needing both set on five
+ * separate nodes per row (docs/15 §Components).
+ */
 function Rating({ rating, label }: { rating: number | null; label: string }) {
   if (rating === null) {
-    return <span className="text-xs text-muted-foreground">{label}</span>;
+    return <span className="text-meta text-faint">{label}</span>;
   }
 
-  return (
-    <span className="flex items-center gap-0.5" aria-label={label}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          aria-hidden
-          className={cn(
-            "size-3.5",
-            star <= rating ? "fill-rating text-rating" : "text-muted-foreground/30",
-          )}
-        />
-      ))}
-    </span>
-  );
+  return <Stars rating={rating} srLabel={label} className="text-state-rating-text" />;
 }
 
 /**
@@ -120,7 +106,12 @@ export async function ReviewList({
         // `#review-<id>`, so the browser scrolls the card into view without a
         // single-review route existing. `scroll-mt` keeps it clear of the
         // sticky header rather than tucked underneath it.
-        <li key={review.id} id={`review-${review.id}`} className="scroll-mt-24">
+        <li
+          key={review.id}
+          id={`review-${review.id}`}
+          data-review-highlight={review.id === options.highlightId ? "true" : undefined}
+          className="scroll-mt-24"
+        >
           <Card>
             <CardContent className="space-y-3 py-5">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -133,16 +124,16 @@ export async function ReviewList({
                       : t("ratingLabel", { rating: review.rating })
                   }
                 />
-                <span className="ml-auto text-xs text-muted-foreground">
+                <span className="ml-auto text-copy text-muted-foreground">
                   {review.postedAt ? format.dateTime(review.postedAt, "medium") : null}
                 </span>
               </div>
 
               {review.text ? (
-                <p className="text-sm leading-relaxed text-pretty">{review.text}</p>
+                <p className="text-body leading-relaxed text-pretty">{review.text}</p>
               ) : null}
 
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-copy text-muted-foreground">
                 {review.sentiment ? (
                   <SentimentChip
                     sentiment={review.sentiment}

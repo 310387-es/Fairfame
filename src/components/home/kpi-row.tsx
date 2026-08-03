@@ -1,22 +1,38 @@
 import { KpiCard } from "@/components/home/kpi-card";
-import { Card, CardContent } from "@/components/ui/card";
 import type { DashboardKpis, KpiKey } from "@/dashboard/metrics";
 
 /**
- * The four headline numbers.
+ * The four headline numbers, as one divided strip.
+ *
+ * Hairlines rather than gaps. These are four readings of the same period, and
+ * separating them with whitespace and four card borders said the opposite —
+ * that they were four independent widgets that happened to sit together. The
+ * strip sits inside the reputation card, above the chart that explains it.
  *
  * Two columns on a phone rather than four squeezed or one stacked: an owner
  * checking on the way to work should see all four without scrolling, and at
- * four across the numbers become unreadable on a 390px screen.
+ * four across the numbers become unreadable on a 390px screen. The dividers
+ * follow the wrap — no right-hand line on the last column of either layout.
  */
 
 const ORDER: KpiKey[] = ["reputation", "rating", "volume", "responseRate"];
 
 export function KpiRow({ kpis }: { kpis: DashboardKpis }) {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {ORDER.map((key) => (
-        <KpiCard key={key} kpi={kpis[key]} />
+    <div className="grid grid-cols-2 lg:grid-cols-4">
+      {ORDER.map((key, index) => (
+        <div
+          key={key}
+          className={
+            // `[&:nth-child(2n)]` clears the divider mid-row on a phone;
+            // `lg:` restores it because at four across only the last cell ends.
+            "border-line-inner lg:border-r [&:nth-child(2n)]:border-r-0 " +
+            (index < 2 ? "border-b lg:border-b-0 " : "") +
+            (index === ORDER.length - 1 ? "lg:border-r-0" : "border-r")
+          }
+        >
+          <KpiCard kpi={kpis[key]} />
+        </div>
       ))}
     </div>
   );
@@ -24,23 +40,22 @@ export function KpiRow({ kpis }: { kpis: DashboardKpis }) {
 
 export function KpiRowSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-hidden>
-      {ORDER.map((key) => (
-        <Card key={key} className="rounded-2xl">
-          <CardContent className="flex flex-col gap-3">
-            {/* Same shapes in the same places as the real card, so the layout
-                does not jump when the numbers arrive. */}
-            <div className="flex items-center gap-2">
-              <span className="size-7 animate-pulse rounded-lg bg-muted" />
-              <span className="h-3 w-24 animate-pulse rounded bg-muted" />
-            </div>
-            <div className="flex items-end justify-between">
-              <span className="h-8 w-16 animate-pulse rounded bg-muted" />
-              <span className="h-6 w-16 animate-pulse rounded bg-muted" />
-            </div>
-            <span className="h-4 w-12 animate-pulse rounded bg-muted" />
-          </CardContent>
-        </Card>
+    <div className="grid grid-cols-2 lg:grid-cols-4" aria-hidden>
+      {ORDER.map((key, index) => (
+        <div
+          key={key}
+          className={
+            "border-line-inner px-[18px] py-4 lg:border-r [&:nth-child(2n)]:border-r-0 " +
+            (index < 2 ? "border-b lg:border-b-0 " : "") +
+            (index === ORDER.length - 1 ? "lg:border-r-0" : "border-r")
+          }
+        >
+          {/* Same shapes in the same places as the real cell, so the layout
+              does not jump when the numbers arrive. */}
+          <span className="block h-2.5 w-20 animate-pulse rounded bg-muted" />
+          <span className="mt-2 block h-7 w-16 animate-pulse rounded bg-muted" />
+          <span className="mt-2.5 block h-5 w-[90px] animate-pulse rounded bg-muted" />
+        </div>
       ))}
     </div>
   );

@@ -2,8 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -83,38 +81,58 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+@layer components {
+  /**
+   * A chart's data as text — hidden from sight, available to screen readers,
+   * and revealed when scripts are off.
+   *
+   * This used to be two copies of the table, the second wrapped in
+   * `<noscript>`. That crashed React's streaming renderer: it splits a long
+   * `<tbody>` into out-of-order segments and emits placeholder nodes for its
+   * `$RS` inline script to fill, but a browser *with* scripting parses
+   * everything inside `<noscript>` as raw text — so the placeholders never
+   * became elements, `getElementById` returned null, and every row threw
+   * `Cannot read properties of null (reading 'parentNode')`.
+   *
+   * One table now, always in the real DOM, with only a stylesheet inside the
+   * `<noscript>` (see `app/layout.tsx`). Assistive technology still meets
+   * exactly one copy, and there is nothing left for the parser to swallow.
+   *
+   * This must go on a `<div>` **wrapping** the table, never on the table
+   * itself. A `<table>` treats `height` as a *minimum*, so `height: 1px` does
+   * not shrink it — the box stayed as tall as its rows, and because it is
+   * absolutely positioned it hung past the bottom of the page and stretched the
+   * document's scroll height. That is what left a strip under the navigation
+   * rail: the rail is as tall as the in-flow content, and the page scrolled
+   * further than that.
+   */
+  /**
+   * The review a notification, a search hit or Home's queue sent you to.
+   *
+   * Driven by a `data-` attribute the server sets from `?review=`, not by
+   * `:target`. Next's client-side `router.push` rewrites the URL through the
+   * History API without performing a *fragment navigation*, so the browser
+   * never marks a target element — `:target` matched on a full page load and
+   * silently never matched on a click, which is the only way anyone actually
+   * arrives here.
+   */
+  [data-review-highlight="true"] > * {
+    outline: 2px solid var(--indigo-600);
+    outline-offset: 2px;
+    border-radius: var(--radius-lg);
+  }
+
+  .chart-fallback {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
+  }
 }
 
 @layer base {
@@ -176,27 +194,6 @@
   --sidebar-ring: var(--brand-indigo);
 
   /* Amber is reserved for ratings and highlights — never a default surface. */
-  --rating: var(--brand-amber);
-}
-
-.dark {
-  --brand-indigo: oklch(0.66 0.19 268.84);
-  --brand-amber: oklch(0.8 0.15 72.33);
-
-  --primary: var(--brand-indigo);
-  --primary-foreground: oklch(0.16 0.03 269);
-  --ring: var(--brand-indigo);
-
-  --muted: oklch(0.27 0.02 268);
-  --muted-foreground: oklch(0.72 0.02 268);
-  --secondary: oklch(0.27 0.02 268);
-  --accent: oklch(0.3 0.025 268);
-
-  --sidebar: oklch(0.2 0.025 269);
-  --sidebar-primary: var(--brand-indigo);
-  --sidebar-accent: oklch(0.3 0.025 268);
-  --sidebar-ring: var(--brand-indigo);
-
   --rating: var(--brand-amber);
 }
 
@@ -289,29 +286,6 @@
   --elevation-md: 0 8px 26px -10px rgb(16 25 58 / 0.13);
 }
 
-.dark {
-  --background: oklch(0.16 0.02 269);
-
-  --positive: oklch(0.75 0.14 162);
-  --positive-foreground: oklch(0.16 0.03 269);
-
-  /* Lighter rather than darker: the contrast is against a dark card now. */
-  --positive-ink: oklch(0.578 0.14 162);
-  --rating-ink: oklch(0.605 0.1585 72.33);
-  --destructive-ink: oklch(0.62 0.2 27.325);
-
-  /* Same ramp, lifted until each step clears 4.5:1 on the dark card. */
-  --rating-5: oklch(0.578 0.14 162);
-  --rating-4: oklch(0.588 0.15 128);
-  --rating-3: oklch(0.605 0.1585 72.33);
-  --rating-2: oklch(0.615 0.17 45);
-  --rating-1: oklch(0.628 0.245 27.325);
-
-  /* Darker surfaces swallow a subtle shadow, so both steps go deeper. */
-  --elevation-sm: 0 1px 2px rgb(0 0 0 / 0.3);
-  --elevation-md: 0 10px 30px -12px rgb(0 0 0 / 0.5);
-}
-
 @theme inline {
   --color-positive: var(--positive);
   --color-positive-foreground: var(--positive-foreground);
@@ -329,4 +303,251 @@
 
   --shadow-sm: var(--elevation-sm);
   --shadow-md: var(--elevation-md);
+}
+
+/* ===========================================================================
+ * Revira Design System — imported from the approved Home redesign (option 1a)
+ * in the "Revira home page redesign review" project on claude.ai/design.
+ *
+ * This block is the contract every screen inherits. It is deliberately the
+ * *last* word in this file: it re-points the shadcn aliases above at the
+ * system's own surfaces, lines and radii, so a component nobody has touched
+ * still comes out looking like the system. Adding a page should require
+ * choosing tokens, never inventing values.
+ *
+ * Read `docs/15-design-system.md` before building a new surface.
+ *
+ * Two conventions that are easy to get wrong:
+ *   - The system's *colour* aliases (`--text-primary`, `--surface-card`) stay
+ *     in plain `:root`. They must never enter an `@theme` block, where the
+ *     `--text-*` namespace means font-size and would collide.
+ *   - Hex here, oklch above. The brand three are the same colour either way;
+ *     the surface, line and ink values originate in the design system and have
+ *     no oklch twin to drift from.
+ * ======================================================================== */
+
+:root {
+  /* --- Brand tints ------------------------------------------------------ */
+  --indigo-600: #3d5af1;
+  --indigo-700: #2e45c4;
+  --indigo-100: #dde3fb;
+  --indigo-050: #eef1fe;
+  --amber-500: #f5a524;
+  --amber-050: #fef4e1;
+  /* AA-legible amber. Brand amber on white is 2.04:1 — unreadable at 11px. */
+  --amber-ink: #8a5a05;
+
+  /* --- Ink -------------------------------------------------------------- */
+  --ink-900: #0e1734; /* the rail and the briefing bar */
+  --ink-800: #10193a; /* body text */
+  --ink-600: #3a4260; /* secondary copy */
+  --ink-500: #5b6480;
+  --ink-400: #6b7391; /* muted label */
+  --ink-350: #666e88; /* 4.54:1 on white — the lightest text allowed */
+  --ink-300: #8b93ac; /* 3.06:1 — NON-TEXT only. Axis ticks, dots, disabled. */
+
+  /* --- Surfaces and lines ----------------------------------------------- */
+  --canvas: #f6f7fb; /* faintly tinted, so white cards have an edge */
+  --surface: #ffffff;
+  --surface-sunken: #f5f7fa; /* inputs and meter tracks */
+  --surface-segmented: #eaecf4; /* the trough of a segmented control */
+  --line: #e7eaf3; /* card hairline */
+  --line-soft: #f3f5fa; /* between rows in a list */
+  --line-inner: #eff1f7; /* between cells inside one card */
+
+  /* --- Semantic aliases (plain vars — never inside @theme) --------------- */
+  --text-primary: var(--ink-800);
+  --text-secondary: var(--ink-600);
+  --text-muted: var(--ink-400);
+  --text-faint: var(--ink-350);
+  --graphic-faint: var(--ink-300);
+  --text-on-ink: #ffffff;
+  --text-on-ink-muted: rgb(255 255 255 / 0.72);
+
+  --surface-page: var(--canvas);
+  --surface-card: var(--surface);
+  --surface-rail: var(--ink-900);
+  --surface-brief: var(--ink-900);
+
+  --rail-item: rgb(255 255 255 / 0.62);
+  --rail-group-label: rgb(255 255 255 / 0.55);
+  --rail-footer-wash: rgb(255 255 255 / 0.04);
+  --rail-footer-line: rgb(255 255 255 / 0.12);
+
+  /* State pairs — a tinted wash plus an ink that clears 4.5:1 *on that wash*,
+   * which is a stricter test than clearing it on white. */
+  --state-positive-bg: #e6f7f0;
+  --state-positive-text: #0b7d57;
+  --state-negative-bg: #fde9ee;
+  --state-negative-text: #c42b4c;
+  --state-rating-bg: var(--amber-050);
+  --state-rating-text: var(--amber-ink);
+  --state-accent-bg: var(--indigo-050);
+  --state-accent-text: var(--indigo-700);
+
+  /* Amber on ink. The one call to action that is not indigo, because indigo
+   * disappears against the dark briefing bar. */
+  --cta-brief-bg: var(--amber-500);
+  --cta-brief-text: var(--ink-800);
+
+  /* --- Layout ----------------------------------------------------------- */
+  /* Card padding, as globals rather than only on `.card`.
+   *
+   * `Card` sets these on itself too, so its `sm` size can override them — but
+   * without a root default, `px-(--card-px)` on anything that is not inside a
+   * Card resolves to nothing and silently collapses to zero padding. That is
+   * exactly what happened to the Inbox filter bar, and it fails quietly: the
+   * class looks right in the markup and the element just sits flush. */
+  --card-px: 18px;
+  --card-py: 16px;
+
+  --rail-width: 232px;
+  --topbar-height: 56px;
+  --page-gutter: 24px;
+  --grid-gap: 14px;
+  --content-max: 1280px;
+
+  /* --- Motion and focus -------------------------------------------------- */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --focus-ring: 0 0 0 3px rgb(61 90 241 / 0.28);
+
+  /* --- Re-pointed shadcn aliases ----------------------------------------
+   * Everything above becomes visible in components nobody edited, because the
+   * generic names they already use now resolve to system values. */
+  --background: var(--canvas);
+  --card: var(--surface);
+  --popover: var(--surface);
+  --foreground: var(--ink-800);
+  --card-foreground: var(--ink-800);
+  --popover-foreground: var(--ink-800);
+  --muted-foreground: var(--ink-400);
+  --border: var(--line);
+  --input: var(--line);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--ink-600);
+  --accent: var(--surface-sunken);
+  --accent-foreground: var(--ink-800);
+  --muted: var(--surface-sunken);
+
+  /* The rail is dark on every authenticated screen — a decision, not a Home
+   * treatment. `--sidebar-*` is what shadcn's sidebar primitives read. */
+  --sidebar: var(--ink-900);
+  --sidebar-foreground: var(--text-on-ink);
+  --sidebar-primary: var(--indigo-600);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgb(255 255 255 / 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.1);
+  --sidebar-ring: var(--indigo-600);
+
+  /* Hairline first. A shadow means "this floats", and cards do not. */
+  --elevation-sm: 0 1px 2px rgb(16 25 58 / 0.06);
+  --elevation-md: 0 8px 26px -10px rgb(16 25 58 / 0.13);
+}
+
+@theme inline {
+  /* Colours. Utility names read as the role, not the swatch: `border-line`,
+   * `bg-canvas`, `text-faint`. */
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-segmented: var(--surface-segmented);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-inner: var(--line-inner);
+
+  --color-ink-900: var(--ink-900);
+  --color-ink-800: var(--ink-800);
+  --color-ink-600: var(--ink-600);
+  --color-ink-500: var(--ink-500);
+  --color-ink-400: var(--ink-400);
+  --color-faint: var(--text-faint);
+  --color-graphic-faint: var(--graphic-faint);
+
+  --color-indigo-600: var(--indigo-600);
+  --color-indigo-700: var(--indigo-700);
+  --color-indigo-100: var(--indigo-100);
+  --color-indigo-050: var(--indigo-050);
+  --color-amber-500: var(--amber-500);
+  --color-amber-050: var(--amber-050);
+  --color-amber-ink: var(--amber-ink);
+
+  --color-state-positive-bg: var(--state-positive-bg);
+  --color-state-positive-text: var(--state-positive-text);
+  --color-state-negative-bg: var(--state-negative-bg);
+  --color-state-negative-text: var(--state-negative-text);
+  --color-state-rating-bg: var(--state-rating-bg);
+  --color-state-rating-text: var(--state-rating-text);
+  --color-state-accent-bg: var(--state-accent-bg);
+  --color-state-accent-text: var(--state-accent-text);
+
+  --color-rail: var(--surface-rail);
+  --color-rail-item: var(--rail-item);
+  --color-brief: var(--surface-brief);
+  --color-on-ink: var(--text-on-ink);
+  --color-on-ink-muted: var(--text-on-ink-muted);
+  --color-cta-brief: var(--cta-brief-bg);
+  --color-cta-brief-text: var(--cta-brief-text);
+
+  /* Radii. Four steps, and the generic shadcn names are bent to them so an
+   * untouched `rounded-lg` is already a card corner: 14 blocks · 9 controls ·
+   * 7 chips · full for numeric counts. */
+  --radius-sm: 7px;
+  --radius-md: 9px;
+  --radius-lg: 14px;
+  --radius-xl: 14px;
+  --radius-2xl: 14px;
+
+  /* Type. Four roles and no more — see docs/15-design-system.md §Type.
+   * Headline numerals are Geist with tabular-nums; deltas, counts, ranges and
+   * axis labels are Geist Mono. */
+  /* The one role above `display`, and it is not for app screens.
+   *
+   * A public page can legitimately carry two headings that both matter — on
+   * `/sample`, the promise ("this is what lands in your inbox") *and* the
+   * artefact's own headline. Setting both at `display` made them fight; making
+   * the artefact smaller undersold the thing being demonstrated. So the page's
+   * promise gets one size above, and only ever on a marketing or document
+   * surface. Never use this inside the app: a dashboard has one subject. */
+  --text-hero: 2rem; /* 32px — public surfaces only */
+  --text-hero--line-height: 1.12;
+  --text-hero--letter-spacing: -0.03em;
+  --text-hero--font-weight: 600;
+
+  --text-display: 1.5625rem; /* 25px — one per page, the h1 */
+  --text-display--line-height: 1.15;
+  --text-display--letter-spacing: -0.025em;
+  --text-display--font-weight: 600;
+
+  --text-metric: 1.75rem; /* 28px — a headline number */
+  --text-metric--line-height: 1;
+  --text-metric--letter-spacing: -0.03em;
+  --text-metric--font-weight: 600;
+
+  --text-title: 0.875rem; /* 14px — every card title */
+  --text-title--line-height: 1.3;
+  --text-title--font-weight: 600;
+
+  --text-body: 0.84375rem; /* 13.5px — page body */
+  --text-body--line-height: 1.5;
+
+  --text-copy: 0.78125rem; /* 12.5px — body inside a card */
+  --text-copy--line-height: 1.5;
+
+  --text-meta: 0.6875rem; /* 11px — timestamps, legends */
+  --text-meta--line-height: 1.4;
+
+  /* The only label style on a data surface. Sentence-case grey labels are the
+   * old style and are not used. */
+  --text-eyebrow: 0.65625rem; /* 10.5px */
+  --text-eyebrow--line-height: 1;
+  --text-eyebrow--letter-spacing: 0.08em;
+  --text-eyebrow--font-weight: 600;
+
+  /* 120ms for a hover, 180ms for anything that moves. No springs, no bounce,
+   * no entrance animation on data — a number that changes just changes. */
+  --default-transition-duration: 120ms;
+  --default-transition-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
 }
