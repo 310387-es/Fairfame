@@ -42,7 +42,13 @@ export type WindowReview = {
 export const RATING_WEIGHT = 0.65;
 export const SENTIMENT_WEIGHT = 0.35;
 
-export function computePulse(reviews: WindowReview[]): number | null {
+/**
+ * Narrowed to the two fields it reads so the live dashboard can reuse it —
+ * Home and the digest must never compute the same score two ways.
+ */
+export type PulseInput = { rating: number | null; sentimentScore: number | null };
+
+export function computePulse(reviews: readonly PulseInput[]): number | null {
   const rated = reviews.filter((review) => review.rating !== null);
   const scored = reviews.filter((review) => review.sentimentScore !== null);
 

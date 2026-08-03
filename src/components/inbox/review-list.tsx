@@ -116,7 +116,11 @@ export async function ReviewList({
   return (
     <ul className="space-y-3">
       {reviews.map((review) => (
-        <li key={review.id}>
+        // Anchor target: Home's needs-attention queue links here with
+        // `#review-<id>`, so the browser scrolls the card into view without a
+        // single-review route existing. `scroll-mt` keeps it clear of the
+        // sticky header rather than tucked underneath it.
+        <li key={review.id} id={`review-${review.id}`} className="scroll-mt-24">
           <Card>
             <CardContent className="space-y-3 py-5">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

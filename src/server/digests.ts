@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { withAuthenticatedTenant } from "@/auth/session";
-import { setActionStatus } from "@/digest/queries";
+import { weekWindow } from "@/digest/metrics";
+import { digestProgress, setActionStatus, type DigestProgress } from "@/digest/queries";
 import { requestDigest } from "@/jobs/client";
 import { childLogger } from "@/lib/logger";
 import { toActionResult, type ActionResult } from "@/server/action-result";
@@ -43,6 +44,45 @@ export async function generateDigestAction(input: { locationId: string }): Promi
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "generateDigest failed");
+    return toActionResult(error);
+  }
+}
+
+/**
+ * How the digest being composed is getting on.
+ *
+ * Polled by the Home button after it queues one. Read-only and cheap — one
+ * indexed row by (organization, location, period) — so a few seconds' interval
+ * costs nothing, and it is the same tenant-scoped path as every other read
+ * rather than a side channel that skips RLS.
+ *
+ * It reports on the window the button actually targets, the last *completed*
+ * week, not on whatever Home happens to be rendering: during a regeneration
+ * those differ, because a pending row stops being the newest ready one.
+ */
+export async function digestProgressAction(input: {
+  locationId: string;
+}): Promise<ActionResult<DigestProgress>> {
+  const parsed = z.object({ locationId: z.uuid() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid location." };
+
+  try {
+    const progress = await withAuthenticatedTenant(
+      async (tx, actor) =>
+        digestProgress(
+          tx,
+          actor.organizationId,
+          parsed.data.locationId,
+          weekWindow(new Date()).start,
+        ),
+      // Reading progress is not spending anything; anyone who can see Home can
+      // see whether it is still being written.
+      { minimumRole: "member" },
+    );
+
+    return { ok: true, ...progress };
+  } catch (error) {
+    log.warn({ err: error }, "digestProgress failed");
     return toActionResult(error);
   }
 }

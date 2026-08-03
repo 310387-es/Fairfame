@@ -86,6 +86,44 @@ export async function latestDigest(
   return toView(row, actions);
 }
 
+/**
+ * How the digest for one week is getting on.
+ *
+ * `"none"` and `"pending"` are different answers to different questions —
+ * nothing has been asked for yet, versus a worker is composing right now — and
+ * the Home screen's button needs to tell them apart to know whether to keep
+ * watching. `generatedAt` distinguishes a *re*generation that is still running
+ * (a previous composition's timestamp, status back to `pending`) from a first
+ * one that has never produced anything.
+ */
+export type DigestProgress = {
+  status: "none" | "pending" | "ready" | "failed";
+  generatedAt: Date | null;
+};
+
+export async function digestProgress(
+  tx: TenantDatabase,
+  organizationId: string,
+  locationId: string,
+  periodStart: Date,
+): Promise<DigestProgress> {
+  const [row] = await tx
+    .select({ status: schema.digests.status, generatedAt: schema.digests.generatedAt })
+    .from(schema.digests)
+    .where(
+      and(
+        eq(schema.digests.organizationId, organizationId),
+        eq(schema.digests.locationId, locationId),
+        eq(schema.digests.periodStart, periodStart),
+      ),
+    )
+    .limit(1);
+
+  return row
+    ? { status: row.status, generatedAt: row.generatedAt }
+    : { status: "none", generatedAt: null };
+}
+
 /** Recent digests for a location, newest first — the history strip. */
 export async function listDigests(
   tx: TenantDatabase,

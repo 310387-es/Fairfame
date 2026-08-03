@@ -58,16 +58,6 @@ export async function DigestView({ digest }: { digest: Digest }) {
       <section className="grid gap-4 lg:grid-cols-[1fr_auto]">
         <Card className="flex flex-col justify-center">
           <CardContent className="py-6">
-            <p className="mb-2 text-xs text-muted-foreground">
-              {t("period", {
-                start: format.dateTime(digest.periodStart, { day: "numeric", month: "short" }),
-                end: format.dateTime(new Date(digest.periodEnd.getTime() - 1), {
-                  day: "numeric",
-                  month: "short",
-                }),
-              })}
-            </p>
-
             {quiet ? (
               <>
                 <h2 className="font-heading text-xl font-semibold text-balance">

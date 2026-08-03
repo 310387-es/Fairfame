@@ -22,6 +22,9 @@ Planning and design documentation for **Revira** *(provisional name)* — a revi
 | 12 | [AI Guardrail Validation](./12-ai-guardrail-validation.md) | What has actually been tested about the AI layer: threat model, structural defences, adversarial results, known gaps. |
 | 13 | [Go-Live](./13-go-live.md) | Per-platform prerequisites and verification steps for when the company exists — plus what `pnpm golive` checks and what it deliberately does not. |
 
+| 14 | [Digest Surfaces](./14-digest-surfaces.md) | Where the weekly digest goes now Home is a live dashboard: email (D1), a `/digest` archive (D2), the copy move (D3), WhatsApp (D4) — and the weekly-vs-daily cadence decision. |
+| — | [Home — Live Dashboard](./home-live-dashboard.md) | Implementation handoff for the Home redesign: tokens, layout, the ten widgets, data notes. |
+
 Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude Code.
 
 ## Assets

@@ -55,4 +55,4 @@ AI operator commands: `pnpm ai:smoke` (one call, checks the key and model), `pnp
 
 ## Docs
 
-`docs/` holds the full plan (01 master → 13 go-live). Read 02, 03, 06 before building; 09/10/11 are the build plans; 12 is the AI-guardrail evidence and 13 the go-live runbook.
+`docs/` holds the full plan (01 master → 14). Read 02, 03, 06 before building; 09/10/11 are the build plans; 12 is the AI-guardrail evidence, 13 the go-live runbook, 14 the digest-surfaces plan. `home-live-dashboard.md` is the active Home redesign handoff.

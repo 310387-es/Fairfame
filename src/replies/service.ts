@@ -280,6 +280,81 @@ export async function draftReplyForReview(args: DraftArgs): Promise<ReplyRow> {
 }
 
 /**
+ * Stores a reply somebody wrote themselves.
+ *
+ * The counterpart to `draftReplyForReview`, and deliberately not gated the same
+ * way. `ai_replies` and `ai_analyses_per_month` exist to meter *model* calls;
+ * typing a sentence is not one. Charging a manual reply against the AI
+ * allowance would mean an owner who exhausts their monthly quota can no longer
+ * answer a customer at all — the Inbox becomes read-only for the rest of the
+ * billing period, which nobody designed and nobody would defend.
+ *
+ * Everything downstream is shared: the draft is edited, approved and posted
+ * through exactly the same path as an AI one, and the same rule holds that
+ * nothing reaches a platform without an explicit human approval. Only the
+ * origin differs, which is what `ai_generated` records.
+ */
+export async function writeReplyDraft(args: {
+  tx: TenantDatabase;
+  organizationId: string;
+  actorUserId: string;
+  reviewId: string;
+  text: string;
+}): Promise<ReplyRow> {
+  const { tx, organizationId, actorUserId, reviewId } = args;
+
+  // The same bound the model is held to: the limit is about staying readable
+  // on a review platform, and a person typing hits the same wall.
+  const text = boundOutput(args.text, MAX_REPLY_CHARS);
+  if (text.length === 0) throw new ReplyError("A reply cannot be empty.", "empty");
+
+  const existing = await liveReplyFor(tx, organizationId, reviewId);
+  if (existing && existing.status !== "draft") {
+    throw new ReplyError("This review already has a reply.", "already_replied");
+  }
+
+  // Confirms the review exists and belongs to this tenant before writing a row
+  // that references it.
+  await loadReview(tx, organizationId, reviewId);
+
+  const values = {
+    organizationId,
+    reviewId,
+    authorUserId: actorUserId,
+    text,
+    status: "draft" as const,
+    aiGenerated: false,
+    edited: false,
+    // No original to diff against: the person's first words are the original,
+    // so later edits are edits of their own text, not of a model's.
+    originalText: null,
+    promptId: null,
+    model: null,
+    lastError: null,
+  };
+
+  const [row] = existing
+    ? await tx
+        .update(schema.replies)
+        .set({ ...values, updatedAt: new Date() })
+        .where(eq(schema.replies.id, existing.id))
+        .returning()
+    : await tx.insert(schema.replies).values(values).returning();
+
+  if (!row) throw new Error("Could not persist the reply.");
+
+  await audit(tx, {
+    organizationId,
+    actorUserId,
+    action: "reply.written",
+    replyId: row.id,
+    meta: { reviewId, length: text.length },
+  });
+
+  return row;
+}
+
+/**
  * Saves an edited draft.
  *
  * Bounded to the same length the prompt asks the model for, because the limit

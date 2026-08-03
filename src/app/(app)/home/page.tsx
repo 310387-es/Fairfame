@@ -1,14 +1,13 @@
-import { Sparkles } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { roleAtLeast } from "@/auth/permissions";
+import { Suspense } from "react";
 import { requireActor } from "@/auth/session";
-import { DigestView } from "@/components/digest/digest-view";
-import { GenerateDigestButton } from "@/components/digest/generate-button";
+import { Overview, OverviewSkeleton } from "@/components/home/overview";
+import { RangeToggle } from "@/components/home/range-toggle";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { latestDigest } from "@/digest/queries";
+import { parseRange, rangeWindow } from "@/dashboard/range";
 import {
   listLocations,
   readActiveLocationCookie,
@@ -17,36 +16,41 @@ import {
 import { withTenant } from "@/lib/tenancy";
 
 /**
- * Home — the weekly Action Digest.
+ * Home — the live dashboard (docs/home-live-dashboard.md).
  *
- * The design brief's first principle: "Digest is Home. The default screen
- * answers 'what happened and what should I do,' not a wall of charts."
+ * It used to render the weekly Action Digest. The digest still exists and is
+ * still the product's opinionated hero — its *surface* moved to email and a
+ * `/digest` archive, because a briefing composed once a week is something you
+ * open when it arrives, not the answer to "what is happening right now". Home
+ * answers that instead, live and scoped to one location and one range.
  *
- * Nothing is generated here. The page reads one digest row and renders it, so
- * it loads like any other list — the composing happens in the worker (P1a-T7),
- * and "Generate now" queues rather than blocks.
+ * The page itself resolves only what the shell needs — who is asking, which
+ * location, which window. Everything data-heavy sits behind a Suspense
+ * boundary so the header and the range toggle paint immediately.
  */
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const [t, actor] = await Promise.all([getTranslations("home"), requireActor()]);
-  const cookieValue = await readActiveLocationCookie();
+  const [cookieValue, params] = await Promise.all([readActiveLocationCookie(), searchParams]);
 
-  const { activeLocation, digest } = await withTenant(
+  // One range for the whole page. Every widget reads this same window rather
+  // than deriving its own, so no two cards can disagree about which days they
+  // are describing.
+  const range = parseRange(params.range);
+  const window = rangeWindow(range, new Date());
+
+  const activeLocation = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
-    async (tx) => {
-      const locations = await listLocations(tx, actor.organizationId);
-      const active = resolveActiveLocation(locations, cookieValue);
-
-      return {
-        activeLocation: active,
-        digest: active ? await latestDigest(tx, actor.organizationId, active.id) : null,
-      };
-    },
+    async (tx) => resolveActiveLocation(await listLocations(tx, actor.organizationId), cookieValue),
   );
 
   if (!activeLocation) {
     return (
       <>
-        <PageHeader title={t("title")} />
+        <PageHeader title={t("overviewTitle")} />
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
             <p className="max-w-sm text-sm text-pretty text-muted-foreground">{t("noLocation")}</p>
@@ -59,47 +63,22 @@ export default async function HomePage() {
     );
   }
 
-  // Regenerating spends the AI allowance, so the control is admin-only. The
-  // server action enforces the same rule.
-  const canGenerate = roleAtLeast(actor.role, "admin");
-
   return (
     <>
       <PageHeader
-        title={t("title")}
-        subtitle={t("subtitle", { location: activeLocation.name })}
-        action={
-          canGenerate ? (
-            <GenerateDigestButton
-              locationId={activeLocation.id}
-              label={t("generate")}
-              queuedLabel={t("queued")}
-            />
-          ) : undefined
-        }
+        title={t("overviewTitle")}
+        subtitle={t("overviewSubtitle", { location: activeLocation.name })}
+        action={<RangeToggle active={range} />}
       />
 
-      {digest ? (
-        <DigestView digest={digest} />
-      ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-            <Sparkles className="size-6 text-muted-foreground" aria-hidden />
-            <p className="font-heading text-lg font-semibold">{t("empty")}</p>
-            <p className="max-w-md text-sm text-pretty text-muted-foreground">{t("emptyBody")}</p>
-
-            {canGenerate ? (
-              <div className="mt-2">
-                <GenerateDigestButton
-                  locationId={activeLocation.id}
-                  label={t("generate")}
-                  queuedLabel={t("queued")}
-                />
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      )}
+      <Suspense key={`${activeLocation.id}:${range}`} fallback={<OverviewSkeleton />}>
+        <Overview
+          organizationId={actor.organizationId}
+          userId={actor.userId}
+          locationId={activeLocation.id}
+          window={window}
+        />
+      </Suspense>
     </>
   );
 }

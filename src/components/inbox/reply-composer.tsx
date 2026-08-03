@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Loader2, Send, Sparkles, Trash2 } from "lucide-react";
+import { Check, Loader2, PenLine, Send, Sparkles, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   draftReplyAction,
   postReplyAction,
   saveReplyAction,
+  writeReplyAction,
 } from "@/server/replies";
 
 /**
@@ -26,6 +27,12 @@ import {
  * A member can draft and edit; approving and posting need admin, and the
  * server enforces that regardless of what this component renders. `canApprove`
  * only decides whether to show a control that would fail.
+ *
+ * **Writing by hand is always available.** The AI draft is an accelerator, not
+ * the entrance: it costs a model call and a slice of the monthly allowance, and
+ * when that allowance runs out — or a plan never had it — an owner must still
+ * be able to answer a customer. So "Write a reply" sits beside "Draft with AI"
+ * and shares everything after it.
  */
 
 export type ReplyState = {
@@ -64,6 +71,7 @@ export function ReplyComposer({
   // previous generation, and React documents this as the supported pattern.
   const [serverText, setServerText] = useState(reply?.text ?? "");
   const [text, setText] = useState(reply?.text ?? "");
+  const [writing, setWriting] = useState(false);
 
   if (serverText !== (reply?.text ?? "")) {
     setServerText(reply?.text ?? "");
@@ -89,9 +97,11 @@ export function ReplyComposer({
         <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
           <Check className="size-3.5" aria-hidden />
           {t("posted")}
-          {reply.aiGenerated ? (
-            <span>· {reply.edited ? t("aiEdited") : t("aiWritten")}</span>
-          ) : null}
+          {/* Provenance, always stated. In a team it is the difference between
+              "the model wrote this" and "a colleague did". */}
+          <span>
+            · {reply.aiGenerated ? (reply.edited ? t("aiEdited") : t("aiWritten")) : t("written")}
+          </span>
         </p>
         <p className="text-sm leading-relaxed whitespace-pre-line">{reply.text}</p>
       </div>
@@ -101,26 +111,90 @@ export function ReplyComposer({
   return (
     <div className="flex flex-col gap-2">
       {reply === null ? (
-        <div className="flex items-center gap-2">
-          {canUseAi ? (
+        writing ? (
+          <div className="flex flex-col gap-2">
+            <Textarea
+              value={text}
+              rows={4}
+              autoFocus
+              placeholder={t("writePlaceholder")}
+              aria-label={t("editorLabel")}
+              className={cn(over && "border-destructive")}
+              onChange={(event) => setText(event.target.value)}
+              disabled={pending}
+            />
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={cn(
+                  "text-xs text-muted-foreground",
+                  over && "font-medium text-destructive",
+                )}
+              >
+                {text.length}/{maxChars}
+              </span>
+
+              <Button
+                type="button"
+                size="sm"
+                className="ml-auto"
+                disabled={pending || over || text.trim().length === 0}
+                onClick={() => run(() => writeReplyAction({ reviewId, text }))}
+              >
+                {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+                {t("save")}
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  setWriting(false);
+                  setText("");
+                  setError(null);
+                }}
+              >
+                {t("cancel")}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Always first and always present: the one control that works
+                whatever the plan and whatever the allowance. */}
             <Button
               type="button"
               size="sm"
               variant="secondary"
               disabled={pending}
-              onClick={() => run(() => draftReplyAction({ reviewId }))}
+              onClick={() => setWriting(true)}
             >
-              {pending ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <Sparkles className="size-4" aria-hidden />
-              )}
-              {t("draftWithAi")}
+              <PenLine className="size-4" aria-hidden />
+              {t("writeReply")}
             </Button>
-          ) : (
-            <p className="text-xs text-muted-foreground">{t("notEntitled")}</p>
-          )}
-        </div>
+
+            {canUseAi ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() => run(() => draftReplyAction({ reviewId }))}
+              >
+                {pending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <Sparkles className="size-4" aria-hidden />
+                )}
+                {t("draftWithAi")}
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">{t("notEntitled")}</p>
+            )}
+          </div>
+        )
       ) : (
         <>
           <Textarea
@@ -132,11 +206,9 @@ export function ReplyComposer({
           />
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            {reply.aiGenerated ? (
-              <span className="rounded bg-muted px-1.5 py-0.5">
-                {reply.edited ? t("aiEdited") : t("aiWritten")}
-              </span>
-            ) : null}
+            <span className="rounded bg-muted px-1.5 py-0.5">
+              {reply.aiGenerated ? (reply.edited ? t("aiEdited") : t("aiWritten")) : t("written")}
+            </span>
 
             {approved ? (
               <span className="rounded bg-muted px-1.5 py-0.5">{t("approved")}</span>

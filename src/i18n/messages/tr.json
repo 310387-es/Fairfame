@@ -23,17 +23,119 @@
     "planBadge": "{plan} paketi"
   },
   "home": {
-    "title": "Bu hafta",
+    "rangeLabel": "Zaman aralığı",
+    "overviewTitle": "Genel bakış",
+    "overviewSubtitle": "{location} — canlı",
+    "kpi": {
+      "reputation": {
+        "label": "İtibar puanı"
+      },
+      "rating": {
+        "label": "Ortalama puan"
+      },
+      "volume": {
+        "label": "Yeni yorum"
+      },
+      "responseRate": {
+        "label": "Yanıt oranı"
+      },
+      "noValue": "—",
+      "noData": "Henüz veri yok",
+      "points": "{value} puan",
+      "noComparison": "önceki dönem yok",
+      "up": "arttı",
+      "down": "azaldı",
+      "flat": "değişmedi"
+    },
+    "insight": {
+      "waiting": "{count, plural, =1 {1 yorum yanıt bekliyor} other {# yorum yanıt bekliyor}}.",
+      "clear": "Yanıt bekleyen yorum yok.",
+      "theme": "{count, plural, =1 {1 tanesi {theme} konusunda olumsuz} other {# tanesi {theme} konusunda olumsuz}}.",
+      "ratingHolding": "Puanınız {rating}★ seviyesinde duruyor.",
+      "ratingUp": "Puanınız yükseldi, {rating}★.",
+      "ratingDown": "Puanınız {rating}★ seviyesine geriledi.",
+      "replyNow": "Şimdi yanıtla"
+    },
+    "chart": {
+      "title": "Zaman içinde itibar",
+      "subtitle": {
+        "7d": "Puan ve hacim · 7 gün",
+        "30d": "Puan ve hacim · 30 gün",
+        "90d": "Puan ve hacim · 13 hafta"
+      },
+      "rating": "Ortalama puan",
+      "volume": "Yorum hacmi",
+      "period": "Dönem",
+      "weekOf": "{start} – {end} haftası",
+      "noRating": "puan yok",
+      "empty": "Bu dönemde hiç yorum gelmedi.",
+      "tableCaption": "Dönem başına yorum hacmi ve önceki {days} günün ortalama puanı.",
+      "average": "{range} ortalama: {value}",
+      "rangeName": {
+        "7d": "7 günlük",
+        "30d": "30 günlük",
+        "90d": "90 günlük"
+      }
+    },
+    "attention": {
+      "title": "İlgi bekleyenler",
+      "all": "Gelen Kutusu →",
+      "empty": "Bekleyen yok. Bu dönemdeki her olumsuz yorum yanıtlanmış.",
+      "reply": "Yanıtla",
+      "negative": "Olumsuz",
+      "noText": "Metin yok — özgün hâli için açın.",
+      "stars": "5 üzerinden {count} yıldız",
+      "itemType": {
+        "comment": "Yorum",
+        "mention": "Bahsetme",
+        "dm": "Mesaj",
+        "review": "Değerlendirme"
+      }
+    },
+    "range": {
+      "7d": {
+        "short": "7g",
+        "long": "Son 7 gün"
+      },
+      "30d": {
+        "short": "30g",
+        "long": "Son 30 gün"
+      },
+      "90d": {
+        "short": "90g",
+        "long": "Son 90 gün"
+      }
+    },
+    "title": "Haftalık planınız",
+    "titleWeek": "{period} haftası",
     "subtitle": "{location} için neler oldu ve ne yapmalısınız.",
     "noLocation": "Haftalık planınızı almaya başlamak için bir şube ekleyin.",
     "noLocationAction": "Şubelere git",
-    "empty": "İlk haftalık planınız henüz hazır değil.",
-    "emptyBody": "Özetler, gelen yorumlardan haftada bir hazırlanır. Bir kaynak bağlayın veya elinizdeki yorumlardan hemen bir özet oluşturun.",
+    "empty": {
+      "no_sources": {
+        "title": "Henüz bir şey gelmedi",
+        "body": "Bir yorum kaynağı bağlayın veya daha önce hizmet verdiğiniz müşterilere davet gönderin. Yorumlar gelmeye başlayınca panel kendiliğinden dolar."
+      },
+      "quiet_period": {
+        "title": "Sakin bir dönem",
+        "body": "Bu aralıkta hiç yorum gelmedi. Bir sorun yok — eğilimi görmek için daha uzun bir aralık deneyin."
+      },
+      "connect": "Kaynak bağla",
+      "request": "Yorum daveti gönder",
+      "widen": {
+        "7d": "Son 7 günü göster",
+        "30d": "Son 30 günü göster",
+        "90d": "Son 90 günü göster"
+      }
+    },
     "quietWeek": "Sakin bir hafta — yeni yorum gelmedi.",
     "quietWeekBody": "Şimdilik yapılacak bir şey yok. Müşteriler yazmaya başlayınca plan da geri gelir.",
-    "generate": "Şimdi oluştur",
-    "generating": "Planınız hazırlanıyor…",
-    "queued": "Hazırlanıyor. Bir dakika sürer — birazdan sayfayı yenileyin.",
+    "generate": "{period} özetini oluştur",
+    "regenerate": "{period} özetini yenile",
+    "generateHint": "Özetler tamamlanmış bir haftayı kapsar; bu yüzden {period} hazırlanır.",
+    "composing": "{period} hazırlanıyor… yaklaşık bir dakika sürer.",
+    "composeSlow": "Hazırlanmaya devam ediyor. Hazır olunca kendiliğinden görünecek, beklemenize gerek yok.",
+    "composeFailed": "Bu özet hazırlanamadı. Saatlik tarama yeniden deneyecek.",
     "period": "{start} – {end}",
     "reviewCount": "{count, plural, =0 {yorum yok} =1 {1 yorum} other {# yorum}}",
     "pulse": "İtibar nabzı",
@@ -74,7 +176,72 @@
     "loopTitle": "Geçen haftadan bu yana",
     "loopSummary": "{total} eylemin {done} tanesini tamamladınız.",
     "loopStillOpen": "Hâlâ açık:",
-    "lastGenerated": "{when} hazırlandı"
+    "lastGenerated": "{when} hazırlandı",
+    "sentiment": {
+      "title": "Duygu durumu",
+      "positive": "Olumlu {percent}",
+      "neutral": "Nötr {percent}",
+      "negative": "Olumsuz {percent}",
+      "positiveShort": "olumlu",
+      "pending": "{count, plural, =1 {1 kayıt henüz analiz edilmedi} other {# kayıt henüz analiz edilmedi}}",
+      "empty": "Bu dönemde henüz analiz edilen bir şey yok.",
+      "neutralShort": "nötr",
+      "negativeShort": "olumsuz",
+      "count": "Yorum"
+    },
+    "sources": {
+      "title": "Kaynaklara göre yorumlar",
+      "average": "{rating} ★ ortalama",
+      "noRating": "puan yok",
+      "empty": "Bu dönemde hiçbir kaynaktan yorum gelmedi.",
+      "count": "Yorum",
+      "rating": "Puan"
+    },
+    "themes": {
+      "title": "Öne çıkan temalar",
+      "all": "Tümü →",
+      "mostlyPositive": "{count} olumlu",
+      "mostlyNegative": "{count} olumsuz",
+      "mixed": "karışık",
+      "empty": "Henüz tema yok — yorumlar analiz edilince görünür.",
+      "count": "Bahsetme",
+      "mood": "Duygu"
+    },
+    "distribution": {
+      "title": "Puan dağılımı",
+      "stars": "{count} yıldız",
+      "empty": "Bu dönemde puanlı yorum yok.",
+      "count": "Yorum"
+    },
+    "response": {
+      "title": "Yanıt süresi",
+      "median": "ortanca yanıt süresi",
+      "withinDay": "Bir gün içinde yanıtlananların oranı",
+      "withinDayShort": "< 24s",
+      "minutes": "{count} dk",
+      "hours": "{count, number} sa",
+      "days": "{count, plural, =1 {1 gün} other {# gün}}",
+      "faster": "{change} daha hızlı",
+      "slower": "{change} daha yavaş",
+      "noComparison": "önceki dönem yok",
+      "replied": "{count, plural, =1 {1 yanıt gönderildi} other {# yanıt gönderildi}}",
+      "empty": "Bu dönemde yanıtlanan bir şey yok."
+    },
+    "activity": {
+      "title": "Son hareketler",
+      "newRating": "{source} üzerinde yeni {rating}★ yorum",
+      "newItem": {
+        "review": "{source} üzerinde yeni yorum",
+        "comment": "{source} üzerinde yeni yorum",
+        "mention": "{source} üzerinde yeni bahsetme",
+        "dm": "{source} üzerinde yeni mesaj"
+      },
+      "replied": "{source} üzerinde yanıt verdiniz",
+      "requestSent": "{channel} ile yorum daveti gönderildi",
+      "empty": "Bu dönemde bir hareket olmadı."
+    },
+    "metric": "Ölçüt",
+    "value": "Değer"
   },
   "inbox": {
     "title": "Gelen kutusu",
@@ -348,6 +515,10 @@
     "badgeLabel": "{count} okunmamış bildirim"
   },
   "replies": {
+    "writeReply": "Kendin yaz",
+    "writePlaceholder": "Yanıtınızı yazın…",
+    "cancel": "Vazgeç",
+    "written": "Sizin yazdığınız",
     "draftWithAi": "Yapay zekâ ile taslak",
     "editorLabel": "Yanıt metni",
     "save": "Kaydet",

@@ -8,7 +8,7 @@ import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { EMBEDDING_DIMENSIONS } from "@/db/schema";
 import { weekWindow } from "@/digest/metrics";
 import { generateDigest, type DigestPayload } from "@/digest/pipeline";
-import { latestDigest, listDigests, setActionStatus } from "@/digest/queries";
+import { digestProgress, latestDigest, listDigests, setActionStatus } from "@/digest/queries";
 import { currentPeriod } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
 
@@ -270,6 +270,102 @@ describe("generating a digest", () => {
     expect(row?.promptId).toBe("action_digest@1");
     expect(row?.model).toBe("stub-1");
     expect(row?.locale).toBe("tr");
+  });
+});
+
+describe("progress", () => {
+  /**
+   * What the Home button polls while a digest is being composed.
+   *
+   * It exists because Home renders the newest *ready* digest, so during a
+   * regeneration the screen shows the previous week and has no other way to
+   * know that a new one is on its way.
+   */
+
+  it("says none when nothing has been asked for", async () => {
+    const fixture = await makeFixture("progress-none");
+
+    const progress = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      digestProgress(tx, fixture.orgId, fixture.locationId, WINDOW.start),
+    );
+
+    // Distinct from `pending`: nothing is running, so a watcher should not wait
+    // for something that was never queued.
+    expect(progress).toEqual({ status: "none", generatedAt: null });
+  });
+
+  it("reports a claimed row as pending before it is composed", async () => {
+    const fixture = await makeFixture("progress-pending");
+
+    // The claim the pipeline makes before spending anything on the model.
+    await getAdminDb().insert(schema.digests).values({
+      organizationId: fixture.orgId,
+      locationId: fixture.locationId,
+      periodStart: WINDOW.start,
+      periodEnd: WINDOW.end,
+      status: "pending",
+      reviewCount: 0,
+    });
+
+    const progress = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      digestProgress(tx, fixture.orgId, fixture.locationId, WINDOW.start),
+    );
+
+    expect(progress.status).toBe("pending");
+    expect(progress.generatedAt).toBeNull();
+  });
+
+  it("reports ready with the time it was composed", async () => {
+    const fixture = await makeFixture("progress-ready");
+
+    await addReview(fixture, {
+      rating: 4,
+      text: "Kahve güzeldi, servis hızlıydı.",
+      topics: ["kahve"],
+      sentiment: "positive",
+      score: 0.7,
+      axis: 2,
+    });
+
+    await generateDigest({
+      organizationId: fixture.orgId,
+      locationId: fixture.locationId,
+      actorUserId: fixture.userId,
+      window: WINDOW,
+      now: NOW,
+    });
+
+    const progress = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      digestProgress(tx, fixture.orgId, fixture.locationId, WINDOW.start),
+    );
+
+    // `ready` is the signal the button refreshes on, so a null `generatedAt`
+    // here would mean refreshing onto a digest with no compose time to show.
+    expect(progress.status).toBe("ready");
+    expect(progress.generatedAt).not.toBeNull();
+  });
+
+  it("answers only for the caller's own organization", async () => {
+    const mine = await makeFixture("progress-mine");
+    const theirs = await makeFixture("progress-theirs");
+
+    await getAdminDb().insert(schema.digests).values({
+      organizationId: theirs.orgId,
+      locationId: theirs.locationId,
+      periodStart: WINDOW.start,
+      periodEnd: WINDOW.end,
+      status: "ready",
+      reviewCount: 5,
+    });
+
+    // Someone else's location id, asked for under my tenant context. RLS should
+    // make this indistinguishable from a digest that does not exist — a status
+    // leak would confirm that another business had a digest that week.
+    const progress = await withTenant({ organizationId: mine.orgId }, (tx) =>
+      digestProgress(tx, mine.orgId, theirs.locationId, WINDOW.start),
+    );
+
+    expect(progress.status).toBe("none");
   });
 });
 

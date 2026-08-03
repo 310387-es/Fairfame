@@ -96,6 +96,8 @@ Action that drafts a reply in the review's language + a configurable **brand ton
 
 **What shipped.** The `replies` table (migrations `0013_replies`, `0014_replies_security`) plus `locations.brand_tone`; `src/replies/service.ts` for the lifecycle; `src/server/replies.ts` for the actions; and a composer in the Inbox that replaces the disabled placeholder T0 left there.
 
+**Replying by hand was added later (3 Aug 2026), and it is not an afterthought.** As shipped, the only way into the composer was *Draft with AI* — which meant a review could not be answered at all once `ai_analyses_per_month` was spent, because drafting is what creates the reply row. An owner who knew exactly what to write was locked out of their own Inbox for the rest of the billing period. `writeReplyDraft` fixes that: `member` role, no `ai_replies` check, no usage recorded, and everything after it — edit, approve, post, audit — is the same path an AI draft takes. The allowance meters *model calls*; typing a sentence is not one.
+
 **Nothing reaches a platform without an explicit human approval.** There is no code path from `draftReplyForReview` to `postReply` — the model drafts, a person approves, and only an `approved` row can be posted. Editing an approved reply returns it to `draft` and clears the signature, because approval was given for specific words. Drafting and editing need `member`; **approving and posting need `admin`**, since those two publish under the business's name.
 
 **One live reply per review, enforced in Postgres** by a partial unique index excluding `failed` — so a rejected post frees the slot for a different reply while the failed attempt and its reason stay on the record.

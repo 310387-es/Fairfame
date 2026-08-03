@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Revira — Home (Live Dashboard)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --indigo:#3D5AF1;--indigo-700:#2E45C4;--violet:#7C6BF0;--amber:#F5A524;--amberSoft:#FEF4E1;
+  --teal:#14B8A6;--pos:#16B981;--posBg:#E6F7F0;--neg:#F0436A;--negBg:#FDE9EE;
+  --ink:#10193A;--muted:#6B7391;--muted2:#A6ACC2;--line:#ECEEF5;--line2:#F3F5FA;
+  --surface:#F7F8FC;--card:#FFFFFF;--indigoSoft:#EEF1FE;
+  --shadow-sm:0 1px 2px rgba(16,25,58,.05);--shadow-md:0 8px 26px -10px rgba(16,25,58,.13);
+  --grad:linear-gradient(120deg,#3D5AF1,#6D5AE6);
+}
+*{box-sizing:border-box}
+body{margin:0;background:#E9EDF2;font-family:'Inter',system-ui,-apple-system,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+svg{display:block}
+.window{max-width:1460px;margin:22px auto;background:var(--card);border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(20,30,60,.18);border:1px solid #dfe4ec}
+.chrome{display:flex;align-items:center;gap:14px;padding:11px 18px;background:#F4F6FA;border-bottom:1px solid var(--line)}
+.dots{display:flex;gap:7px}.dots i{width:12px;height:12px;border-radius:50%;display:block}
+.dots i:nth-child(1){background:#FF5F57}.dots i:nth-child(2){background:#FEBC2E}.dots i:nth-child(3){background:#28C840}
+.url{flex:1;max-width:520px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;color:var(--muted);padding:6px 12px}
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:980px}
+.side{border-right:1px solid var(--line);padding:16px 14px;display:flex;flex-direction:column;background:#FCFCFE}
+.brand{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 12px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;color:var(--indigo)}
+.mark{width:28px;height:28px;border-radius:8px;background:var(--indigo);position:relative;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
+.mark b{position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:var(--amber);border:2px solid #FCFCFE}
+.grp{margin-top:12px}.grp .lbl{font-size:10.5px;letter-spacing:.09em;color:var(--muted2);font-weight:600;padding:6px 10px}
+.nav a{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;color:#5b6472;font-size:13.5px;font-weight:500;text-decoration:none;margin:2px 0}
+.nav a .ic{color:#9aa2b1;flex:none}
+.nav a.active{background:var(--indigoSoft);color:var(--indigo);font-weight:600}.nav a.active .ic{color:var(--indigo)}
+.badge{margin-left:auto;font-size:11px;font-weight:600;border-radius:6px;padding:1px 7px}
+.badge.red{background:var(--neg);color:#fff}
+.spacer{flex:1}
+.teamcard{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin-top:10px;background:#fff}
+.teamcard .di{width:30px;height:30px;border-radius:8px;background:var(--grad);display:grid;place-items:center}
+.teamcard .tt{font-size:10.5px;color:var(--muted)}.teamcard .tn{font-size:13px;font-weight:600}
+.teamcard .sw{margin-left:auto;color:var(--muted2)}
+.upgrade{margin-top:10px;text-align:center;border:1px solid var(--line);border-radius:10px;padding:9px;font-size:13px;font-weight:600;color:#3b4251;background:#fff}
+.foot{text-align:center;color:var(--muted2);font-size:11px;padding:12px 0 2px}
+.main{background:var(--surface)}
+.topbar{display:flex;align-items:center;gap:16px;padding:13px 24px;border-bottom:1px solid var(--line);background:#fff}
+.search{flex:1;max-width:400px;display:flex;align-items:center;gap:9px;background:#F5F7FA;border:1px solid var(--line);border-radius:10px;padding:9px 13px;color:var(--muted);font-size:13px}
+.search .kbd{margin-left:auto;font-size:11px;color:var(--muted2)}
+.tbright{margin-left:auto;display:flex;align-items:center;gap:14px}
+.primary{display:inline-flex;align-items:center;gap:7px;background:var(--indigo);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:var(--shadow-sm)}
+.bell{position:relative;color:#9aa2b1;cursor:pointer}
+.bell .dot{position:absolute;top:-1px;right:-1px;width:8px;height:8px;border-radius:50%;background:var(--amber);border:2px solid #fff}
+.me{display:flex;align-items:center;gap:9px;padding-left:14px;border-left:1px solid var(--line)}
+.me .av{width:34px;height:34px;border-radius:50%;background:var(--grad);display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
+.me .nm{font-size:13px;font-weight:600}.me .rl{font-size:11px;color:var(--muted)}
+.content{padding:20px 26px 40px}
+.hrow{display:flex;align-items:flex-end;margin-bottom:16px}
+.hrow h1{font-size:24px;font-weight:700;margin:0}.hrow .sub{font-size:13px;color:var(--muted);margin-top:3px}
+.hrow .act{margin-left:auto;display:flex;gap:10px;align-items:center}
+.seg{display:inline-flex;background:#EFF1F7;border-radius:9px;padding:3px}
+.seg span{font-size:12.5px;font-weight:600;color:var(--muted);padding:6px 12px;border-radius:7px;cursor:pointer}
+.seg span.on{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-sm)}
+.pad{padding:18px 20px}
+.kpi .kt{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px;font-weight:500;margin-bottom:10px}
+.kchip{width:28px;height:28px;border-radius:8px;background:var(--indigoSoft);display:grid;place-items:center;color:var(--indigo)}
+.kchip.amber{background:var(--amberSoft);color:var(--amber)}
+.krow{display:flex;align-items:flex-end;justify-content:space-between}
+.knum{font-size:27px;font-weight:700;letter-spacing:-.5px;line-height:1}
+.delta{font-size:11.5px;font-weight:600;border-radius:7px;padding:3px 7px;display:inline-flex;align-items:center;gap:3px}
+.delta.up{background:var(--posBg);color:var(--pos)}.delta.down{background:var(--negBg);color:var(--neg)}
+.mini{width:11px;height:11px}
+.ch{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.ch .ci{width:26px;height:26px;border-radius:8px;background:#F4F6FA;display:grid;place-items:center;color:#7b8494}
+.ch h3{font-size:14px;font-weight:600;margin:0}.ch .r{margin-left:auto;display:flex;gap:7px;align-items:center}
+.small{border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:11.5px;color:#4b5563;cursor:pointer;font-weight:500}
+.link{color:var(--indigo);font-size:12px;font-weight:600;text-decoration:none;cursor:pointer;margin-left:auto}
+/* AI strip */
+.aistrip{display:flex;align-items:center;gap:14px;padding:15px 20px;border:1px solid #DFE3FB;border-radius:14px;background:linear-gradient(100deg,#F3F5FE,#FBFAFF);box-shadow:var(--shadow-sm)}
+.aistrip .ic{width:36px;height:36px;border-radius:10px;background:var(--grad);display:grid;place-items:center;flex:none}
+.aistrip .tx{font-size:13.5px;line-height:1.45}.aistrip .tx b{font-weight:700}
+.aistrip .cta{margin-left:auto;display:flex;gap:9px;align-items:center;flex:none}
+.aistrip .view{font-size:12.5px;color:var(--indigo);font-weight:600;text-decoration:none}
+.main2{grid-template-columns:1.9fr 1fr;align-items:stretch}
+.trip3{grid-template-columns:1fr 1fr 1fr}
+/* needs attention queue */
+.q{display:flex;gap:11px;padding:12px 0;border-top:1px solid var(--line2)}
+.q:first-of-type{border-top:none}
+.q .ql{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}
+.q .meta{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);margin-bottom:3px}
+.stars{color:var(--amber);letter-spacing:.5px;font-size:11px}
+.senti{font-size:10px;font-weight:600;border-radius:5px;padding:1px 6px}
+.senti.neg{background:var(--negBg);color:var(--neg)}.senti.q2{background:var(--indigoSoft);color:var(--indigo)}
+.q p{font-size:12.5px;line-height:1.45;margin:0;color:#3a4260}
+.q .rb{margin-top:6px}
+.rbtn{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#fff;background:var(--indigo);border:none;border-radius:7px;padding:5px 10px;cursor:pointer}
+.rbtn.g{background:var(--indigoSoft);color:var(--indigo)}
+/* source rows */
+.srow{display:flex;align-items:center;gap:11px;padding:11px 0;border-top:1px solid var(--line2)}
+.srow:first-of-type{border-top:none}
+.slogo{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}
+.sname{font-size:13px;font-weight:600}.ssub{font-size:11px;color:var(--muted)}
+.sbar{flex:1;height:7px;border-radius:5px;background:#EEF0F5;overflow:hidden;max-width:120px;margin-left:auto}
+.sbar i{display:block;height:100%;border-radius:5px;background:var(--indigo)}
+.scount{font-size:13px;font-weight:700;width:38px;text-align:right}
+/* themes */
+.tbar{display:flex;align-items:center;gap:10px;margin:11px 0}
+.tbar .tn{font-size:12.5px;width:104px;flex:none;color:#3a4260}
+.tbar .tt{flex:1;height:8px;border-radius:5px;background:#EEF0F5;overflow:hidden}
+.tbar .tt i{display:block;height:100%;border-radius:5px}
+.tbar .tc{font-size:12px;font-weight:600;width:26px;text-align:right;color:var(--muted)}
+/* distribution */
+.dist{display:flex;align-items:center;gap:9px;margin:9px 0}
+.dist .dl{font-size:11.5px;color:var(--muted);width:26px;display:flex;align-items:center;gap:2px}
+.dist .db{flex:1;height:8px;border-radius:5px;background:#EEF0F5;overflow:hidden}
+.dist .db i{display:block;height:100%;border-radius:5px;background:var(--amber)}
+.dist .dc{font-size:11.5px;color:var(--muted);width:26px;text-align:right}
+/* response */
+.resp{display:flex;align-items:center;gap:16px}
+.resp .big{font-size:30px;font-weight:700;letter-spacing:-.5px}
+.resp .sub{font-size:12px;color:var(--muted);margin-top:2px}
+/* activity */
+.act-i{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line2);font-size:12.5px;align-items:flex-start}
+.act-i:first-of-type{border-top:none}
+.act-dot{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:none}
+.act-i .tm{margin-left:auto;font-size:11px;color:var(--muted2);white-space:nowrap}
+.legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);margin-top:10px;justify-content:center}
+.legend i{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="window">
+  <div class="chrome"><div class="dots"><i></i><i></i><i></i></div>
+    <div class="url"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>revira.app/home</div>
+  </div>
+  <div class="layout">
+    <aside class="side">
+      <div class="brand"><div class="logo"><span class="mark">R<b></b></span> Revira</div></div>
+      <div class="grp"><div class="lbl">GENERAL</div><nav class="nav">
+        <a class="active"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>Home</a>
+        <a><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v10H8l-4 4z"/></svg>Inbox <span class="badge red">5</span></a>
+        <a><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 1112 0c0 4 1.5 5 2 6H4c.5-1 2-2 2-6z"/><path d="M10 20a2 2 0 004 0"/></svg>Notifications</a>
+        <a><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l16-8-6 16-3-6z"/></svg>Requests</a>
+      </nav></div>
+      <div class="grp"><div class="lbl">MANAGE</div><nav class="nav">
+        <a><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Locations</a>
+        <a><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><circle cx="17.5" cy="9" r="2.4"/></svg>Team</a>
+        <a><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 00.3 1.8 2 2 0 11-2.7 2.7 1.7 1.7 0 00-2.9 1.2 2 2 0 11-4 0 1.7 1.7 0 00-2.9-1.2 2 2 0 11-2.7-2.7A1.7 1.7 0 004 11.6a2 2 0 110-4 1.7 1.7 0 002.6-2.6 2 2 0 112.7-2.7A1.7 1.7 0 0013 4.6l.1-.1"/></svg>Settings</a>
+      </nav></div>
+      <div class="spacer"></div>
+      <div class="teamcard"><div class="di"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 8h13v5a4 4 0 01-4 4H8a4 4 0 01-4-4z"/><path d="M17 9h2a2 2 0 010 4h-2"/><path d="M7 3v2M11 3v2"/></svg></div><div><div class="tt">Location</div><div class="tn">Kadıköy · Kahve</div></div><span class="sw"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"/></svg></span></div>
+      <div class="upgrade">Upgrade Plan</div>
+      <div class="foot">© 2026 Revira, Inc.</div>
+    </aside>
+
+    <section class="main">
+      <div class="topbar">
+        <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg> Search reviews, themes… <span class="kbd">⌘ F</span></div>
+        <div class="tbright">
+          <button class="primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 6v12M6 12h12"/></svg> New request</button>
+          <span class="bell"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 1112 0c0 4 1.5 5 2 6H4c.5-1 2-2 2-6z"/><path d="M10 20a2 2 0 004 0"/></svg><span class="dot"></span></span>
+          <div class="me"><span class="av">O</span><div><div class="nm">Omer</div><div class="rl">Owner</div></div></div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="hrow">
+          <div><h1>Overview</h1><div class="sub">Kadıköy · Kahve — live</div></div>
+          <div class="act">
+            <div class="seg"><span>7d</span><span class="on">30d</span><span>90d</span></div>
+          </div>
+        </div>
+
+        <!-- KPI ROW -->
+        <div class="grid kpis">
+          <div class="card kpi pad"><div class="kt"><span class="kchip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></span>Reputation Score</div>
+            <div class="krow"><div class="knum">82</div><svg width="70" height="30" viewBox="0 0 70 30"><polyline points="2,22 13,20 24,21 35,15 46,16 57,9 68,6" fill="none" stroke="var(--indigo)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div style="margin-top:10px"><span class="delta up">4.0<svg class="mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div></div>
+          <div class="card kpi pad"><div class="kt"><span class="kchip amber"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></span>Average Rating</div>
+            <div class="krow"><div class="knum">4.6</div><svg width="70" height="30" viewBox="0 0 70 30"><polyline points="2,18 13,19 24,16 35,17 46,12 57,11 68,8" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div style="margin-top:10px"><span class="delta up">0.2<svg class="mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div></div>
+          <div class="card kpi pad"><div class="kt"><span class="kchip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v10H8l-4 4z"/></svg></span>New Reviews</div>
+            <div class="krow"><div class="knum">128</div><svg width="70" height="30" viewBox="0 0 70 30"><polyline points="2,24 13,20 24,22 35,14 46,15 57,10 68,4" fill="none" stroke="var(--indigo)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div style="margin-top:10px"><span class="delta up">18.2%<svg class="mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div></div>
+          <div class="card kpi pad"><div class="kt"><span class="kchip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6l-9 9-4-4M4 18h10"/></svg></span>Response Rate</div>
+            <div class="krow"><div class="knum">91%</div><svg width="70" height="30" viewBox="0 0 70 30"><polyline points="2,8 13,10 24,9 35,13 46,12 57,16 68,15" fill="none" stroke="var(--neg)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div style="margin-top:10px"><span class="delta down">3.1%<svg class="mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 7l10 10M17 9v8h-8"/></svg></span></div></div>
+        </div>
+
+        <!-- AI STRIP -->
+        <div class="aistrip" style="margin-top:16px">
+          <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 3v4M12 17v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M3 12h4M17 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg></span>
+          <div class="tx"><b>5 reviews need a reply</b> — 3 are negative about <b>wait times</b> in the last 24 hours. This week's rating is holding at 4.6★.</div>
+          <div class="cta"><a class="view" href="#">View weekly digest</a><button class="rbtn">Reply now →</button></div>
+        </div>
+
+        <!-- MAIN: trend chart + attention queue -->
+        <div class="grid main2" style="margin-top:16px">
+          <div class="card pad">
+            <div class="ch"><span class="ci"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6"/></svg></span><h3>Reputation over time</h3>
+              <div class="r"><span style="font-size:12px;color:var(--muted)">Avg rating &amp; volume · 30 days</span></div></div>
+            <svg viewBox="0 0 740 260" width="100%" height="250" preserveAspectRatio="none">
+              <defs><linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3D5AF1" stop-opacity=".18"/><stop offset="1" stop-color="#3D5AF1" stop-opacity="0"/></linearGradient></defs>
+              <g stroke="#EEF0F5" stroke-width="1"><line x1="40" y1="40" x2="726" y2="40"/><line x1="40" y1="95" x2="726" y2="95"/><line x1="40" y1="150" x2="726" y2="150"/><line x1="40" y1="205" x2="726" y2="205"/></g>
+              <g font-family="Inter" font-size="10.5" fill="#A6ACC2"><text x="14" y="44">5.0</text><text x="14" y="99">4.5</text><text x="14" y="154">4.0</text><text x="14" y="209">3.5</text></g>
+              <!-- volume bars (soft) -->
+              <g fill="#E9ECFB">
+                <rect x="52" y="150" width="16" height="55" rx="4"/><rect x="140" y="140" width="16" height="65" rx="4"/><rect x="228" y="158" width="16" height="47" rx="4"/><rect x="316" y="130" width="16" height="75" rx="4"/><rect x="404" y="122" width="16" height="83" rx="4"/><rect x="492" y="112" width="16" height="93" rx="4"/><rect x="580" y="100" width="16" height="105" rx="4"/><rect x="668" y="92" width="16" height="113" rx="4"/>
+              </g>
+              <!-- rating area+line -->
+              <path d="M60,150 C110,138 120,120 148,124 C200,132 230,96 316,100 C380,103 400,72 492,82 C560,90 600,62 676,66 L676,205 L60,205 Z" fill="url(#ar)"/>
+              <path d="M60,150 C110,138 120,120 148,124 C200,132 230,96 316,100 C380,103 400,72 492,82 C560,90 600,62 676,66" fill="none" stroke="#3D5AF1" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="676" cy="66" r="5" fill="#3D5AF1" stroke="#fff" stroke-width="2"/>
+              <g font-family="Inter" font-size="10.5" fill="#A6ACC2"><text x="52" y="228">Oct 20</text><text x="228" y="228">Oct 27</text><text x="404" y="228">Nov 3</text><text x="576" y="228">Nov 10</text><text x="648" y="228">Nov 18</text></g>
+            </svg>
+            <div class="legend"><span><i style="background:#3D5AF1"></i>Average rating</span><span><i style="background:#E9ECFB"></i>Review volume</span></div>
+          </div>
+
+          <div class="card pad">
+            <div class="ch"><span class="ci"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 001.7 3h16.6a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></span><h3>Needs attention</h3><a class="link" href="#">Inbox →</a></div>
+            <div class="q"><span class="ql" style="background:#fff;border:1px solid var(--line)"><svg width="17" height="17" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.1 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88z"/><path fill="#EA4335" d="M24 9.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 3.18 29.93 1 24 1 15.4 1 7.96 5.93 4.34 13.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg></span>
+              <div><div class="meta"><span class="stars">★★☆☆☆</span><span class="senti neg">Negative</span>· 2h</div><p>Waited 15 min at 9am. Please add staff.</p><div class="rb"><button class="rbtn">AI reply</button></div></div></div>
+            <div class="q"><span class="ql" style="background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1.1" fill="#fff" stroke="none"/></svg></span>
+              <div><div class="meta"><span class="senti q2">Question</span>· 5h</div><p>Is the pour-over available all day?</p><div class="rb"><button class="rbtn">AI reply</button></div></div></div>
+            <div class="q"><span class="ql" style="background:#fff;border:1px solid var(--line)"><svg width="17" height="17" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.1 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88z"/><path fill="#EA4335" d="M24 9.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 3.18 29.93 1 24 1 15.4 1 7.96 5.93 4.34 13.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg></span>
+              <div><div class="meta"><span class="stars">★☆☆☆☆</span><span class="senti neg">Negative</span>· 7h</div><p>Order was wrong twice. Disappointed.</p><div class="rb"><button class="rbtn">AI reply</button></div></div></div>
+          </div>
+        </div>
+
+        <!-- ROW: sentiment / sources / themes -->
+        <div class="grid trip3" style="margin-top:16px">
+          <div class="card pad">
+            <div class="ch"><span class="ci"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 019 9"/></svg></span><h3>Sentiment</h3></div>
+            <div style="display:flex;justify-content:center;position:relative">
+              <svg width="170" height="170" viewBox="0 0 170 170">
+                <g transform="rotate(-90 85 85)" fill="none" stroke-width="20">
+                  <circle cx="85" cy="85" r="62" stroke="#EEF0F5"/>
+                  <circle cx="85" cy="85" r="62" stroke="#16B981" stroke-dasharray="265 390" stroke-linecap="round"/>
+                  <circle cx="85" cy="85" r="62" stroke="#F5A524" stroke-dasharray="82 390" stroke-dashoffset="-268" stroke-linecap="round"/>
+                  <circle cx="85" cy="85" r="62" stroke="#F0436A" stroke-dasharray="41 390" stroke-dashoffset="-353" stroke-linecap="round"/>
+                </g>
+                <text x="85" y="80" text-anchor="middle" font-family="Inter" font-size="30" font-weight="700" fill="#10193A">68%</text>
+                <text x="85" y="98" text-anchor="middle" font-family="Inter" font-size="11" fill="#6B7391">positive</text>
+              </svg>
+            </div>
+            <div class="legend"><span><i style="background:#16B981"></i>Positive 68%</span><span><i style="background:#F5A524"></i>Neutral 21%</span><span><i style="background:#F0436A"></i>Neg 11%</span></div>
+          </div>
+
+          <div class="card pad">
+            <div class="ch"><span class="ci"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></span><h3>Reviews by source</h3></div>
+            <div class="srow"><span class="slogo" style="background:#fff;border:1px solid var(--line)"><svg width="17" height="17" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.1 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88z"/><path fill="#EA4335" d="M24 9.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 3.18 29.93 1 24 1 15.4 1 7.96 5.93 4.34 13.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg></span><div><div class="sname">Google</div><div class="ssub">4.7 ★ avg</div></div><span class="sbar"><i style="width:100%"></i></span><span class="scount">842</span></div>
+            <div class="srow"><span class="slogo" style="background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1.1" fill="#fff" stroke="none"/></svg></span><div><div class="sname">Instagram</div><div class="ssub">mentions</div></div><span class="sbar"><i style="width:37%"></i></span><span class="scount">310</span></div>
+            <div class="srow"><span class="slogo" style="background:#25D366"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 00-8.5 15.2L2 22l4.9-1.3A10 10 0 1012 2zm4.9 14.1c-.2.6-1.2 1.1-1.7 1.2-.4 0-1 .1-3.1-.6-2.6-1-4.2-3.6-4.4-3.8-.1-.2-1-1.4-1-2.7 0-1.2.6-1.8.9-2 .2-.3.5-.3.6-.3h.5c.2 0 .4 0 .5.4l.7 1.7c.1.1.1.3 0 .4l-.3.4c-.1.2-.3.3-.1.5.1.3.6 1 1.2 1.5.8.7 1.4.9 1.6 1 .2.1.3.1.4-.1l.6-.7c.2-.2.3-.2.5-.1l1.6.7c.2.1.4.2.4.3.1.1.1.5-.1 1z"/></svg></span><div><div class="sname">WhatsApp</div><div class="ssub">requests</div></div><span class="sbar"><i style="width:16%;background:var(--amber)"></i></span><span class="scount">132</span></div>
+            <div class="srow"><span class="slogo" style="background:#00B67A"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></span><div><div class="sname">Trustpilot</div><div class="ssub">4.5 ★ avg</div></div><span class="sbar"><i style="width:11%"></i></span><span class="scount">96</span></div>
+          </div>
+
+          <div class="card pad">
+            <div class="ch"><span class="ci"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h16M4 18h7"/></svg></span><h3>Top themes</h3><a class="link" href="#">All →</a></div>
+            <div class="tbar"><span class="tn">Coffee quality</span><span class="tt"><i style="width:100%;background:var(--pos)"></i></span><span class="tc">41</span></div>
+            <div class="tbar"><span class="tn">Staff</span><span class="tt"><i style="width:54%;background:var(--pos)"></i></span><span class="tc">22</span></div>
+            <div class="tbar"><span class="tn">Service speed</span><span class="tt"><i style="width:44%;background:var(--neg)"></i></span><span class="tc">18</span></div>
+            <div class="tbar"><span class="tn">Ambiance</span><span class="tt"><i style="width:34%;background:var(--pos)"></i></span><span class="tc">14</span></div>
+            <div class="tbar"><span class="tn">Pricing</span><span class="tt"><i style="width:22%;background:var(--amber)"></i></span><span class="tc">9</span></div>
+          </div>
+        </div>
+
+        <!-- ROW: distribution / response / activity -->
+        <div class="grid trip3" style="margin-top:16px">
+          <div class="card pad">
+            <div class="ch"><span class="ci"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></span><h3>Rating distribution</h3></div>
+            <div class="dist"><span class="dl">5★</span><span class="db"><i style="width:100%"></i></span><span class="dc">842</span></div>
+            <div class="dist"><span class="dl">4★</span><span class="db"><i style="width:42%"></i></span><span class="dc">318</span></div>
+            <div class="dist"><span class="dl">3★</span><span class="db"><i style="width:14%"></i></span><span class="dc">96</span></div>
+            <div class="dist"><span class="dl">2★</span><span class="db"><i style="width:8%;background:var(--neg)"></i></span><span class="dc">44</span></div>
+            <div class="dist"><span class="dl">1★</span><span class="db"><i style="width:5%;background:var(--neg)"></i></span><span class="dc">28</span></div>
+          </div>
+
+          <div class="card pad">
+            <div class="ch"><span class="ci"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><h3>Response time</h3></div>
+            <div class="resp" style="margin-top:6px">
+              <svg width="88" height="88" viewBox="0 0 88 88"><circle cx="44" cy="44" r="36" fill="none" stroke="#EEF0F5" stroke-width="9"/><circle cx="44" cy="44" r="36" fill="none" stroke="var(--pos)" stroke-width="9" stroke-linecap="round" stroke-dasharray="212 226" transform="rotate(-90 44 44)"/><text x="44" y="41" text-anchor="middle" font-family="Inter" font-size="16" font-weight="700" fill="#10193A">94%</text><text x="44" y="56" text-anchor="middle" font-family="Inter" font-size="9" fill="#6B7391">&lt; 24h</text></svg>
+              <div><div class="big">2.4h</div><div class="sub">median reply time</div><div class="sub" style="margin-top:8px;color:var(--pos);font-weight:600">↓ 18% faster</div></div>
+            </div>
+          </div>
+
+          <div class="card pad">
+            <div class="ch"><span class="ci"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><h3>Recent activity</h3></div>
+            <div class="act-i"><span class="act-dot" style="background:var(--posBg)"><svg width="13" height="13" viewBox="0 0 24 24" fill="var(--pos)"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></span><span>New <b>5★</b> review on Google</span><span class="tm">12m</span></div>
+            <div class="act-i"><span class="act-dot" style="background:var(--indigoSoft)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--indigo)" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></span><span>You replied to a 2★ review</span><span class="tm">1h</span></div>
+            <div class="act-i"><span class="act-dot" style="background:var(--amberSoft)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><path d="M4 12l16-8-6 16-3-6z"/></svg></span><span>Request campaign sent · 24</span><span class="tm">3h</span></div>
+            <div class="act-i"><span class="act-dot" style="background:#F3E9FB"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8134AF" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/></svg></span><span>New Instagram comment</span><span class="tm">4h</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

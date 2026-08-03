@@ -23,17 +23,119 @@
     "planBadge": "{plan} plan"
   },
   "home": {
-    "title": "This week",
+    "rangeLabel": "Time range",
+    "overviewTitle": "Overview",
+    "overviewSubtitle": "{location} — live",
+    "kpi": {
+      "reputation": {
+        "label": "Reputation score"
+      },
+      "rating": {
+        "label": "Average rating"
+      },
+      "volume": {
+        "label": "New reviews"
+      },
+      "responseRate": {
+        "label": "Response rate"
+      },
+      "noValue": "—",
+      "noData": "No data yet",
+      "points": "{value} pts",
+      "noComparison": "no prior period",
+      "up": "up",
+      "down": "down",
+      "flat": "unchanged"
+    },
+    "insight": {
+      "waiting": "{count, plural, =1 {1 review is waiting for a reply} other {# reviews are waiting for a reply}}.",
+      "clear": "Nothing is waiting for a reply.",
+      "theme": "{count, plural, =1 {1 is negative about {theme}} other {# are negative about {theme}}}.",
+      "ratingHolding": "Your rating is holding at {rating}★.",
+      "ratingUp": "Your rating is up, at {rating}★.",
+      "ratingDown": "Your rating has slipped to {rating}★.",
+      "replyNow": "Reply now"
+    },
+    "chart": {
+      "title": "Reputation over time",
+      "subtitle": {
+        "7d": "Rating & volume · 7 days",
+        "30d": "Rating & volume · 30 days",
+        "90d": "Rating & volume · 13 weeks"
+      },
+      "rating": "Average rating",
+      "volume": "Review volume",
+      "period": "Period",
+      "weekOf": "Week of {start} – {end}",
+      "noRating": "no rating",
+      "empty": "No reviews came in during this period.",
+      "tableCaption": "Review volume per period, and the average rating over the preceding {days} days.",
+      "average": "{range} average: {value}",
+      "rangeName": {
+        "7d": "7-day",
+        "30d": "30-day",
+        "90d": "90-day"
+      }
+    },
+    "attention": {
+      "title": "Needs attention",
+      "all": "Inbox →",
+      "empty": "Nothing is waiting. Every unhappy review in this period has an answer.",
+      "reply": "Reply",
+      "negative": "Negative",
+      "noText": "No text — open it to see the original.",
+      "stars": "{count} out of 5 stars",
+      "itemType": {
+        "comment": "Comment",
+        "mention": "Mention",
+        "dm": "Message",
+        "review": "Review"
+      }
+    },
+    "range": {
+      "7d": {
+        "short": "7d",
+        "long": "Last 7 days"
+      },
+      "30d": {
+        "short": "30d",
+        "long": "Last 30 days"
+      },
+      "90d": {
+        "short": "90d",
+        "long": "Last 90 days"
+      }
+    },
+    "title": "Your weekly plan",
+    "titleWeek": "The week of {period}",
     "subtitle": "What happened at {location}, and what to do about it.",
     "noLocation": "Add a location to start receiving your weekly plan.",
     "noLocationAction": "Go to Locations",
-    "empty": "Your first weekly plan is not ready yet.",
-    "emptyBody": "Digests are composed once a week from the reviews that came in. Connect a source, or generate one now from what you already have.",
+    "empty": {
+      "no_sources": {
+        "title": "Nothing has arrived yet",
+        "body": "Connect a review source, or send a few requests to customers you have already served. The dashboard fills itself once reviews start coming in."
+      },
+      "quiet_period": {
+        "title": "A quiet period",
+        "body": "No reviews arrived in this window. Nothing is wrong — try a longer one to see the trend."
+      },
+      "connect": "Connect a source",
+      "request": "Send review requests",
+      "widen": {
+        "7d": "Show the last 7 days",
+        "30d": "Show the last 30 days",
+        "90d": "Show the last 90 days"
+      }
+    },
     "quietWeek": "A quiet week — no new reviews came in.",
     "quietWeekBody": "Nothing to act on. The plan resumes as soon as customers start writing again.",
-    "generate": "Generate now",
-    "generating": "Composing your plan…",
-    "queued": "Composing. This takes a minute — refresh shortly.",
+    "generate": "Generate {period}",
+    "regenerate": "Regenerate {period}",
+    "generateHint": "Digests cover a completed week, so this composes {period}.",
+    "composing": "Composing {period}… this takes about a minute.",
+    "composeSlow": "Still composing. It will appear here on its own — no need to wait.",
+    "composeFailed": "That digest could not be composed. The hourly sweep will try again.",
     "period": "{start} – {end}",
     "reviewCount": "{count, plural, =0 {no reviews} =1 {1 review} other {# reviews}}",
     "pulse": "Reputation pulse",
@@ -74,7 +176,72 @@
     "loopTitle": "Since last week",
     "loopSummary": "You completed {done} of {total} actions.",
     "loopStillOpen": "Still open:",
-    "lastGenerated": "Composed {when}"
+    "lastGenerated": "Composed {when}",
+    "sentiment": {
+      "title": "Sentiment",
+      "positive": "Positive {percent}",
+      "neutral": "Neutral {percent}",
+      "negative": "Negative {percent}",
+      "positiveShort": "positive",
+      "pending": "{count, plural, =1 {1 item not analysed yet} other {# items not analysed yet}}",
+      "empty": "Nothing has been analysed in this period yet.",
+      "neutralShort": "neutral",
+      "negativeShort": "negative",
+      "count": "Reviews"
+    },
+    "sources": {
+      "title": "Reviews by source",
+      "average": "{rating} ★ average",
+      "noRating": "no rating",
+      "empty": "No sources have sent anything in this period.",
+      "count": "Reviews",
+      "rating": "Rating"
+    },
+    "themes": {
+      "title": "Top themes",
+      "all": "All →",
+      "mostlyPositive": "{count} positive",
+      "mostlyNegative": "{count} negative",
+      "mixed": "mixed",
+      "empty": "No themes yet — they appear once reviews are analysed.",
+      "count": "Mentions",
+      "mood": "Sentiment"
+    },
+    "distribution": {
+      "title": "Rating distribution",
+      "stars": "{count} stars",
+      "empty": "No rated reviews in this period.",
+      "count": "Reviews"
+    },
+    "response": {
+      "title": "Response time",
+      "median": "median reply time",
+      "withinDay": "Share answered within a day",
+      "withinDayShort": "< 24h",
+      "minutes": "{count} min",
+      "hours": "{count, number} h",
+      "days": "{count, plural, =1 {1 day} other {# days}}",
+      "faster": "{change} faster",
+      "slower": "{change} slower",
+      "noComparison": "no prior period",
+      "replied": "{count, plural, =1 {1 reply sent} other {# replies sent}}",
+      "empty": "Nothing has been answered in this period."
+    },
+    "activity": {
+      "title": "Recent activity",
+      "newRating": "New {rating}★ review on {source}",
+      "newItem": {
+        "review": "New review on {source}",
+        "comment": "New comment on {source}",
+        "mention": "New mention on {source}",
+        "dm": "New message on {source}"
+      },
+      "replied": "You replied on {source}",
+      "requestSent": "Review request sent by {channel}",
+      "empty": "Nothing has happened in this period."
+    },
+    "metric": "Metric",
+    "value": "Value"
   },
   "inbox": {
     "title": "Inbox",
@@ -348,6 +515,10 @@
     "badgeLabel": "{count} unread notifications"
   },
   "replies": {
+    "writeReply": "Write a reply",
+    "writePlaceholder": "Write your reply…",
+    "cancel": "Cancel",
+    "written": "Written by you",
     "draftWithAi": "Draft with AI",
     "editorLabel": "Reply text",
     "save": "Save",

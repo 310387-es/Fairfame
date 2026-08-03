@@ -12,6 +12,7 @@ import {
   postReply,
   ReplyError,
   saveReplyDraft,
+  writeReplyDraft,
 } from "@/replies/service";
 import { toActionResult, type ActionResult } from "@/server/action-result";
 
@@ -65,6 +66,45 @@ export async function draftReplyAction(input: { reviewId: string }): Promise<Act
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "draftReply failed");
+    return toReplyResult(error);
+  }
+}
+
+/**
+ * Stores a reply the user wrote themselves.
+ *
+ * `member`, like AI drafting — writing is not publishing, and approving and
+ * posting stay `admin`. No AI entitlement and no usage counter: see
+ * `writeReplyDraft` for why metering a typed sentence against the model
+ * allowance would lock an owner out of their own Inbox.
+ */
+export async function writeReplyAction(input: {
+  reviewId: string;
+  text: string;
+}): Promise<ActionResult> {
+  const parsed = z
+    .object({ reviewId: z.uuid(), text: z.string().min(1).max(4_000) })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Write something first." };
+
+  try {
+    await withAuthenticatedTenant(
+      async (tx, actor) => {
+        await writeReplyDraft({
+          tx,
+          organizationId: actor.organizationId,
+          actorUserId: actor.userId,
+          reviewId: parsed.data.reviewId,
+          text: parsed.data.text,
+        });
+      },
+      { minimumRole: "member" },
+    );
+
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (error) {
+    log.warn({ err: error }, "writeReply failed");
     return toReplyResult(error);
   }
 }

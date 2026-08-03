@@ -206,3 +206,127 @@
   --color-brand-amber: var(--brand-amber);
   --color-brand-ink: var(--brand-ink);
 }
+
+/* ---------------------------------------------------------------------------
+ * Live-dashboard tokens (docs/home-live-dashboard.md §2)
+ *
+ * The palette above is brand-correct but the surface was pure white and the
+ * `--chart-*` ramp was still shadcn's greyscale, which is why data-dense
+ * screens read flat: a chart drawn in five greys says nothing, and white cards
+ * on a white page have no edge to catch.
+ *
+ * Three fixes, in the order they matter:
+ *   1. A faint tint on `--background` so white cards lift off it.
+ *   2. A real chart ramp, brand-led, with enough hue distance between
+ *      neighbours to stay distinguishable — including for the ~8% of men with
+ *      a red-green deficiency, which is why indigo/amber/teal/violet lead and
+ *      green is last.
+ *   3. Sentiment gets its own named tokens. Positive is *not* `--primary` and
+ *      negative is not merely `--destructive` in disguise: they mean "what
+ *      customers felt", not "what this button does", and conflating them makes
+ *      every later change a guess about which meaning was intended.
+ *
+ * Amber stays reserved for ratings, neutral sentiment and highlights — never a
+ * default surface.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  --background: oklch(0.985 0.005 268);
+
+  --positive: oklch(0.7 0.14 162);
+  --positive-foreground: oklch(0.99 0 0);
+
+  /* Ink variants, for the same hues used as *text* or as a graphic that has to
+   * be told apart from the surface behind it.
+   *
+   * Measured, not guessed: brand amber on white is 2.04:1 and the positive
+   * green is 2.51:1, both far under the 4.5:1 WCAG 2.1 AA asks of body text —
+   * amber in particular is a colour you can barely see at 11px. These are the
+   * lightest values of the same hue that clear 4.5:1 **against the tinted chip
+   * they actually sit on** — measured against white they would still fail once
+   * a 12% wash of their own hue went behind them, which is exactly how the
+   * delta pills are built. The bright originals stay for fills and stars,
+   * where a label carries the meaning. */
+  --positive-ink: oklch(0.518 0.14 162);
+  --rating-ink: oklch(0.548 0.1585 72.33);
+  --destructive-ink: oklch(0.522 0.245 27.325);
+
+  /* The five-star ramp.
+   *
+   * A rating is an ordered scale, not three categories: three stars is the
+   * middle of it, four is short of good and two is short of bad, and lumping
+   * 4-5 together as one green said less than the numbers already did. Walking
+   * the hue circle green → amber → red the short way gives an order the eye
+   * reads without a legend.
+   *
+   * Every step is the lightest value of its hue that still clears 4.5:1 on a
+   * white card, so the whole ramp is legible rather than pretty at the ends and
+   * invisible in the middle. */
+  --rating-5: oklch(0.545 0.14 162);
+  --rating-4: oklch(0.557 0.15 128);
+  --rating-3: oklch(0.573 0.1585 72.33);
+  --rating-2: oklch(0.584 0.17 45);
+  --rating-1: oklch(0.596 0.245 27.325);
+
+  /* Sentiment points at the ink variants, not the bright ones. These colours
+   * carry meaning in a chart — WCAG 1.4.11 wants a graphical object to clear
+   * 3:1 against what surrounds it, and the bright green and amber manage 2.51
+   * and 2.04 on a white card. A slice nobody can see is not a slice. */
+  --sentiment-positive: var(--positive-ink);
+  --sentiment-neutral: var(--rating-ink);
+  --sentiment-negative: var(--destructive);
+
+  --chart-1: var(--brand-indigo);
+  --chart-2: var(--brand-amber);
+  --chart-3: oklch(0.7 0.13 182);
+  --chart-4: oklch(0.63 0.17 285);
+  --chart-5: var(--positive);
+
+  /* Elevation, not decoration: `sm` separates a card from the page, `md` marks
+   * something that floats above it. Tinted with the ink hue rather than pure
+   * black, so shadows never look like grey smudges next to the indigo. */
+  --elevation-sm: 0 1px 2px rgb(16 25 58 / 0.05);
+  --elevation-md: 0 8px 26px -10px rgb(16 25 58 / 0.13);
+}
+
+.dark {
+  --background: oklch(0.16 0.02 269);
+
+  --positive: oklch(0.75 0.14 162);
+  --positive-foreground: oklch(0.16 0.03 269);
+
+  /* Lighter rather than darker: the contrast is against a dark card now. */
+  --positive-ink: oklch(0.578 0.14 162);
+  --rating-ink: oklch(0.605 0.1585 72.33);
+  --destructive-ink: oklch(0.62 0.2 27.325);
+
+  /* Same ramp, lifted until each step clears 4.5:1 on the dark card. */
+  --rating-5: oklch(0.578 0.14 162);
+  --rating-4: oklch(0.588 0.15 128);
+  --rating-3: oklch(0.605 0.1585 72.33);
+  --rating-2: oklch(0.615 0.17 45);
+  --rating-1: oklch(0.628 0.245 27.325);
+
+  /* Darker surfaces swallow a subtle shadow, so both steps go deeper. */
+  --elevation-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --elevation-md: 0 10px 30px -12px rgb(0 0 0 / 0.5);
+}
+
+@theme inline {
+  --color-positive: var(--positive);
+  --color-positive-foreground: var(--positive-foreground);
+  --color-positive-ink: var(--positive-ink);
+  --color-rating-ink: var(--rating-ink);
+  --color-destructive-ink: var(--destructive-ink);
+  --color-rating-5: var(--rating-5);
+  --color-rating-4: var(--rating-4);
+  --color-rating-3: var(--rating-3);
+  --color-rating-2: var(--rating-2);
+  --color-rating-1: var(--rating-1);
+  --color-sentiment-positive: var(--sentiment-positive);
+  --color-sentiment-neutral: var(--sentiment-neutral);
+  --color-sentiment-negative: var(--sentiment-negative);
+
+  --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
+}

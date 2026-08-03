@@ -15,6 +15,7 @@ import {
   postReply,
   ReplyError,
   saveReplyDraft,
+  writeReplyDraft,
 } from "@/replies/service";
 
 /**
@@ -757,5 +758,212 @@ describe("tenant isolation", () => {
       .where(eq(schema.replies.id, theirDraft.id));
 
     expect(untouched?.status).toBe("draft");
+  });
+});
+
+describe("writing a reply by hand", () => {
+  it("stores a draft with no model involved", async () => {
+    const fixture = await makeFixture("manual");
+    const reviewId = await addReview(fixture);
+
+    const row = await act(fixture, (tx) =>
+      writeReplyDraft({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        reviewId,
+        text: "Teşekkürler, yine bekleriz.",
+      }),
+    );
+
+    expect(row.status).toBe("draft");
+    expect(row.text).toBe("Teşekkürler, yine bekleriz.");
+    // Provenance matters downstream: the composer labels it, and the digest's
+    // "replies drafted" figure counts AI work rather than human work.
+    expect(row.aiGenerated).toBe(false);
+    expect(row.model).toBeNull();
+    expect(row.promptId).toBeNull();
+    // No original to diff against — the person's own first words are it.
+    expect(row.originalText).toBeNull();
+  });
+
+  it("costs nothing against the AI allowance", async () => {
+    const fixture = await makeFixture("manual-free");
+    const reviewId = await addReview(fixture);
+
+    await act(fixture, (tx) =>
+      writeReplyDraft({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        reviewId,
+        text: "Sağ olun.",
+      }),
+    );
+
+    expect(await usageOf(fixture.orgId)).toBe(0);
+  });
+
+  it("still works when the month's AI allowance is spent", async () => {
+    const fixture = await makeFixture("manual-capped");
+    const reviewId = await addReview(fixture);
+
+    await getAdminDb().insert(schema.usageCounters).values({
+      organizationId: fixture.orgId,
+      metric: "ai_analyses_per_month",
+      period: currentPeriod(),
+      count: 250,
+    });
+
+    // The reason this exists. Metering a typed sentence against the model
+    // allowance would make the Inbox read-only for the rest of the billing
+    // period — an owner locked out of answering their own customers.
+    const row = await act(fixture, (tx) =>
+      writeReplyDraft({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        reviewId,
+        text: "Geri bildiriminiz için teşekkürler.",
+      }),
+    );
+
+    expect(row.status).toBe("draft");
+  });
+
+  it("goes through the same approval before it can be posted", async () => {
+    const fixture = await makeFixture("manual-approve");
+    const reviewId = await addReview(fixture);
+
+    const draft = await act(fixture, (tx) =>
+      writeReplyDraft({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        reviewId,
+        text: "Özür dileriz, ilgileneceğiz.",
+      }),
+    );
+
+    // Nothing reaches a platform without an explicit human approval — the rule
+    // holds whoever wrote the words.
+    await expect(
+      act(fixture, (tx) =>
+        postReply({
+          tx,
+          organizationId: fixture.orgId,
+          actorUserId: fixture.userId,
+          replyId: draft.id,
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "wrong_status" });
+
+    await act(fixture, (tx) =>
+      approveReply({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        replyId: draft.id,
+      }),
+    );
+
+    const outcome = await act(fixture, (tx) =>
+      postReply({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        replyId: draft.id,
+      }),
+    );
+
+    expect(outcome.ok).toBe(true);
+  });
+
+  it("refuses to overwrite a reply that is already out", async () => {
+    const fixture = await makeFixture("manual-posted");
+    const reviewId = await addReview(fixture);
+
+    const draft = await act(fixture, (tx) =>
+      writeReplyDraft({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        reviewId,
+        text: "İlk yanıt.",
+      }),
+    );
+    await act(fixture, (tx) =>
+      approveReply({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        replyId: draft.id,
+      }),
+    );
+
+    await expect(
+      act(fixture, (tx) =>
+        writeReplyDraft({
+          tx,
+          organizationId: fixture.orgId,
+          actorUserId: fixture.userId,
+          reviewId,
+          text: "İkinci yanıt.",
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "already_replied" });
+  });
+
+  it("refuses an empty reply", async () => {
+    const fixture = await makeFixture("manual-empty");
+    const reviewId = await addReview(fixture);
+
+    await expect(
+      act(fixture, (tx) =>
+        writeReplyDraft({
+          tx,
+          organizationId: fixture.orgId,
+          actorUserId: fixture.userId,
+          reviewId,
+          text: "   ",
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "empty" });
+  });
+
+  it("is bounded to the same length a model draft is", async () => {
+    const fixture = await makeFixture("manual-long");
+    const reviewId = await addReview(fixture);
+
+    const row = await act(fixture, (tx) =>
+      writeReplyDraft({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        reviewId,
+        text: "a".repeat(5_000),
+      }),
+    );
+
+    // The limit is about staying readable on a review platform, so it applies
+    // to a person as much as to the model.
+    expect(row.text.length).toBeLessThanOrEqual(MAX_REPLY_CHARS);
+  });
+
+  it("records who wrote it", async () => {
+    const fixture = await makeFixture("manual-audit");
+    const reviewId = await addReview(fixture);
+
+    await act(fixture, (tx) =>
+      writeReplyDraft({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        reviewId,
+        text: "Teşekkürler.",
+      }),
+    );
+
+    expect(await auditActions(fixture.orgId)).toContain("reply.written");
   });
 });
