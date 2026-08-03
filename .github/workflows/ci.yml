@@ -118,6 +118,16 @@ jobs:
       - run: pnpm run lint
       - run: pnpm run typecheck
       - run: pnpm run format:check
+
+      # Every locale must define the same keys, and every key must be used.
+      # A message missing from one language throws at render, so without this
+      # the untested language breaks in front of a customer.
+      - run: pnpm run check:i18n
+
+      # Unused files and dependencies. Unused *exports* are reported by
+      # `pnpm knip:all` but not gated — see docs/16-code-hygiene.md.
+      - run: pnpm run knip
+
       - run: pnpm run test
       - run: pnpm run test:db
       - run: pnpm run build

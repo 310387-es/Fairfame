@@ -120,7 +120,11 @@ export async function requestSync(input: {
   }
 }
 
-/** Releases the shared queue. For scripts and tests, not for request handlers. */
+/**
+ * Releases the shared queue. For scripts and tests, not for request handlers.
+ *
+ * @public — lifecycle API for callers outside the request path.
+ */
 export async function closeJobQueue(): Promise<void> {
   await queue?.close();
   await connection?.quit();

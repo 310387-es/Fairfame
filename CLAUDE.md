@@ -54,7 +54,7 @@ The `Connector` interface + entitlement keys: `docs/09-phase-0-build-plan.md`. T
 
 `docker compose up -d` (Postgres + Redis + **Mailpit**, the maintained MailHog successor — dev inbox at `localhost:8025`) → `pnpm db:migrate` → `pnpm db:seed` → `pnpm dev`.
 
-`pnpm verify` is the gate (lint, types, unit + DB tests, build). `pnpm golive` reports per-platform go-live readiness; it is read-only and "not configured" is its expected answer today.
+`pnpm verify` is the gate (lint, types, format, **i18n parity**, **dead code**, unit + DB tests, build). `pnpm check:i18n` fails on a key missing from any locale or defined-but-unused; `pnpm knip` fails on unused files or dependencies (`pnpm knip:all` also reports unused exports, which are not gated). See `docs/16-code-hygiene.md`. `pnpm golive` reports per-platform go-live readiness; it is read-only and "not configured" is its expected answer today.
 
 AI operator commands: `pnpm ai:smoke` (one call, checks the key and model), `pnpm ai:analyze --org <slug> [--embeddings] [--recompute]` (batch analysis; cached, paced), `pnpm ai:eval` (scores the labelled TR/EN set against the configured provider and exits non-zero below threshold).
 

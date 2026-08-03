@@ -3,8 +3,9 @@ import { schema } from "../db/client.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import { MIN_QUERY_LENGTH, type SearchResults } from "./types.ts";
 
+// Callers import the contract from `./types.ts` directly; re-exporting it
+// here only created a second name for the same thing.
 export { MIN_QUERY_LENGTH };
-export type { ReviewHit, SearchResults, ThemeHit } from "./types.ts";
 
 /**
  * Search, for the command palette.

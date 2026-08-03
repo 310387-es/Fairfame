@@ -2,7 +2,6 @@ import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import type { ReviewNotificationPayload } from "./service.ts";
-export { FEED_PAGE_SIZE } from "./types.ts";
 
 /**
  * Reading the in-app feed (P1a-T5).

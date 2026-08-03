@@ -66,5 +66,9 @@ export const stripeProvider: BillingProvider = {
   },
 };
 
-/** Exposed for the eventual real implementation and for diagnostics. */
+/**
+ * Exposed for the eventual real implementation and for diagnostics.
+ *
+ * @public — the Stripe skeleton's seam; unused until billing is built.
+ */
 export { getClient as getStripeClient };
