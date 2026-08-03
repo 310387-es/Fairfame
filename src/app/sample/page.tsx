@@ -92,8 +92,12 @@ export default async function SamplePage() {
           <Badge variant="secondary" className="mb-3">
             {t("eyebrow")}
           </Badge>
-          <h1 className="font-heading text-3xl font-semibold text-balance">{t("title")}</h1>
-          <p className="mt-3 text-pretty text-muted-foreground">{t("intro")}</p>
+          {/* `hero`, not `display`: the digest's own headline below is at
+              `display`, and two headings the same size read as one. This page
+              is the only place in the product that earns a second heading —
+              the promise and the artefact are both the point. */}
+          <h1 className="text-hero text-balance">{t("title")}</h1>
+          <p className="mt-3 text-body text-pretty text-ink-400">{t("intro")}</p>
         </div>
 
         {/*
@@ -101,7 +105,7 @@ export default async function SamplePage() {
           A prospect who mistakes invented reviews for a real business's has
           been misled, however impressive the page looked.
         */}
-        <p className="flex items-start gap-2 rounded-lg border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground">
+        <p className="flex items-start gap-2 rounded-lg border border-dashed bg-muted/40 p-3 text-copy text-muted-foreground">
           <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           {t("demoNotice", { business: digest.business })}
         </p>
@@ -110,14 +114,12 @@ export default async function SamplePage() {
       <Card>
         <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center">
           <div className="flex-1">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-copy text-muted-foreground">
               {digest.business} · {digest.location} ·{" "}
               {t("periodLabel", { days: digest.periodDays })}
             </p>
-            <h2 className="mt-1 font-heading text-2xl font-semibold text-balance">
-              {digest.headline}
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-pretty">{digest.summary}</p>
+            <h2 className="mt-1 text-display text-balance">{digest.headline}</h2>
+            <p className="mt-3 text-body leading-relaxed text-pretty">{digest.summary}</p>
 
             {digest.callouts.length > 0 ? (
               <ul className="mt-4 flex flex-wrap gap-2">
@@ -132,11 +134,11 @@ export default async function SamplePage() {
             ) : null}
           </div>
 
-          <div className="flex shrink-0 flex-col items-center rounded-xl border p-5 sm:w-44">
-            <span className={cn("font-heading text-4xl font-semibold tabular-nums", band)}>
+          <div className="flex shrink-0 flex-col items-center rounded-lg border border-line p-5 sm:w-44">
+            <span className={cn("text-metric text-[2rem]", band)}>
               {digest.pulse === null ? "—" : Math.round(digest.pulse)}
             </span>
-            <span className="mt-1 text-xs font-medium">{t("pulse")}</span>
+            <span className="mt-1 text-copy font-medium">{t("pulse")}</span>
             <span className="mt-1 text-center text-[11px] text-muted-foreground">
               {deltaLabel ?? t("reviewCount", { count: digest.reviewCount })}
             </span>
@@ -145,25 +147,28 @@ export default async function SamplePage() {
       </Card>
 
       <section>
-        <h3 className="font-heading text-lg font-semibold">{t("actionsTitle")}</h3>
-        <p className="mb-3 text-sm text-muted-foreground">{t("actionsHint")}</p>
+        <h3 className="text-title">{t("actionsTitle")}</h3>
+        <p className="mb-3 text-body text-muted-foreground">{t("actionsHint")}</p>
 
         <ul className="flex flex-col gap-3">
           {digest.actions.map((action) => (
-            <li key={action.position} className="flex gap-4 rounded-xl border bg-card p-5">
+            <li
+              key={action.position}
+              className="flex gap-4 rounded-lg border border-line bg-card p-5"
+            >
               <span
                 aria-hidden
-                className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary tabular-nums"
+                className="flex size-7 shrink-0 items-center justify-center rounded-full bg-state-accent-bg font-mono text-copy font-semibold text-state-accent-text tabular-nums"
               >
                 {action.position}
               </span>
               <div className="flex min-w-0 flex-col gap-1">
-                <p className="text-sm leading-relaxed text-pretty">{action.text}</p>
+                <p className="text-body leading-relaxed text-pretty">{action.text}</p>
                 {/*
                   A label, not a link: there is no Inbox to send an anonymous
                   visitor to, and a dead link is worse than no link.
                 */}
-                <span className="text-xs text-muted-foreground">{action.theme}</span>
+                <span className="text-copy text-muted-foreground">{action.theme}</span>
               </div>
             </li>
           ))}
@@ -173,12 +178,12 @@ export default async function SamplePage() {
       {digest.changes.length > 0 ? (
         <Card>
           <CardContent className="py-5">
-            <h3 className="mb-3 text-sm font-semibold">{t("changesTitle")}</h3>
+            <h3 className="mb-3 text-title">{t("changesTitle")}</h3>
             <ul className="flex flex-col gap-2">
               {digest.changes.map((change) => (
                 <li
                   key={`${change.kind}-${JSON.stringify(change.detail)}`}
-                  className="flex gap-2 text-sm leading-relaxed"
+                  className="flex gap-2 text-body leading-relaxed"
                 >
                   <ChangeIcon direction={change.direction} />
                   <span className="text-pretty">
@@ -192,7 +197,7 @@ export default async function SamplePage() {
       ) : null}
 
       <section>
-        <h3 className="mb-3 font-heading text-lg font-semibold">{t("themesTitle")}</h3>
+        <h3 className="mb-3 text-title">{t("themesTitle")}</h3>
 
         <div className="grid gap-3 md:grid-cols-2">
           {digest.themes.map((theme) => (
@@ -200,18 +205,18 @@ export default async function SamplePage() {
               <CardContent className="py-5">
                 <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <span className="font-medium">{theme.label}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-copy text-muted-foreground">
                     {t("themeCount", { count: theme.count })}
                   </span>
 
                   <span className="ml-auto flex gap-1.5 text-[11px]">
                     {theme.positive > 0 ? (
-                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-primary">
+                      <span className="rounded-sm bg-state-positive-bg px-1.5 py-0.5 font-semibold text-state-positive-text">
                         {t("themePositive", { count: theme.positive })}
                       </span>
                     ) : null}
                     {theme.negative > 0 ? (
-                      <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-destructive">
+                      <span className="rounded-sm bg-state-negative-bg px-1.5 py-0.5 font-semibold text-state-negative-text">
                         {t("themeNegative", { count: theme.negative })}
                       </span>
                     ) : null}
@@ -221,7 +226,7 @@ export default async function SamplePage() {
                 {theme.quotes.map((quote) => (
                   <p
                     key={quote.text}
-                    className="mt-2 flex gap-1.5 text-sm leading-relaxed text-pretty text-muted-foreground"
+                    className="mt-2 flex gap-1.5 text-body leading-relaxed text-pretty text-muted-foreground"
                   >
                     <Quote className="mt-1 size-3 shrink-0 opacity-50" aria-hidden />
                     <span className="italic">{quote.text}</span>
@@ -235,8 +240,8 @@ export default async function SamplePage() {
 
       <Card className="border-primary/30 bg-primary/5">
         <CardContent className="flex flex-col items-start gap-3 py-6">
-          <h3 className="font-heading text-lg font-semibold">{t("ctaTitle")}</h3>
-          <p className="text-sm text-pretty text-muted-foreground">{t("ctaBody")}</p>
+          <h3 className="text-title">{t("ctaTitle")}</h3>
+          <p className="text-body text-pretty text-muted-foreground">{t("ctaBody")}</p>
 
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <Button asChild>
@@ -247,7 +252,7 @@ export default async function SamplePage() {
             </Button>
             <Link
               href="/sign-in"
-              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+              className="text-body text-muted-foreground underline-offset-4 hover:underline"
             >
               {t("ctaSignIn")}
             </Link>

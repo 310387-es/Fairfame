@@ -45,7 +45,7 @@ export default async function SettingsPage() {
 
       <Card id="notifications" className="scroll-mt-20">
         <CardHeader>
-          <CardTitle className="text-base">{tn("title")}</CardTitle>
+          <CardTitle>{tn("title")}</CardTitle>
           <CardDescription>{tn("subtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -57,7 +57,7 @@ export default async function SettingsPage() {
           />
 
           {locations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{tn("noLocations")}</p>
+            <p className="text-body text-muted-foreground">{tn("noLocations")}</p>
           ) : (
             locations.map((location) => {
               const row = preferences.find((entry) => entry.locationId === location.id);
@@ -88,7 +88,7 @@ export default async function SettingsPage() {
       </Card>
 
       <Card className="mt-4">
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+        <CardContent className="py-10 text-center text-body text-muted-foreground">
           {t("placeholder")}
         </CardContent>
       </Card>

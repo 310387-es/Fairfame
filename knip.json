@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/app/**/{page,layout,route,not-found,error,icon,apple-icon}.{ts,tsx}",
+    "scripts/*.mts",
+    "tests/**/*.test.ts",
+    "*.config.{ts,mts,js,mjs}"
+  ],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mts"],
+  "ignore": ["src/components/ui/**", "src/components/digest/**", "src/server/digests.ts"],
+  "ignoreDependencies": ["shadcn", "tailwindcss", "tw-animate-css", "pino-pretty"],
+  "ignoreExportsUsedInFile": true,
+  "tags": ["-public"]
+}

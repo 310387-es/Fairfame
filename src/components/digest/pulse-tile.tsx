@@ -59,7 +59,7 @@ export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
           : t("deltaDown", { value: Math.abs(delta).toFixed(1) });
 
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border bg-card p-6">
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-line bg-card p-6">
       <div className="relative" style={{ width: SIZE, height: SIZE }}>
         <svg
           width={SIZE}
@@ -98,21 +98,21 @@ export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span
             className={cn(
-              "font-heading text-4xl font-semibold tabular-nums",
+              "text-metric text-[2rem] tabular-nums",
               band?.text ?? "text-muted-foreground",
             )}
           >
             {score === null ? t("noPulse") : Math.round(score)}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-copy text-muted-foreground">
             {t("reviewCount", { count: reviewCount })}
           </span>
         </div>
       </div>
 
       <div className="text-center">
-        <p className="text-sm font-medium">{t("pulse")}</p>
-        <p className="mt-1 flex items-center justify-center gap-1 text-xs text-muted-foreground">
+        <p className="text-title">{t("pulse")}</p>
+        <p className="mt-1 flex items-center justify-center gap-1 text-copy text-muted-foreground">
           <DeltaIcon className="size-3.5 shrink-0" aria-hidden />
           {deltaLabel}
         </p>

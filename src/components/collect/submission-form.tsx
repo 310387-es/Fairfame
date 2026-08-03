@@ -72,9 +72,9 @@ export function SubmissionForm({
 
   if (done) {
     return (
-      <div className="rounded-xl border bg-card p-8 text-center">
-        <p className="text-lg font-medium">{labels.thanksTitle}</p>
-        <p className="mt-2 text-sm text-pretty text-muted-foreground">{labels.thanksBody}</p>
+      <div className="rounded-lg border border-line bg-card p-8 text-center">
+        <p className="text-display">{labels.thanksTitle}</p>
+        <p className="mt-2 text-body text-pretty text-muted-foreground">{labels.thanksBody}</p>
       </div>
     );
   }
@@ -134,8 +134,8 @@ export function SubmissionForm({
   return (
     <form action={submit} className="space-y-6">
       <fieldset>
-        <legend className="text-sm font-medium">{labels.ratingLabel}</legend>
-        <p className="mt-1 mb-3 text-sm text-muted-foreground">{labels.ratingHint}</p>
+        <legend className="text-title">{labels.ratingLabel}</legend>
+        <p className="mt-1 mb-3 text-body text-muted-foreground">{labels.ratingHint}</p>
 
         <div className="flex gap-1" onMouseLeave={() => setHovered(null)}>
           {RATINGS.map((value) => {
@@ -203,7 +203,7 @@ export function SubmissionForm({
       {/* Only asked for when contact details are given — a walk-in leaving an
           anonymous rating is not handing us identifiable data. */}
       {email.trim() !== "" ? (
-        <label className="flex items-start gap-2 text-sm text-muted-foreground">
+        <label className="flex items-start gap-2 text-body text-muted-foreground">
           <input
             type="checkbox"
             checked={kvkkAccepted}
@@ -213,11 +213,11 @@ export function SubmissionForm({
           <span>{labels.kvkkLabel}</span>
         </label>
       ) : (
-        <p className="text-sm text-muted-foreground">{labels.emailHint}</p>
+        <p className="text-body text-muted-foreground">{labels.emailHint}</p>
       )}
 
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body text-destructive">
           {error}
         </p>
       ) : null}

@@ -1,14 +1,10 @@
 import { ActivityFeed, ActivityFeedSkeleton } from "@/components/home/activity-feed";
 import { AiInsightStrip } from "@/components/home/ai-insight-strip";
+import { BreakdownCard } from "@/components/home/breakdown-card";
 import { DashboardEmpty } from "@/components/home/empty-state";
-import { KpiRow, KpiRowSkeleton } from "@/components/home/kpi-row";
 import { NeedsAttention, NeedsAttentionSkeleton } from "@/components/home/needs-attention";
-import { RatingDistribution } from "@/components/home/rating-distribution";
 import { ReputationCard, ReputationCardSkeleton } from "@/components/home/reputation-card";
 import { ResponseTime } from "@/components/home/response-time";
-import { SentimentDonut } from "@/components/home/sentiment-donut";
-import { SourceBreakdown } from "@/components/home/source-breakdown";
-import { ThemesList } from "@/components/home/themes-list";
 import { recentActivity } from "@/dashboard/activity";
 import { needsAttention } from "@/dashboard/attention";
 import { hasAnyReviews, loadFacts } from "@/dashboard/facts";
@@ -73,19 +69,41 @@ export async function Overview({ organizationId, userId, locationId, window }: O
   const series = computeSeries(facts, window);
 
   return (
-    <div className="flex flex-col gap-4">
-      <KpiRow kpis={kpis} />
+    // Five ranked blocks, not ten equal ones.
+    //
+    // The old page gave a 170px donut showing two numbers the same weight as the
+    // reputation chart, and put the queue of unanswered reviews below the fold.
+    // Rank now follows what an owner opens this page to do: read the one
+    // sentence, see whether the trend is holding, answer what is waiting, and
+    // only then look at the breakdowns.
+    <div className="flex flex-col gap-(--grid-gap)">
       <AiInsightStrip insight={insight} />
 
-      {/* The chart is the page's centre of gravity, so it takes roughly twice
-          the width. On a phone the queue comes first: what needs answering
-          beats what the trend looks like when you are standing on a tram. */}
-      <div className="grid gap-4 lg:grid-cols-[1.9fr_1fr]">
-        <div className="order-2 lg:order-1">
-          <ReputationCard series={series} range={window.range} average={kpis.rating.value} />
+      {/* The chart carries the four KPIs in its own header now, so this row is
+          "how it is going" beside "what needs doing". On a phone the queue comes
+          first: what needs answering beats what the trend looks like when you
+          are standing on a tram. */}
+      {/* Every row below is a *pair* of cards that stretch to a shared height,
+          so the page reads as a grid of aligned edges rather than a ragged pile.
+          Stacking three short cards beside one tall one — which is what this was
+          — left a 240px hole under the shorter column, and no amount of
+          `items-start` fixes that: it just moves the hole. Pairing widgets of
+          similar weight makes the heights match on their own, and `h-full`
+          absorbs whatever slack is left inside the shorter card. */}
+      <div className="grid gap-(--grid-gap) lg:grid-cols-[1.85fr_1fr]">
+        {/* `grid` on the wrapper, not `flex`: a lone grid child stretches on
+            both axes, where a row-direction flex child would fill the height and
+            then shrink to its content width. */}
+        <div className="order-2 grid lg:order-1">
+          <ReputationCard
+            series={series}
+            range={window.range}
+            average={kpis.rating.value}
+            kpis={kpis}
+          />
         </div>
 
-        <div className="order-1 lg:order-2">
+        <div className="order-1 grid lg:order-2">
           <Suspense fallback={<NeedsAttentionSkeleton />}>
             <AttentionSection
               organizationId={organizationId}
@@ -97,29 +115,31 @@ export async function Overview({ organizationId, userId, locationId, window }: O
         </div>
       </div>
 
-      {/* Two rows of three: what people felt, where it came from, what they
-          talked about — then the same week seen through stars, speed and
-          events. Each is one glance wide on a desktop and full width on a
-          phone. */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <SentimentDonut breakdown={computeSentiment(facts)} />
-        <SourceBreakdown rows={computeSources(facts)} />
-        <ThemesList rows={computeThemes(facts)} />
-      </div>
+      {/* What customers said — one card, three cuts of the same period, switched
+          client-side. All three panels ship with the page, so the strip costs a
+          CSS change rather than a round trip. */}
+      <div className="grid gap-(--grid-gap) lg:grid-cols-[1.35fr_1fr]">
+        <BreakdownCard
+          themes={computeThemes(facts)}
+          sentiment={computeSentiment(facts)}
+          buckets={computeRatingDistribution(facts)}
+          sources={computeSources(facts)}
+        />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <RatingDistribution buckets={computeRatingDistribution(facts)} />
         <ResponseTime times={computeResponseTimes(facts)} />
-
-        <Suspense fallback={<ActivityFeedSkeleton />}>
-          <ActivitySection
-            organizationId={organizationId}
-            userId={userId}
-            locationId={locationId}
-            window={window}
-          />
-        </Suspense>
       </div>
+
+      {/* Activity is a full-width strip, not a column. It is a ticker — four
+          short events read across in one line — and stacking it in a third of
+          the width turned every entry into three wrapped lines. */}
+      <Suspense fallback={<ActivityFeedSkeleton />}>
+        <ActivitySection
+          organizationId={organizationId}
+          userId={userId}
+          locationId={locationId}
+          window={window}
+        />
+      </Suspense>
     </div>
   );
 }
@@ -146,20 +166,20 @@ async function AttentionSection({ organizationId, userId, locationId, window }: 
   return <NeedsAttention rows={rows} />;
 }
 
+/** The same five blocks in the same places, so nothing jumps when data lands. */
 export function OverviewSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
-      <KpiRowSkeleton />
-      <div className="h-16 animate-pulse rounded-2xl bg-muted" aria-hidden />
-      <div className="grid gap-4 lg:grid-cols-[1.9fr_1fr]">
+    <div className="flex flex-col gap-(--grid-gap)">
+      <div className="h-[74px] animate-pulse rounded-lg bg-muted" aria-hidden />
+      <div className="grid gap-(--grid-gap) lg:grid-cols-[1.85fr_1fr]">
         <ReputationCardSkeleton />
         <NeedsAttentionSkeleton />
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <ActivityFeedSkeleton />
-        <ActivityFeedSkeleton />
-        <ActivityFeedSkeleton />
+      <div className="grid gap-(--grid-gap) lg:grid-cols-[1.35fr_1fr]">
+        <div className="h-72 animate-pulse rounded-lg bg-muted" aria-hidden />
+        <div className="h-72 animate-pulse rounded-lg bg-muted" aria-hidden />
       </div>
+      <ActivityFeedSkeleton />
     </div>
   );
 }

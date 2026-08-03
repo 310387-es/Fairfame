@@ -36,6 +36,26 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
+        {/*
+          Charts are drawn by Recharts, which measures its container before it
+          draws and so renders nothing at all until hydration. With scripts off
+          that leaves an empty box, so the text equivalent every chart already
+          carries for screen readers is promoted to a visible table instead.
+
+          Only a stylesheet goes in here — never markup. A browser with
+          scripting enabled parses `<noscript>` content as raw text, so any
+          element React streams inside it is invisible to `getElementById`,
+          which is exactly what broke `$RS` when the table itself lived here.
+          Unlayered, so it outranks the `@layer components` rule it overrides.
+        */}
+        <noscript>
+          <style>
+            {
+              ".chart-fallback{position:static;width:100%;height:auto;margin:0;overflow:visible;clip-path:none;white-space:normal}"
+            }
+          </style>
+        </noscript>
+
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>

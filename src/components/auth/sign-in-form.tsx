@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "@/auth/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -44,10 +44,15 @@ export function SignInForm() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{t("signInTitle")}</CardTitle>
-        <CardDescription>{t("signInSubtitle")}</CardDescription>
-      </CardHeader>
+      {/* A real `<h1>` at the display size. `CardTitle` renders a `<div>` at
+          the 14px card-title role, which is right for a widget inside a
+          dashboard and wrong here: this is the only heading on the page, and it
+          was coming out the same size as the field labels under it — with no
+          heading element for a screen reader to find. */}
+      <div className="px-(--card-px)">
+        <h1 className="text-display text-balance">{t("signInTitle")}</h1>
+        <p className="mt-1 text-body text-pretty text-ink-400">{t("signInSubtitle")}</p>
+      </div>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -67,7 +72,7 @@ export function SignInForm() {
           </div>
 
           {error ? (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="text-body text-destructive">
               {error}
             </p>
           ) : null}
@@ -77,7 +82,7 @@ export function SignInForm() {
           </Button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-muted-foreground">
+        <p className="mt-4 text-center text-body text-muted-foreground">
           {t("noAccount")}{" "}
           <Link href="/sign-up" className="font-medium text-primary hover:underline">
             {t("signUp")}

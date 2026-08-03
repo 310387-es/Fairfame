@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { organization } from "@/auth/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -73,10 +73,15 @@ export function CreateOrganizationForm() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{t("createOrgTitle")}</CardTitle>
-        <CardDescription>{t("createOrgSubtitle")}</CardDescription>
-      </CardHeader>
+      {/* A real `<h1>` at the display size. `CardTitle` renders a `<div>` at
+          the 14px card-title role, which is right for a widget inside a
+          dashboard and wrong here: this is the only heading on the page, and it
+          was coming out the same size as the field labels under it — with no
+          heading element for a screen reader to find. */}
+      <div className="px-(--card-px)">
+        <h1 className="text-display text-balance">{t("createOrgTitle")}</h1>
+        <p className="mt-1 text-body text-pretty text-ink-400">{t("createOrgSubtitle")}</p>
+      </div>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -85,7 +90,7 @@ export function CreateOrganizationForm() {
           </div>
 
           {error ? (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="text-body text-destructive">
               {error}
             </p>
           ) : null}

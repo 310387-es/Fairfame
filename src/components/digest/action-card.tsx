@@ -52,19 +52,19 @@ export function ActionCard({
   return (
     <li
       className={cn(
-        "group relative flex gap-4 rounded-xl border bg-card p-5 transition-colors",
-        closed && "bg-muted/40",
+        "group relative flex gap-4 rounded-lg border border-line bg-card p-5 transition-colors",
+        closed && "bg-surface-sunken",
       )}
     >
       <span
         aria-hidden
         className={cn(
-          "flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular-nums",
+          "flex size-7 shrink-0 items-center justify-center rounded-full font-mono text-copy font-semibold tabular-nums",
           status === "done"
             ? "bg-primary text-primary-foreground"
             : closed
-              ? "bg-muted text-muted-foreground"
-              : "bg-primary/10 text-primary",
+              ? "bg-surface-sunken text-ink-400"
+              : "bg-state-accent-bg text-state-accent-text",
         )}
       >
         {status === "done" ? <Check className="size-4" /> : position}
@@ -73,14 +73,14 @@ export function ActionCard({
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <p
           className={cn(
-            "text-sm leading-relaxed text-pretty",
+            "text-body leading-relaxed text-pretty",
             closed && "text-muted-foreground line-through",
           )}
         >
           {text}
         </p>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-copy text-muted-foreground">
           {/*
             Evidence is a link, not a citation. "Because customers said so" is
             only persuasive if the owner can read what they said in one click.
@@ -108,7 +108,7 @@ export function ActionCard({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-auto px-2 py-1 text-xs"
+            className="h-auto px-2 py-1 text-copy"
             onClick={() => set("open")}
           >
             <RotateCcw className="size-3.5" aria-hidden />
@@ -119,7 +119,7 @@ export function ActionCard({
             <Button
               type="button"
               size="sm"
-              className="h-auto px-2.5 py-1 text-xs"
+              className="h-auto px-2.5 py-1 text-copy"
               onClick={() => set("done")}
             >
               <Check className="size-3.5" aria-hidden />
@@ -131,7 +131,7 @@ export function ActionCard({
               size="sm"
               // Dismissing is a real answer, not a failure — the next digest
               // reads it differently from an action left open.
-              className="h-auto px-2 py-1 text-xs text-muted-foreground"
+              className="h-auto px-2 py-1 text-copy text-muted-foreground"
               onClick={() => set("dismissed")}
             >
               <X className="size-3.5" aria-hidden />

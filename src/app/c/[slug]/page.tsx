@@ -58,13 +58,13 @@ export default async function CollectPage({ params, searchParams }: PageProps) {
   const shell = (children: React.ReactNode) => (
     <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-10">
       <div className="mb-6 text-center">
-        <p className="text-sm text-muted-foreground">{campaign.organizationName}</p>
-        <h1 className="mt-1 text-2xl font-semibold text-balance">{campaign.locationName}</h1>
+        <p className="text-body text-muted-foreground">{campaign.organizationName}</p>
+        <h1 className="mt-1 text-display text-balance">{campaign.locationName}</h1>
       </div>
 
       {children}
 
-      <p className="mt-8 text-center text-xs text-muted-foreground">{t("kvkkNotice")}</p>
+      <p className="mt-8 text-center text-copy text-muted-foreground">{t("kvkkNotice")}</p>
       <div className="mt-4 flex justify-center opacity-60">
         <Logo className="text-muted-foreground" markClassName="size-4" />
       </div>
@@ -73,7 +73,7 @@ export default async function CollectPage({ params, searchParams }: PageProps) {
 
   if (campaign.status !== "active") {
     return shell(
-      <div className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">
+      <div className="rounded-lg border border-line bg-card p-8 text-center text-body text-ink-400">
         {t("closed")}
       </div>,
     );
@@ -83,8 +83,8 @@ export default async function CollectPage({ params, searchParams }: PageProps) {
   // same outbound link.
   if (route.kind === "external") {
     return shell(
-      <div className="rounded-xl border bg-card p-8 text-center">
-        <p className="text-sm text-pretty text-muted-foreground">{t("externalBody")}</p>
+      <div className="rounded-lg border border-line bg-card p-8 text-center">
+        <p className="text-body text-pretty text-muted-foreground">{t("externalBody")}</p>
         <Button asChild size="lg" className="mt-5 w-full">
           <a href={route.url} rel="noreferrer nofollow">
             {t("externalCta")}
@@ -119,7 +119,7 @@ export default async function CollectPage({ params, searchParams }: PageProps) {
   };
 
   return shell(
-    <div className="rounded-xl border bg-card p-6 sm:p-8">
+    <div className="rounded-lg border border-line bg-card p-6 sm:p-8">
       <SubmissionForm slug={campaign.slug} requestToken={query.rt ?? null} labels={labels} />
     </div>,
   );

@@ -100,7 +100,7 @@ export function GenerateDigestButton({
 
   if (phase === "composing") {
     return (
-      <p className="flex items-center gap-2 text-xs text-muted-foreground" role="status">
+      <p className="flex items-center gap-2 text-copy text-muted-foreground" role="status">
         <Loader2 className="size-3.5 animate-spin" aria-hidden />
         {composingLabel}
       </p>
@@ -139,9 +139,9 @@ export function GenerateDigestButton({
         {label}
       </Button>
 
-      {phase === "slow" ? <p className="text-xs text-muted-foreground">{slowLabel}</p> : null}
-      {phase === "failed" ? <p className="text-xs text-destructive">{failedLabel}</p> : null}
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {phase === "slow" ? <p className="text-copy text-muted-foreground">{slowLabel}</p> : null}
+      {phase === "failed" ? <p className="text-copy text-destructive">{failedLabel}</p> : null}
+      {error ? <p className="text-copy text-destructive">{error}</p> : null}
     </div>
   );
 }

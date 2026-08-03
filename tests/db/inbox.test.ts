@@ -1,7 +1,7 @@
 import { inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
-import { inboxFacets, listInbox } from "@/inbox/queries";
+import { inboxFacets, listInbox, locateReview } from "@/inbox/queries";
 import { withTenant } from "@/lib/tenancy";
 
 /**
@@ -357,5 +357,79 @@ describe("tenant isolation", () => {
 
     expect(facets.total).toBe(1);
     expect(facets.themes).toEqual([{ value: "kahvaltı", count: 1 }]);
+  });
+});
+
+describe("locating a review", () => {
+  /**
+   * Notifications, search hits and Home's queue all deep-link to one review. At
+   * twenty rows a page the anchor alone lands on page one, so the Inbox has to
+   * be told which page actually holds it — and that answer must agree with the
+   * list, or the link opens a page the review is not on.
+   */
+  it("returns the page the review is actually rendered on", async () => {
+    const fixture = await makeFixture("locate");
+
+    const ids: string[] = [];
+    for (let index = 0; index < 25; index += 1) {
+      ids.push(await addReview(fixture, { text: `Yorum ${index}.` }));
+    }
+
+    const pageSize = 10;
+
+    for (const id of ids) {
+      const page = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+        locateReview(tx, fixture.orgId, fixture.locationId, id, {}, pageSize),
+      );
+      expect(page).not.toBeNull();
+
+      const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+        listInbox(tx, fixture.orgId, fixture.locationId, {
+          limit: pageSize,
+          offset: (page! - 1) * pageSize,
+        }),
+      );
+
+      // The contract, asserted for every row rather than a sampled few.
+      expect(rows.rows.map((row) => row.id)).toContain(id);
+    }
+  });
+
+  it("respects the active filters when working out the page", async () => {
+    const fixture = await makeFixture("locate-filtered");
+
+    await addReview(fixture, { sentiment: "positive", text: "İyi." });
+    const negative = await addReview(fixture, { sentiment: "negative", text: "Kötü." });
+
+    const page = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      locateReview(tx, fixture.orgId, fixture.locationId, negative, { sentiment: "negative" }, 10),
+    );
+
+    // First of the negatives, even though it is second overall.
+    expect(page).toBe(1);
+  });
+
+  it("returns null when the filters exclude the review", async () => {
+    const fixture = await makeFixture("locate-excluded");
+    const positive = await addReview(fixture, { sentiment: "positive", text: "İyi." });
+
+    const page = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      locateReview(tx, fixture.orgId, fixture.locationId, positive, { sentiment: "negative" }, 10),
+    );
+
+    // Not "page 1" — the honest answer is that this filter does not show it.
+    expect(page).toBeNull();
+  });
+
+  it("cannot locate a review in another organization", async () => {
+    const mine = await makeFixture("locate-mine");
+    const theirs = await makeFixture("locate-theirs");
+    const hidden = await addReview(theirs, { text: "Gizli." });
+
+    const page = await withTenant({ organizationId: mine.orgId }, (tx) =>
+      locateReview(tx, mine.orgId, theirs.locationId, hidden, {}, 10),
+    );
+
+    expect(page).toBeNull();
   });
 });

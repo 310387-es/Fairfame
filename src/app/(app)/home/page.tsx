@@ -53,7 +53,9 @@ export default async function HomePage({
         <PageHeader title={t("overviewTitle")} />
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
-            <p className="max-w-sm text-sm text-pretty text-muted-foreground">{t("noLocation")}</p>
+            <p className="max-w-sm text-body text-pretty text-muted-foreground">
+              {t("noLocation")}
+            </p>
             <Button asChild size="sm">
               <Link href="/locations">{t("noLocationAction")}</Link>
             </Button>

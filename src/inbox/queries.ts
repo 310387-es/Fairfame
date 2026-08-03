@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import type { Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
@@ -19,14 +19,52 @@ import type { TenantDatabase } from "../lib/tenancy.ts";
 
 export type ReplyState = "any" | "unanswered" | "answered";
 
+/**
+ * The list's order, in one place.
+ *
+ * `id` is the tiebreaker and it is load-bearing. Reviews arrive from a sync in
+ * batches and the seed pairs them across sources, so identical `posted_at`
+ * values are normal. Ordering on that alone is a *partial* order: Postgres may
+ * return tied rows differently per query, `offset` pages then overlap, and the
+ * page a given review sits on stops being a fact. The notification feed had the
+ * same bug and it reached the browser as duplicate React keys.
+ */
+const INBOX_ORDER = sql`${schema.reviews.postedAt} desc nulls last, ${schema.reviews.id} desc`;
+
+/**
+ * `%` and `_` are LIKE wildcards, so a search for "50%" would otherwise match
+ * every review. Escaped here and in `search/queries.ts` — the two must agree,
+ * or the palette and the full list would disagree about what matched.
+ */
+function likePattern(term: string): string {
+  return `%${term.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+}
+
+/**
+ * Case- and diacritic-folded matching, identical to `search/queries.ts`. The
+ * palette's preview and this full list must agree about what matched, and in
+ * Turkish that means folding — see migration 0022.
+ */
+function foldedMatch(column: unknown, pattern: string) {
+  return sql`lower(immutable_unaccent(${column})) like lower(immutable_unaccent(${pattern}))`;
+}
+
 export type InboxFilters = {
   /** Provider key, e.g. `google`. `null` means every source. */
   source?: string | null;
   sentiment?: Sentiment | null;
   /** A theme slug from `review_insights.topics`. */
   theme?: string | null;
+  /**
+   * Free text, from the command palette's "see all" link. Matched against the
+   * review body and the author with the same trigram-indexed `ILIKE` the
+   * palette itself uses, so the full list agrees with the preview.
+   */
+  query?: string | null;
   reply?: ReplyState;
   limit?: number;
+  /** Rows to skip — the page offset. */
+  offset?: number;
 };
 
 export type InboxRow = {
@@ -72,6 +110,143 @@ export type InboxPage = {
   hasMore: boolean;
 };
 
+/**
+ * The filter predicate, in one place.
+ *
+ * Shared by `listInbox` and `countInbox`. Written twice, the pager would sooner
+ * or later count rows the list does not show — and a "page 4 of 7" that runs
+ * out at page 3 is the kind of bug nobody reports, they just stop trusting the
+ * numbers.
+ */
+function inboxPredicate(organizationId: string, locationId: string, filters: InboxFilters) {
+  return and(
+    eq(schema.reviews.organizationId, organizationId),
+    eq(schema.reviews.locationId, locationId),
+    filters.source ? eq(schema.reviews.source, filters.source) : undefined,
+    filters.sentiment ? eq(schema.reviewInsights.sentiment, filters.sentiment) : undefined,
+    // `= any(topics)` rather than a LIKE: topics is a text[] with a GIN index
+    // (migration 0008), and this is the operator that uses it.
+    filters.theme ? sql`${filters.theme} = any(${schema.reviewInsights.topics})` : undefined,
+    filters.query
+      ? or(
+          foldedMatch(schema.reviews.text, likePattern(filters.query)),
+          foldedMatch(schema.reviews.authorName, likePattern(filters.query)),
+        )
+      : undefined,
+    filters.reply === "unanswered"
+      ? isNull(schema.replies.id)
+      : filters.reply === "answered"
+        ? sql`${schema.replies.id} is not null`
+        : undefined,
+  );
+}
+
+/**
+ * How many reviews match, ignoring the page.
+ *
+ * The list alone can say "there is more"; it cannot say "page 3 of 7". That
+ * needs a real count, and the same joins — `reply` and `sentiment` filters live
+ * on the joined tables, so counting `reviews` alone would over-report.
+ */
+export async function countInbox(
+  tx: TenantDatabase,
+  organizationId: string,
+  locationId: string,
+  filters: InboxFilters = {},
+): Promise<number> {
+  const [row] = await tx
+    .select({ total: sql<number>`count(distinct ${schema.reviews.id})::int` })
+    .from(schema.reviews)
+    .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
+    .leftJoin(
+      schema.replies,
+      and(eq(schema.replies.reviewId, schema.reviews.id), ne(schema.replies.status, "failed")),
+    )
+    .where(inboxPredicate(organizationId, locationId, filters));
+
+  return row?.total ?? 0;
+}
+
+/**
+ * Which page of the filtered list a given review sits on.
+ *
+ * Notifications, search results and Home's queue all link to a specific
+ * review. Before pagination the Inbox rendered a hundred rows and the anchor
+ * usually happened to be among them; at twenty per page it usually is not, so
+ * the link quietly landed on page one and the review was nowhere to be seen.
+ *
+ * Counting rows that sort *before* the target under the same predicate is the
+ * only way to answer this that cannot disagree with the list itself — the
+ * comparison below is the `ORDER BY` written as a predicate, `nulls last` and
+ * all. `count(distinct)` because a review with both a draft and a posted reply
+ * joins twice and would otherwise be counted twice.
+ *
+ * Returns `null` when the review is not in the filtered set at all, which is a
+ * real answer: it means "your filters exclude it", not "it does not exist".
+ */
+export async function locateReview(
+  tx: TenantDatabase,
+  organizationId: string,
+  locationId: string,
+  reviewId: string,
+  filters: InboxFilters = {},
+  pageSize = 20,
+): Promise<number | null> {
+  const [target] = await tx
+    .select({ id: schema.reviews.id, postedAt: schema.reviews.postedAt })
+    .from(schema.reviews)
+    .where(
+      and(
+        eq(schema.reviews.organizationId, organizationId),
+        eq(schema.reviews.locationId, locationId),
+        eq(schema.reviews.id, reviewId),
+      ),
+    );
+
+  if (!target) return null;
+
+  const [row] = await tx
+    .select({ before: sql<number>`count(distinct ${schema.reviews.id})::int` })
+    .from(schema.reviews)
+    .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
+    .leftJoin(
+      schema.replies,
+      and(eq(schema.replies.reviewId, schema.reviews.id), ne(schema.replies.status, "failed")),
+    )
+    .where(
+      and(
+        inboxPredicate(organizationId, locationId, filters),
+        // `posted_at desc nulls last, id desc`, expressed as "sorts earlier".
+        sql`(
+          (${schema.reviews.postedAt} is not null and ${target.postedAt}::timestamptz is null)
+          or (${schema.reviews.postedAt} > ${target.postedAt}::timestamptz)
+          or (${schema.reviews.postedAt} = ${target.postedAt}::timestamptz
+              and ${schema.reviews.id} > ${target.id}::uuid)
+          or (${schema.reviews.postedAt} is null and ${target.postedAt}::timestamptz is null
+              and ${schema.reviews.id} > ${target.id}::uuid)
+        )`,
+      ),
+    );
+
+  // The target itself must match the filters, or the page we compute is a page
+  // it does not appear on.
+  const [present] = await tx
+    .select({ hit: sql<number>`count(distinct ${schema.reviews.id})::int` })
+    .from(schema.reviews)
+    .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
+    .leftJoin(
+      schema.replies,
+      and(eq(schema.replies.reviewId, schema.reviews.id), ne(schema.replies.status, "failed")),
+    )
+    .where(
+      and(inboxPredicate(organizationId, locationId, filters), eq(schema.reviews.id, reviewId)),
+    );
+
+  if (!present?.hit) return null;
+
+  return Math.floor((row?.before ?? 0) / pageSize) + 1;
+}
+
 export async function listInbox(
   tx: TenantDatabase,
   organizationId: string,
@@ -107,26 +282,12 @@ export async function listInbox(
       schema.replies,
       and(eq(schema.replies.reviewId, schema.reviews.id), ne(schema.replies.status, "failed")),
     )
-    .where(
-      and(
-        eq(schema.reviews.organizationId, organizationId),
-        eq(schema.reviews.locationId, locationId),
-        filters.source ? eq(schema.reviews.source, filters.source) : undefined,
-        filters.sentiment ? eq(schema.reviewInsights.sentiment, filters.sentiment) : undefined,
-        // `= any(topics)` rather than a LIKE: topics is a text[] with a GIN
-        // index (migration 0008), and this is the operator that uses it.
-        filters.theme ? sql`${filters.theme} = any(${schema.reviewInsights.topics})` : undefined,
-        filters.reply === "unanswered"
-          ? isNull(schema.replies.id)
-          : filters.reply === "answered"
-            ? sql`${schema.replies.id} is not null`
-            : undefined,
-      ),
-    )
-    .orderBy(sql`${schema.reviews.postedAt} desc nulls last`)
-    // One more than asked for: the extra row is never rendered, it only answers
-    // "is there more?" without a second COUNT over the same predicate.
-    .limit(limit + 1);
+    .where(inboxPredicate(organizationId, locationId, filters))
+    .orderBy(INBOX_ORDER)
+    // One more than asked for: the extra row answers "is there another page?"
+    // without a second query.
+    .limit(limit + 1)
+    .offset(filters.offset ?? 0);
 
   const hasMore = rows.length > limit;
 

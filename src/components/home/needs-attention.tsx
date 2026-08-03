@@ -1,11 +1,12 @@
-import { AlertTriangle, ArrowRight, Star } from "lucide-react";
+import { AlertTriangle, ArrowRight } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { SectionCard } from "@/components/ds/section-card";
+import { Stars } from "@/components/ds/stars";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import type { AttentionRow } from "@/dashboard/attention";
 import { describeProvider } from "@/connectors/capability-view";
-import { cn } from "@/lib/utils";
 
 /**
  * The queue (Home live dashboard §4, widget 4).
@@ -34,111 +35,96 @@ export async function NeedsAttention({ rows }: { rows: AttentionRow[] }) {
   const [t, format] = await Promise.all([getTranslations("home.attention"), getFormatter()]);
 
   return (
-    <Card className="rounded-2xl">
-      <CardContent className="flex flex-col gap-1">
-        <div className="mb-2 flex items-center gap-2">
-          <span className="grid size-6.5 place-items-center rounded-lg bg-muted text-muted-foreground">
-            <AlertTriangle className="size-3.5" aria-hidden />
-          </span>
-          <h2 className="text-sm font-semibold">{t("title")}</h2>
-          <Link
-            href="/inbox?reply=unanswered"
-            className="ml-auto rounded text-xs font-semibold text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            {t("all")}
-          </Link>
-        </div>
+    // The one card on the page with a red tile. It is the only block here that
+    // is asking for something rather than reporting, and the tone says so
+    // before the title is read.
+    <SectionCard
+      title={t("title")}
+      icon={AlertTriangle}
+      tone="negative"
+      link={{ href: "/inbox?reply=unanswered", label: t("all") }}
+      flush
+      className="overflow-hidden"
+    >
+      {rows.length === 0 ? (
+        // A true empty state, not a placeholder. Nothing waiting is the best
+        // possible reading of this card.
+        <p className="px-(--card-px) py-6 text-center text-copy text-muted-foreground">
+          {t("empty")}
+        </p>
+      ) : (
+        <ul className="flex flex-col border-t border-line-inner">
+          {rows.map((row) => {
+            const provider = describeProvider(row.source);
 
-        {rows.length === 0 ? (
-          // A true empty state, not a placeholder. Nothing waiting is the best
-          // possible reading of this card.
-          <p className="py-6 text-center text-sm text-muted-foreground">{t("empty")}</p>
-        ) : (
-          <ul className="flex flex-col">
-            {rows.map((row) => {
-              const provider = describeProvider(row.source);
-              const stars = row.rating;
-
-              return (
-                <li
-                  key={row.reviewId}
-                  className="border-t border-border/60 py-3 first:border-t-0 first:pt-0"
+            return (
+              <li key={row.reviewId} className="border-b border-line-soft last:border-b-0">
+                <Link
+                  // `review=` so the Inbox opens on the page that actually
+                  // holds this row, marks it and scrolls to it. At twenty per
+                  // page a bare anchor lands on page one and finds nothing.
+                  href={`/inbox?sentiment=negative&reply=unanswered&review=${row.reviewId}`}
+                  className="group flex flex-col gap-1.5 px-(--card-px) py-3 transition-colors hover:bg-surface-sunken focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:-outline-offset-1 focus-visible:outline-none"
                 >
-                  <Link
-                    href={`/inbox?sentiment=negative&reply=unanswered#review-${row.reviewId}`}
-                    className="group flex flex-col gap-1.5 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  >
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                      {stars !== null ? (
-                        <span
-                          className="inline-flex items-center gap-0.5 text-rating-ink"
-                          aria-label={t("stars", { count: stars })}
-                        >
-                          {Array.from({ length: 5 }, (_, index) => (
-                            <Star
-                              key={index}
-                              className={cn("size-3", index < stars && "fill-current")}
-                              aria-hidden
-                            />
-                          ))}
-                        </span>
-                      ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {row.rating !== null ? (
+                      <Stars
+                        rating={row.rating}
+                        srLabel={t("stars", { count: row.rating })}
+                        className="text-state-rating-text"
+                      />
+                    ) : null}
 
-                      {row.sentiment === "negative" ? (
-                        <Badge
-                          variant="secondary"
-                          className="bg-sentiment-negative/12 px-1.5 py-0 text-[10px] font-semibold text-destructive-ink"
-                        >
-                          {t("negative")}
-                        </Badge>
-                      ) : null}
+                    {row.sentiment === "negative" ? (
+                      <Badge variant="negative">{t("negative")}</Badge>
+                    ) : null}
 
-                      {/* An Instagram comment is not a review, and the queue
-                          should not imply someone left stars when they did not. */}
-                      {row.itemType !== "review" ? (
-                        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
-                          {t(`itemType.${row.itemType}`)}
-                        </Badge>
-                      ) : null}
+                    {/* An Instagram comment is not a review, and the queue
+                        should not imply someone left stars when they did not. */}
+                    {row.itemType !== "review" ? (
+                      <Badge variant="outline">{t(`itemType.${row.itemType}`)}</Badge>
+                    ) : null}
 
-                      <span>{provider?.label ?? row.source}</span>
-                      <span aria-hidden>·</span>
+                    <span className="ml-auto text-meta text-faint">
+                      {provider?.label ?? row.source}
+                      <span aria-hidden> · </span>
                       <time dateTime={row.at.toISOString()}>
                         {format.relativeTime(row.at, new Date())}
                       </time>
-                    </div>
-
-                    <p className="text-xs leading-relaxed text-pretty group-hover:text-foreground">
-                      {preview(row.text) ?? t("noText")}
-                    </p>
-
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
-                      {t("reply")}
-                      <ArrowRight className="size-3" aria-hidden />
                     </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+                  </div>
+
+                  <p className="text-copy text-pretty text-ink-600 group-hover:text-foreground">
+                    {preview(row.text) ?? t("noText")}
+                  </p>
+
+                  <span className="inline-flex items-center gap-1 text-meta font-semibold text-primary">
+                    {t("reply")}
+                    <ArrowRight className="size-3" aria-hidden />
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </SectionCard>
   );
 }
 
 export function NeedsAttentionSkeleton() {
   return (
-    <Card className="rounded-2xl" aria-hidden>
-      <CardContent className="flex flex-col gap-3">
-        <span className="h-4 w-32 animate-pulse rounded bg-muted" />
-        {[0, 1, 2].map((row) => (
-          <div key={row} className="flex flex-col gap-1.5 border-t border-border/60 py-3">
-            <span className="h-3 w-40 animate-pulse rounded bg-muted" />
-            <span className="h-3 w-full animate-pulse rounded bg-muted" />
-          </div>
-        ))}
-      </CardContent>
+    <Card className="gap-0" aria-hidden>
+      <span className="mx-(--card-px) block h-4 w-32 animate-pulse rounded bg-muted" />
+      {[0, 1, 2].map((row) => (
+        <div
+          key={row}
+          className="mt-3 flex flex-col gap-1.5 border-t border-line-soft px-(--card-px) pt-3"
+        >
+          <span className="h-3 w-40 animate-pulse rounded bg-muted" />
+          <span className="h-3 w-full animate-pulse rounded bg-muted" />
+        </div>
+      ))}
     </Card>
   );
 }

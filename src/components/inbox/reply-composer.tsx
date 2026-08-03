@@ -94,7 +94,7 @@ export function ReplyComposer({
   if (posted) {
     return (
       <div className="rounded-lg border border-dashed bg-muted/40 p-3">
-        <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <p className="mb-1 flex items-center gap-1.5 text-copy font-medium text-muted-foreground">
           <Check className="size-3.5" aria-hidden />
           {t("posted")}
           {/* Provenance, always stated. In a team it is the difference between
@@ -103,7 +103,7 @@ export function ReplyComposer({
             · {reply.aiGenerated ? (reply.edited ? t("aiEdited") : t("aiWritten")) : t("written")}
           </span>
         </p>
-        <p className="text-sm leading-relaxed whitespace-pre-line">{reply.text}</p>
+        <p className="text-body leading-relaxed whitespace-pre-line">{reply.text}</p>
       </div>
     );
   }
@@ -127,7 +127,7 @@ export function ReplyComposer({
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className={cn(
-                  "text-xs text-muted-foreground",
+                  "text-copy text-muted-foreground",
                   over && "font-medium text-destructive",
                 )}
               >
@@ -191,7 +191,7 @@ export function ReplyComposer({
                 {t("draftWithAi")}
               </Button>
             ) : (
-              <p className="text-xs text-muted-foreground">{t("notEntitled")}</p>
+              <p className="text-copy text-muted-foreground">{t("notEntitled")}</p>
             )}
           </div>
         )
@@ -205,7 +205,7 @@ export function ReplyComposer({
             onChange={(event) => setText(event.target.value)}
           />
 
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-copy text-muted-foreground">
             <span className="rounded bg-muted px-1.5 py-0.5">
               {reply.aiGenerated ? (reply.edited ? t("aiEdited") : t("aiWritten")) : t("written")}
             </span>
@@ -273,10 +273,10 @@ export function ReplyComposer({
       )}
 
       {reply?.lastError ? (
-        <p className="text-xs text-destructive">{t("lastError", { reason: reply.lastError })}</p>
+        <p className="text-copy text-destructive">{t("lastError", { reason: reply.lastError })}</p>
       ) : null}
 
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {error ? <p className="text-copy text-destructive">{error}</p> : null}
     </div>
   );
 }

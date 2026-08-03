@@ -9,7 +9,7 @@ export default async function TeamPage() {
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
       <Card>
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+        <CardContent className="py-10 text-center text-body text-muted-foreground">
           {t("placeholder")}
         </CardContent>
       </Card>

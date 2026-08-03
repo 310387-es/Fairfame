@@ -148,6 +148,20 @@
       "when": 1785708876648,
       "tag": "0020_iys_consent",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1785708877648,
+      "tag": "0021_review_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1785708878648,
+      "tag": "0022_search_diacritics",
+      "breakpoints": true
     }
   ]
 }

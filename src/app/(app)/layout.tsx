@@ -1,4 +1,3 @@
-import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -10,9 +9,12 @@ import {
 import { Logo } from "@/components/brand/logo";
 import { LocaleSwitcher } from "@/components/shell/locale-switcher";
 import { LocationSwitcher } from "@/components/shell/location-switcher";
+import { MobileNav } from "@/components/shell/mobile-nav";
+import { NotificationBell } from "@/components/shell/notification-bell";
+import { SearchPalette } from "@/components/shell/search-palette";
 import { SidebarNav } from "@/components/shell/sidebar-nav";
+import { TrialFooter } from "@/components/shell/trial-footer";
 import { UserMenu } from "@/components/shell/user-menu";
-import { Badge } from "@/components/ui/badge";
 import { getLocale } from "@/i18n/locale";
 import {
   listLocations,
@@ -42,7 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     throw error;
   }
 
-  const [t, locale] = await Promise.all([getTranslations(), getLocale()]);
+  const locale = await getLocale();
 
   const { locations, entitlements, unread } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
@@ -59,30 +61,62 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen flex-1">
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
+      {/* The rail is ink on every authenticated screen. Full-bleed colour
+          appears exactly twice in this product — here and on the briefing bar —
+          and that scarcity is what lets the rail anchor the page without
+          competing with the data beside it. */}
+      {/* Sticky and exactly one viewport tall, with its own scroll.
+          It used to be as tall as the *page*, so on a long screen the whole rail
+          travelled up with the content — scroll far enough and you were looking
+          at empty ink with the navigation somewhere above you. Navigation should
+          not be something you scroll back to find.
+
+          `h-screen` rather than `h-full`: sticky positions against the viewport,
+          so the rail has to be measured in viewport units too. `overflow-y-auto`
+          is the release valve for a short window — with many nav groups the
+          trial footer would otherwise be pushed out of reach. */}
+      <aside className="sticky top-0 hidden h-screen w-(--rail-width) shrink-0 flex-col overflow-y-auto bg-rail text-on-ink md:flex">
         <Link
           href="/home"
-          className="flex h-14 items-center gap-2 border-b border-sidebar-border px-5"
+          className="flex h-(--topbar-height) shrink-0 items-center gap-2.5 px-[18px] text-base font-semibold tracking-[-0.01em]"
         >
-          <Logo className="text-sidebar-foreground" markClassName="size-6" />
+          <Logo className="text-white" markClassName="size-[26px]" />
         </Link>
 
-        <SidebarNav unread={unread.total} urgent={unread.urgent > 0} />
+        <SidebarNav />
 
-        <div className="mt-auto p-3">
-          <Badge variant="secondary" className="w-full justify-center">
-            {entitlements.isTrialing
-              ? t("shell.trialBadge", { days: daysUntil(entitlements.trialEndsAt) })
-              : t("shell.planBadge", { plan: entitlements.effectivePlanKey })}
-          </Badge>
-        </div>
+        <TrialFooter
+          isTrialing={entitlements.isTrialing}
+          trialEndsAt={entitlements.trialEndsAt}
+          planKey={entitlements.effectivePlanKey}
+        />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/75 md:px-6">
+      <div className="flex min-w-0 flex-1 flex-col bg-canvas">
+        {/* White, hairline, no blur. Nothing in this system is glassy — a
+            translucent bar over a scrolling chart is legibility spent on an
+            effect nobody asked for. */}
+        <header className="sticky top-0 z-10 flex h-(--topbar-height) items-center gap-3.5 border-b border-line bg-surface px-4 md:px-(--page-gutter)">
+          {/* The rail above is desktop-only, so on a phone this is the *only*
+              way to reach anything but Home. It carries the same nav, not a
+              reduced one. `TrialFooter` is server-rendered here and handed
+              across as children — see `mobile-nav.tsx`. */}
+          <MobileNav
+            footer={
+              <TrialFooter
+                isTrialing={entitlements.isTrialing}
+                trialEndsAt={entitlements.trialEndsAt}
+                planKey={entitlements.effectivePlanKey}
+              />
+            }
+          />
+
           <LocationSwitcher locations={locations} activeId={activeLocation?.id ?? null} />
 
+          <SearchPalette />
+
           <div className="ml-auto flex items-center gap-1">
+            <NotificationBell unread={unread.total} urgent={unread.urgent > 0} />
             <LocaleSwitcher locale={locale} />
             <UserMenu
               name={session?.user.name ?? ""}
@@ -92,17 +126,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+        {/* Every page is a flex column on the canvas with the system's 14px
+            block gap. Pages therefore never set their own outer spacing, and
+            two pages cannot drift apart on it. */}
+        <main className="mx-auto flex w-full max-w-(--content-max) flex-1 flex-col gap-(--grid-gap) px-4 py-[22px] md:px-(--page-gutter)">
+          {children}
+        </main>
       </div>
     </div>
   );
-}
-
-/**
- * Whole days remaining, rounded up so the last partial day still reads as "1"
- * rather than "0 days left" while the trial is genuinely still active.
- */
-function daysUntil(date: Date | null): number {
-  if (!date) return 0;
-  return Math.max(0, Math.ceil((date.getTime() - Date.now()) / 86_400_000));
 }

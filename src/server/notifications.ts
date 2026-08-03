@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { withAuthenticatedTenant } from "@/auth/session";
 import { childLogger } from "@/lib/logger";
-import { markAllRead, markRead } from "@/notifications/feed";
+import { listFeed, markAllRead, markRead, type FeedItem } from "@/notifications/feed";
+import { FEED_PAGE_SIZE } from "@/notifications/types";
 import { clearPreference, savePreference } from "@/notifications/preferences";
 import { toActionResult, type ActionResult } from "@/server/action-result";
 
@@ -45,6 +46,34 @@ export async function markNotificationsReadAction(input: { ids: string[] }): Pro
   } catch (error) {
     log.warn({ err: error }, "markNotificationsRead failed");
     return toActionResult(error);
+  }
+}
+
+/**
+ * The bell's popover contents, fetched when it opens.
+ *
+ * On demand rather than rendered into the shell on every page load: the layout
+ * already pays for the unread *count* on each navigation, and paying for the
+ * twenty rows behind it as well — on every screen, whether or not anyone opens
+ * the bell — is work almost nobody asked for.
+ *
+ * Scoped to the signed-in user, never to a user id from the client. RLS keeps
+ * tenants apart and nothing else, so this filter is the whole protection
+ * against reading a colleague's feed.
+ */
+export async function listNotificationsAction(
+  input: { offset?: number } = {},
+): Promise<FeedItem[]> {
+  const offset = Number.isInteger(input.offset) && input.offset! >= 0 ? input.offset! : 0;
+
+  try {
+    return await withAuthenticatedTenant((tx, actor) =>
+      listFeed(tx, actor.organizationId, actor.userId, { limit: FEED_PAGE_SIZE, offset }),
+    );
+  } catch (error) {
+    // An empty bell is a better failure than a broken shell.
+    log.warn({ err: error }, "listNotifications failed");
+    return [];
   }
 }
 

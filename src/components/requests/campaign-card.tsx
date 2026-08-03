@@ -63,17 +63,21 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate font-medium">{campaign.name}</p>
-            <p className="truncate text-sm text-muted-foreground">
+            <p className="truncate text-body text-muted-foreground">
               {campaign.locationName} ·{" "}
               {campaign.channel === "email" ? t("channelEmail") : t("channelLink")}
             </p>
           </div>
-          <Badge variant={archived ? "secondary" : "default"}>
+          {/* Active is a state, not a control — the positive pair, not indigo. */}
+          <Badge variant={archived ? "secondary" : "positive"}>
             {archived ? t("statusArchived") : t("statusActive")}
           </Badge>
         </div>
 
-        <dl className="grid grid-cols-3 gap-2 rounded-lg bg-muted/50 p-3 text-center">
+        {/* A three-cell funnel. Micro-caps labels and mono numerals, so it reads
+            as the same kind of thing as the KPI strip on Home rather than as a
+            grey box that happens to contain numbers. */}
+        <dl className="grid grid-cols-3 gap-2 rounded-md bg-surface-sunken p-3 text-center">
           {(
             [
               ["funnelSent", campaign.funnel.sent],
@@ -82,8 +86,8 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
             ] as const
           ).map(([key, value]) => (
             <div key={key}>
-              <dt className="text-xs text-muted-foreground">{t(key)}</dt>
-              <dd className="text-lg font-semibold tabular-nums">{value}</dd>
+              <dt className="text-eyebrow text-faint uppercase">{t(key)}</dt>
+              <dd className="mt-1 font-mono text-[17px] font-semibold tabular-nums">{value}</dd>
             </div>
           ))}
         </dl>
@@ -99,8 +103,8 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
           />
 
           <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <Label className="text-xs text-muted-foreground">{t("link")}</Label>
-            <code className="truncate rounded-md bg-muted px-2 py-1 text-xs">{campaign.url}</code>
+            <Label className="text-copy text-muted-foreground">{t("link")}</Label>
+            <code className="truncate rounded-md bg-muted px-2 py-1 text-copy">{campaign.url}</code>
 
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={copyLink}>
@@ -163,11 +167,11 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
               required
               placeholder={t("recipientsPlaceholder")}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-copy text-muted-foreground">
               {t("recipientsHint", { max: MAX_RECIPIENTS_PER_SEND })}
             </p>
 
-            {summary ? <p className="text-sm text-muted-foreground">{summary}</p> : null}
+            {summary ? <p className="text-body text-muted-foreground">{summary}</p> : null}
 
             <Button type="submit" size="sm" disabled={pending}>
               <Send className="size-4" aria-hidden />
@@ -177,11 +181,11 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
         ) : null}
 
         {campaign.channel === "link" ? (
-          <p className="border-t pt-4 text-sm text-muted-foreground">{t("linkOnlyHint")}</p>
+          <p className="border-t pt-4 text-body text-muted-foreground">{t("linkOnlyHint")}</p>
         ) : null}
 
         {error ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-body text-destructive">
             {error}
           </p>
         ) : null}

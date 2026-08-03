@@ -593,6 +593,58 @@ describe("the feed", () => {
     expect(items).toHaveLength(2);
   });
 
+  it("pages without repeating or dropping a row, even when timestamps tie", async () => {
+    // The regression this exists for: ingestion writes a whole sync in one
+    // transaction, so dozens of notifications share a `created_at` to the
+    // millisecond. Ordering only by `urgency, created_at` left the sort a
+    // partial order — Postgres returned tied rows in a different sequence per
+    // query, and `offset` pages then overlapped. The bell surfaced it as
+    // React's "two children with the same key".
+    const paged = await makeFixture("paging");
+    for (let index = 0; index < 25; index += 1) {
+      // Same rating and same batch, so they land on one timestamp.
+      await addReview(paged, { rating: 5, text: `Aynı anda gelen yorum ${index}.` });
+    }
+    await notifyPendingReviews({ organizationId: paged.orgId });
+
+    const pageSize = 10;
+    const collected: string[] = [];
+
+    for (let offset = 0; offset < 30; offset += pageSize) {
+      const rows = await withTenant({ organizationId: paged.orgId }, (tx) =>
+        listFeed(tx, paged.orgId, paged.ownerId, { limit: pageSize, offset }),
+      );
+      collected.push(...rows.map((row) => row.id));
+    }
+
+    expect(collected).toHaveLength(25);
+    // Every row exactly once.
+    expect(new Set(collected).size).toBe(25);
+
+    // And the invariant that makes that true: within a tie on urgency and
+    // timestamp, rows come back in descending id order. That is the total
+    // ordering `offset` paging depends on.
+    //
+    // Note what this test can and cannot do. It cannot *force* Postgres to
+    // return tied rows in a bad order — an unspecified order is free to be
+    // accidentally right, which is exactly why the original bug reached the
+    // browser. What it does is pin the contract: remove the `id` tiebreaker and
+    // this assertion is no longer guaranteed by anything.
+    const all = await withTenant({ organizationId: paged.orgId }, (tx) =>
+      listFeed(tx, paged.orgId, paged.ownerId, { limit: 100 }),
+    );
+    const tied = all.filter(
+      (row) =>
+        row.createdAt.getTime() === all[0]!.createdAt.getTime() && row.urgency === all[0]!.urgency,
+    );
+    const ids = tied.map((row) => row.id);
+    expect(ids).toEqual([...ids].sort().reverse());
+
+    // The paged sequence must also equal the unpaged one — two different
+    // reads of the same list cannot disagree about order.
+    expect(collected).toEqual(all.map((row) => row.id));
+  });
+
   it("counts unread and urgent separately", async () => {
     const counts = await withTenant({ organizationId: fixture.orgId }, (tx) =>
       unreadCounts(tx, fixture.orgId, fixture.ownerId),

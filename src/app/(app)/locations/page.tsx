@@ -130,7 +130,7 @@ export default async function LocationsPage() {
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           {limit.limit === null
             ? t("usageUnlimited", { used: limit.current })
             : t("usage", { used: limit.current, limit: limit.limit })}
@@ -150,7 +150,7 @@ export default async function LocationsPage() {
 
       {rows.length === 0 ? (
         <Card>
-          <CardContent className="py-14 text-center text-sm text-muted-foreground">
+          <CardContent className="py-14 text-center text-body text-muted-foreground">
             {t("empty")}
           </CardContent>
         </Card>

@@ -1,10 +1,9 @@
 import { Clock } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
+import { Delta, Metric } from "@/components/ds/metric";
+import { SectionCard } from "@/components/ds/section-card";
 import { ChartFallback } from "@/components/home/chart-fallback";
-import { RadialShare } from "@/components/home/radial-chart";
-import { WidgetCard } from "@/components/home/widget-card";
 import type { ResponseTimes } from "@/dashboard/metrics";
-import { cn } from "@/lib/utils";
 
 /**
  * How long people wait (widget 9).
@@ -15,6 +14,12 @@ import { cn } from "@/lib/utils";
  * This is the one metric on the page where **down is good**, which is why the
  * trend is computed here rather than through `isImprovement`: a shared helper
  * that assumed "up is better" would paint a slower reply time green.
+ *
+ * The radial dial that used to sit on the left is gone. It was a 120px ring
+ * drawn by a client-side chart library to encode a single percentage, which a
+ * straight bar does at a tenth of the height and with no JavaScript — and the
+ * ring's own label had to repeat the number anyway, because nobody reads an
+ * arc to two significant figures.
  */
 
 function formatWait(
@@ -51,45 +56,35 @@ export async function ResponseTime({ times }: { times: ResponseTimes }) {
   });
 
   return (
-    <WidgetCard title={t("title")} icon={Clock}>
+    <SectionCard
+      title={t("title")}
+      icon={Clock}
+      action={
+        faster === null ? <span className="text-meta text-faint">{t("noComparison")}</span> : null
+      }
+      // This card carries the least content in its row, so the grid stretches it
+      // to match its neighbour. Centring the body puts the slack above and below
+      // rather than all of it underneath, where it read as a card that had
+      // failed to load the rest of itself.
+      bodyClassName="flex flex-col justify-center"
+    >
       {medianHours === null ? (
         // Nothing has been answered, so there is no wait to report. Saying so
         // beats a confident "0h" that would read as instant service.
-        <p className="py-10 text-center text-sm text-muted-foreground">{t("empty")}</p>
+        <p className="py-10 text-center text-copy text-muted-foreground">{t("empty")}</p>
       ) : (
         <>
-          {/* Dial, then figures immediately beside it, with the text block
-              taking whatever width is left. `justify-between` pushed the two
-              apart and opened a gap down the middle of the card; a fixed gap
-              plus `flex-1` on the text keeps them reading as one unit and
-              still reaches the right edge. `flex-1` on the row itself lets it
-              centre vertically in a card the grid has stretched to match its
-              taller neighbours. The fallback table sits outside this row: as a
-              flex sibling it became a stray column with scripts off. */}
-          <div className="flex w-full flex-1 items-center gap-5 py-1">
-            <RadialShare
-              value={withinDayShare ?? 0}
-              display={share}
-              label={t("withinDay")}
-              centerLabel={t("withinDayShort")}
-            />
+          <div className="flex items-center gap-5">
+            <div className="shrink-0">
+              <Metric>{formatWait(medianHours, t)}</Metric>
+              <p className="mt-1.5 text-meta text-ink-400">{t("median")}</p>
 
-            <div className="min-w-0 flex-1">
-              <p className="font-heading text-3xl leading-none font-bold tracking-tight">
-                {formatWait(medianHours, t)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">{t("median")}</p>
-
-              {faster === null ? (
-                <p className="mt-2 text-[11px] text-muted-foreground">{t("noComparison")}</p>
-              ) : (
-                <p
-                  className={cn(
-                    "mt-2 text-[11px] font-semibold",
-                    faster ? "text-positive-ink" : "text-destructive-ink",
-                  )}
+              {faster === null ? null : (
+                <Delta
+                  direction={faster}
+                  label={faster ? t("faster", { change: "" }) : t("slower", { change: "" })}
+                  className="mt-2 block"
                 >
-                  {faster ? "↓ " : "↑ "}
                   {changeShare === null
                     ? t(faster ? "faster" : "slower", { change: "" })
                     : t(faster ? "faster" : "slower", {
@@ -98,12 +93,27 @@ export async function ResponseTime({ times }: { times: ResponseTimes }) {
                           maximumFractionDigits: 0,
                         }),
                       })}
-                </p>
+                </Delta>
               )}
+            </div>
 
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                {t("replied", { count: replied })}
-              </p>
+            <div className="min-w-0 flex-1">
+              <div className="mb-1.5 flex justify-between gap-2 text-meta text-ink-400">
+                <span>{t("withinDay")}</span>
+                <strong className="font-mono font-semibold text-ink-800 tabular-nums">
+                  {share}
+                </strong>
+              </div>
+
+              <span className="block h-[9px] overflow-hidden rounded-[5px] bg-surface-sunken">
+                <span
+                  aria-hidden
+                  className="block h-full rounded-[5px] bg-primary"
+                  style={{ width: `${Math.min(100, withinDayShare ?? 0)}%` }}
+                />
+              </span>
+
+              <p className="mt-2 text-meta text-faint">{t("replied", { count: replied })}</p>
             </div>
           </div>
 
@@ -112,14 +122,11 @@ export async function ResponseTime({ times }: { times: ResponseTimes }) {
             columns={[tHome("metric"), tHome("value")]}
             rows={[
               { key: "median", cells: [t("median"), formatWait(medianHours, t)] },
-              {
-                key: "within",
-                cells: [t("withinDay"), share],
-              },
+              { key: "within", cells: [t("withinDay"), share] },
             ]}
           />
         </>
       )}
-    </WidgetCard>
+    </SectionCard>
   );
 }
