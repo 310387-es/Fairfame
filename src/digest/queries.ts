@@ -87,6 +87,44 @@ export async function latestDigest(
 }
 
 /**
+ * One digest by id — the archive's detail view.
+ *
+ * Unlike `latestDigest` this accepts any status. The archive is a record of
+ * what was composed, and a failed week that silently 404s is worse than one
+ * that says it failed: the reader knows a briefing was due and needs to know
+ * where it went.
+ *
+ * Tenant-scoped through `tx` like every other read, so an id guessed from
+ * another organization returns null rather than a digest.
+ */
+export async function digestById(
+  tx: TenantDatabase,
+  organizationId: string,
+  digestId: string,
+): Promise<DigestView | null> {
+  const [row] = await tx
+    .select()
+    .from(schema.digests)
+    .where(and(eq(schema.digests.organizationId, organizationId), eq(schema.digests.id, digestId)))
+    .limit(1);
+
+  if (!row) return null;
+
+  const actions = await tx
+    .select()
+    .from(schema.digestActions)
+    .where(
+      and(
+        eq(schema.digestActions.organizationId, organizationId),
+        eq(schema.digestActions.digestId, row.id),
+      ),
+    )
+    .orderBy(asc(schema.digestActions.position));
+
+  return toView(row, actions);
+}
+
+/**
  * How the digest for one week is getting on.
  *
  * `"none"` and `"pending"` are different answers to different questions —

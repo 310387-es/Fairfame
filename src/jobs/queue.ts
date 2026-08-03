@@ -5,13 +5,18 @@ import { getEnv } from "../lib/env.ts";
 /**
  * BullMQ wiring: the Redis connection, the queue, and the job contract.
  *
- * One queue, eight job kinds, in four pairs that follow the same shape — a
+ * One queue, nine job kinds, in four pairs that follow the same shape — a
  * scheduled fan-out that finds work, and a job that does it for one tenant:
  *
  *   `scan` → `sync`             poll every due connection for new reviews
  *   `analyze_sweep` → `analyze` analyze every review that lacks fresh insights
  *   `notify_sweep` → `notify`   alert the team about reviews they have not seen
  *   `digest_sweep` → `digest`   compose the weekly briefing, per *location*
+ *
+ * The ninth breaks the pattern: `digest_deliver` mails a briefing that is
+ * already composed, and the same `digest_sweep` fans it out, because composing
+ * and sending are the two halves of one weekly cadence rather than two
+ * schedules that would have to be kept in step.
  *
  * Keeping them on one queue means one worker process, one place to reason about
  * concurrency, and no chance of the two drifting apart in configuration.
@@ -87,6 +92,21 @@ export type DigestSweepJob = {
   kind: "digest_sweep";
 };
 
+/**
+ * Mails the composed digest to everyone who asked for weekly delivery.
+ *
+ * Per organization rather than per location: one manager usually covers
+ * several branches, and the recipient resolution is a single query for the
+ * whole tenant. Idempotency lives in `digest_deliveries`, not here, so
+ * re-running this job is safe by construction.
+ */
+export type DigestDeliverJob = {
+  kind: "digest_deliver";
+  organizationId: string;
+  /** ISO date of the window start. Omitted, every ready digest is considered. */
+  periodStart?: string;
+};
+
 export type ReviewJob =
   | ScanJob
   | SyncJob
@@ -95,7 +115,8 @@ export type ReviewJob =
   | NotifyJob
   | NotifySweepJob
   | DigestJob
-  | DigestSweepJob;
+  | DigestSweepJob
+  | DigestDeliverJob;
 
 /**
  * BullMQ requires `maxRetriesPerRequest: null`: its blocking commands park on
@@ -213,6 +234,28 @@ export async function enqueueDigest(
         ? jobId("digest-force", input.locationId, Date.now())
         : jobId("digest", input.locationId, period),
     },
+  );
+}
+
+/**
+ * Queues the send for one organization and window.
+ *
+ * The job id is the organization and period, so the hourly sweep does not pile
+ * up duplicates within an hour. It deliberately does *not* try to be the
+ * idempotency guarantee — BullMQ forgets completed jobs after an hour, and the
+ * next sweep should be free to retry a recipient whose send failed. What stops
+ * a second email is the ledger.
+ */
+export async function enqueueDigestDelivery(
+  queue: Queue<ReviewJob>,
+  input: { organizationId: string; periodStart?: string },
+): Promise<void> {
+  const period = input.periodStart?.slice(0, 10) ?? "all";
+
+  await queue.add(
+    "digest_deliver",
+    { kind: "digest_deliver", ...input },
+    { jobId: jobId("digest-deliver", input.organizationId, period) },
   );
 }
 

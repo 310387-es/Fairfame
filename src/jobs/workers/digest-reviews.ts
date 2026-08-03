@@ -1,10 +1,11 @@
 import { UnrecoverableError, type Job, type Queue } from "bullmq";
 import { and, eq, inArray } from "drizzle-orm";
+import { sendDigestEmails } from "../../digest/delivery.ts";
 import { generateDigest } from "../../digest/pipeline.ts";
 import { weekWindow } from "../../digest/metrics.ts";
 import { getAdminDb, schema } from "../../db/client.ts";
 import { childLogger } from "../../lib/logger.ts";
-import { enqueueDigest, type ReviewJob } from "../queue.ts";
+import { enqueueDigest, enqueueDigestDelivery, type ReviewJob } from "../queue.ts";
 
 /**
  * The digest worker (P1a-T7).
@@ -30,7 +31,7 @@ const log = childLogger({ module: "jobs/digest-reviews" });
 /** Locations dispatched per sweep. */
 const SWEEP_LIMIT = 200;
 
-export type DigestSweepResult = { locations: number };
+export type DigestSweepResult = { locations: number; deliveries: number };
 
 export async function runDigestSweep(
   queue: Queue<ReviewJob>,
@@ -45,10 +46,13 @@ export async function runDigestSweep(
     .from(schema.locations)
     .limit(SWEEP_LIMIT);
 
-  if (locations.length === 0) return { locations: 0 };
+  if (locations.length === 0) return { locations: 0, deliveries: 0 };
 
   const existing = await getAdminDb()
-    .select({ locationId: schema.digests.locationId })
+    .select({
+      locationId: schema.digests.locationId,
+      organizationId: schema.digests.organizationId,
+    })
     .from(schema.digests)
     .where(
       and(
@@ -82,7 +86,21 @@ export async function runDigestSweep(
     );
   }
 
-  return { locations: pending.length };
+  // Delivery rides the same hourly sweep rather than a scheduler of its own.
+  // A digest composed on this pass is mailed on the next one, an hour later,
+  // which is the right trade: the alternative is enqueuing a send before the
+  // pipeline that feeds it has finished. Re-enqueuing costs nothing, because
+  // `digest_deliveries` — not the queue — is what stops a second email.
+  const organizations = [...new Set(existing.map((row) => row.organizationId))];
+
+  for (const organizationId of organizations) {
+    await enqueueDigestDelivery(queue, {
+      organizationId,
+      periodStart: window.start.toISOString(),
+    });
+  }
+
+  return { locations: pending.length, deliveries: organizations.length };
 }
 
 export type DigestJobResult = {
@@ -119,6 +137,36 @@ export async function runDigest(job: Job<ReviewJob>): Promise<DigestJobResult> {
     pulse: result.pulse,
     actions: result.actions,
   };
+}
+
+export type DigestDeliverJobResult = {
+  organizationId: string;
+  sent: number;
+  failed: number;
+  skipped: number;
+  held: number;
+};
+
+/**
+ * Mails the composed digest for one organization.
+ *
+ * Thin on purpose: everything interesting — who wants it, who already had it,
+ * which held alerts it closes out — lives in `digest/delivery.ts`, where it can
+ * be tested without a queue.
+ */
+export async function runDigestDeliver(job: Job<ReviewJob>): Promise<DigestDeliverJobResult> {
+  if (job.data.kind !== "digest_deliver") {
+    throw new UnrecoverableError("runDigestDeliver received a non-delivery job.");
+  }
+
+  const { organizationId, periodStart } = job.data;
+
+  const result = await sendDigestEmails({
+    organizationId,
+    ...(periodStart ? { periodStart: new Date(periodStart) } : {}),
+  });
+
+  return { organizationId, ...result };
 }
 
 function windowFrom(start: Date): { start: Date; end: Date } {

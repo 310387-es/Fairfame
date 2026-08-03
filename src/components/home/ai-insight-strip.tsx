@@ -66,7 +66,17 @@ export async function AiInsightStrip({ insight }: { insight: Insight }) {
             <ArrowRight className="size-4" aria-hidden />
           </Link>
         </Button>
-      ) : null}
+      ) : (
+        // Only when there is nothing waiting. The strip gets one call to
+        // action, and "reply to these four people" outranks "read last week"
+        // every time; offering both would make the urgent one optional.
+        <Button asChild variant="brief" className="shrink-0 sm:ml-auto">
+          <Link href="/digest">
+            {t("viewDigest")}
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }

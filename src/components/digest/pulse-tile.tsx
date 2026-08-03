@@ -1,5 +1,6 @@
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getFormatter, getTranslations } from "next-intl/server";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 /**
@@ -28,20 +29,27 @@ export type PulseTileProps = {
 };
 
 /**
- * Colour bands.
+ * Colour bands, from the rating ramp.
  *
  * Thresholds rather than a continuous gradient: an owner should be able to say
  * "we are in the amber band" without reading a legend, and a smooth ramp makes
  * every week look the same shade of fine.
+ *
+ * These used to be `--brand-indigo` / `--brand-amber` / `--destructive`, which
+ * predate the design system and broke its clearest rule: **indigo carries
+ * interaction and nothing else** (docs/15 §2). A good pulse painted in the same
+ * blue as every link and button said "this is clickable", not "this is
+ * healthy". The rating ramp is the scale built for exactly this — five rungs,
+ * green → red, each the lightest value of its hue that still clears 4.5:1.
  */
 function bandOf(score: number): { stroke: string; text: string } {
-  if (score >= 70) return { stroke: "var(--brand-indigo)", text: "text-primary" };
-  if (score >= 45) return { stroke: "var(--brand-amber)", text: "text-rating" };
-  return { stroke: "var(--destructive)", text: "text-destructive" };
+  if (score >= 70) return { stroke: "var(--rating-5)", text: "text-rating-5" };
+  if (score >= 45) return { stroke: "var(--rating-3)", text: "text-rating-3" };
+  return { stroke: "var(--rating-1)", text: "text-rating-1" };
 }
 
 export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
-  const t = await getTranslations("home");
+  const [t, format] = await Promise.all([getTranslations("digest"), getFormatter()]);
   const band = score === null ? null : bandOf(score);
 
   const filled = score === null ? 0 : (score / 100) * SWEEP * CIRCUMFERENCE;
@@ -49,17 +57,22 @@ export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
 
   const DeltaIcon = delta === null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
 
+  // Locale-formatted, never `toFixed`. Turkish writes a decimal comma, and
+  // this tile sits one screen away from a dashboard that prints "11,2" — two
+  // numbers in the same product disagreeing about punctuation reads as a bug.
   const deltaLabel =
     delta === null
       ? t("noPrior")
       : delta === 0
         ? t("deltaFlat")
         : delta > 0
-          ? t("deltaUp", { value: delta.toFixed(1) })
-          : t("deltaDown", { value: Math.abs(delta).toFixed(1) });
+          ? t("deltaUp", { value: format.number(delta, { maximumFractionDigits: 1 }) })
+          : t("deltaDown", {
+              value: format.number(Math.abs(delta), { maximumFractionDigits: 1 }),
+            });
 
   return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border border-line bg-card p-6">
+    <Card className="items-center gap-3 px-(--card-px)">
       <div className="relative" style={{ width: SIZE, height: SIZE }}>
         <svg
           width={SIZE}
@@ -76,7 +89,9 @@ export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
             cy={SIZE / 2}
             r={RADIUS}
             fill="none"
-            stroke="var(--muted)"
+            // `--surface-sunken` is the documented meter-track colour; `--muted`
+            // is a shadcn default this file predates.
+            stroke="var(--surface-sunken)"
             strokeWidth={STROKE}
             strokeLinecap="round"
             strokeDasharray={`${track} ${CIRCUMFERENCE}`}
@@ -96,12 +111,10 @@ export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
         </svg>
 
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span
-            className={cn(
-              "text-metric text-[2rem] tabular-nums",
-              band?.text ?? "text-muted-foreground",
-            )}
-          >
+          {/* `text-metric` alone — it is already the headline-number role at
+              28px, and the `text-[2rem]` that used to override it was exactly
+              the hand-typed font size docs/15 opens by forbidding. */}
+          <span className={cn("text-metric", band?.text ?? "text-muted-foreground")}>
             {score === null ? t("noPulse") : Math.round(score)}
           </span>
           <span className="text-copy text-muted-foreground">
@@ -118,9 +131,9 @@ export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
         </p>
       </div>
 
-      <p className="max-w-[16rem] text-center text-[11px] leading-relaxed text-pretty text-muted-foreground">
+      <p className="max-w-[16rem] text-center text-meta leading-relaxed text-pretty text-faint">
         {t("pulseHint")}
       </p>
-    </div>
+    </Card>
   );
 }

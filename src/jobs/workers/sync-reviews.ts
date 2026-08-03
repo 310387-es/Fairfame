@@ -13,7 +13,7 @@ import {
   type ReviewJob,
 } from "../queue.ts";
 import { runAnalyze, runAnalyzeSweep } from "./analyze-reviews.ts";
-import { runDigest, runDigestSweep } from "./digest-reviews.ts";
+import { runDigest, runDigestDeliver, runDigestSweep } from "./digest-reviews.ts";
 import { runNotify, runNotifySweep } from "./notify-reviews.ts";
 
 /**
@@ -162,6 +162,8 @@ export function createReviewWorker(options: ReviewWorkerOptions): Worker<ReviewJ
           return runDigestSweep(queue);
         case "digest":
           return runDigest(job);
+        case "digest_deliver":
+          return runDigestDeliver(job);
         default:
           // An unknown job kind will never become known by retrying.
           throw new UnrecoverableError(

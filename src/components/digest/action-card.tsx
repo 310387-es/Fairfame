@@ -4,6 +4,7 @@ import { Check, Loader2, RotateCcw, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useTransition } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { setDigestActionStatusAction } from "@/server/digests";
@@ -38,7 +39,7 @@ export function ActionCard({
   themeSlug,
   reviewCount,
 }: ActionCardProps) {
-  const t = useTranslations("home");
+  const t = useTranslations("digest");
   const [pending, startTransition] = useTransition();
 
   const closed = status !== "open";
@@ -52,7 +53,10 @@ export function ActionCard({
   return (
     <li
       className={cn(
-        "group relative flex gap-4 rounded-lg border border-line bg-card p-5 transition-colors",
+        // Card padding comes from the tokens, not a round number: `p-5` was 20px
+        // against the system's 18/16, so these rows sat a hair wider than every
+        // other card on the page.
+        "group relative flex gap-4 rounded-lg border border-line bg-card px-(--card-px) py-(--card-py) transition-colors",
         closed && "bg-surface-sunken",
       )}
     >
@@ -93,9 +97,12 @@ export function ActionCard({
           </Link>
 
           {closed ? (
-            <span className="rounded bg-muted px-1.5 py-0.5">
+            // `Badge`, not a hand-rolled span on `bg-muted`: the chip styles
+            // are already a component with semantic variants, and `positive`
+            // says "done" in a colour that is not the interaction indigo.
+            <Badge variant={status === "done" ? "positive" : "secondary"}>
               {status === "done" ? t("doneLabel") : t("dismissedLabel")}
-            </span>
+            </Badge>
           ) : null}
         </div>
       </div>
@@ -104,25 +111,25 @@ export function ActionCard({
         {pending ? (
           <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
         ) : closed ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-auto px-2 py-1 text-copy"
-            onClick={() => set("open")}
-          >
-            <RotateCcw className="size-3.5" aria-hidden />
+          // No `h-auto px-2 py-1 text-copy` overrides. `size="sm"` already
+          // encodes the control scale (28px tall, 12px type, 9px corners); the
+          // overrides collapsed it to a shape that exists nowhere else.
+          <Button type="button" variant="ghost" size="sm" onClick={() => set("open")}>
+            <RotateCcw aria-hidden />
             {t("reopen")}
           </Button>
         ) : (
           <>
-            <Button
-              type="button"
-              size="sm"
-              className="h-auto px-2.5 py-1 text-copy"
-              onClick={() => set("done")}
-            >
-              <Check className="size-3.5" aria-hidden />
+            {/*
+              `secondary` — the indigo *wash*, not the solid fill. Three
+              saturated indigo pills stacked down the page pulled every eye to
+              the buttons rather than to the sentences they act on, and nothing
+              else in the product does that: Home has no solid indigo button at
+              all, only indigo links and the accent wash. The affirmative
+              action still reads as the affirmative one.
+            */}
+            <Button type="button" variant="secondary" size="sm" onClick={() => set("done")}>
+              <Check aria-hidden />
               {t("markDoneShort")}
             </Button>
             <Button
@@ -131,10 +138,10 @@ export function ActionCard({
               size="sm"
               // Dismissing is a real answer, not a failure — the next digest
               // reads it differently from an action left open.
-              className="h-auto px-2 py-1 text-copy text-muted-foreground"
+              className="text-muted-foreground"
               onClick={() => set("dismissed")}
             >
-              <X className="size-3.5" aria-hidden />
+              <X aria-hidden />
               {t("dismiss")}
             </Button>
           </>

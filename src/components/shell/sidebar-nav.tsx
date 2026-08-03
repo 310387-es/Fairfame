@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Inbox, MapPin, Send, Settings, Users } from "lucide-react";
+import { CalendarRange, Home, Inbox, MapPin, Send, Settings, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,6 +29,10 @@ const GROUPS = [
     items: [
       { href: "/home", key: "home", Icon: Home },
       { href: "/inbox", key: "inbox", Icon: Inbox },
+      // Weekly rather than daily, so it sits below the two screens that are
+      // opened every day — but still in this group, because the digest is what
+      // the daily work is meant to add up to.
+      { href: "/digest", key: "digest", Icon: CalendarRange },
     ],
   },
   {

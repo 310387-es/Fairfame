@@ -157,6 +157,23 @@ export const digestStatusEnum = pgEnum("digest_status", ["pending", "ready", "fa
  */
 export const digestActionStatusEnum = pgEnum("digest_action_status", ["open", "done", "dismissed"]);
 
+/**
+ * How a composed digest reached someone.
+ *
+ * `whatsapp` is declared before it is implemented (P1b-T4/D4, gated on İYS and
+ * template approval) because the alternative is a second ledger later. The
+ * channel is what makes the delivery record reusable: the same digest, the same
+ * recipient, two independent sends that must each be retried on their own.
+ */
+export const digestChannelEnum = pgEnum("digest_channel", ["email", "whatsapp"]);
+
+/**
+ * Only terminal states. A delivery that has not been attempted has no row —
+ * absence is the queue, which means a crash mid-send leaves nothing to
+ * reconcile and the next sweep simply tries again.
+ */
+export const digestDeliveryStatusEnum = pgEnum("digest_delivery_status", ["sent", "failed"]);
+
 export const notificationScopeEnum = pgEnum("notification_scope", ["all", "negative_only", "off"]);
 
 /** Send now, or hold for the digest. */
@@ -805,6 +822,59 @@ export const digestActions = pgTable(
     unique("digest_actions_digest_position_key").on(table.digestId, table.position),
     index("digest_actions_org_status_idx").on(table.organizationId, table.status),
     check("digest_actions_position_range", sql`${table.position} between 1 and 3`),
+  ],
+);
+
+/**
+ * One record per (digest, recipient, channel) — who has already been sent what.
+ *
+ * The digest sweep runs hourly and is deliberately allowed to re-run, so
+ * "have we already mailed this?" has to be a fact in the database rather than a
+ * property of how often the job fires. Without it, every sweep for a week whose
+ * digest is ready would mail the same briefing again.
+ *
+ * Per *recipient* rather than a timestamp on `digests`, because a send is not
+ * one event: a location with five subscribers can have three delivered and two
+ * bounced, and a single `emailed_at` column can only record "yes" or "no" for
+ * the whole set. The retry then either re-mails the three who already read it
+ * or abandons the two who never got it. Rows make partial failure expressible,
+ * which is the only state that actually needs handling.
+ *
+ * `unique(digest_id, user_id, channel)` is what makes the send idempotent, and
+ * a failed row is updated in place rather than accumulating one row per
+ * attempt: the interesting question is "did this person get it", not "how many
+ * times did we try".
+ */
+export const digestDeliveries = pgTable(
+  "digest_deliveries",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    digestId: uuid("digest_id")
+      .notNull()
+      .references(() => digests.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channel: digestChannelEnum("channel").notNull(),
+    status: digestDeliveryStatusEnum("status").notNull(),
+    /** The transport's reason, kept for the failed rows a human has to explain. */
+    error: text("error"),
+    /** Null on a failed row: nothing left. */
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    unique("digest_deliveries_digest_user_channel_key").on(
+      table.digestId,
+      table.userId,
+      table.channel,
+    ),
+    // The sender's own lookup: what has already gone out for this digest.
+    index("digest_deliveries_digest_idx").on(table.digestId, table.channel),
+    index("digest_deliveries_org_created_idx").on(table.organizationId, table.createdAt.desc()),
   ],
 );
 

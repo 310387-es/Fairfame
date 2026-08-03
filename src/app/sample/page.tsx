@@ -57,9 +57,10 @@ export default async function SamplePage() {
   const locale = await getLocale();
   const [t, tc, digest] = await Promise.all([
     getTranslations({ locale, namespace: "sample" }),
-    // The change sentences live in the `home` namespace and are shared with the
-    // real digest, so the two screens cannot describe the same data differently.
-    getTranslations({ locale, namespace: "home" }),
+    // The change sentences live in the `digest` namespace and are shared with
+    // the real digest, so the two screens cannot describe the same data
+    // differently.
+    getTranslations({ locale, namespace: "digest" }),
     getSampleDigest({ locale }),
   ]);
 
