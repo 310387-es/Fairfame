@@ -1,0 +1,17 @@
+{
+  "accounts": [
+    {
+      "name": "accounts/106321548215487",
+      "accountName": "Kahve Dünyası",
+      "type": "LOCATION_GROUP",
+      "verificationState": "VERIFIED",
+      "vettedState": "VETTED"
+    },
+    {
+      "name": "accounts/998877665544332",
+      "accountName": "Omer Personal",
+      "type": "PERSONAL",
+      "verificationState": "UNVERIFIED"
+    }
+  ]
+}

@@ -12,7 +12,7 @@ import {
   scheduleScan,
   type ReviewJob,
 } from "@/jobs/queue";
-import { createSyncWorker, runScan } from "@/jobs/workers/sync-reviews";
+import { createReviewWorker, runScan } from "@/jobs/workers/sync-reviews";
 import { withTenant } from "@/lib/tenancy";
 
 /**
@@ -71,7 +71,7 @@ beforeAll(async () => {
   eventsConnection = createRedisConnection();
 
   queue = createQueue(queueConnection, QUEUE_NAME);
-  worker = createSyncWorker({ connection: workerConnection, queue, queueName: QUEUE_NAME });
+  worker = createReviewWorker({ connection: workerConnection, queue, queueName: QUEUE_NAME });
   events = new QueueEvents(QUEUE_NAME, { connection: eventsConnection });
 
   await Promise.all([worker.waitUntilReady(), events.waitUntilReady()]);
@@ -140,21 +140,42 @@ describe("scheduled scan", () => {
     const target = await makeOrgWithLocation("skipped");
     const connectionId = await connectMock(target.orgId, target.locationId);
 
+    /**
+     * Capture what the scan enqueues rather than counting it.
+     *
+     * Comparing two scans' totals used to work, but since P1b-T0 a dispatched
+     * connection is paced out until its next_sync_at, so the population moves
+     * between calls and the arithmetic no longer holds. What the test actually
+     * cares about is whether *this* connection was dispatched.
+     */
+    function capturingQueue(): { queue: Queue<ReviewJob>; dispatched: string[] } {
+      const dispatched: string[] = [];
+      const stub = {
+        add: async (_name: string, data: { kind: string; connectionId?: string }) => {
+          if (data.kind === "sync" && data.connectionId) dispatched.push(data.connectionId);
+          return {};
+        },
+      } as unknown as Queue<ReviewJob>;
+      return { queue: stub, dispatched };
+    }
+
     await getAdminDb()
       .update(schema.connections)
       .set({ status: "disconnected" })
       .where(eq(schema.connections.id, connectionId));
 
-    const withDisconnected = await runScan(queue);
+    const off = capturingQueue();
+    await runScan(off.queue);
+    expect(off.dispatched).not.toContain(connectionId);
 
     await getAdminDb()
       .update(schema.connections)
-      .set({ status: "active" })
+      .set({ status: "active", nextSyncAt: null })
       .where(eq(schema.connections.id, connectionId));
 
-    const withActive = await runScan(queue);
-
-    expect(withActive.connections).toBe(withDisconnected.connections + 1);
+    const on = capturingQueue();
+    await runScan(on.queue);
+    expect(on.dispatched).toContain(connectionId);
   });
 
   it("installs a repeatable scheduler that is idempotent", async () => {

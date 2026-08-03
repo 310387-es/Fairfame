@@ -48,6 +48,7 @@ export async function upsertReviews(
         organizationId,
         locationId: review.locationId,
         source: review.source,
+        itemType: review.itemType ?? "review",
         sourceReviewId: review.sourceReviewId,
         authorName: review.authorName,
         rating: review.rating,
@@ -61,6 +62,9 @@ export async function upsertReviews(
     .onConflictDoUpdate({
       target: [schema.reviews.organizationId, schema.reviews.source, schema.reviews.sourceReviewId],
       set: {
+        // `item_type` is deliberately absent: a row's kind is fixed at
+        // ingestion and a source that changed it mid-life would be a bug, not
+        // an update worth applying.
         authorName: sql`excluded.author_name`,
         rating: sql`excluded.rating`,
         text: sql`excluded.text`,

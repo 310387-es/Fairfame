@@ -2,7 +2,7 @@
 
 Planning and design documentation for **Revira** *(provisional name)* — a review & customer-voice management SaaS. Launch market: Türkiye. Built global-ready.
 
-> Source-of-truth planning docs. `CLAUDE.md` (repo root) gives Claude Code its project context. Active build plans: `09-phase-0-build-plan.md` (done) and `10-phase-1a-build-plan.md` (current).
+> Source-of-truth planning docs. `CLAUDE.md` (repo root) gives Claude Code its project context. Build plans: `09` (Phase 0), `10` (Phase 1a), `11` (Phase 1b) — all built. `13` is what to do when credentials arrive.
 
 ## Index
 
@@ -17,7 +17,10 @@ Planning and design documentation for **Revira** *(provisional name)* — a revi
 | 07 | [Ideas & Parking Lot](./07-ideas-parking-lot.md) | "Not now, don't forget" — premium-digest ideas, deferred bets, open decisions. |
 | 08 | [Design Brief](./08-design-brief.md) | Brand, principles, screens, components, and flows to hand to the design phase. |
 | 09 | [Phase 0 Build Plan](./09-phase-0-build-plan.md) | ✅ Done — foundations: tenancy/RLS, auth, entitlements, mock connector, vertical slice. |
-| 10 | [Phase 1a Build Plan](./10-phase-1a-build-plan.md) | ▶ Current — AI analysis, notifications, AI replies, and the Action Digest, on the mock connector. |
+| 10 | [Phase 1a Build Plan](./10-phase-1a-build-plan.md) | ✅ Done — AI analysis, notifications, AI replies, and the Action Digest, on the mock connector. |
+| 11 | [Phase 1b Build Plan](./11-phase-1b-build-plan.md) | ✅ Built — real connectors against documented APIs + fixtures; credentials and live verification at go-live. |
+| 12 | [AI Guardrail Validation](./12-ai-guardrail-validation.md) | What has actually been tested about the AI layer: threat model, structural defences, adversarial results, known gaps. |
+| 13 | [Go-Live](./13-go-live.md) | Per-platform prerequisites and verification steps for when the company exists — plus what `pnpm golive` checks and what it deliberately does not. |
 
 Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude Code.
 
@@ -29,8 +32,8 @@ Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude
 ## Roadmap status
 
 - **Phase 0 — Foundations:** ✅ done.
-- **Phase 1a — AI layer & Action Digest (on mock):** ▶ in progress.
-- **Phase 1b — real connectors (Google / first-party / WhatsApp / Instagram), İYS/consent, live sends:** deferred until the company is formed and the product is otherwise finished.
+- **Phase 1a — AI layer & Action Digest (on mock):** ✅ done, and live-verified against a real model.
+- **Phase 1b — real connectors:** ✅ code-complete. T1 first-party collection is live-tested; T0 infrastructure, T5 compliance and T6 the contract/go-live suite are done. **T2 Google, T3 WhatsApp and T4 Instagram are fixture-tested only** — credentials, platform approvals (Google Business Profile, Meta verification + app review, İYS) and live verification are gated on company formation. See [`13-go-live.md`](./13-go-live.md).
 
 ## Stack (locked)
 

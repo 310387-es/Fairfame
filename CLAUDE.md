@@ -2,12 +2,14 @@
 
 **Revira** *(provisional name)* is a review & customer-voice management SaaS: businesses connect their review and social sources and receive new-review notifications, AI analysis, and a weekly **Action Digest** (the hero feature). Launch market is Türkiye; the product is built global-ready (EN + TR). The full plan lives in `docs/` — read `docs/02-prd.md`, `docs/03-technical-architecture.md`, and `docs/06-ux-roles-and-flows.md` before building.
 
-## Current phase
+## Current phase & roadmap
 
-**Phase 1a — AI Layer & Action Digest.** Build plan: `docs/10-phase-1a-build-plan.md`. Builds entirely on the existing **MockConnector** (needs an LLM API key, not the gated platform APIs). Build **in order**, pausing after each task for review.
+- **Phase 0 (Foundations): complete.** `docs/09-phase-0-build-plan.md`.
+- **Phase 1a — AI Layer & Action Digest: complete (2 Aug 2026).** `docs/10-phase-1a-build-plan.md`. **T1**–**T11**, all live-verified against a real model: provider abstraction + guardrails, pgvector + insights, sentiment/theme extraction, analysis wired into ingestion, notifications, AI reply drafting, the Action Digest pipeline, the Home/Digest screen, Inbox enhancements, the public sample digest, and guardrail validation. Guardrail evidence: `docs/12-ai-guardrail-validation.md`.
+- **Phase 1b — Real Connectors: code-complete (3 Aug 2026).** `docs/11-phase-1b-build-plan.md`. **T0** connector infrastructure (OAuth + encrypted token vault + provider flags + rate limiting/backoff), **T1** first-party collection (live-tested), **T2** Google, **T3** WhatsApp Business, **T4** Instagram, **T5** İYS/KVKK compliance layer (done, less the real registry adapter), **T6** contract tests + go-live suite.
+- **Phase 1 is built. What remains is live verification, and it is gated on the company, not on code.** T2, T3 and T4 are **fixture-tested only** — no live platform traffic has ever run through them. Do not describe them as working. `docs/13-go-live.md` holds the per-platform prerequisites and verification steps; `pnpm golive` reports readiness and makes no writes. Known gaps: Instagram DMs unimplemented; no İYS opt-in tick on the collection form and no worker draining `pendingIysUploads`, so nothing commercial can be sent yet; no browser/UI test layer by decision; `MOVABLE_HOLIDAYS` needs a yearly refresh past 2027.
 
-- **Phase 0 (Foundations): complete.** Plan retained at `docs/09-phase-0-build-plan.md`.
-- **Phase 1b (real Google / first-party / WhatsApp / Instagram connectors, İYS/consent, live sends): deferred** until the company is formed and the product is otherwise finished. **Do not start 1b work.**
+Build tasks **in order** within a phase, pausing after each for review.
 
 ## Stack (locked — do not substitute)
 
@@ -23,7 +25,7 @@
 ## Architecture principles
 
 - **Modular monolith.** One app, strong module boundaries. No microservices.
-- **The `Connector` interface is the core abstraction** for every review/social source. Everything is built against the **MockConnector**; real Google/Meta connectors (Phase 1b) swap in with zero changes elsewhere.
+- **The `Connector` interface is the core abstraction** for every review/social source. Everything runs on the **MockConnector** by default; real connectors (Phase 1b) implement the same interface and swap in per flag/credentials with zero changes elsewhere.
 - **Canonical `reviews` model.** Every source normalizes into it; always keep `raw_payload` (jsonb).
 - **Multi-tenancy is non-negotiable.** Every tenant-owned row has `organization_id`, enforced with Postgres **Row-Level Security** + a per-request tenant context. **Never write a query that isn't tenant-scoped.**
 - **Entitlements are a first-class primitive.** Feature access + limits come from plan config, checked **server-side** via `can(org, feature)` / `withinLimit(org, metric)`. Never hardcode `if plan === '...'`.
@@ -36,17 +38,21 @@
 - TypeScript **strict**, no `any`. Validate all external input with **Zod**.
 - Migrations explicit and reviewed; never destructive without a backfill.
 - Every mutation of a tenant resource goes through the **tenant-scoped data layer**.
-- Tests required for: **tenant isolation (RLS)**, connector sync, entitlement checks, **AI guardrails**, and digest reproducibility.
-- Secrets only in env (`.env`, gitignored); `.env.example` documents every var. **Never commit secrets.**
+- Real connectors default to **mock in dev**; live only where credentials are present. Never commit secrets.
+- Tests required for: **tenant isolation (RLS)**, connector sync (fixtures), entitlement checks, **AI guardrails**, digest reproducibility, and per-connector contract tests.
 
 ## Key contracts
 
-The `Connector` interface and entitlement keys are in `docs/09-phase-0-build-plan.md`; the `review_insights` shape, the Digest object, and AI guardrail rules are in `docs/10-phase-1a-build-plan.md`. Treat them as the source of truth and implement exactly.
+The `Connector` interface + entitlement keys: `docs/09-phase-0-build-plan.md`. The `review_insights` shape, Digest object, and AI guardrails: `docs/10-phase-1a-build-plan.md`. Per-platform connector go-live prerequisites and verification: `docs/13-go-live.md`. Implement exactly.
 
 ## Run
 
-`docker compose up -d` (Postgres + Redis + Mailhog) → `pnpm db:migrate` → `pnpm db:seed` → `pnpm dev`.
+`docker compose up -d` (Postgres + Redis + **Mailpit**, the maintained MailHog successor — dev inbox at `localhost:8025`) → `pnpm db:migrate` → `pnpm db:seed` → `pnpm dev`.
+
+`pnpm verify` is the gate (lint, types, unit + DB tests, build). `pnpm golive` reports per-platform go-live readiness; it is read-only and "not configured" is its expected answer today.
+
+AI operator commands: `pnpm ai:smoke` (one call, checks the key and model), `pnpm ai:analyze --org <slug> [--embeddings] [--recompute]` (batch analysis; cached, paced), `pnpm ai:eval` (scores the labelled TR/EN set against the configured provider and exits non-zero below threshold).
 
 ## Docs
 
-`docs/` holds the full plan (01 master → 10 Phase 1a). Read 02, 03, 06 before building; 09/10 are the active build plans.
+`docs/` holds the full plan (01 master → 13 go-live). Read 02, 03, 06 before building; 09/10/11 are the build plans; 12 is the AI-guardrail evidence and 13 the go-live runbook.

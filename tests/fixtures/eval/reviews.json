@@ -1,0 +1,356 @@
+{
+  "$comment": [
+    "Labelled evaluation set for review analysis (P1a-T3).",
+    "",
+    "Forty reviews, twenty Turkish and twenty English, matched in difficulty so",
+    "the two languages can be compared honestly — the point of the set is to show",
+    "whether Turkish quality holds up against English, and that only means",
+    "something if both halves contain the same mix of easy and hard cases.",
+    "",
+    "Each half has 7 positive, 6 negative and 7 neutral, deliberately: an",
+    "unbalanced set makes accuracy look good for the wrong reason (always guess",
+    "the majority class), which is why the script reports macro-F1 too.",
+    "",
+    "`hard` marks the cases where a human might reasonably disagree — sarcasm,",
+    "faint praise, mixed reports. They are scored like any other, but reported",
+    "separately so a regression in the easy cases cannot hide behind them.",
+    "",
+    "`themes` lists words we expect to see reflected in the topics. Matching is",
+    "substring-based and any-of, not exact: the model chooses its own wording and",
+    "grading it on vocabulary rather than comprehension would measure nothing."
+  ],
+  "reviews": [
+    {
+      "id": "tr-01",
+      "language": "tr",
+      "text": "Yemekler sıcacık geldi, personel çok ilgiliydi. Kesinlikle tekrar geleceğiz.",
+      "rating": 5,
+      "sentiment": "positive",
+      "themes": ["yemek", "personel", "servis", "hizmet"]
+    },
+    {
+      "id": "tr-02",
+      "language": "tr",
+      "text": "Kahvaltı tabağı beklediğimden çok daha zengindi, fiyatına göre gayet başarılı.",
+      "rating": 5,
+      "sentiment": "positive",
+      "themes": ["kahvaltı", "fiyat", "yemek", "porsiyon"]
+    },
+    {
+      "id": "tr-03",
+      "language": "tr",
+      "text": "Odalar tertemizdi ve resepsiyondaki hanımefendi bize çok yardımcı oldu.",
+      "rating": 5,
+      "sentiment": "positive",
+      "themes": ["temizlik", "oda", "personel", "resepsiyon"]
+    },
+    {
+      "id": "tr-04",
+      "language": "tr",
+      "text": "Randevuma tam saatinde alındım, işlem hızlı ve ağrısızdı. Teşekkürler.",
+      "rating": 5,
+      "sentiment": "positive",
+      "themes": ["randevu", "bekleme", "hız", "işlem"]
+    },
+    {
+      "id": "tr-05",
+      "language": "tr",
+      "text": "Ürün kargoda biraz gecikti ama gelen ürün fotoğraftakinin aynısı, kaliteli. Memnunum.",
+      "rating": 4,
+      "sentiment": "positive",
+      "hard": true,
+      "themes": ["kargo", "teslimat", "kalite", "ürün"]
+    },
+    {
+      "id": "tr-06",
+      "language": "tr",
+      "text": "Fiyatlar biraz tuzlu ama aldığın hizmetin karşılığını fazlasıyla veriyor.",
+      "rating": 4,
+      "sentiment": "positive",
+      "hard": true,
+      "themes": ["fiyat", "hizmet", "değer"]
+    },
+    {
+      "id": "tr-07",
+      "language": "tr",
+      "text": "Manzara muhteşemdi, akşam yemeğini burada yemek iyi bir karardı.",
+      "rating": 5,
+      "sentiment": "positive",
+      "themes": ["manzara", "atmosfer", "yemek", "ortam"]
+    },
+    {
+      "id": "tr-08",
+      "language": "tr",
+      "text": "Siparişimiz 50 dakika sonra geldi ve çorba buz gibiydi. Bir daha uğramayız.",
+      "rating": 1,
+      "sentiment": "negative",
+      "themes": ["bekleme", "servis", "yemek", "sıcaklık"]
+    },
+    {
+      "id": "tr-09",
+      "language": "tr",
+      "text": "Rezervasyonum kaybolmuş, kimse sorumluluk almadı. Lobide bir saat bekledik.",
+      "rating": 1,
+      "sentiment": "negative",
+      "themes": ["rezervasyon", "personel", "bekleme", "iletişim"]
+    },
+    {
+      "id": "tr-10",
+      "language": "tr",
+      "text": "Klima çalışmıyordu, gece boyunca uyuyamadık. Odanın fiyatına göre kabul edilemez.",
+      "rating": 2,
+      "sentiment": "negative",
+      "themes": ["klima", "oda", "konfor", "fiyat"]
+    },
+    {
+      "id": "tr-11",
+      "language": "tr",
+      "text": "Faturada sipariş etmediğimiz iki kalem vardı, uyarınca da tartışmak zorunda kaldık.",
+      "rating": 1,
+      "sentiment": "negative",
+      "themes": ["fatura", "ödeme", "personel", "fiyat"]
+    },
+    {
+      "id": "tr-12",
+      "language": "tr",
+      "text": "Harika, iki saat bekleyip soğuk makarna yemek tam da hayalimdi. Bravo.",
+      "rating": 1,
+      "sentiment": "negative",
+      "hard": true,
+      "themes": ["bekleme", "yemek", "servis"]
+    },
+    {
+      "id": "tr-13",
+      "language": "tr",
+      "text": "Temizlik konusunda ciddi eksikler var; banyoda saç ve küf gördük.",
+      "rating": 1,
+      "sentiment": "negative",
+      "themes": ["temizlik", "banyo", "hijyen", "oda"]
+    },
+    {
+      "id": "tr-14",
+      "language": "tr",
+      "text": "Otopark var mı acaba, gelmeden önce öğrenmek istemiştim.",
+      "rating": null,
+      "sentiment": "neutral",
+      "themes": ["otopark", "bilgi", "soru"]
+    },
+    {
+      "id": "tr-15",
+      "language": "tr",
+      "text": "Salı günü öğlen uğradık, yaklaşık kırk dakika kaldık.",
+      "rating": 3,
+      "sentiment": "neutral",
+      "themes": ["ziyaret", "süre"]
+    },
+    {
+      "id": "tr-16",
+      "language": "tr",
+      "text": "Menüde vejetaryen seçenek sayısı sınırlı, et ağırlıklı bir yer.",
+      "rating": 3,
+      "sentiment": "neutral",
+      "hard": true,
+      "themes": ["menü", "vejetaryen", "seçenek", "yemek"]
+    },
+    {
+      "id": "tr-17",
+      "language": "tr",
+      "text": "Yeri tarif etmek gerekirse metro çıkışının hemen karşısında, bulması kolay.",
+      "rating": 3,
+      "sentiment": "neutral",
+      "hard": true,
+      "themes": ["konum", "ulaşım"]
+    },
+    {
+      "id": "tr-18",
+      "language": "tr",
+      "text": "Kartla ödeme yapılabiliyor, nakit zorunluluğu yok.",
+      "rating": 3,
+      "sentiment": "neutral",
+      "themes": ["ödeme", "kart"]
+    },
+    {
+      "id": "tr-19",
+      "language": "tr",
+      "text": "Çalışma saatleri hafta sonu 10.00 - 22.00 olarak güncellenmiş.",
+      "rating": null,
+      "sentiment": "neutral",
+      "themes": ["saat", "bilgi", "çalışma"]
+    },
+    {
+      "id": "tr-20",
+      "language": "tr",
+      "text": "Fena değildi, beklentimi ne aştı ne de altında kaldı.",
+      "rating": 3,
+      "sentiment": "neutral",
+      "hard": true,
+      "themes": ["genel", "beklenti", "deneyim"]
+    },
+    {
+      "id": "en-01",
+      "language": "en",
+      "text": "Food arrived hot and the staff checked on us twice. We will definitely be back.",
+      "rating": 5,
+      "sentiment": "positive",
+      "themes": ["food", "staff", "service"]
+    },
+    {
+      "id": "en-02",
+      "language": "en",
+      "text": "The breakfast spread was far bigger than I expected and great value for the price.",
+      "rating": 5,
+      "sentiment": "positive",
+      "themes": ["breakfast", "price", "value", "food"]
+    },
+    {
+      "id": "en-03",
+      "language": "en",
+      "text": "Spotless rooms, and the woman on reception went out of her way to help us.",
+      "rating": 5,
+      "sentiment": "positive",
+      "themes": ["cleanliness", "room", "staff", "reception"]
+    },
+    {
+      "id": "en-04",
+      "language": "en",
+      "text": "Seen exactly on time, procedure was quick and painless. Thank you.",
+      "rating": 5,
+      "sentiment": "positive",
+      "themes": ["appointment", "wait", "speed", "procedure"]
+    },
+    {
+      "id": "en-05",
+      "language": "en",
+      "text": "Shipping ran a couple of days late, but the item matches the photos and feels well made. Happy overall.",
+      "rating": 4,
+      "sentiment": "positive",
+      "hard": true,
+      "themes": ["shipping", "delivery", "quality", "product"]
+    },
+    {
+      "id": "en-06",
+      "language": "en",
+      "text": "Not the cheapest option around, but you get every lira of it back in service.",
+      "rating": 4,
+      "sentiment": "positive",
+      "hard": true,
+      "themes": ["price", "service", "value"]
+    },
+    {
+      "id": "en-07",
+      "language": "en",
+      "text": "The view is stunning. Booking dinner here was the right call.",
+      "rating": 5,
+      "sentiment": "positive",
+      "themes": ["view", "atmosphere", "food", "ambience"]
+    },
+    {
+      "id": "en-08",
+      "language": "en",
+      "text": "Our order took 50 minutes and the soup was stone cold when it landed. Not coming back.",
+      "rating": 1,
+      "sentiment": "negative",
+      "themes": ["wait", "service", "food", "temperature"]
+    },
+    {
+      "id": "en-09",
+      "language": "en",
+      "text": "They lost our reservation and nobody would take responsibility. We stood in the lobby for an hour.",
+      "rating": 1,
+      "sentiment": "negative",
+      "themes": ["reservation", "staff", "wait", "communication"]
+    },
+    {
+      "id": "en-10",
+      "language": "en",
+      "text": "The air conditioning was broken and we did not sleep all night. Unacceptable at this room rate.",
+      "rating": 2,
+      "sentiment": "negative",
+      "themes": ["air conditioning", "room", "comfort", "price"]
+    },
+    {
+      "id": "en-11",
+      "language": "en",
+      "text": "Two items we never ordered showed up on the bill, and we had to argue to get them removed.",
+      "rating": 1,
+      "sentiment": "negative",
+      "themes": ["bill", "billing", "payment", "staff", "price"]
+    },
+    {
+      "id": "en-12",
+      "language": "en",
+      "text": "Wonderful. Waiting two hours for cold pasta is exactly how I wanted to spend the evening.",
+      "rating": 1,
+      "sentiment": "negative",
+      "hard": true,
+      "themes": ["wait", "food", "service"]
+    },
+    {
+      "id": "en-13",
+      "language": "en",
+      "text": "Real hygiene problems here. There was hair and mould in the bathroom.",
+      "rating": 1,
+      "sentiment": "negative",
+      "themes": ["cleanliness", "bathroom", "hygiene", "room"]
+    },
+    {
+      "id": "en-14",
+      "language": "en",
+      "text": "Is there parking on site? Wanted to check before heading over.",
+      "rating": null,
+      "sentiment": "neutral",
+      "themes": ["parking", "information", "question"]
+    },
+    {
+      "id": "en-15",
+      "language": "en",
+      "text": "Stopped by around midday on a Tuesday and stayed about forty minutes.",
+      "rating": 3,
+      "sentiment": "neutral",
+      "themes": ["visit", "duration"]
+    },
+    {
+      "id": "en-16",
+      "language": "en",
+      "text": "Vegetarian choice on the menu is limited; this is a meat-forward kitchen.",
+      "rating": 3,
+      "sentiment": "neutral",
+      "hard": true,
+      "themes": ["menu", "vegetarian", "options", "food"]
+    },
+    {
+      "id": "en-17",
+      "language": "en",
+      "text": "For anyone looking: it is directly across from the metro exit, easy to find.",
+      "rating": 3,
+      "sentiment": "neutral",
+      "hard": true,
+      "themes": ["location", "directions", "transport"]
+    },
+    {
+      "id": "en-18",
+      "language": "en",
+      "text": "They take card, so no need to bring cash.",
+      "rating": 3,
+      "sentiment": "neutral",
+      "themes": ["payment", "card"]
+    },
+    {
+      "id": "en-19",
+      "language": "en",
+      "text": "Weekend hours have been updated to 10:00 - 22:00.",
+      "rating": null,
+      "sentiment": "neutral",
+      "themes": ["hours", "information", "opening"]
+    },
+    {
+      "id": "en-20",
+      "language": "en",
+      "text": "It was fine. Did not exceed what I expected and did not fall short either.",
+      "rating": 3,
+      "sentiment": "neutral",
+      "hard": true,
+      "themes": ["general", "expectation", "experience"]
+    }
+  ]
+}

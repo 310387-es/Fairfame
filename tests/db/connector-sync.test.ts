@@ -94,7 +94,9 @@ describe("connecting the mock source", () => {
       withTenant({ organizationId: a.orgId }, (tx) =>
         connectSource(tx, {
           organizationId: a.orgId,
-          provider: "google",
+          // Not "google": since P1b-T0 that is a catalogued provider which
+          // resolves to a mock until its flag and credentials say otherwise.
+          provider: "yandex",
           config: { locationId: a.locationId },
         }),
       ),

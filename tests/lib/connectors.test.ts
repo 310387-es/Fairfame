@@ -25,6 +25,9 @@ function connection(overrides: Partial<Connection> = {}): Connection {
     },
     encryptedTokens: null,
     cursor: null,
+    lastSyncedAt: null,
+    nextSyncAt: null,
+    failureCount: 0,
     // Fixed anchor: the mock's backfill hangs off this, so timestamps are
     // stable across fetches rather than sliding with the wall clock.
     createdAt: new Date("2026-08-01T00:00:00Z"),
@@ -40,12 +43,21 @@ describe("registry", () => {
   });
 
   it("refuses an unknown provider without retrying", () => {
-    expect(() => getConnector("google")).toThrow(ConnectorError);
+    // "google" is no longer unknown — it is a catalogued provider that resolves
+    // to a mock until its flag and credentials say otherwise (P1b-T0).
+    expect(() => getConnector("yandex")).toThrow(ConnectorError);
     try {
-      getConnector("google");
+      getConnector("yandex");
     } catch (error) {
       expect((error as ConnectorError).retryable).toBe(false);
     }
+  });
+
+  it("resolves a source we own without needing a configured environment", () => {
+    // mock and firstparty have no flag to read, so asking the environment
+    // about them would only add a way to fail.
+    expect(getConnector("firstparty").provider).toBe("firstparty");
+    expect(getConnector(MOCK_PROVIDER).capabilities.read).toBe("full");
   });
 });
 

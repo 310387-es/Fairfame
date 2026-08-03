@@ -3,48 +3,125 @@ import { getTranslations } from "next-intl/server";
 import { requireActor } from "@/auth/session";
 import { roleAtLeast } from "@/auth/permissions";
 import { AddLocationForm } from "@/components/locations/add-location-form";
-import { LocationCard, type LocationRow } from "@/components/locations/location-card";
+import {
+  LocationCard,
+  type ConnectableSource,
+  type ConnectedSource,
+  type LocationRow,
+} from "@/components/locations/location-card";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent } from "@/components/ui/card";
+import { describeConnectableProviders, describeProvider } from "@/connectors/capability-view";
+import { FIRST_PARTY_PROVIDER } from "@/connectors/firstparty";
 import { schema } from "@/db/client";
 import { withinLimit } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
 
 /**
- * Locations: add one, connect the Mock source, see what has been ingested.
+ * Locations: add one, connect sources to it, see what has been ingested.
  *
- * Reads are tenant-scoped; the plan limit shown here is the same check the
- * server action enforces, so the affordance and the rule cannot disagree.
+ * The source list is capability-driven end to end — what each connection can do
+ * comes from its provider descriptor, and whether connecting starts an OAuth
+ * handshake or attaches a mock comes from the environment's flags. Nothing on
+ * this page names a platform.
  */
 export default async function LocationsPage() {
   const [t, actor] = await Promise.all([getTranslations("locations"), requireActor()]);
 
-  const { rows, limit } = await withTenant(
+  const { locations, connections, reviewCounts, limit } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
-    async (tx) => {
-      // One query: locations, their mock connection if any, and review counts.
-      const locations = await tx
+    async (tx) => ({
+      locations: await tx
         .select({
           id: schema.locations.id,
           name: schema.locations.name,
           address: schema.locations.address,
           category: schema.locations.category,
-          connectionId: schema.connections.id,
-          reviewCount: count(schema.reviews.id),
         })
         .from(schema.locations)
-        .leftJoin(schema.connections, eq(schema.connections.locationId, schema.locations.id))
-        .leftJoin(schema.reviews, eq(schema.reviews.locationId, schema.locations.id))
         .where(eq(schema.locations.organizationId, actor.organizationId))
-        .groupBy(schema.locations.id, schema.connections.id)
-        .orderBy(sql`lower(${schema.locations.name})`);
+        .orderBy(sql`lower(${schema.locations.name})`),
 
-      return {
-        rows: locations satisfies LocationRow[],
-        limit: await withinLimit({ organizationId: actor.organizationId, tx }, "max_locations"),
-      };
-    },
+      // Separate queries rather than one join: joining connections and reviews
+      // to locations at once multiplies rows and turns both counts into fiction.
+      connections: await tx
+        .select({
+          id: schema.connections.id,
+          locationId: schema.connections.locationId,
+          provider: schema.connections.provider,
+          status: schema.connections.status,
+          lastSyncedAt: schema.connections.lastSyncedAt,
+          nextSyncAt: schema.connections.nextSyncAt,
+          failureCount: schema.connections.failureCount,
+          lastError: schema.connections.lastError,
+        })
+        .from(schema.connections)
+        .where(eq(schema.connections.organizationId, actor.organizationId)),
+
+      reviewCounts: await tx
+        .select({ locationId: schema.reviews.locationId, total: count(schema.reviews.id) })
+        .from(schema.reviews)
+        .where(eq(schema.reviews.organizationId, actor.organizationId))
+        .groupBy(schema.reviews.locationId),
+
+      limit: await withinLimit({ organizationId: actor.organizationId, tx }, "max_locations"),
+    }),
   );
+
+  const countByLocation = new Map(reviewCounts.map((row) => [row.locationId, row.total]));
+
+  /**
+   * Sources an owner can add by hand. First-party is excluded: it appears on
+   * its own when a collection campaign is created, and offering a second way to
+   * create it would be two buttons for one thing.
+   */
+  const connectableCatalogue: ConnectableSource[] = describeConnectableProviders()
+    .filter((view) => view.provider !== FIRST_PARTY_PROVIDER)
+    .map((view) => ({
+      provider: view.provider,
+      label: view.label,
+      sync: view.sync,
+      reply: view.reply,
+      isMock: view.isMock,
+      canAuthorize: view.canAuthorize,
+      ...(view.modeReason ? { modeReason: view.modeReason } : {}),
+      ...(view.goLiveNote ? { goLiveNote: view.goLiveNote } : {}),
+    }));
+
+  const rows: LocationRow[] = locations.map((location) => {
+    const sources: ConnectedSource[] = connections
+      .filter((connection) => connection.locationId === location.id)
+      .map((connection) => {
+        const view = describeProvider(connection.provider);
+
+        return {
+          connectionId: connection.id,
+          provider: connection.provider,
+          label: view?.label ?? connection.provider,
+          status: connection.status,
+          sync: view?.sync ?? "monitor",
+          reply: view?.reply ?? "none",
+          isMock: view?.isMock ?? false,
+          // Serialized for the client component boundary.
+          // A pending connection has credentials but no chosen place yet.
+          needsSetup: connection.status === "pending",
+          lastSyncedAt: connection.lastSyncedAt?.toISOString() ?? null,
+          nextSyncAt: connection.nextSyncAt?.toISOString() ?? null,
+          failureCount: connection.failureCount,
+          lastError: connection.lastError,
+        };
+      })
+      .sort((left, right) => left.label.localeCompare(right.label));
+
+    const connected = new Set(sources.map((source) => source.provider));
+
+    return {
+      ...location,
+      reviewCount: countByLocation.get(location.id) ?? 0,
+      sources,
+      connectable: connectableCatalogue.filter((source) => !connected.has(source.provider)),
+    };
+  });
 
   const canManage = roleAtLeast(actor.role, "admin");
 

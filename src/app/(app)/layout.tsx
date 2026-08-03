@@ -21,6 +21,7 @@ import {
 } from "@/lib/active-location";
 import { getEntitlements } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
+import { unreadCounts } from "@/notifications/feed";
 
 /**
  * The authenticated application shell.
@@ -43,11 +44,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const [t, locale] = await Promise.all([getTranslations(), getLocale()]);
 
-  const { locations, entitlements } = await withTenant(
+  const { locations, entitlements, unread } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => ({
       locations: await listLocations(tx, actor.organizationId),
       entitlements: await getEntitlements({ organizationId: actor.organizationId, tx }),
+      // Per user, not per organization — the badge is this person's unread
+      // count, and the query filters on the actor for exactly that reason.
+      unread: await unreadCounts(tx, actor.organizationId, actor.userId),
     }),
   );
 
@@ -63,7 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Logo className="text-sidebar-foreground" markClassName="size-6" />
         </Link>
 
-        <SidebarNav />
+        <SidebarNav unread={unread.total} urgent={unread.urgent > 0} />
 
         <div className="mt-auto p-3">
           <Badge variant="secondary" className="w-full justify-center">

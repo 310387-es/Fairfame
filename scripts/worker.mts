@@ -3,29 +3,57 @@
  *
  *   pnpm worker
  *
- * Runs the review sync worker and installs the repeating scan. Deliberately a
- * separate process from the web app: a slow or crashing sync must never take
+ * Runs the review worker and installs the three repeating schedules — the
+ * connection scan and the analysis, notification and digest sweeps. Deliberately
+ * a separate process from the web app: a slow or crashing sync must never take
  * request handling down with it.
  */
+import { installIysGateway } from "../src/compliance/iys-gateway.ts";
 import { closeDatabasePools } from "../src/db/client.ts";
 import { getEnv } from "../src/lib/env.ts";
 import { childLogger } from "../src/lib/logger.ts";
-import { createQueue, createRedisConnection, scheduleScan } from "../src/jobs/queue.ts";
-import { createSyncWorker } from "../src/jobs/workers/sync-reviews.ts";
+import {
+  createQueue,
+  createRedisConnection,
+  scheduleAnalyzeSweep,
+  scheduleDigestSweep,
+  scheduleNotifySweep,
+  scheduleScan,
+} from "../src/jobs/queue.ts";
+import { createReviewWorker } from "../src/jobs/workers/sync-reviews.ts";
 
 const log = childLogger({ module: "worker" });
 
 const SCAN_INTERVAL_MS = getEnv().SYNC_SCAN_INTERVAL_MS;
+const ANALYZE_SWEEP_INTERVAL_MS = getEnv().ANALYZE_SWEEP_INTERVAL_MS;
+const NOTIFY_SWEEP_INTERVAL_MS = getEnv().NOTIFY_SWEEP_INTERVAL_MS;
+const DIGEST_SWEEP_INTERVAL_MS = getEnv().DIGEST_SWEEP_INTERVAL_MS;
 
 const queueConnection = createRedisConnection();
 const workerConnection = createRedisConnection();
 
+// Installed before the worker starts consuming: a job that sends must never
+// run against an unconfigured gate.
+const iysGateway = installIysGateway();
+
 const queue = createQueue(queueConnection);
-const worker = createSyncWorker({ connection: workerConnection, queue });
+const worker = createReviewWorker({ connection: workerConnection, queue });
 
 await scheduleScan(queue, SCAN_INTERVAL_MS);
+await scheduleAnalyzeSweep(queue, ANALYZE_SWEEP_INTERVAL_MS);
+await scheduleNotifySweep(queue, NOTIFY_SWEEP_INTERVAL_MS);
+await scheduleDigestSweep(queue, DIGEST_SWEEP_INTERVAL_MS);
 
-log.info({ scanIntervalMs: SCAN_INTERVAL_MS }, "Worker started");
+log.info(
+  {
+    scanIntervalMs: SCAN_INTERVAL_MS,
+    analyzeSweepIntervalMs: ANALYZE_SWEEP_INTERVAL_MS,
+    notifySweepIntervalMs: NOTIFY_SWEEP_INTERVAL_MS,
+    digestSweepIntervalMs: DIGEST_SWEEP_INTERVAL_MS,
+    iysGateway: iysGateway ?? "none (commercial sends refused)",
+  },
+  "Worker started",
+);
 
 let shuttingDown = false;
 

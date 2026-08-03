@@ -3,7 +3,14 @@ import { schema } from "../db/client.ts";
 import { childLogger } from "../lib/logger.ts";
 import { withTenant, type TenantDatabase } from "../lib/tenancy.ts";
 import { upsertReviews } from "./normalize.ts";
+import { rateLimitFor } from "./providers.ts";
 import { getConnector } from "./registry.ts";
+import {
+  acquireProviderSlot,
+  computeBackoffMs,
+  nextSyncAfterSuccess,
+  RateLimitError,
+} from "./throttle.ts";
 import { capabilitySchema, ConnectorError, type Connection } from "./types.ts";
 
 /**
@@ -34,6 +41,9 @@ export function toConnection(row: typeof schema.connections.$inferSelect): Conne
     config: (row.config ?? {}) as Record<string, unknown>,
     encryptedTokens: row.encryptedTokens,
     cursor: row.cursor,
+    lastSyncedAt: row.lastSyncedAt,
+    nextSyncAt: row.nextSyncAt,
+    failureCount: row.failureCount,
     createdAt: row.createdAt,
   };
 }
@@ -102,6 +112,14 @@ export type SyncOutcome = {
   inserted: number;
   updated: number;
   cursor: string | null;
+  /**
+   * Set when no call was made. `rate_limited` means the provider budget was
+   * spent this minute; `not_due` means the connection is still inside its
+   * minimum interval or serving a backoff. Neither is a failure.
+   */
+  skipped?: "rate_limited" | "not_due";
+  /** When the scheduler may try this connection again. */
+  nextSyncAt?: Date | null;
 };
 
 /**
@@ -114,9 +132,11 @@ export type SyncOutcome = {
 export async function syncConnectionWithin(
   tx: TenantDatabase,
   connection: Connection,
-  options: { full?: boolean } = {},
+  options: { full?: boolean; ignoreSchedule?: boolean; now?: Date } = {},
 ): Promise<SyncOutcome> {
   const connector = getConnector(connection.provider);
+  const policy = rateLimitFor(connection.provider);
+  const now = options.now ?? new Date();
 
   if (connector.capabilities.read === "none") {
     throw new ConnectorError(
@@ -126,10 +146,68 @@ export async function syncConnectionWithin(
     );
   }
 
+  const idle = (reason: "rate_limited" | "not_due", nextSyncAt: Date | null): SyncOutcome => ({
+    connectionId: connection.id,
+    provider: connection.provider,
+    fetched: 0,
+    inserted: 0,
+    updated: 0,
+    cursor: connection.cursor,
+    skipped: reason,
+    nextSyncAt,
+  });
+
+  // The scan filters on next_sync_at too; this is the guard against two scan
+  // cycles racing a slow sync. A full re-pull is an explicit operator action
+  // rather than scheduled polling, so it is never held by the interval — but
+  // it still claims a slot against the provider's budget below.
+  const respectSchedule = !options.ignoreSchedule && !options.full;
+  if (respectSchedule && connection.nextSyncAt && connection.nextSyncAt > now) {
+    return idle("not_due", connection.nextSyncAt);
+  }
+
+  // The provider's per-minute budget is shared across every tenant and every
+  // process, so it is claimed here rather than in the worker.
+  const slot = await acquireProviderSlot(connection.provider, policy, now);
+  if (!slot.allowed) {
+    const deferUntil = new Date(now.getTime() + slot.retryAfterMs);
+    await tx
+      .update(schema.connections)
+      .set({ nextSyncAt: deferUntil, updatedAt: now })
+      .where(eq(schema.connections.id, connection.id));
+
+    log.debug(
+      {
+        connectionId: connection.id,
+        provider: connection.provider,
+        retryAfterMs: slot.retryAfterMs,
+      },
+      "Sync deferred: provider budget spent",
+    );
+    return idle("rate_limited", deferUntil);
+  }
+
   const since =
     options.full || connection.cursor === null ? undefined : parseCursor(connection.cursor);
 
-  const raw = await connector.fetchReviews(connection, since);
+  let raw;
+  try {
+    raw = await connector.fetchReviews(connection, since);
+  } catch (error) {
+    // A 429 from the provider itself is flow control, not a fault: park the
+    // connection for as long as it asked and leave the failure count alone.
+    if (error instanceof RateLimitError) {
+      const deferUntil = new Date(now.getTime() + error.retryAfterMs);
+      await tx
+        .update(schema.connections)
+        .set({ nextSyncAt: deferUntil, updatedAt: now })
+        .where(eq(schema.connections.id, connection.id));
+
+      return idle("rate_limited", deferUntil);
+    }
+    throw error;
+  }
+
   const canonical = raw.map((item) => connector.normalize(connection, item));
 
   // A connector must not be able to aim rows at another location.
@@ -145,10 +223,21 @@ export async function syncConnectionWithin(
 
   const outcome = await upsertReviews(tx, connection.organizationId, canonical);
   const cursor = connector.nextCursor?.(connection, raw) ?? connection.cursor;
+  const nextSyncAt = nextSyncAfterSuccess(policy, now);
 
   await tx
     .update(schema.connections)
-    .set({ cursor, status: "active", updatedAt: new Date() })
+    .set({
+      cursor,
+      status: "active",
+      lastSyncedAt: now,
+      nextSyncAt,
+      // A success clears the slate: the next failure starts backoff from the
+      // bottom rather than from wherever the last incident left off.
+      failureCount: 0,
+      lastError: null,
+      updatedAt: now,
+    })
     .where(eq(schema.connections.id, connection.id));
 
   log.info(
@@ -170,7 +259,13 @@ export async function syncConnectionWithin(
     inserted: outcome.inserted,
     updated: outcome.updated,
     cursor,
+    nextSyncAt,
   };
+}
+
+/** The provider a failure came from, so backoff uses that platform's policy. */
+function providerOf(error: unknown): string {
+  return error instanceof ConnectorError ? error.provider : "unknown";
 }
 
 function parseCursor(cursor: string): Date | undefined {
@@ -187,7 +282,7 @@ function parseCursor(cursor: string): Date | undefined {
 export async function syncConnection(
   organizationId: string,
   connectionId: string,
-  options: { full?: boolean } = {},
+  options: { full?: boolean; ignoreSchedule?: boolean } = {},
 ): Promise<SyncOutcome> {
   try {
     return await withTenant({ organizationId }, async (tx) => {
@@ -208,22 +303,55 @@ export async function syncConnection(
       return syncConnectionWithin(tx, toConnection(row), options);
     });
   } catch (error) {
-    await markConnectionError(organizationId, connectionId);
+    await markConnectionError(organizationId, connectionId, providerOf(error), error);
     throw error;
   }
 }
 
-async function markConnectionError(organizationId: string, connectionId: string): Promise<void> {
+/**
+ * Records a failure and pushes the connection out to its next attempt.
+ *
+ * The backoff lives on the row rather than in the job, because the scheduler
+ * rescans every minute regardless of what any individual job decided: without a
+ * `next_sync_at` in the future, a source that is down would be retried sixty
+ * times an hour indefinitely.
+ */
+async function markConnectionError(
+  organizationId: string,
+  connectionId: string,
+  provider: string,
+  error: unknown,
+  now = new Date(),
+): Promise<void> {
+  const policy = rateLimitFor(provider);
+
   try {
-    await withTenant({ organizationId }, (tx) =>
-      tx
+    await withTenant({ organizationId }, async (tx) => {
+      const [row] = await tx
+        .select({ failureCount: schema.connections.failureCount })
+        .from(schema.connections)
+        .where(eq(schema.connections.id, connectionId))
+        .limit(1);
+
+      const failureCount = (row?.failureCount ?? 0) + 1;
+
+      await tx
         .update(schema.connections)
-        .set({ status: "error", updatedAt: new Date() })
-        .where(eq(schema.connections.id, connectionId)),
-    );
-  } catch (error) {
+        .set({
+          status: "error",
+          failureCount,
+          nextSyncAt: new Date(now.getTime() + computeBackoffMs(failureCount, policy)),
+          lastError: (error instanceof Error ? error.message : String(error)).slice(0, 500),
+          updatedAt: now,
+        })
+        .where(eq(schema.connections.id, connectionId));
+    });
+  } catch (bookkeepingError) {
     // Never let bookkeeping mask the original failure.
-    log.error({ organizationId, connectionId, err: error }, "Could not mark connection as errored");
+    log.error(
+      { organizationId, connectionId, err: bookkeepingError },
+      "Could not mark connection as errored",
+    );
   }
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "review_insights" ADD COLUMN "content_hash" text;

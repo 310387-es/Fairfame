@@ -39,6 +39,12 @@ export type Connection = {
   encryptedTokens: string | null;
   /** Opaque provider sync position. The connector alone decides its meaning. */
   cursor: string | null;
+  /** Last successful sync, or null if it has never completed one. */
+  lastSyncedAt: Date | null;
+  /** Earliest the scheduler may sync again — backoff and rate-limit deferral. */
+  nextSyncAt: Date | null;
+  /** Consecutive failures. Zero after any success. */
+  failureCount: number;
   /**
    * When the connection was made. Connectors use it as a stable anchor: a
    * source's historical reviews must not shift in time just because they were
@@ -47,8 +53,18 @@ export type Connection = {
   createdAt: Date;
 };
 
-/** What `connect()` hands back for the data layer to persist. */
-export type NewConnection = Omit<Connection, "id" | "createdAt">;
+/**
+ * What `connect()` hands back for the data layer to persist.
+ *
+ * The scheduling fields are omitted deliberately: pacing state (when we last
+ * synced, when we may sync next, how many failures deep we are) belongs to the
+ * scheduler, and a connector that could set it could exempt itself from
+ * everyone else's rate limits.
+ */
+export type NewConnection = Omit<
+  Connection,
+  "id" | "createdAt" | "lastSyncedAt" | "nextSyncAt" | "failureCount"
+>;
 
 /**
  * One review exactly as the provider returned it.
@@ -70,6 +86,15 @@ export type RawReview = {
 export type CanonicalReview = {
   locationId: string;
   source: string;
+  /**
+   * What kind of item this is (P1b-T4). Defaults to `review` when a connector
+   * does not say, which keeps every review source unchanged.
+   *
+   * A social connector sets `comment`, `mention` or `dm`. The distinction is
+   * not cosmetic: a comment carries no rating, and a DM is not public, which
+   * changes what may be quoted back in a digest.
+   */
+  itemType?: "review" | "comment" | "mention" | "dm";
   sourceReviewId: string;
   authorName: string | null;
   rating: number | null;

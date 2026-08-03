@@ -1,0 +1,15 @@
+{
+  "reviews": [
+    {
+      "name": "accounts/106321548215487/locations/12345678901234567890/reviews/AbFvOqNlR4",
+      "reviewId": "AbFvOqNlR4",
+      "reviewer": { "displayName": "Deniz" },
+      "starRating": "STAR_RATING_UNSPECIFIED",
+      "comment": "Fena değil.",
+      "createTime": "2026-07-20T08:00:00.000000Z",
+      "updateTime": "2026-07-20T08:00:00.000000Z"
+    }
+  ],
+  "averageRating": 4.3,
+  "totalReviewCount": 128
+}

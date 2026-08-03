@@ -1,0 +1,27 @@
+{
+  "locations": [
+    {
+      "name": "locations/12345678901234567890",
+      "title": "Kahve Dünyası — Kadıköy",
+      "storefrontAddress": {
+        "regionCode": "TR",
+        "languageCode": "tr",
+        "postalCode": "34710",
+        "administrativeArea": "İstanbul",
+        "locality": "Kadıköy",
+        "addressLines": ["Caferağa Mah. Moda Cad. No:12"]
+      },
+      "metadata": { "mapsUri": "https://maps.google.com/?cid=1234567890" }
+    },
+    {
+      "name": "locations/99999999999999999999",
+      "title": "Kahve Dünyası — Beşiktaş",
+      "storefrontAddress": {
+        "regionCode": "TR",
+        "locality": "Beşiktaş",
+        "addressLines": ["Sinanpaşa Mah. Barbaros Bulvarı No:3"]
+      }
+    }
+  ],
+  "totalSize": 2
+}

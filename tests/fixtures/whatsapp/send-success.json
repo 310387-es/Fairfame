@@ -1,0 +1,5 @@
+{
+  "messaging_product": "whatsapp",
+  "contacts": [{ "input": "905321234567", "wa_id": "905321234567" }],
+  "messages": [{ "id": "wamid.HBgLOTA1MzIxMjM0NTY3FQIAERgSN0RCRDA1RTk=" }]
+}

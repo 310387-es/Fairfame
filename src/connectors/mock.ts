@@ -69,12 +69,12 @@ const mockPayloadSchema = z.object({
   ownerReply: z.object({ text: z.string(), repliedAt: z.iso.datetime() }).optional(),
 });
 
-function parseConfig(connection: Connection): MockConfig {
+function parseConfig(connection: Connection, provider: string = MOCK_PROVIDER): MockConfig {
   const result = mockConfigSchema.safeParse(connection.config);
   if (!result.success) {
     throw new ConnectorError(
       `Invalid mock connection config: ${result.error.issues.map((i) => i.message).join("; ")}`,
-      MOCK_PROVIDER,
+      provider,
       false, // a bad config will not fix itself on retry
     );
   }
@@ -114,132 +114,166 @@ function dripReviews(config: MockConfig, now: Date): MockReviewPayload[] {
   );
 }
 
-export const mockConnector: Connector = {
+/**
+ * Builds a mock connector wearing another provider's identity.
+ *
+ * This is the mechanism behind "MockConnector is the dev default". A `google`
+ * connection running in mock mode produces reviews tagged `source: 'google'`
+ * carrying Google's declared capabilities, so the Inbox, the digest and the
+ * capability-driven UI behave exactly as they will once the real connector
+ * swaps in. The only thing that changes at go-live is where the data came from.
+ *
+ * Stamping every mocked source as `mock` instead would turn that swap into a
+ * visible data migration rather than a flag flip.
+ */
+export function createMockConnector(identity: {
+  provider: string;
+  capabilities: Capability;
+}): Connector {
+  const { provider, capabilities } = identity;
+
+  const connector: Connector = {
+    provider,
+    capabilities,
+
+    async connect(organizationId: string, config: unknown): Promise<NewConnection> {
+      const parsed = mockConfigSchema.safeParse(config);
+      if (!parsed.success) {
+        throw new ConnectorError(
+          `Cannot connect the ${provider} source: ${parsed.error.issues
+            .map((issue) => `${issue.path.join(".")} ${issue.message}`)
+            .join("; ")}`,
+          provider,
+          false,
+        );
+      }
+
+      return {
+        organizationId,
+        locationId: parsed.data.locationId,
+        provider,
+        status: "active",
+        capabilities,
+        config: parsed.data,
+        // A real connector stores an encrypted credential here. The mock has
+        // none, and storing a placeholder would only invite someone to trust it.
+        encryptedTokens: null,
+        cursor: null,
+      };
+    },
+
+    async fetchReviews(connection: Connection, since?: Date): Promise<RawReview[]> {
+      const config = parseConfig(connection, provider);
+
+      if (config.simulate.failFetch) {
+        throw new ConnectorError(
+          "Simulated upstream failure while fetching reviews.",
+          provider,
+          config.simulate.retryable,
+        );
+      }
+
+      const now = new Date();
+
+      // Anchored to the connection, never to `now`. Anchoring to the wall clock
+      // would slide every historical review forward on each fetch, so an
+      // incremental sync would rediscover the entire backfill as "new" every run.
+      const backfill = generateCorpus({
+        locationId: config.locationId,
+        count: config.backfillCount,
+        until: connection.createdAt,
+        spanDays: config.spanDays,
+        seed: config.seed,
+        batchTag: "bf",
+      });
+
+      const all = [...backfill, ...dripReviews(config, now)];
+
+      // An incremental sync asks only for what is new. Dedup still protects the
+      // canonical table, but there is no reason to ship 40 rows every run.
+      const filtered =
+        since === undefined
+          ? all
+          : all.filter((review) => new Date(review.createdAt).getTime() > since.getTime());
+
+      return filtered.map(toRaw);
+    },
+
+    normalize(connection: Connection, raw: RawReview): CanonicalReview {
+      const parsed = mockPayloadSchema.safeParse(raw.payload);
+      if (!parsed.success) {
+        throw new ConnectorError(
+          `Unexpected mock payload for review "${raw.sourceReviewId}": ${parsed.error.issues
+            .map((issue) => `${issue.path.join(".")} ${issue.message}`)
+            .join("; ")}`,
+          provider,
+          false,
+        );
+      }
+
+      const payload = parsed.data;
+
+      return {
+        locationId: connection.locationId,
+        // The identity the connection was made under, so a mocked Google
+        // connection produces Google-sourced rows.
+        source: provider,
+        sourceReviewId: payload.id,
+        authorName: payload.author.name,
+        rating: payload.rating,
+        text: payload.comment,
+        language: payload.language,
+        postedAt: new Date(payload.createdAt),
+        url: payload.permalink,
+        // Always keep the provider response verbatim.
+        rawPayload: raw.payload,
+      };
+    },
+
+    nextCursor(_connection: Connection, fetched: RawReview[]): string | null {
+      if (fetched.length === 0) return null;
+
+      // Resume from the newest item seen. Parsed defensively: a malformed
+      // createdAt must not poison the cursor and stall every future sync.
+      const newest = fetched.reduce<number>((latest, raw) => {
+        const value = raw.payload.createdAt;
+        const time = typeof value === "string" ? Date.parse(value) : Number.NaN;
+        return Number.isNaN(time) ? latest : Math.max(latest, time);
+      }, Number.NEGATIVE_INFINITY);
+
+      return newest === Number.NEGATIVE_INFINITY ? null : new Date(newest).toISOString();
+    },
+  };
+
+  // The contract says `postReply` is present only when the provider claims it
+  // can reply through an API — and the capability-driven UI reads exactly that,
+  // so a mocked source must not offer a reply path its real counterpart lacks.
+  if (capabilities.reply === "api") {
+    connector.postReply = async (
+      connection: Connection,
+      sourceReviewId: string,
+      text: string,
+    ): Promise<ReplyResult> => {
+      const config = parseConfig(connection, provider);
+
+      if (config.simulate.failReply) {
+        return { ok: false, reason: "Simulated reply rejection.", retryable: true };
+      }
+      if (text.trim().length === 0) {
+        return { ok: false, reason: "Reply text is empty.", retryable: false };
+      }
+
+      // Replies are not persisted yet — there is no replies table. Returning
+      // the external id keeps the contract honest for when there is.
+      return { ok: true, externalId: `${provider}_reply_${sourceReviewId}` };
+    };
+  }
+
+  return connector;
+}
+
+/** The plain mock source, as connected from the Locations screen. */
+export const mockConnector: Connector = createMockConnector({
   provider: MOCK_PROVIDER,
   capabilities: mockCapabilities,
-
-  async connect(organizationId: string, config: unknown): Promise<NewConnection> {
-    const parsed = mockConfigSchema.safeParse(config);
-    if (!parsed.success) {
-      throw new ConnectorError(
-        `Cannot connect the mock source: ${parsed.error.issues
-          .map((issue) => `${issue.path.join(".")} ${issue.message}`)
-          .join("; ")}`,
-        MOCK_PROVIDER,
-        false,
-      );
-    }
-
-    return {
-      organizationId,
-      locationId: parsed.data.locationId,
-      provider: MOCK_PROVIDER,
-      status: "active",
-      capabilities: mockCapabilities,
-      config: parsed.data,
-      // A real connector stores an encrypted credential here. The mock has none,
-      // and storing a placeholder would only invite someone to trust it.
-      encryptedTokens: null,
-      cursor: null,
-    };
-  },
-
-  async fetchReviews(connection: Connection, since?: Date): Promise<RawReview[]> {
-    const config = parseConfig(connection);
-
-    if (config.simulate.failFetch) {
-      throw new ConnectorError(
-        "Simulated upstream failure while fetching reviews.",
-        MOCK_PROVIDER,
-        config.simulate.retryable,
-      );
-    }
-
-    const now = new Date();
-
-    // Anchored to the connection, never to `now`. Anchoring to the wall clock
-    // would slide every historical review forward on each fetch, so an
-    // incremental sync would rediscover the entire backfill as "new" every run.
-    const backfill = generateCorpus({
-      locationId: config.locationId,
-      count: config.backfillCount,
-      until: connection.createdAt,
-      spanDays: config.spanDays,
-      seed: config.seed,
-      batchTag: "bf",
-    });
-
-    const all = [...backfill, ...dripReviews(config, now)];
-
-    // An incremental sync asks only for what is new. Dedup still protects the
-    // canonical table, but there is no reason to ship 40 rows every run.
-    const filtered =
-      since === undefined
-        ? all
-        : all.filter((review) => new Date(review.createdAt).getTime() > since.getTime());
-
-    return filtered.map(toRaw);
-  },
-
-  async postReply(
-    connection: Connection,
-    sourceReviewId: string,
-    text: string,
-  ): Promise<ReplyResult> {
-    const config = parseConfig(connection);
-
-    if (config.simulate.failReply) {
-      return { ok: false, reason: "Simulated reply rejection.", retryable: true };
-    }
-    if (text.trim().length === 0) {
-      return { ok: false, reason: "Reply text is empty.", retryable: false };
-    }
-
-    // Replies are not persisted in Phase 0 — there is no replies table yet.
-    // Returning the external id keeps the contract honest for when there is.
-    return { ok: true, externalId: `mock_reply_${sourceReviewId}` };
-  },
-
-  normalize(connection: Connection, raw: RawReview): CanonicalReview {
-    const parsed = mockPayloadSchema.safeParse(raw.payload);
-    if (!parsed.success) {
-      throw new ConnectorError(
-        `Unexpected mock payload for review "${raw.sourceReviewId}": ${parsed.error.issues
-          .map((issue) => `${issue.path.join(".")} ${issue.message}`)
-          .join("; ")}`,
-        MOCK_PROVIDER,
-        false,
-      );
-    }
-
-    const payload = parsed.data;
-
-    return {
-      locationId: connection.locationId,
-      source: MOCK_PROVIDER,
-      sourceReviewId: payload.id,
-      authorName: payload.author.name,
-      rating: payload.rating,
-      text: payload.comment,
-      language: payload.language,
-      postedAt: new Date(payload.createdAt),
-      url: payload.permalink,
-      // Always keep the provider response verbatim.
-      rawPayload: raw.payload,
-    };
-  },
-
-  nextCursor(_connection: Connection, fetched: RawReview[]): string | null {
-    if (fetched.length === 0) return null;
-
-    // Resume from the newest item seen. Parsed defensively: a malformed
-    // createdAt must not poison the cursor and stall every future sync.
-    const newest = fetched.reduce<number>((latest, raw) => {
-      const value = raw.payload.createdAt;
-      const time = typeof value === "string" ? Date.parse(value) : Number.NaN;
-      return Number.isNaN(time) ? latest : Math.max(latest, time);
-    }, Number.NEGATIVE_INFINITY);
-
-    return newest === Number.NEGATIVE_INFINITY ? null : new Date(newest).toISOString();
-  },
-};
+});

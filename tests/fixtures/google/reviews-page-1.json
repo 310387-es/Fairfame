@@ -1,0 +1,40 @@
+{
+  "reviews": [
+    {
+      "name": "accounts/106321548215487/locations/12345678901234567890/reviews/AbFvOqNlR1",
+      "reviewId": "AbFvOqNlR1",
+      "reviewer": {
+        "profilePhotoUrl": "https://lh3.googleusercontent.com/a/photo1",
+        "displayName": "Ayşe Yılmaz"
+      },
+      "starRating": "FIVE",
+      "comment": "Kahvesi harika, personel çok ilgili. Kadıköy'e gelince mutlaka uğruyorum.",
+      "createTime": "2026-07-30T12:04:11.123456Z",
+      "updateTime": "2026-07-30T12:04:11.123456Z"
+    },
+    {
+      "name": "accounts/106321548215487/locations/12345678901234567890/reviews/AbFvOqNlR2",
+      "reviewId": "AbFvOqNlR2",
+      "reviewer": { "displayName": "Mehmet K.", "isAnonymous": false },
+      "starRating": "TWO",
+      "comment": "Servis çok yavaştı, siparişim 25 dakika sürdü.",
+      "createTime": "2026-07-29T18:22:03.000000Z",
+      "updateTime": "2026-07-29T19:00:00.000000Z",
+      "reviewReply": {
+        "comment": "Yaşadığınız gecikme için özür dileriz Mehmet Bey.",
+        "updateTime": "2026-07-29T20:10:00.000000Z"
+      }
+    },
+    {
+      "name": "accounts/106321548215487/locations/12345678901234567890/reviews/AbFvOqNlR3",
+      "reviewId": "AbFvOqNlR3",
+      "reviewer": { "isAnonymous": true },
+      "starRating": "FOUR",
+      "createTime": "2026-07-28T09:15:00.000000Z",
+      "updateTime": "2026-07-28T09:15:00.000000Z"
+    }
+  ],
+  "averageRating": 4.3,
+  "totalReviewCount": 128,
+  "nextPageToken": "CAESBkFiRnZPcQ"
+}

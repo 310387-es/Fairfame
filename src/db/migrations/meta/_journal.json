@@ -36,6 +36,118 @@
       "when": 1785608215189,
       "tag": "0004_connection_config",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785619329031,
+      "tag": "0005_first_party_collection",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785619346685,
+      "tag": "0006_first_party_security",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785662570798,
+      "tag": "0007_connection_pacing",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785674616984,
+      "tag": "0008_ai_insights",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785674643351,
+      "tag": "0009_ai_insights_security",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785676166429,
+      "tag": "0010_insight_content_hash",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785685493771,
+      "tag": "0011_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1785685493772,
+      "tag": "0012_notifications_security",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1785691694596,
+      "tag": "0013_replies",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1785691694597,
+      "tag": "0014_replies_security",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1785695344989,
+      "tag": "0015_digests",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1785695344990,
+      "tag": "0016_digests_security",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1785706146386,
+      "tag": "0017_whatsapp",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1785706146387,
+      "tag": "0018_whatsapp_security",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1785707718606,
+      "tag": "0019_review_item_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1785708876648,
+      "tag": "0020_iys_consent",
+      "breakpoints": true
     }
   ]
 }

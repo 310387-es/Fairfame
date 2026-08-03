@@ -6,7 +6,11 @@ name: revira
 
 services:
   postgres:
-    image: postgres:17-alpine
+    # pgvector's image rather than plain `postgres`: the locked stack calls for
+    # pgvector for embeddings (CLAUDE.md), and the official Postgres images do
+    # not ship the extension. This is Postgres 17 with `vector` preinstalled —
+    # same major version, so the existing data directory is unaffected.
+    image: pgvector/pgvector:pg17
     container_name: revira-postgres
     restart: unless-stopped
     environment:
@@ -44,6 +48,32 @@ services:
       - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+  # Dev mail catcher for review-request campaigns (P1b-T1). Nothing leaves the
+  # machine: the SMTP transport points here, and every message is readable in
+  # the web UI at http://localhost:8025.
+  #
+  # Mailpit rather than MailHog — MailHog is archived and publishes an
+  # amd64-only image, which emulates poorly on Apple Silicon. Mailpit is its
+  # maintained successor and speaks the same SMTP(1025)/UI(8025) contract.
+  mail:
+    image: axllent/mailpit:v1.28
+    container_name: revira-mail
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      # Dev inbox: keep it small and self-pruning.
+      MP_MAX_MESSAGES: 500
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # web UI
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
       interval: 5s
       timeout: 5s
       retries: 12

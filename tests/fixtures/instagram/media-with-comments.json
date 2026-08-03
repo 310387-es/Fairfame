@@ -1,0 +1,35 @@
+{
+  "data": [
+    {
+      "id": "17895695668004550",
+      "permalink": "https://www.instagram.com/p/CxAbCdEfGhI/",
+      "timestamp": "2026-07-21T09:14:00+0000",
+      "comments": {
+        "data": [
+          {
+            "id": "17870913511019625",
+            "text": "Kahvaltı gerçekten çok iyiydi, teşekkürler!",
+            "timestamp": "2026-07-21T10:02:11+0000",
+            "username": "ayse_k",
+            "from": { "id": "9988776655", "username": "ayse_k" }
+          },
+          {
+            "id": "17870913511019626",
+            "text": "Servis çok yavaştı ne yazık ki",
+            "timestamp": "2026-07-21T11:30:00+0000",
+            "username": "mehmet.d",
+            "from": { "id": "1122334455", "username": "mehmet.d" }
+          },
+          {
+            "id": "17870913511019627",
+            "text": "Teşekkür ederiz, tekrar bekleriz!",
+            "timestamp": "2026-07-21T12:00:00+0000",
+            "username": "kahvemolasi",
+            "parent_id": "17870913511019625"
+          }
+        ]
+      }
+    }
+  ],
+  "paging": { "cursors": { "after": "QVFIUmx3" } }
+}
