@@ -106,6 +106,7 @@ export default async function CollectPage({ params, searchParams }: PageProps) {
     emailPlaceholder: t("emailPlaceholder"),
     emailHint: t("emailHint"),
     kvkkLabel: t("kvkkLabel"),
+    iysLabel: t("iysLabel"),
     submit: t("submit"),
     submitting: t("submitting"),
     thanksTitle: t("thanksTitle"),

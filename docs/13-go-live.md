@@ -118,7 +118,9 @@ which is a chicken-and-egg problem worth planning for.
 
 1. Add the Instagram product to the Meta app.
 2. Request `instagram_basic`, `instagram_manage_comments` and `pages_show_list`
-   through app review.
+   through app review. Add `instagram_manage_messages` if DM ingestion is
+   wanted — it is a **separate** review item, and the connector is built to run
+   without it (see below).
 3. Set `META_APP_ID`, `META_APP_SECRET`, `INSTAGRAM_VERIFY_TOKEN`,
    `TOKEN_VAULT_KEYS`, and `CONNECTOR_INSTAGRAM_MODE=real`.
 4. Subscribe the webhook to `{BETTER_AUTH_URL}/api/webhooks/instagram`, fields
@@ -131,8 +133,29 @@ account and confirm it reaches the Inbox as a `comment` with no rating; reply
 from the Inbox and confirm the reply appears on Instagram; tag the business from
 another account and confirm a `mention` arrives.
 
-**Not implemented:** DMs. They need `instagram_manage_messages`, a separate
-app-review item. The `dm` item type exists in the schema and is unused.
+**Direct messages: read, not answered.** DMs are ingested as `item_type = 'dm'`
+from the `conversations` edge (`platform=instagram`, or the real API serves
+Facebook Page threads instead). Three things about them differ from comments:
+
+- The **business's own replies live in the same thread**, and `from.id` is the
+  only thing distinguishing them. They are filtered in the client, or the
+  product would analyse its own support answers as customer sentiment.
+- A DM carries **no `url`** — it is private, and there is no page a colleague
+  could open. It also means a digest must not quote one the way it quotes a
+  public review.
+- The edge **degrades on its own**. Without `instagram_manage_messages` — the
+  normal state before that app-review item passes — the DM fetch is logged and
+  skipped, and comments and mentions still sync. A rate limit still propagates,
+  so backoff is not lost.
+
+**Replying to a DM is not built.** It is a *send*, not a reply to public
+content: it needs the send gate extended to Instagram, Meta's 24-hour
+customer-service window, and the messaging scope. The Inbox shows an explicit
+refusal saying so rather than a generic failure.
+
+**Verify DMs by hand:** message the business from another account, confirm it
+reaches the Inbox as a `dm` with no rating and no link; then reply *from
+Instagram* and confirm that reply does **not** appear as a new inbox item.
 
 ---
 
@@ -144,17 +167,33 @@ app-review item. The `dm` item type exists in the schema and is unused.
 1. Register the business with İYS.
 2. Choose a BSP — in practice the same provider as the SMS/WhatsApp gateway.
 3. Add an adapter beside `local` in `src/compliance/iys-gateway.ts` implementing
-   `IysGateway.check`, and a case in `installIysGateway`.
+   `IysGateway.check` **and `IysGateway.upload`**, and a case in
+   `installIysGateway`. Both are required: whichever BSP answers "does the
+   registry hold this permission" is the one that put it there.
 4. Set `IYS_GATEWAY` to the new adapter's name. Leave `IYS_REQUIRED=true`.
-5. Build the worker job that drains `pendingIysUploads()` through the gateway
-   and calls `markUploaded` / `markUploadFailed`. **This does not exist yet.**
-6. Add an İYS opt-in tick to the collection form. **This does not exist yet** —
-   until it does, no first-party contact can be sent a commercial message, which
-   is the correct default but not the intended product.
 
-**Verify:** `pnpm golive -- compliance` shows the gateway by name. Then: record a
-consent, confirm `iys_upload_due_at` is three business days out, confirm the
-upload job clears it, and confirm a revoked consent is *not* uploaded.
+Steps 5 and 6 are **done** — the collection form has the opt-in tick, and the
+`iys_sweep` job (`src/jobs/workers/iys-upload.ts`, every
+`IYS_SWEEP_INTERVAL_MS`, default 15 min) drains `pendingIysUploads()` through
+the gateway and records what it said. Only the adapter is outstanding.
+
+**Writing the adapter — the contract:**
+
+- Return one `IysUploadOutcome` per input. A record you say nothing about is
+  treated as failed, not accepted: silence must never register a permission.
+- `retryable: true` means "the registry was unreachable"; `false` means "the
+  registry refused this recipient". Both leave the consent queued and unusable,
+  but only the first will fix itself, and the queue is what an operator reads.
+- Throwing is fine — every row stays queued and is retried next pass.
+- `grantedAt` is the moment the customer ticked the box. Report that, never the
+  upload time; a late upload of a timely consent is untidy, a re-dated consent
+  is a false record.
+
+**Verify:** `pnpm golive -- compliance` shows the gateway by name and reports the
+upload backlog — it **blocks** on any consent past its three-business-day
+deadline. Then: record a consent, confirm `iys_upload_due_at` is three business
+days out, confirm the sweep clears it and stamps `iys_uploaded_via` with the new
+adapter's name (not `local`), and confirm a revoked consent is *not* uploaded.
 
 **Recurring maintenance:** `MOVABLE_HOLIDAYS` in
 `src/compliance/business-days.ts` lists the religious public holidays, which
@@ -188,8 +227,10 @@ missing credential results in an attempted live call.
 ## Order to go live in
 
 1. **Google** — the fastest to value and the least entangled. One approval.
-2. **İYS + the collection opt-in** — everything commercial is blocked until this
-   is done, and it is the longest pole that does not depend on Meta.
+2. **İYS — registration, a BSP, and the adapter** — everything commercial is
+   blocked until this is done, and it is the longest pole that does not depend
+   on Meta. The opt-in tick and the upload worker are already built; what
+   remains needs the company.
 3. **WhatsApp** — needs İYS in place first, or step 4 of its verification cannot
    pass.
 4. **Instagram** — the slowest approval and the least urgent; ingestion works

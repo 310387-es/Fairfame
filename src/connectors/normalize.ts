@@ -1,5 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
+import { refreshPriority, slaDueAt, slaHoursByLocation } from "../inbox/workflow.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import type { CanonicalReview } from "./types.ts";
 
@@ -41,6 +42,14 @@ export async function upsertReviews(
   }
   const batch = [...deduped.values()];
 
+  // The response deadline is stamped at ingest, from the location's target
+  // (P2-T1). Resolved once for the batch rather than per row.
+  const slaHours = await slaHoursByLocation(
+    tx,
+    organizationId,
+    batch.map((review) => review.locationId),
+  );
+
   const rows = await tx
     .insert(schema.reviews)
     .values(
@@ -57,6 +66,7 @@ export async function upsertReviews(
         postedAt: review.postedAt,
         url: review.url,
         rawPayload: review.rawPayload,
+        slaDueAt: slaDueAt(review.postedAt, slaHours.get(review.locationId)),
       })),
     )
     .onConflictDoUpdate({
@@ -65,6 +75,13 @@ export async function upsertReviews(
         // `item_type` is deliberately absent: a row's kind is fixed at
         // ingestion and a source that changed it mid-life would be a bug, not
         // an update worth applying.
+        //
+        // So are the workflow columns. `status`, `assignee_user_id` and
+        // `first_response_at` are what the *team* did and a re-sync must never
+        // reopen a resolved item; `sla_due_at` is fixed at first ingest so a
+        // re-sync cannot quietly move a deadline that has already lapsed.
+        // `priority` is derived and is recomputed below, from the row as it
+        // ends up rather than from this batch alone.
         authorName: sql`excluded.author_name`,
         rating: sql`excluded.rating`,
         text: sql`excluded.text`,
@@ -80,6 +97,14 @@ export async function upsertReviews(
     .returning({ id: schema.reviews.id, inserted: sql<boolean>`(xmax = 0)` });
 
   const inserted = rows.filter((row) => row.inserted).length;
+
+  // Score the batch. At ingest there is no analysis yet, so this is the rating
+  // talking; the analysis pass re-runs the same function once it knows more.
+  await refreshPriority(
+    tx,
+    organizationId,
+    rows.map((row) => row.id),
+  );
 
   return {
     received: batch.length,

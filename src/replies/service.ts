@@ -3,6 +3,7 @@ import { draftReply } from "../ai/analyze.ts";
 import { schema } from "../db/client.ts";
 import { getConnector } from "../connectors/registry.ts";
 import { toConnection } from "../connectors/sync.ts";
+import { recordFirstResponse } from "../inbox/triage.ts";
 import { can, recordUsage, withinLimit } from "../lib/entitlements.ts";
 import { childLogger } from "../lib/logger.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
@@ -575,6 +576,12 @@ export async function postReply(args: {
     .returning();
 
   if (!row) throw new Error("Could not record the posted reply.");
+
+  // The SLA clock stops here (P2-T4). Posting is what the *customer* sees, so it
+  // is what "responded" has to mean — a draft nobody approved is not an answer,
+  // and counting it as one would let a team hit every target without ever
+  // replying to anybody.
+  await recordFirstResponse(tx, organizationId, reply.reviewId, now);
 
   await audit(tx, {
     organizationId,

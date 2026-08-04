@@ -1,6 +1,6 @@
 import { getEnv } from "../lib/env.ts";
 import { childLogger } from "../lib/logger.ts";
-import { setIysGateway, type IysGateway, type IysVerdict } from "./gate.ts";
+import { setIysGateway, type IysGateway, type IysUploadOutcome, type IysVerdict } from "./gate.ts";
 
 /**
  * İYS gateway adapters (P1b-T5).
@@ -43,6 +43,32 @@ export function createLocalGateway(nodeEnv: string): IysGateway {
       // the contact has not opted out; there is nothing further this adapter
       // can honestly add.
       return "allowed";
+    },
+
+    /**
+     * Accepts everything, in development only.
+     *
+     * This is the one adapter method that writes a *persisted* claim: a row
+     * marked uploaded says the registry holds that permission. Nothing here
+     * reached a registry, so the claim would be false — which is why the
+     * uploader stores the adapter's name alongside the timestamp, and why
+     * `local` is worth being able to pick out of a table forever afterwards.
+     */
+    async upload({ records }): Promise<IysUploadOutcome[]> {
+      if (nodeEnv === "production") {
+        log.error(
+          "IYS_GATEWAY=local reached production. Refusing to record uploads: marking a consent " +
+            "registered when no registry has seen it is worse than leaving it queued.",
+        );
+        return records.map((record) => ({
+          id: record.id,
+          status: "failed",
+          retryable: false,
+          detail: "local gateway refuses to record uploads in production",
+        }));
+      }
+
+      return records.map((record) => ({ id: record.id, status: "accepted" }));
     },
   };
 }

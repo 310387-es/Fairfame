@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
-import type { ReviewNotificationPayload } from "./service.ts";
+import type { ReviewNotificationPayload, SlaRollupPayload } from "./service.ts";
 
 /**
  * Reading the in-app feed (P1a-T5).
@@ -14,16 +14,24 @@ import type { ReviewNotificationPayload } from "./service.ts";
  * missing filter should be a type error, not a quiet disclosure.
  */
 
+/**
+ * One entry in the bell.
+ *
+ * A discriminated union rather than one payload with optional fields: a rollup
+ * has a count and no review, an arrival has a review and no count, and a type
+ * that admitted both would let the bell render "undefined" for either.
+ */
 export type FeedItem = {
   id: string;
-  type: "new_review";
   urgency: "normal" | "urgent";
-  payload: ReviewNotificationPayload;
   reviewId: string | null;
   locationId: string | null;
   readAt: Date | null;
   createdAt: Date;
-};
+} & (
+  | { type: "new_review" | "sla_breach"; payload: ReviewNotificationPayload }
+  | { type: "sla_rollup"; payload: SlaRollupPayload }
+);
 
 export type FeedOptions = {
   limit?: number;
@@ -96,7 +104,11 @@ export async function listFeed(
 
   return rows.map((row) => ({
     ...row,
-    payload: row.payload as ReviewNotificationPayload,
+    // The column is untyped jsonb; the row's `type` is what says which shape is
+    // in it, and the two were written together by the same service.
+    ...(row.type === "sla_rollup"
+      ? { type: "sla_rollup" as const, payload: row.payload as SlaRollupPayload }
+      : { type: row.type, payload: row.payload as ReviewNotificationPayload }),
   }));
 }
 

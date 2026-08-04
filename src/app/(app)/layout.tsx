@@ -17,7 +17,7 @@ import { TrialFooter } from "@/components/shell/trial-footer";
 import { UserMenu } from "@/components/shell/user-menu";
 import { getLocale } from "@/i18n/locale";
 import {
-  listLocations,
+  listLocationsForActor,
   readActiveLocationCookie,
   resolveActiveLocation,
 } from "@/lib/active-location";
@@ -49,7 +49,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { locations, entitlements, unread } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => ({
-      locations: await listLocations(tx, actor.organizationId),
+      // The switcher offers only the branches this person may open.
+      locations: await listLocationsForActor(tx, actor),
       entitlements: await getEntitlements({ organizationId: actor.organizationId, tx }),
       // Per user, not per organization — the badge is this person's unread
       // count, and the query filters on the actor for exactly that reason.

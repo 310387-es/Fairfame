@@ -308,7 +308,47 @@
     "pagination": "Pagination",
     "previous": "Previous",
     "next": "Next",
-    "range": "{from}–{to} of {total}"
+    "range": "{from}–{to} of {total}",
+    "filterQuick": "Quick",
+    "filterStatus": "Status",
+    "filterAssignedToMe": "Assigned to me",
+    "filterOverdue": "Overdue",
+    "statusOpen": "Open",
+    "statusInProgress": "In progress",
+    "statusDone": "Done",
+    "statusIgnored": "Ignored",
+    "sort": "Sort",
+    "sortRecent": "Newest",
+    "sortPriority": "Priority",
+    "savedViews": "Views",
+    "viewShared": "Shared",
+    "saveView": "Save view",
+    "saveViewName": "Name",
+    "saveViewPlaceholder": "Overdue negatives",
+    "saveViewShared": "Share with the team",
+    "saveViewSubmit": "Save",
+    "saveViewHint": "The view remembers these filters, not the reviews in them.",
+    "deleteView": "Remove the view {name}",
+    "cancel": "Cancel",
+    "loadMore": "Load more",
+    "assignee": "Assignee",
+    "assigneeNobody": "Unassigned",
+    "slaOverdue": "Overdue",
+    "slaDueSoon": "Due soon",
+    "slaDue": "Due {at}",
+    "slaMet": "Answered in time",
+    "slaMissed": "Answered late",
+    "selectReview": "Select the review from {author}",
+    "bulkSelected": "{count, plural, =1 {1 selected} other {# selected}}",
+    "bulkTemplate": "Template",
+    "bulkTag": "Tag",
+    "bulkTagPlaceholder": "e.g. refund",
+    "bulkDraftAi": "Draft with AI",
+    "bulkClear": "Clear",
+    "bulkDone": "{count, plural, =0 {Nothing changed} =1 {1 review updated} other {# reviews updated}}",
+    "bulkFailed": "That did not work.",
+    "bulkDraftNote": "Drafting writes replies for review. Nothing is posted until someone approves it.",
+    "bulkUntag": "Remove"
   },
   "locations": {
     "title": "Locations",
@@ -458,7 +498,8 @@
     "closed": "This review page is closed.",
     "externalBody": "Leave your review on the platform below — it only takes a minute.",
     "externalCta": "Continue",
-    "kvkkNotice": "Your feedback is processed by this business to improve its service. It is not shared for any other purpose."
+    "kvkkNotice": "Your feedback is processed by this business to improve its service. It is not shared for any other purpose.",
+    "iysLabel": "You may also send me campaigns and offers. Optional, and separate from the above — you can withdraw at any time."
   },
   "team": {
     "title": "Team",
@@ -470,7 +511,17 @@
       "admin": "Admin",
       "member": "Member",
       "client": "Client"
-    }
+    },
+    "scopeTitle": "Who sees which branch",
+    "scopeSubtitle": "A teammate pinned to a branch only sees, and can only be given, work from it.",
+    "allLocations": "All locations",
+    "onlySelected": "Only selected",
+    "ownerSeesEverything": "An owner always sees every location.",
+    "pickOne": "Pick at least one location.",
+    "save": "Save",
+    "saved": "Saved",
+    "scopeLegend": "Locations {name} can see",
+    "noLocations": "Add a location first — there is nothing to assign yet."
   },
   "settings": {
     "title": "Settings",
@@ -535,7 +586,12 @@
     "popoverTitle": "Notifications",
     "loading": "Loading…",
     "urgentHint": "Urgent — low rating or negative review",
-    "endOfList": "That's everything"
+    "endOfList": "That's everything",
+    "slaBreach": "Overdue",
+    "slaBreachHint": "Nobody has answered this and the response deadline has passed.",
+    "slaRollupTitle": "{count, plural, =1 {1 review is overdue} other {# reviews are overdue}}",
+    "slaRollupBody": "Nobody has answered these and their response deadlines have passed.",
+    "slaRollupHint": "A summary, because too many lapsed at once to list separately."
   },
   "replies": {
     "writeReply": "Write a reply",
@@ -555,7 +611,10 @@
     "aiEdited": "AI draft, edited",
     "notEntitled": "AI replies are not included in your plan.",
     "failed": "That did not work. Try again.",
-    "lastError": "Last attempt failed: {reason}"
+    "lastError": "Last attempt failed: {reason}",
+    "useTemplate": "Template",
+    "templatesLoading": "Loading…",
+    "templatesEmpty": "No templates yet."
   },
   "sample": {
     "metaTitle": "A sample weekly plan — Revira",
@@ -581,5 +640,19 @@
     "ctaBody": "Connect a source and your first plan arrives within the week. No card needed to start.",
     "ctaButton": "Get started",
     "ctaSignIn": "I already have an account"
+  },
+  "templates": {
+    "title": "Reply templates",
+    "subtitle": "Answers your team writes once and reuses.",
+    "empty": "No templates yet.",
+    "add": "New template",
+    "name": "Name",
+    "language": "Language",
+    "body": "Reply",
+    "variables": "Placeholders:",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit {name}",
+    "delete": "Delete {name}"
   }
 }

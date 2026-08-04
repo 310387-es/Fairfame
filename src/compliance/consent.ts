@@ -215,18 +215,26 @@ export async function overdueUploadCount(
   return row?.count ?? 0;
 }
 
-/** Marks a consent as accepted by İYS. */
+/**
+ * Marks a consent as accepted by İYS.
+ *
+ * `via` is the accepting gateway's name and is not optional, because this row
+ * is the evidence that a permission was registered — and a development adapter
+ * accepting it locally is not that. Recording which one answered keeps the
+ * claim honest in databases where the answer was `local`.
+ */
 export async function markUploaded(
   tx: TenantDatabase,
   organizationId: string,
   ids: string[],
+  via: string,
   now = new Date(),
 ): Promise<void> {
   if (ids.length === 0) return;
 
   await tx
     .update(schema.consentRecords)
-    .set({ iysUploadedAt: now, iysUploadError: null, updatedAt: now })
+    .set({ iysUploadedAt: now, iysUploadedVia: via, iysUploadError: null, updatedAt: now })
     .where(
       and(
         eq(schema.consentRecords.organizationId, organizationId),

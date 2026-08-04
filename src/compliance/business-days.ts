@@ -44,7 +44,17 @@ const FIXED_HOLIDAYS = new Set([
  * legal deadline. When the list runs out, `movableHolidaysKnownThrough` says so
  * and the caller can decide whether to trust the result.
  *
- * Dates below are the officially published Turkish public holidays.
+ * Dates below are the officially published Turkish public holidays: the three
+ * full days of Ramazan Bayramı and the four of Kurban Bayramı.
+ *
+ * **Arife (the half-day before each) is deliberately absent.** It is a half
+ * working day, and counting it as a holiday would lengthen every deadline that
+ * straddles it. Erring toward the shorter window is the safe direction — being
+ * early to the registry costs nothing, being late is the fineable one.
+ *
+ * The other thing this list cannot predict is a **köprü tatili** — a bridging
+ * day the government declares by decree, sometimes weeks ahead. That is what
+ * `setExtraHolidays` is for.
  */
 const MOVABLE_HOLIDAYS = new Set([
   // Ramazan Bayramı 2026
@@ -65,6 +75,33 @@ const MOVABLE_HOLIDAYS = new Set([
   "2027-05-17",
   "2027-05-18",
   "2027-05-19",
+  // Ramazan Bayramı 2028 (arife 26 Şubat)
+  "2028-02-27",
+  "2028-02-28",
+  "2028-02-29",
+  // Kurban Bayramı 2028 (arife 4 Mayıs)
+  "2028-05-05",
+  "2028-05-06",
+  "2028-05-07",
+  "2028-05-08",
+  // Ramazan Bayramı 2029 (arife 14 Şubat)
+  "2029-02-15",
+  "2029-02-16",
+  "2029-02-17",
+  // Kurban Bayramı 2029 (arife 23 Nisan — which is also a fixed holiday)
+  "2029-04-24",
+  "2029-04-25",
+  "2029-04-26",
+  "2029-04-27",
+  // Ramazan Bayramı 2030 (arife 3 Şubat)
+  "2030-02-04",
+  "2030-02-05",
+  "2030-02-06",
+  // Kurban Bayramı 2030 (arife 12 Nisan)
+  "2030-04-13",
+  "2030-04-14",
+  "2030-04-15",
+  "2030-04-16",
 ]);
 
 /**
@@ -74,7 +111,23 @@ const MOVABLE_HOLIDAYS = new Set([
  * after — a deadline computed past this point silently ignores four to seven
  * holidays a year.
  */
-export const MOVABLE_HOLIDAYS_KNOWN_THROUGH = 2027;
+export const MOVABLE_HOLIDAYS_KNOWN_THROUGH = 2030;
+
+/**
+ * Months of runway left on the movable list, from `at`.
+ *
+ * The failure mode this exists to prevent is silence: the list does not break
+ * when it runs out, it just stops knowing about four to seven days a year and
+ * every deadline it computes is quietly a day or two long. `pnpm golive` warns
+ * on this well before the last date, because "renew the holiday calendar" is a
+ * task with a lead time — someone has to look up the official dates.
+ */
+export function holidayCalendarMonthsLeft(at: Date): number {
+  const date = istanbulDate(at);
+  const year = Number(date.slice(0, 4));
+  const month = Number(date.slice(5, 7));
+  return (MOVABLE_HOLIDAYS_KNOWN_THROUGH - year) * 12 + (12 - month);
+}
 
 /** Extra dates a deployment wants treated as non-working, as `YYYY-MM-DD`. */
 let extraHolidays = new Set<string>();

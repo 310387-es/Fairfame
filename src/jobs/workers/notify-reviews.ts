@@ -3,7 +3,11 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { getAdminDb, schema } from "../../db/client.ts";
 import { childLogger } from "../../lib/logger.ts";
 import { sendPendingEmails } from "../../notifications/email.ts";
-import { notifyPendingReviews, upgradeUrgencyFromInsights } from "../../notifications/service.ts";
+import {
+  notifyPendingReviews,
+  notifySlaBreaches,
+  upgradeUrgencyFromInsights,
+} from "../../notifications/service.ts";
 import { enqueueNotify, type ReviewJob } from "../queue.ts";
 
 /**
@@ -65,6 +69,49 @@ export async function runNotifySweep(queue: Queue<ReviewJob>): Promise<NotifySwe
 
   if (rows.length > 0) {
     log.info({ organizations: rows.length }, "Notification sweep dispatched");
+  }
+
+  return { organizations: rows.length };
+}
+
+export type SlaSweepResult = { organizations: number };
+
+/**
+ * Alerts every organization holding a lapsed, unanswered deadline (P2-T7).
+ *
+ * The one legitimate cross-tenant read, on the same footing as the connector
+ * scan: a scheduler has no session and therefore no organization. It reads only
+ * the organization ids of rows that qualify — never the reviews themselves —
+ * and the per-tenant work happens inside `withTenant` in the service.
+ *
+ * Unlike the arrival sweep this cannot be replaced by an event: nothing happens
+ * when a deadline passes, which is exactly why something has to keep looking.
+ */
+export async function runSlaSweep(now = new Date()): Promise<SlaSweepResult> {
+  const rows = await getAdminDb()
+    .select({ organizationId: schema.reviews.organizationId })
+    .from(schema.reviews)
+    .where(
+      and(
+        // The same claim condition the service uses, minus the locking: this is
+        // only deciding which tenants are worth opening a transaction for.
+        isNull(schema.reviews.slaAlertedAt),
+        isNull(schema.reviews.firstResponseAt),
+        sql`${schema.reviews.slaDueAt} is not null and ${schema.reviews.slaDueAt} < ${now}`,
+        sql`${schema.reviews.status} in ('open', 'in_progress')`,
+      ),
+    )
+    .groupBy(schema.reviews.organizationId)
+    .limit(SWEEP_LIMIT);
+
+  let created = 0;
+  for (const row of rows) {
+    const outcome = await notifySlaBreaches({ organizationId: row.organizationId, now });
+    created += outcome.created;
+  }
+
+  if (created > 0) {
+    log.info({ organizations: rows.length, created }, "SLA sweep created breach alerts");
   }
 
   return { organizations: rows.length };

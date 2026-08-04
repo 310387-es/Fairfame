@@ -32,7 +32,11 @@ export function segmentedItem(size: SegmentedSize, active: boolean) {
     "rounded-sm transition-colors",
     size === "sm" ? "px-2.5 py-[5px]" : "px-3 py-1.5",
     "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-    active ? "bg-card text-foreground shadow-sm" : "text-ink-400 hover:text-foreground",
+    // `ink-500`, not `ink-400`: the trough is `--surface-segmented`, and the
+    // lighter token measures 3.97:1 against it — below AA for text. On white it
+    // would have been fine, which is exactly how this kind of failure survives
+    // a review (tests/lib/design-contrast.test.ts).
+    active ? "bg-card text-foreground shadow-sm" : "text-ink-500 hover:text-foreground",
   );
 }
 

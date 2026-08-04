@@ -22,7 +22,11 @@
  * The per-platform prerequisites — the accounts, verifications and approvals
  * that have to exist before any of this can pass — are in `docs/13-go-live.md`.
  */
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
+import {
+  holidayCalendarMonthsLeft,
+  MOVABLE_HOLIDAYS_KNOWN_THROUGH,
+} from "../src/compliance/business-days.ts";
 import { installIysGateway } from "../src/compliance/iys-gateway.ts";
 import { createGoogleClient } from "../src/connectors/google/client.ts";
 import { createInstagramClient } from "../src/connectors/instagram/client.ts";
@@ -264,6 +268,66 @@ async function complianceReport(): Promise<PlatformReport> {
           }
         : { label: "İYS gateway", status: "ready", detail: gateway },
   ];
+
+  // The upload backlog, across every tenant. Read-only and deliberately a
+  // count: an operator needs to know that consents are going unreported, not
+  // whose they are.
+  const [backlog] = await getAdminDb()
+    .select({
+      pending: sql<number>`count(*)::int`,
+      overdue: sql<number>`count(*) filter (where ${schema.consentRecords.iysUploadDueAt} < now())::int`,
+    })
+    .from(schema.consentRecords)
+    .where(
+      and(
+        eq(schema.consentRecords.type, "iys"),
+        isNull(schema.consentRecords.iysUploadedAt),
+        isNull(schema.consentRecords.revokedAt),
+      ),
+    );
+
+  // Runway on the religious-holiday calendar. Warned about early because
+  // renewing it means looking up officially published dates, which is a task
+  // with a lead time rather than a code change.
+  const monthsLeft = holidayCalendarMonthsLeft(new Date());
+  checks.push(
+    monthsLeft <= 0
+      ? {
+          label: "holiday calendar",
+          status: "blocked",
+          detail: `MOVABLE_HOLIDAYS ran out after ${MOVABLE_HOLIDAYS_KNOWN_THROUGH}; every deadline now ignores 4–7 holidays a year`,
+        }
+      : monthsLeft <= 12
+        ? {
+            label: "holiday calendar",
+            status: "not_configured",
+            detail: `${monthsLeft} month(s) left — extend MOVABLE_HOLIDAYS past ${MOVABLE_HOLIDAYS_KNOWN_THROUGH}`,
+          }
+        : {
+            label: "holiday calendar",
+            status: "ready",
+            detail: `covered through ${MOVABLE_HOLIDAYS_KNOWN_THROUGH}`,
+          },
+  );
+
+  const overdue = backlog?.overdue ?? 0;
+  const pending = backlog?.pending ?? 0;
+
+  checks.push(
+    overdue > 0
+      ? {
+          label: "İYS upload backlog",
+          // Blocked, not a warning: past three business days the business is
+          // already out of compliance, and no later upload undoes that.
+          status: "blocked",
+          detail: `${overdue} consent(s) past the three-business-day deadline, ${pending} queued`,
+        }
+      : {
+          label: "İYS upload backlog",
+          status: "ready",
+          detail: pending === 0 ? "nothing queued" : `${pending} queued, none overdue`,
+        },
+  );
 
   return { platform: "compliance", status: rollUp(checks), checks };
 }

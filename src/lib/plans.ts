@@ -32,6 +32,13 @@ export const FEATURE_KEYS = [
   "api_access",
   "white_label",
   "benchmarking",
+  // Team workflow (P2-T8). Three separate keys rather than one "team" flag,
+  // because they are three different reasons to upgrade and packaging will
+  // want to move them independently — a solo owner may well be sold SLA
+  // tracking without ever needing bulk actions.
+  "saved_views",
+  "bulk_actions",
+  "sla_tracking",
 ] as const;
 
 export const LIMIT_KEYS = [
@@ -104,6 +111,16 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         api_access: false,
         white_label: false,
         benchmarking: false,
+        // Saved views and bulk actions are what a *team* needs to divide work
+        // between people, and Starter is one location and two seats.
+        saved_views: false,
+        bulk_actions: false,
+        // SLA tracking is not on that line. "You promised to reply in 24 hours
+        // and haven't" is about the customer, not about coordinating
+        // colleagues — and a one-location shop is exactly who forgets. Holding
+        // it back would withhold the thing that demonstrates the product works
+        // from the tier most likely to need convincing.
+        sla_tracking: true,
       },
       limits: {
         max_locations: 1,
@@ -134,6 +151,9 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         api_access: false,
         white_label: false,
         benchmarking: false,
+        saved_views: true,
+        bulk_actions: true,
+        sla_tracking: true,
       },
       limits: {
         max_locations: 3,
@@ -164,6 +184,9 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         api_access: true,
         white_label: false,
         benchmarking: true,
+        saved_views: true,
+        bulk_actions: true,
+        sla_tracking: true,
       },
       limits: {
         max_locations: 10,
@@ -194,6 +217,9 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         api_access: true,
         white_label: true,
         benchmarking: true,
+        saved_views: true,
+        bulk_actions: true,
+        sla_tracking: true,
       },
       limits: {
         max_locations: null,

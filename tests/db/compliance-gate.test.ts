@@ -27,8 +27,22 @@ const IYS_ON = { IYS_REQUIRED: true };
 const IYS_OFF = { IYS_REQUIRED: false };
 
 /** A gateway that always approves — what T5's real one will sometimes do. */
-const allowingGateway = { name: "test-allow", check: async () => "allowed" as const };
-const rejectingGateway = { name: "test-reject", check: async () => "rejected" as const };
+// These tests are about `check`; uploading is exercised in compliance-iys-upload.
+// It throws rather than no-opping so a test that reached it by accident says so.
+const noUploads = async (): Promise<never> => {
+  throw new Error("This gateway is check-only.");
+};
+
+const allowingGateway = {
+  name: "test-allow",
+  check: async () => "allowed" as const,
+  upload: noUploads,
+};
+const rejectingGateway = {
+  name: "test-reject",
+  check: async () => "rejected" as const,
+  upload: noUploads,
+};
 
 type Fixture = { orgId: string; contactId: string };
 

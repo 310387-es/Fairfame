@@ -86,6 +86,18 @@ describe("plan catalog", () => {
     expect(starter.white_label).toBe(false);
   });
 
+  it("gives Starter SLA tracking, which is about the customer rather than the team", () => {
+    // Saved views and bulk actions divide work between colleagues, and Starter
+    // is one location and two seats. A response deadline is not that: "you
+    // promised to reply in 24 hours and haven't" is about the person waiting,
+    // and the smallest business is the one most likely to let it slip.
+    const starter = PLAN_CATALOG.starter.entitlements.features;
+
+    expect(starter.sla_tracking).toBe(true);
+    expect(starter.saved_views).toBe(false);
+    expect(starter.bulk_actions).toBe(false);
+  });
+
   it("reserves white-label for Agency alone", () => {
     const withWhiteLabel = PLAN_KEYS.filter(
       (key) => PLAN_CATALOG[key].entitlements.features.white_label,

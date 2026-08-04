@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { listDigests } from "@/digest/queries";
 import {
-  listLocations,
+  listLocationsForActor,
   readActiveLocationCookie,
   resolveActiveLocation,
 } from "@/lib/active-location";
@@ -46,10 +46,7 @@ export default async function DigestArchivePage() {
   const { activeLocation, digests } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
-      const active = resolveActiveLocation(
-        await listLocations(tx, actor.organizationId),
-        cookieValue,
-      );
+      const active = resolveActiveLocation(await listLocationsForActor(tx, actor), cookieValue);
 
       return {
         activeLocation: active,

@@ -116,12 +116,22 @@ export class ConnectorError extends Error {
   // the worker process run — rejects parameter properties outright.
   readonly provider: string;
   readonly retryable: boolean;
+  /**
+   * Why it failed, when the provider said something specific enough to know.
+   *
+   * `permission` is the one worth branching on: it means app review has not
+   * granted a scope, which is a different situation from a broken token and
+   * often affects only *part* of a sync. Everything else stays prose, because
+   * inventing categories nobody reads is how error handling rots.
+   */
+  readonly kind: "permission" | "auth" | undefined;
 
-  constructor(message: string, provider: string, retryable = true) {
+  constructor(message: string, provider: string, retryable = true, kind?: "permission" | "auth") {
     super(message);
     this.name = "ConnectorError";
     this.provider = provider;
     this.retryable = retryable;
+    this.kind = kind;
   }
 }
 

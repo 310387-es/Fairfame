@@ -5,7 +5,7 @@ import { withAuthenticatedTenant } from "@/auth/session";
 import { childLogger } from "@/lib/logger";
 import {
   readActiveLocationCookie,
-  listLocations,
+  listLocationsForActor,
   resolveActiveLocation,
 } from "@/lib/active-location";
 import { search } from "@/search/queries";
@@ -40,7 +40,7 @@ export async function searchAction(input: { query: string }): Promise<SearchResu
   try {
     return await withAuthenticatedTenant(async (tx, actor) => {
       const active = resolveActiveLocation(
-        await listLocations(tx, actor.organizationId),
+        await listLocationsForActor(tx, actor),
         await readActiveLocationCookie(),
       );
 

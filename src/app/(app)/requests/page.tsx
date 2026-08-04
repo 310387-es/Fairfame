@@ -6,7 +6,7 @@ import { CampaignCard } from "@/components/requests/campaign-card";
 import { CampaignForm } from "@/components/requests/campaign-form";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { listLocations } from "@/lib/active-location";
+import { listLocationsForActor } from "@/lib/active-location";
 import { withinLimit } from "@/lib/entitlements";
 import { qrSvg } from "@/lib/qr";
 import { withTenant } from "@/lib/tenancy";
@@ -30,7 +30,7 @@ export default async function RequestsPage() {
   const { locations, campaigns, requests, limit } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => ({
-      locations: await listLocations(tx, actor.organizationId),
+      locations: await listLocationsForActor(tx, actor),
       campaigns: await listCampaigns(tx, actor.organizationId),
       requests: await listRecentRequests(tx, actor.organizationId, 25),
       limit: await withinLimit(

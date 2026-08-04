@@ -6,9 +6,11 @@ import {
   accountSchema,
   commentSchema,
   commentsPageSchema,
+  conversationsPageSchema,
   errorSchema,
   mentionsPageSchema,
   type InstagramComment,
+  type InstagramDirectMessage,
   type InstagramMention,
 } from "./schemas.ts";
 
@@ -104,6 +106,18 @@ export type InstagramClient = {
     accountId: string,
     since?: Date,
   ): Promise<InstagramMention[]>;
+  /**
+   * Direct messages the business has received.
+   *
+   * Returns *inbound* messages only — the business's own replies are filtered
+   * out here rather than downstream, because `accountId` is what identifies
+   * them and this is the last place that is unambiguously in scope.
+   */
+  listDirectMessages(
+    connection: Connection,
+    accountId: string,
+    since?: Date,
+  ): Promise<InstagramDirectMessage[]>;
   /** Replies to a comment. Only comments — Instagram has no reply-to-mention. */
   replyToComment(connection: Connection, commentId: string, message: string): Promise<string>;
 };
@@ -164,6 +178,10 @@ export function createInstagramClient(options: InstagramClientOptions = {}): Ins
         // A missing permission and a revoked token will fail identically until
         // a human does something; a 5xx will not.
         kind === "unknown" && response.status >= 500,
+        // Carried through rather than left in the prose: a missing scope can
+        // affect one edge and not the others, and the connector needs to know
+        // that without reading the message.
+        kind === "permission" || kind === "auth" ? kind : undefined,
       );
     }
 
@@ -230,6 +248,34 @@ export function createInstagramClient(options: InstagramClientOptions = {}): Ins
       );
 
       return page;
+    },
+
+    async listDirectMessages(connection, accountId, since) {
+      // The Messenger Platform edge, not an Instagram media one — hence
+      // `platform=instagram`, which is what stops this returning Facebook Page
+      // threads for a business that runs both.
+      const conversations = await request(
+        connection,
+        `/${encodeURIComponent(accountId)}/conversations`,
+        (payload) => conversationsPageSchema.parse(payload).data,
+        {
+          query: {
+            platform: "instagram",
+            fields: "id,updated_time,messages{id,message,created_time,from}",
+            since: sinceParam(since),
+            limit: "50",
+          },
+        },
+      );
+
+      return conversations.flatMap((conversation) =>
+        (conversation.messages?.data ?? [])
+          // The business's own replies live in the same thread. Ingesting them
+          // would have the product analysing its own support answers as
+          // customer feedback — the same trap as our own comment replies.
+          .filter((message) => message.from?.id !== accountId)
+          .map((message) => ({ ...message, conversation_id: conversation.id })),
+      );
     },
 
     async replyToComment(connection, commentId, message) {

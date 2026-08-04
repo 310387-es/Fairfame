@@ -39,6 +39,7 @@ export type SubmissionLabels = {
   emailPlaceholder: string;
   emailHint: string;
   kvkkLabel: string;
+  iysLabel: string;
   submit: string;
   submitting: string;
   thanksTitle: string;
@@ -66,6 +67,10 @@ export function SubmissionForm({
   const [hovered, setHovered] = useState<number | null>(null);
   const [email, setEmail] = useState("");
   const [kvkkAccepted, setKvkkAccepted] = useState(false);
+  // Its own state, starting false, never derived from the tick above. An İYS
+  // permission that was inferred rather than given is the thing the registry
+  // exists to catch.
+  const [iysAccepted, setIysAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -104,6 +109,7 @@ export function SubmissionForm({
             authorName: formData.get("authorName") ?? null,
             email: email.trim() === "" ? null : email.trim(),
             kvkkAccepted,
+            iysAccepted,
           }),
         });
 
@@ -203,15 +209,33 @@ export function SubmissionForm({
       {/* Only asked for when contact details are given — a walk-in leaving an
           anonymous rating is not handing us identifiable data. */}
       {email.trim() !== "" ? (
-        <label className="flex items-start gap-2 text-body text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={kvkkAccepted}
-            onChange={(event) => setKvkkAccepted(event.target.checked)}
-            className="mt-0.5 size-4 shrink-0 rounded border-input accent-foreground"
-          />
-          <span>{labels.kvkkLabel}</span>
-        </label>
+        <div className="space-y-3">
+          <label className="flex items-start gap-2 text-body text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={kvkkAccepted}
+              onChange={(event) => setKvkkAccepted(event.target.checked)}
+              className="mt-0.5 size-4 shrink-0 rounded border-input accent-foreground"
+            />
+            <span>{labels.kvkkLabel}</span>
+          </label>
+
+          {/*
+            A second, separate tick — marketing permission (İYS), never implied
+            by the one above. Unticked by default and never required: leaving a
+            review must not be conditional on agreeing to be marketed to, which
+            is why nothing here blocks submitting.
+          */}
+          <label className="flex items-start gap-2 text-body text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={iysAccepted}
+              onChange={(event) => setIysAccepted(event.target.checked)}
+              className="mt-0.5 size-4 shrink-0 rounded border-input accent-foreground"
+            />
+            <span>{labels.iysLabel}</span>
+          </label>
+        </div>
       ) : (
         <p className="text-body text-muted-foreground">{labels.emailHint}</p>
       )}

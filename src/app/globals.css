@@ -342,9 +342,21 @@
   --ink-800: #10193a; /* body text */
   --ink-600: #3a4260; /* secondary copy */
   --ink-500: #5b6480;
-  --ink-400: #6b7391; /* muted label */
-  --ink-350: #666e88; /* 4.54:1 on white — the lightest text allowed */
-  --ink-300: #8b93ac; /* 3.06:1 — NON-TEXT only. Axis ticks, dots, disabled. */
+  /* Measured, not remembered — tests/lib/design-contrast.test.ts pins these.
+   *
+   * There is no single "lightest text token": every surface here is a different
+   * tint, so the rule is a table. Lightest ink that clears AA as body text:
+   *   --surface (white) ......... --ink-400
+   *   --canvas, --surface-sunken  --ink-350
+   *   --surface-segmented ....... --ink-500
+   * Anything darker than the entry is also fine. Going lighter is not. */
+  --ink-400: #6b7391; /* 4.68:1 on white — muted label, WHITE SURFACES ONLY
+                       * (4.37:1 on --canvas, 3.97:1 on --surface-segmented). */
+  --ink-350: #666e88; /* 5.06:1 on white, 4.73:1 on --canvas — the lightest
+                       * text that still clears AA on a tinted surface. */
+  --ink-300: #8b93ac; /* 3.06:1 on white — NON-TEXT only, and only on white:
+                       * 2.86:1 on --canvas is under the 3:1 non-text floor.
+                       * Axis ticks, dots, disabled. */
 
   /* --- Surfaces and lines ----------------------------------------------- */
   --canvas: #f6f7fb; /* faintly tinted, so white cards have an edge */
