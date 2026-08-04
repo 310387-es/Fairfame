@@ -47,12 +47,17 @@ export default defineConfig({
     },
   ],
 
-  // Reuses the dev server if one is already up, which is the normal case on a
-  // developer's machine and avoids fighting over port 3000.
+  // Locally: reuse whatever dev server is already up, which is the normal case
+  // on a developer's machine and avoids fighting over port 3000.
+  //
+  // In CI: the built server. `pnpm build` has already run as part of the gate,
+  // so starting it costs nothing extra, and `next dev` compiles each route on
+  // first visit — which on a cold CI runner is exactly the kind of multi-second
+  // stall that turns a real pass into a timeout.
   webServer: {
-    command: "pnpm dev",
+    command: process.env.CI ? "pnpm start" : "pnpm dev",
     url: "http://localhost:3000",
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 });

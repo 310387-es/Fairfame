@@ -22,7 +22,6 @@
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",
     "infra:check": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-infra.mts",
-    "db:generate": "node --env-file=.env ./node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/migrate.mts",
     "db:seed": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed.mts",
     "db:studio": "node --env-file=.env ./node_modules/drizzle-kit/bin.cjs studio",

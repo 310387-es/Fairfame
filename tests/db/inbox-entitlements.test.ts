@@ -142,7 +142,7 @@ async function actorFor(
 }
 
 /** The tiers this suite compares, found by asking the catalog rather than by name. */
-function tierWithout(feature: "saved_views" | "bulk_actions" | "sla_tracking") {
+function tierWithout(feature: "saved_views" | "bulk_actions") {
   const entry = Object.values(PLAN_CATALOG).find((plan) => !plan.entitlements.features[feature]);
   if (!entry) throw new Error(`every plan includes ${feature}; this suite needs one that does not`);
   return entry.key;
@@ -152,6 +152,43 @@ function tierWith(feature: "saved_views" | "bulk_actions" | "sla_tracking") {
   const entry = Object.values(PLAN_CATALOG).find((plan) => plan.entitlements.features[feature]);
   if (!entry) throw new Error(`no plan includes ${feature}`);
   return entry.key;
+}
+
+/**
+ * Turns a feature off for this organization alone, then puts it back.
+ *
+ * `sla_tracking` is on every tier — deliberately, since a response deadline is
+ * about the customer rather than about dividing work between colleagues. So
+ * there is no lesser plan to switch to, and the claim has to be made through
+ * the other lever the product already has: a per-subscription override, which
+ * is what a custom deal or a temporary suspension writes.
+ *
+ * Note this is the *only* honest way to do it. Entitlements come from
+ * `PLAN_CATALOG` in code; the `plans.entitlements` column is pricing metadata
+ * the gate never reads, so patching that row would prove nothing while
+ * appearing to work.
+ *
+ * Restores in a `finally`, because a leaked override would silently disarm
+ * every later assertion in the file.
+ */
+async function withFeatureOff<T>(
+  fixture: Fixture,
+  feature: "sla_tracking",
+  fn: () => Promise<T>,
+): Promise<T> {
+  const setOverrides = (value: unknown) =>
+    getAdminDb()
+      .update(schema.subscriptions)
+      .set({ overrides: value })
+      .where(eq(schema.subscriptions.organizationId, fixture.orgId));
+
+  await setOverrides({ features: { [feature]: false } });
+
+  try {
+    return await fn();
+  } finally {
+    await setOverrides({});
+  }
 }
 
 afterAll(async () => {
@@ -208,11 +245,13 @@ describe("a plan change toggles the feature, with no code change", () => {
   it("SLA alerts", async () => {
     await addReview(fixture);
 
-    await setPlan(fixture, tierWithout("sla_tracking"));
-    const gated = await notifySlaBreaches({ organizationId: fixture.orgId });
+    await setPlan(fixture, tierWith("sla_tracking"));
+
+    const gated = await withFeatureOff(fixture, "sla_tracking", () =>
+      notifySlaBreaches({ organizationId: fixture.orgId }),
+    );
     expect(gated).toMatchObject({ reviews: 0, created: 0 });
 
-    await setPlan(fixture, tierWith("sla_tracking"));
     const allowed = await notifySlaBreaches({ organizationId: fixture.orgId });
 
     // One review, but `created` counts notification *rows* — this organization
@@ -224,9 +263,12 @@ describe("a plan change toggles the feature, with no code change", () => {
   it("keeps the deadline data while the plan is off, so an upgrade reveals history", async () => {
     // Gating the *alert* rather than the stamp is what makes an upgrade show a
     // real backlog instead of starting the clock from zero.
-    await setPlan(fixture, tierWithout("sla_tracking"));
-    const id = await addReview(fixture);
-    await notifySlaBreaches({ organizationId: fixture.orgId });
+    await setPlan(fixture, tierWith("sla_tracking"));
+    const id = await withFeatureOff(fixture, "sla_tracking", async () => {
+      const reviewId = await addReview(fixture);
+      await notifySlaBreaches({ organizationId: fixture.orgId });
+      return reviewId;
+    });
 
     const [row] = await getAdminDb().select().from(schema.reviews).where(eq(schema.reviews.id, id));
 

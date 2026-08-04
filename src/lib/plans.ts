@@ -111,12 +111,16 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         api_access: false,
         white_label: false,
         benchmarking: false,
-        // Starter is one location and two seats. Saved views, bulk actions and
-        // SLA tracking are what a *team* needs to divide work between people,
-        // which is the line this tier sits below.
+        // Saved views and bulk actions are what a *team* needs to divide work
+        // between people, and Starter is one location and two seats.
         saved_views: false,
         bulk_actions: false,
-        sla_tracking: false,
+        // SLA tracking is not on that line. "You promised to reply in 24 hours
+        // and haven't" is about the customer, not about coordinating
+        // colleagues — and a one-location shop is exactly who forgets. Holding
+        // it back would withhold the thing that demonstrates the product works
+        // from the tier most likely to need convincing.
+        sla_tracking: true,
       },
       limits: {
         max_locations: 1,

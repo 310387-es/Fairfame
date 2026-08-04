@@ -39,3 +39,30 @@ It fails on:
 - **A key defined but never referenced.** Dead strings cost translator time and imply the product does something it does not.
 
 It deliberately tolerates keys that look dynamic. `t(\`newItem.${type}\`)` cannot be resolved statically, so any key whose parent namespace is referenced with a template literal is treated as used — a checker that forces every string to be reachable by grep would push people into flattening perfectly good message groups.
+
+## Migrations are written by hand — there is no `db:generate`
+
+`drizzle-kit generate` diffs `schema.ts` against the newest snapshot in
+`src/db/migrations/meta/` and emits the difference. That works only if every
+migration was itself generated. Here they are not: they are written and
+reviewed by hand, because RLS policies, partial indexes, backfills and check
+constraints are the parts most worth reading and the ones a generator is
+least able to express.
+
+Mixing the two is how you get a duplicate migration. Snapshots stopped being
+written at `0026` while migrations continued to `0029`, so anyone running
+`generate` would have received one migration re-containing everything since —
+a plausible-looking file that reapplies changes already live.
+
+So the script is gone and the orphaned snapshots with it, rather than left as
+a half-truth. `drizzle.config.ts` stays for `db:studio`.
+
+**To add a migration:** write the `.sql` file, add its entry to
+`meta/_journal.json` (`idx`, `tag`, and a `when` after the previous one), and
+run `pnpm db:migrate`. The journal is what `migrate()` reads; snapshots are
+not involved. A fresh database applies the full sequence — verified by
+migrating an empty one from `0001`.
+
+**Every tenant-owned table needs its RLS block in the same migration.** A table
+created without one is readable across tenants until somebody notices, and
+`tests/db/tenant-isolation.test.ts` is what notices.
