@@ -3,8 +3,8 @@
  *
  *   pnpm worker
  *
- * Runs the review worker and installs the three repeating schedules — the
- * connection scan and the analysis, notification and digest sweeps. Deliberately
+ * Runs the review worker and installs the repeating schedules — the connection
+ * scan and the analysis, notification, SLA and digest sweeps. Deliberately
  * a separate process from the web app: a slow or crashing sync must never take
  * request handling down with it.
  */
@@ -19,6 +19,8 @@ import {
   scheduleDigestSweep,
   scheduleNotifySweep,
   scheduleScan,
+  scheduleIysSweep,
+  scheduleSlaSweep,
 } from "../src/jobs/queue.ts";
 import { createReviewWorker } from "../src/jobs/workers/sync-reviews.ts";
 
@@ -27,6 +29,8 @@ const log = childLogger({ module: "worker" });
 const SCAN_INTERVAL_MS = getEnv().SYNC_SCAN_INTERVAL_MS;
 const ANALYZE_SWEEP_INTERVAL_MS = getEnv().ANALYZE_SWEEP_INTERVAL_MS;
 const NOTIFY_SWEEP_INTERVAL_MS = getEnv().NOTIFY_SWEEP_INTERVAL_MS;
+const SLA_SWEEP_INTERVAL_MS = getEnv().SLA_SWEEP_INTERVAL_MS;
+const IYS_SWEEP_INTERVAL_MS = getEnv().IYS_SWEEP_INTERVAL_MS;
 const DIGEST_SWEEP_INTERVAL_MS = getEnv().DIGEST_SWEEP_INTERVAL_MS;
 
 const queueConnection = createRedisConnection();
@@ -42,6 +46,8 @@ const worker = createReviewWorker({ connection: workerConnection, queue });
 await scheduleScan(queue, SCAN_INTERVAL_MS);
 await scheduleAnalyzeSweep(queue, ANALYZE_SWEEP_INTERVAL_MS);
 await scheduleNotifySweep(queue, NOTIFY_SWEEP_INTERVAL_MS);
+await scheduleSlaSweep(queue, SLA_SWEEP_INTERVAL_MS);
+await scheduleIysSweep(queue, IYS_SWEEP_INTERVAL_MS);
 await scheduleDigestSweep(queue, DIGEST_SWEEP_INTERVAL_MS);
 
 log.info(
@@ -49,6 +55,8 @@ log.info(
     scanIntervalMs: SCAN_INTERVAL_MS,
     analyzeSweepIntervalMs: ANALYZE_SWEEP_INTERVAL_MS,
     notifySweepIntervalMs: NOTIFY_SWEEP_INTERVAL_MS,
+    slaSweepIntervalMs: SLA_SWEEP_INTERVAL_MS,
+    iysSweepIntervalMs: IYS_SWEEP_INTERVAL_MS,
     digestSweepIntervalMs: DIGEST_SWEEP_INTERVAL_MS,
     iysGateway: iysGateway ?? "none (commercial sends refused)",
   },
