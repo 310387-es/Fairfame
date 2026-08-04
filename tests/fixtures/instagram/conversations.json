@@ -1,0 +1,46 @@
+{
+  "data": [
+    {
+      "id": "aWdfZGlyZWN0X3RocmVhZDox",
+      "updated_time": "2026-07-21T09:14:02+0000",
+      "messages": {
+        "data": [
+          {
+            "id": "mid.0000000000001A",
+            "message": "Merhaba, dün akşam geldik ama masamız hazır değildi. Rezervasyon sistemi çalışıyor mu?",
+            "created_time": "2026-07-21T09:14:02+0000",
+            "from": { "id": "17800000000000001", "username": "ayse.k" }
+          },
+          {
+            "id": "mid.0000000000001B",
+            "message": "Merhaba Ayşe Hanım, yaşadığınız aksaklık için özür dileriz.",
+            "created_time": "2026-07-21T10:02:11+0000",
+            "from": { "id": "17841400000000000", "username": "kahvemolasi" }
+          }
+        ]
+      }
+    },
+    {
+      "id": "aWdfZGlyZWN0X3RocmVhZDoy",
+      "updated_time": "2026-07-20T18:40:55+0000",
+      "messages": {
+        "data": [
+          {
+            "id": "mid.0000000000002A",
+            "message": "Filtre kahve çekirdeklerini satıyor musunuz?",
+            "created_time": "2026-07-20T18:40:55+0000",
+            "from": { "id": "17800000000000002", "username": "mehmet_d" }
+          },
+          {
+            "id": "mid.0000000000002B",
+            "created_time": "2026-07-20T18:41:30+0000",
+            "from": { "id": "17800000000000002", "username": "mehmet_d" }
+          }
+        ]
+      }
+    }
+  ],
+  "paging": {
+    "cursors": { "before": "QVFIUmx0", "after": "QVFIUmR6" }
+  }
+}

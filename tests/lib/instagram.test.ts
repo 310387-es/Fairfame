@@ -58,6 +58,7 @@ function routedClient(overrides: Record<string, () => Response> = {}) {
     }
     if (input.includes("/media")) return response(fixture("media-with-comments"));
     if (input.includes("/tags")) return response(fixture("mentions"));
+    if (input.includes("/conversations")) return response(fixture("conversations"));
     return response({ id: "17841400000000000", username: "kahvemolasi" });
   });
 
@@ -149,11 +150,34 @@ describe("normalization", () => {
     return raw.map((item) => connector.normalize(connection, item));
   }
 
-  it("tags comments and mentions by type", async () => {
+  it("tags comments, mentions and messages by type", async () => {
     const items = await normalized();
 
     expect(items.filter((item) => item.itemType === "comment")).toHaveLength(2);
     expect(items.filter((item) => item.itemType === "mention")).toHaveLength(1);
+    // Three inbound messages across two threads; the fourth in the fixture is
+    // the business's own reply and must not appear.
+    expect(items.filter((item) => item.itemType === "dm")).toHaveLength(3);
+  });
+
+  it("keeps a direct message private — no permalink to point a colleague at", async () => {
+    const items = await normalized();
+    const dm = items.find((item) => item.itemType === "dm");
+
+    // A comment and a mention are public and the author published them. A DM
+    // was sent to the business alone, and there is no page to open.
+    expect(dm?.url).toBeNull();
+    expect(dm?.authorName).toBe("ayse.k");
+    expect(dm?.postedAt).toBeInstanceOf(Date);
+  });
+
+  it("ingests an attachment-only message as having no text, not as absent", async () => {
+    const items = await normalized();
+
+    // Meta omits `message` when the customer sent only a photo or a reel. The
+    // item still happened, and dropping it would leave a gap in the thread.
+    const textless = items.filter((item) => item.itemType === "dm" && item.text === null);
+    expect(textless).toHaveLength(1);
   });
 
   it("never invents a rating", async () => {
@@ -173,13 +197,14 @@ describe("normalization", () => {
     expect(items.some((item) => item.text?.includes("tekrar bekleriz"))).toBe(false);
   });
 
-  it("keeps comment and mention ids in separate namespaces", async () => {
+  it("keeps comment, mention and message ids in separate namespaces", async () => {
     const items = await normalized();
 
-    // Both are opaque Meta strings and could collide; the dedup key in
+    // All three are opaque Meta strings and could collide; the dedup key in
     // `reviews` must stay unambiguous.
-    expect(items.every((item) => /^(comment|mention):/.test(item.sourceReviewId))).toBe(true);
+    expect(items.every((item) => /^(comment|mention|dm):/.test(item.sourceReviewId))).toBe(true);
     expect(itemId("comment", "1")).not.toBe(itemId("mention", "1"));
+    expect(itemId("dm", "1")).not.toBe(itemId("comment", "1"));
   });
 
   it("carries the author, the text, the time and a link", async () => {
@@ -242,6 +267,20 @@ describe("replying", () => {
 
     expect(result).toMatchObject({ ok: false, retryable: false });
     expect(result.ok === false && result.reason).toMatch(/only allows replying to comments/);
+  });
+
+  it("refuses a direct message for the right reason, not the mention one", async () => {
+    const connector = createInstagramConnector(
+      createInstagramClient({ fetchImpl: async () => response({}), readToken: async () => "t" }),
+    );
+
+    const result = await connector.postReply!(connection, itemId("dm", "mid.000000000000A"), "hi");
+
+    expect(result).toMatchObject({ ok: false, retryable: false });
+    // Not "only comments on your own posts" — that would describe a platform
+    // limitation. Answering a DM is a send we have not built: it needs the
+    // send gate, Meta's 24-hour window and a separate scope.
+    expect(result.ok === false && result.reason).toMatch(/not built yet/);
   });
 
   it("reports a rejected reply rather than throwing", async () => {

@@ -74,6 +74,43 @@ export const mentionsPageSchema = z
   .object({ data: z.array(mentionSchema), paging: pagingSchema.optional() })
   .loose();
 
+/**
+ * A direct message inside a conversation.
+ *
+ * DMs come from the Messenger Platform rather than the Instagram media edges,
+ * and the shape shows it: `created_time` rather than `timestamp`, and a `from`
+ * that is always present because a message necessarily has a sender.
+ *
+ * `from.id` is the **only** way to tell the customer's messages from the
+ * business's own — a conversation contains both, and Meta does not flag which
+ * side is which. Getting that wrong would have the product reading its own
+ * support replies back in as customer sentiment.
+ */
+export const directMessageSchema = z
+  .object({
+    id: z.string().min(1),
+    /** Absent for an attachment-only message (a photo, a reel share). */
+    message: z.string().optional(),
+    created_time: z.string().optional(),
+    from: z.object({ id: z.string(), username: z.string().optional() }).loose().optional(),
+  })
+  .loose();
+
+export const conversationSchema = z
+  .object({
+    id: z.string().min(1),
+    updated_time: z.string().optional(),
+    messages: z
+      .object({ data: z.array(directMessageSchema) })
+      .loose()
+      .optional(),
+  })
+  .loose();
+
+export const conversationsPageSchema = z
+  .object({ data: z.array(conversationSchema), paging: pagingSchema.optional() })
+  .loose();
+
 /** The business's own account, fetched once to confirm the connection. */
 export const accountSchema = z
   .object({
@@ -147,6 +184,10 @@ export const webhookSchema = z
 
 export type InstagramComment = z.infer<typeof commentSchema>;
 export type InstagramMention = z.infer<typeof mentionSchema>;
+export type InstagramDirectMessage = z.infer<typeof directMessageSchema> & {
+  /** Stamped by the client so a message can be traced to its thread. */
+  conversation_id?: string;
+};
 export type InstagramWebhook = z.infer<typeof webhookSchema>;
 
 export type WebhookSignal = {
