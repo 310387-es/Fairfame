@@ -6,6 +6,7 @@ import {
   istanbulDate,
   iysUploadDeadline,
   IYS_UPLOAD_BUSINESS_DAYS,
+  holidayCalendarMonthsLeft,
   MOVABLE_HOLIDAYS_KNOWN_THROUGH,
   setExtraHolidays,
 } from "@/compliance/business-days";
@@ -59,6 +60,26 @@ describe("which days count", () => {
     expect(isBusinessDay(at("2026-05-29"))).toBe(false);
     // And the same holiday in a different year, ten weeks earlier.
     expect(isBusinessDay(at("2027-05-18"))).toBe(false);
+
+    // Each extension year, first and last day of both bayrams. An off-by-one
+    // when the list is renewed moves a legal deadline, and nothing else in the
+    // suite would notice.
+    expect(isBusinessDay(at("2028-02-27"))).toBe(false); // Ramazan 2028, day 1
+    expect(isBusinessDay(at("2028-02-29"))).toBe(false); // day 3, leap year
+    expect(isBusinessDay(at("2028-05-05"))).toBe(false); // Kurban 2028, day 1
+    expect(isBusinessDay(at("2028-05-08"))).toBe(false); // day 4
+    expect(isBusinessDay(at("2029-02-15"))).toBe(false);
+    expect(isBusinessDay(at("2029-04-27"))).toBe(false);
+    expect(isBusinessDay(at("2030-02-04"))).toBe(false);
+    expect(isBusinessDay(at("2030-04-16"))).toBe(false);
+  });
+
+  it("treats arife as a working day, erring toward the shorter deadline", () => {
+    // Arife is a half working day. Counting it as a holiday would lengthen
+    // every deadline that straddles it, and being late to İYS is the fineable
+    // direction — being early costs nothing.
+    expect(isBusinessDay(at("2028-02-25"))).toBe(true); // Friday before arife
+    expect(isBusinessDay(at("2030-04-12"))).toBe(true); // Kurban 2030 arifesi
   });
 
   it("honours a deployment's extra dates", () => {
@@ -124,5 +145,17 @@ describe("the İYS deadline", () => {
     // Better to know than to be quietly wrong.
     expect(beyondKnownHolidays(at(`${MOVABLE_HOLIDAYS_KNOWN_THROUGH}-06-01`))).toBe(false);
     expect(beyondKnownHolidays(at(`${MOVABLE_HOLIDAYS_KNOWN_THROUGH + 1}-06-01`))).toBe(true);
+  });
+
+  it("counts down the runway so the calendar cannot lapse quietly", () => {
+    // The point is the warning arriving *before* the last date. Renewing means
+    // looking up officially published dates — a task with a lead time.
+    expect(holidayCalendarMonthsLeft(at(`${MOVABLE_HOLIDAYS_KNOWN_THROUGH}-12-01`))).toBe(0);
+    expect(holidayCalendarMonthsLeft(at(`${MOVABLE_HOLIDAYS_KNOWN_THROUGH}-01-01`))).toBe(11);
+    expect(holidayCalendarMonthsLeft(at(`${MOVABLE_HOLIDAYS_KNOWN_THROUGH - 1}-08-01`))).toBe(16);
+    // Past the end it goes negative, which `golive` reports as blocked.
+    expect(
+      holidayCalendarMonthsLeft(at(`${MOVABLE_HOLIDAYS_KNOWN_THROUGH + 1}-06-01`)),
+    ).toBeLessThan(0);
   });
 });

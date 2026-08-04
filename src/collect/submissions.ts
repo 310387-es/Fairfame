@@ -8,6 +8,7 @@ import {
 } from "../connectors/firstparty.ts";
 import { upsertReviews } from "../connectors/normalize.ts";
 import { connectSource, toConnection } from "../connectors/sync.ts";
+import { recordIysConsent, type ConsentChannel } from "../compliance/consent.ts";
 import { schema } from "../db/client.ts";
 import { getEnv } from "../lib/env.ts";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "../i18n/config.ts";
@@ -184,7 +185,7 @@ export async function submitReview(
     // permission to process the person's data. It is deliberately *not* an İYS
     // permission — the gate (src/compliance/gate.ts) refuses to treat it as
     // one, because agreeing to data processing on a review form is not agreeing
-    // to receive marketing. An İYS opt-in needs its own tick, asking plainly.
+    // to receive marketing. The İYS opt-in is its own tick, recorded below.
     if (input.kvkkAccepted && contactId) {
       await tx
         .insert(schema.consentRecords)
@@ -215,6 +216,53 @@ export async function submitReview(
             updatedAt: now,
           },
         });
+    }
+
+    // The **İYS** half, and the reason it is separate all the way down: a
+    // permission to be *messaged* is a different thing from a permission to
+    // have your data processed, Turkish law treats them as different, and the
+    // registry is the thing that checks.
+    //
+    // One record per channel the person actually handed over, because İYS
+    // records permission per channel: a phone number is permission to receive a
+    // message, an address is permission to receive email. Neither is permission
+    // to be **called** — nobody was asked that, so no `call` record is written.
+    //
+    // Recording it starts a three-business-day upload clock (`recordIysConsent`).
+    // Nothing may be sent on the strength of this row until it has actually
+    // reached the registry — the gate checks İYS itself, not this table.
+    if (input.iysAccepted && contactId) {
+      const [contact] = await tx
+        .select({ email: schema.contacts.email, phone: schema.contacts.phone })
+        .from(schema.contacts)
+        .where(eq(schema.contacts.id, contactId))
+        .limit(1);
+
+      const channels: ConsentChannel[] = [];
+      if (contact?.phone) channels.push("message");
+      if (contact?.email) channels.push("email");
+
+      for (const channel of channels) {
+        await recordIysConsent({
+          tx,
+          organizationId: campaign.organizationId,
+          contactRef: contactId,
+          channel,
+          source: "web_form",
+          proofRef: `submission:${payload.submissionId}`,
+          now,
+        });
+      }
+
+      if (channels.length > 0) {
+        await tx.insert(schema.auditLogs).values({
+          organizationId: campaign.organizationId,
+          actorUserId: null,
+          action: "consent.iys_granted",
+          entity: `contact:${contactId}`,
+          meta: { channels, source: "web_form", submissionId: payload.submissionId },
+        });
+      }
     }
 
     await tx.insert(schema.auditLogs).values({

@@ -36,7 +36,10 @@
     "ai:redteam": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/ai-redteam.mts",
     "knip": "knip --include files,dependencies,unlisted,duplicates",
     "knip:all": "knip",
-    "check:i18n": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-i18n.mts"
+    "check:i18n": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-i18n.mts",
+    "test:e2e": "playwright test",
+    "test:e2e:clean": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/e2e-clean.mts",
+    "mock:platform": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/mock-platform.mts"
   },
   "dependencies": {
     "better-auth": "^1.6.25",
@@ -63,6 +66,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",

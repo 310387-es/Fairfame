@@ -308,7 +308,47 @@
     "pagination": "Sayfalama",
     "previous": "Önceki",
     "next": "Sonraki",
-    "range": "{total} yorumdan {from}–{to} arası"
+    "range": "{total} yorumdan {from}–{to} arası",
+    "filterQuick": "Hızlı",
+    "filterStatus": "Durum",
+    "filterAssignedToMe": "Bana atanan",
+    "filterOverdue": "Süresi geçen",
+    "statusOpen": "Açık",
+    "statusInProgress": "Devam ediyor",
+    "statusDone": "Tamamlandı",
+    "statusIgnored": "Yok sayıldı",
+    "sort": "Sıralama",
+    "sortRecent": "En yeni",
+    "sortPriority": "Öncelik",
+    "savedViews": "Görünümler",
+    "viewShared": "Paylaşılan",
+    "saveView": "Görünümü kaydet",
+    "saveViewName": "Ad",
+    "saveViewPlaceholder": "Süresi geçen olumsuzlar",
+    "saveViewShared": "Ekiple paylaş",
+    "saveViewSubmit": "Kaydet",
+    "saveViewHint": "Görünüm, yorumları değil bu filtreleri hatırlar.",
+    "deleteView": "{name} görünümünü kaldır",
+    "cancel": "Vazgeç",
+    "loadMore": "Daha fazla yükle",
+    "assignee": "Atanan kişi",
+    "assigneeNobody": "Atanmadı",
+    "slaOverdue": "Süresi geçti",
+    "slaDueSoon": "Süresi doluyor",
+    "slaDue": "Son {at}",
+    "slaMet": "Zamanında yanıtlandı",
+    "slaMissed": "Geç yanıtlandı",
+    "selectReview": "{author} adlı kişinin yorumunu seç",
+    "bulkSelected": "{count, plural, =1 {1 seçildi} other {# seçildi}}",
+    "bulkTemplate": "Şablon",
+    "bulkTag": "Etiketle",
+    "bulkTagPlaceholder": "örn. iade",
+    "bulkDraftAi": "Yapay zekâ ile taslak",
+    "bulkClear": "Temizle",
+    "bulkDone": "{count, plural, =0 {Hiçbir şey değişmedi} =1 {1 yorum güncellendi} other {# yorum güncellendi}}",
+    "bulkFailed": "Bu işlem yapılamadı.",
+    "bulkDraftNote": "Taslak oluşturmak yanıtları incelemeye hazırlar. Biri onaylamadan hiçbir şey gönderilmez.",
+    "bulkUntag": "Kaldır"
   },
   "locations": {
     "title": "Şubeler",
@@ -458,7 +498,8 @@
     "closed": "Bu yorum sayfası kapalı.",
     "externalBody": "Yorumunuzu aşağıdaki platformda bırakabilirsiniz — bir dakikanızı alır.",
     "externalCta": "Devam et",
-    "kvkkNotice": "Geri bildiriminiz, hizmetini iyileştirmek için bu işletme tarafından işlenir. Başka bir amaçla paylaşılmaz."
+    "kvkkNotice": "Geri bildiriminiz, hizmetini iyileştirmek için bu işletme tarafından işlenir. Başka bir amaçla paylaşılmaz.",
+    "iysLabel": "Bana kampanya ve fırsat iletileri de gönderebilirsiniz. İsteğe bağlıdır, yukarıdakinden ayrıdır ve dilediğiniz zaman vazgeçebilirsiniz."
   },
   "team": {
     "title": "Ekip",
@@ -470,7 +511,17 @@
       "admin": "Yönetici",
       "member": "Üye",
       "client": "Müşteri"
-    }
+    },
+    "scopeTitle": "Kim hangi şubeyi görüyor",
+    "scopeSubtitle": "Bir şubeye sabitlenen ekip arkadaşı yalnızca o şubenin işini görür ve yalnızca oradan iş alabilir.",
+    "allLocations": "Tüm şubeler",
+    "onlySelected": "Yalnızca seçilenler",
+    "ownerSeesEverything": "Sahip her zaman tüm şubeleri görür.",
+    "pickOne": "En az bir şube seçin.",
+    "save": "Kaydet",
+    "saved": "Kaydedildi",
+    "scopeLegend": "{name} kişisinin görebileceği şubeler",
+    "noLocations": "Önce bir şube ekleyin — henüz atanacak bir şey yok."
   },
   "settings": {
     "title": "Ayarlar",
@@ -535,7 +586,12 @@
     "popoverTitle": "Bildirimler",
     "loading": "Yükleniyor…",
     "urgentHint": "Acil — düşük puan veya olumsuz yorum",
-    "endOfList": "Hepsi bu"
+    "endOfList": "Hepsi bu",
+    "slaBreach": "Süresi geçti",
+    "slaBreachHint": "Bu yoruma kimse yanıt vermedi ve yanıt süresi doldu.",
+    "slaRollupTitle": "{count, plural, =1 {1 yorumun süresi geçti} other {# yorumun süresi geçti}}",
+    "slaRollupBody": "Bu yorumlara kimse yanıt vermedi ve yanıt süreleri doldu.",
+    "slaRollupHint": "Aynı anda çok fazla süre dolduğu için özet olarak gösteriliyor."
   },
   "replies": {
     "writeReply": "Kendin yaz",
@@ -555,7 +611,10 @@
     "aiEdited": "YZ taslağı, düzenlendi",
     "notEntitled": "Yapay zekâ yanıtları planınıza dahil değil.",
     "failed": "Bu işlem gerçekleşmedi. Tekrar deneyin.",
-    "lastError": "Son deneme başarısız: {reason}"
+    "lastError": "Son deneme başarısız: {reason}",
+    "useTemplate": "Şablon",
+    "templatesLoading": "Yükleniyor…",
+    "templatesEmpty": "Henüz şablon yok."
   },
   "sample": {
     "metaTitle": "Örnek haftalık plan — Revira",
@@ -581,5 +640,19 @@
     "ctaBody": "Bir kaynak bağlayın, ilk planınız hafta içinde gelsin. Başlamak için kart gerekmiyor.",
     "ctaButton": "Başlayın",
     "ctaSignIn": "Zaten hesabım var"
+  },
+  "templates": {
+    "title": "Yanıt şablonları",
+    "subtitle": "Ekibinizin bir kez yazıp tekrar kullandığı yanıtlar.",
+    "empty": "Henüz şablon yok.",
+    "add": "Yeni şablon",
+    "name": "Ad",
+    "language": "Dil",
+    "body": "Yanıt",
+    "variables": "Yer tutucular:",
+    "save": "Kaydet",
+    "cancel": "Vazgeç",
+    "edit": "{name} şablonunu düzenle",
+    "delete": "{name} şablonunu sil"
   }
 }

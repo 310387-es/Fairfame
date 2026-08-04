@@ -85,6 +85,33 @@ export type GateInput = {
  */
 export type IysVerdict = "allowed" | "rejected" | "not_configured";
 
+/**
+ * One consent, on its way to the registry.
+ *
+ * `grantedAt` travels with it because İYS records *when* the permission was
+ * given, not when we got around to reporting it — a late upload of a timely
+ * consent is a different thing from a late consent, and only the first is
+ * merely untidy.
+ */
+export type IysUploadRequest = {
+  id: string;
+  contactRef: string;
+  channel: string;
+  grantedAt: Date | null;
+};
+
+/**
+ * What the registry said about one row.
+ *
+ * `retryable` separates "the registry was unreachable" from "the registry
+ * refused this recipient". Both leave the consent unregistered and therefore
+ * unusable, but only the first is expected to resolve itself, and an operator
+ * reading the queue needs to know which one they are looking at.
+ */
+export type IysUploadOutcome =
+  | { id: string; status: "accepted" }
+  | { id: string; status: "failed"; retryable: boolean; detail: string };
+
 export type IysGateway = {
   readonly name: string;
   check(input: {
@@ -92,6 +119,21 @@ export type IysGateway = {
     contactRef: string;
     channel: string;
   }): Promise<IysVerdict>;
+  /**
+   * Reports collected consents to İYS.
+   *
+   * Part of the same interface as `check` rather than a separate seam because
+   * they are the same integration: whichever BSP answers "does the registry
+   * hold this permission" is the one that put it there. A gateway that could
+   * check but not upload would be a gateway that lets the queue grow forever.
+   *
+   * Returns one outcome per input, in any order. A missing outcome is treated
+   * by the caller as a retryable failure — silence is not consent.
+   */
+  upload(input: {
+    organizationId: string;
+    records: IysUploadRequest[];
+  }): Promise<IysUploadOutcome[]>;
 };
 
 let gateway: IysGateway | null = null;
@@ -99,6 +141,11 @@ let gateway: IysGateway | null = null;
 /** Installs the İYS gateway. T5's job; tests use it too. */
 export function setIysGateway(next: IysGateway | null): void {
   gateway = next;
+}
+
+/** The installed gateway, or null when this deployment has none. */
+export function getIysGateway(): IysGateway | null {
+  return gateway;
 }
 
 /**

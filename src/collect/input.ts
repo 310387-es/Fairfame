@@ -179,6 +179,20 @@ export const publicSubmissionSchema = z
         value == null || value === "" ? null : (value?.toLowerCase() ?? null),
       ),
     kvkkAccepted: z.boolean().default(false),
+    /**
+     * A **separate** İYS permission to be sent commercial messages (P1b-T5).
+     *
+     * Its own field, defaulting to false, and never inferred from
+     * `kvkkAccepted`. Turkish law treats the two as different permissions:
+     * agreeing that a business may process your data in order to publish your
+     * review is not agreeing to be marketed to, and İYS requires the second to
+     * have been asked for plainly and on its own. Deriving one from the other
+     * would be the exact over-claim the registry exists to prevent.
+     *
+     * Optional in every case — a review is never conditional on accepting
+     * marketing, which is also why there is no refinement tying it to `email`.
+     */
+    iysAccepted: z.boolean().default(false),
   })
   .superRefine((value, ctx) => {
     if (value.email && !value.kvkkAccepted) {

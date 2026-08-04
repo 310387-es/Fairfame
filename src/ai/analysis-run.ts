@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
+import { refreshPriority } from "../inbox/workflow.ts";
 import { getEnv } from "../lib/env.ts";
 import { childLogger } from "../lib/logger.ts";
 import { createPacer } from "../lib/pacer.ts";
@@ -276,6 +277,13 @@ export async function analyzeBatch(options: BatchOptions): Promise<BatchResult> 
 
       await syncTags(tx, options.organizationId, analysis.topics);
     }
+
+    // Sentiment is the strongest input to triage priority, and until now these
+    // rows were scored on their star rating alone — which says nothing at all
+    // about a comment or a DM. Re-score them here rather than inside
+    // `upsertInsight`, so one analysis batch costs one extra statement instead
+    // of one per review.
+    await refreshPriority(tx, options.organizationId, [...analyses.keys()]);
   });
 
   log.info(

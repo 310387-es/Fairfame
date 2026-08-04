@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { isLocale } from "@/i18n/config";
 import { writeLocaleCookie } from "@/i18n/locale";
 import { requireActor } from "@/auth/session";
-import { listLocations, writeActiveLocationCookie } from "@/lib/active-location";
+import { listLocationsForActor, writeActiveLocationCookie } from "@/lib/active-location";
 import { withTenant } from "@/lib/tenancy";
 
 /**
@@ -27,14 +27,16 @@ export async function setLocaleAction(locale: string): Promise<void> {
 export async function setActiveLocationAction(locationId: string): Promise<void> {
   const actor = await requireActor();
 
-  // Never trust the id from the client. Only a location this tenant can see is
-  // allowed into the cookie.
-  const allowed = await withTenant({ organizationId: actor.organizationId }, (tx) =>
-    listLocations(tx, actor.organizationId),
+  // Never trust the id from the client. Only a location **this person** may
+  // see is allowed into the cookie — the organization check alone let a member
+  // scoped to one branch switch the whole app to another (P2-T8).
+  const allowed = await withTenant(
+    { organizationId: actor.organizationId, userId: actor.userId },
+    (tx) => listLocationsForActor(tx, actor),
   );
 
   if (!allowed.some((location) => location.id === locationId)) {
-    throw new Error("That location is not available to this organization.");
+    throw new Error("That location is not available to you.");
   }
 
   await writeActiveLocationCookie(locationId);

@@ -45,6 +45,8 @@ Cool, indigo-led, low-chroma. Utility names read as the role, not the swatch.
 
 ---
 
+**Text contrast is a table, not a token.** Every surface is a different tint, so the lightest ink that clears WCAG AA as body text depends on what it sits on: `--ink-400` on a white card, `--ink-350` on `--canvas` or `--surface-sunken`, `--ink-500` on a segmented control's trough. Anything darker is fine; lighter is not. `--ink-300` is non-text only, and only on white. `tests/lib/design-contrast.test.ts` enforces all of it — a palette edit that breaks a ratio fails the build rather than shipping.
+
 ## 3. Type
 
 Geist everywhere, Geist Mono for numerals that need to align. **Four roles and no more.**

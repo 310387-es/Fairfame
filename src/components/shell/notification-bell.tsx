@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Bell, Check, Loader2 } from "lucide-react";
+import { AlertTriangle, Bell, Check, Clock, Loader2 } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -121,7 +121,9 @@ export function NotificationBell({ unread, urgent }: { unread: number; urgent: b
     // `?review=` alone. It picks the page on the server, marks the row, and
     // drives the scroll — a fragment would add nothing and does not survive a
     // client-side push anyway.
-    if (item.reviewId) router.push(`/inbox?review=${item.reviewId}`);
+    // A rollup names no review — the destination is the pile it is about.
+    if (item.type === "sla_rollup") router.push("/inbox?overdue=1");
+    else if (item.reviewId) router.push(`/inbox?review=${item.reviewId}`);
   }
 
   return (
@@ -252,7 +254,32 @@ export function NotificationBell({ unread, urgent }: { unread: number; urgent: b
                                 {t("urgent")}
                               </span>
                             ) : null}
-                            {item.payload.rating !== null ? (
+
+                            {/* An arrival and a lapsed deadline can be about the
+                                same review, so the two entries have to be
+                                distinguishable at a glance — otherwise the
+                                second reads as a duplicate of the first. */}
+                            {item.type === "sla_rollup" ? (
+                              <span
+                                title={t("slaRollupHint")}
+                                className="inline-flex shrink-0 items-center gap-1 rounded-sm bg-state-rating-bg px-1 py-px text-[10px] font-semibold text-state-rating-text"
+                              >
+                                <Clock className="size-2.5" aria-hidden />
+                                {t("slaBreach")}
+                              </span>
+                            ) : null}
+
+                            {item.type === "sla_breach" ? (
+                              <span
+                                title={t("slaBreachHint")}
+                                className="inline-flex shrink-0 items-center gap-1 rounded-sm bg-state-rating-bg px-1 py-px text-[10px] font-semibold text-state-rating-text"
+                              >
+                                <Clock className="size-2.5" aria-hidden />
+                                {t("slaBreach")}
+                              </span>
+                            ) : null}
+
+                            {item.type === "sla_rollup" ? null : item.payload.rating !== null ? (
                               <Stars
                                 rating={item.payload.rating}
                                 srLabel={t("ratingLabel", { rating: item.payload.rating })}
@@ -265,7 +292,9 @@ export function NotificationBell({ unread, urgent }: { unread: number; urgent: b
                                 isUnread ? "font-semibold" : "font-medium",
                               )}
                             >
-                              {item.payload.authorName ?? t("anonymous")}
+                              {item.type === "sla_rollup"
+                                ? t("slaRollupTitle", { count: item.payload.count })
+                                : (item.payload.authorName ?? t("anonymous"))}
                             </span>
                             <span className="ml-auto shrink-0 text-meta text-faint">
                               {format.relativeTime(item.createdAt, new Date())}
@@ -273,11 +302,15 @@ export function NotificationBell({ unread, urgent }: { unread: number; urgent: b
                           </span>
 
                           <span className="mt-1 line-clamp-2 block text-copy text-ink-600">
-                            {item.payload.excerpt ?? t("noText")}
+                            {item.type === "sla_rollup"
+                              ? t("slaRollupBody")
+                              : (item.payload.excerpt ?? t("noText"))}
                           </span>
 
                           <span className="mt-1 block truncate text-meta text-faint">
-                            {item.payload.locationName} · {item.payload.source}
+                            {item.type === "sla_rollup"
+                              ? item.payload.locationName
+                              : `${item.payload.locationName} · ${item.payload.source}`}
                           </span>
                         </span>
                       </button>

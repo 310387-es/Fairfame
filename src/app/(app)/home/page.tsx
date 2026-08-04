@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { parseRange, rangeWindow } from "@/dashboard/range";
 import {
-  listLocations,
+  listLocationsForActor,
   readActiveLocationCookie,
   resolveActiveLocation,
 } from "@/lib/active-location";
@@ -44,7 +44,7 @@ export default async function HomePage({
 
   const activeLocation = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
-    async (tx) => resolveActiveLocation(await listLocations(tx, actor.organizationId), cookieValue),
+    async (tx) => resolveActiveLocation(await listLocationsForActor(tx, actor), cookieValue),
   );
 
   if (!activeLocation) {

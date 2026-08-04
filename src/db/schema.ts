@@ -109,6 +109,22 @@ export const reviewItemTypeEnum = pgEnum("review_item_type", [
 ]);
 
 /**
+ * Where an item sits in team triage (P2-T1).
+ *
+ * Deliberately separate from reply state. "Answered" is a fact about the
+ * platform — a reply exists and was posted — while `status` is a fact about the
+ * team: an item can be `done` because someone phoned the customer, and a review
+ * can carry a posted reply and still be `in_progress` because the promised
+ * refund has not happened. Deriving one from the other would make both
+ * unusable, and it is the second column that a workflow is actually built on.
+ *
+ * `ignored` is not `done`. Closing an item because it was handled and closing it
+ * because it was spam are different outcomes, and only the first belongs in a
+ * "resolved this week" count.
+ */
+export const reviewStatusEnum = pgEnum("review_status", ["open", "in_progress", "done", "ignored"]);
+
+/**
  * Collection channels. `sms` and `whatsapp` are declared now but refused at
  * send time until their connectors and the İYS gate exist (P1b-T3/T5) — the
  * enum is cheap, an unenforced commercial send is not.
@@ -179,7 +195,19 @@ export const notificationScopeEnum = pgEnum("notification_scope", ["all", "negat
 /** Send now, or hold for the digest. */
 export const notificationDeliveryEnum = pgEnum("notification_delivery", ["instant", "digest"]);
 
-export const notificationTypeEnum = pgEnum("notification_type", ["new_review"]);
+/**
+ * What an alert is about.
+ *
+ * `sla_breach` (P2-T7) is a second kind of news, not a variation on the first.
+ * "A review arrived" is about the customer; "nobody has answered this and the
+ * promise has lapsed" is about the team, it fires later, and it has to be able
+ * to reach someone who has already read and dismissed the arrival.
+ */
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "new_review",
+  "sla_breach",
+  "sla_rollup",
+]);
 
 /** Urgency drives ordering and the email subject, not a separate channel. */
 export const notificationUrgencyEnum = pgEnum("notification_urgency", ["normal", "urgent"]);
@@ -323,9 +351,70 @@ export const locations = pgTable(
      * a reviewer is not.
      */
     brandTone: text("brand_tone"),
+    /**
+     * How many hours the team gives itself to respond here (P2-T1).
+     *
+     * Per location and nullable, because the target is a property of how a place
+     * is staffed: a flagship with a full front desk answers within four hours,
+     * an airport kiosk cannot promise the same. Null falls through to the
+     * organization's setting and then to `DEFAULT_SLA_HOURS` — one resolution
+     * order, in src/inbox/workflow.ts, rather than a default repeated per query.
+     */
+    slaHours: integer("sla_hours"),
     ...timestamps,
   },
-  (table) => [index("locations_organization_id_idx").on(table.organizationId)],
+  (table) => [
+    index("locations_organization_id_idx").on(table.organizationId),
+    check(
+      "locations_sla_hours_positive",
+      sql`${table.slaHours} is null or ${table.slaHours} between 1 and 8760`,
+    ),
+  ],
+);
+
+/**
+ * Which locations a member may see (P2-T4).
+ *
+ * `docs/06` §3 gives every role a location scope — a Member sees "assigned
+ * locations", an agency's Client sees "their locations only" — and until now
+ * there was nowhere to record that, so every member of an organization saw all
+ * of it. The inbox is where it starts to matter: assigning a review to someone
+ * who cannot open it is not a workflow.
+ *
+ * **Absence means unrestricted, except for `client`.** A membership with no rows
+ * here sees every location. That is the deliberate reading: there is no screen
+ * yet for assigning locations to a teammate, so the restrictive reading would
+ * lock every existing member out of everything the moment this shipped, with no
+ * way to let them back in. `client` is the exception, because it is the one role
+ * held by someone outside the business — defaulting an agency's customer to the
+ * whole organization is a leak, while defaulting them to nothing is merely an
+ * empty screen. `src/auth/scope.ts` is the only place this is read.
+ */
+export const memberLocations = pgTable(
+  "member_locations",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /**
+     * The membership, not the user. A scope is a property of belonging to *this*
+     * organization, and when someone is removed their scope should go with them
+     * rather than linger for a future re-invitation to inherit.
+     */
+    membershipId: uuid("membership_id")
+      .notNull()
+      .references(() => memberships.id, { onDelete: "cascade" }),
+    locationId: uuid("location_id")
+      .notNull()
+      .references(() => locations.id, { onDelete: "cascade" }),
+    ...timestamps,
+  },
+  (table) => [
+    unique("member_locations_membership_location_key").on(table.membershipId, table.locationId),
+    index("member_locations_org_membership_idx").on(table.organizationId, table.membershipId),
+    index("member_locations_location_idx").on(table.locationId),
+  ],
 );
 
 export const connections = pgTable(
@@ -403,6 +492,61 @@ export const reviews = pgTable(
     postedAt: timestamp("posted_at", { withTimezone: true }),
     url: text("url"),
     rawPayload: jsonb("raw_payload").notNull(),
+
+    // -- Team workflow (P2-T1) ------------------------------------------------
+    //
+    // These live on `reviews` rather than in a side table because there is
+    // exactly one triage state per item and every inbox query filters or sorts
+    // on it. A join table would buy nothing and would turn the list query — the
+    // most-run query in the product — into an outer join whose null case means
+    // the same thing as `open` anyway.
+
+    /** Where this sits in triage. Every row has one; backfilled to `open`. */
+    status: reviewStatusEnum("status").notNull().default("open"),
+    /**
+     * Who owns it. References `users`, not `memberships`: a membership can be
+     * deleted and recreated when someone's role changes, which would orphan
+     * every assignment they held. Whether the assignee is still a member of the
+     * organization — and still scoped to this location — is checked at
+     * assignment time by the service layer, since it is a rule about *now*.
+     */
+    assigneeUserId: uuid("assignee_user_id").references(() => users.id, { onDelete: "set null" }),
+    /**
+     * Triage severity, 0–100. Derived, never entered by hand — see
+     * src/inbox/workflow.ts for the formula and for why recency is *not* in it:
+     * a score that decays with age is wrong an hour after it is written, so age
+     * enters the sort (`priority desc, posted_at desc`) instead of the column.
+     *
+     * Nullable because a row that predates analysis and ingest-time derivation
+     * has no honest value, and 0 would read as "nothing to see here".
+     */
+    priority: integer("priority"),
+    /**
+     * When the team first answered — set once, on the first reply, and never
+     * moved. This is the numerator of every response-time figure, so a later
+     * follow-up reply must not overwrite it.
+     */
+    firstResponseAt: timestamp("first_response_at", { withTimezone: true }),
+    /**
+     * When the team was told this deadline had lapsed (P2-T7).
+     *
+     * A stamp on the review rather than an inferred "does a notification row
+     * exist", because a *rollup* alert reports twenty reviews in one row and
+     * would otherwise leave nineteen of them looking un-reported — so the next
+     * sweep would report them again, and the one after that. Claiming rows by
+     * stamping them is also what makes two workers sweeping at once safe.
+     */
+    slaAlertedAt: timestamp("sla_alerted_at", { withTimezone: true }),
+    /**
+     * When a response is due, fixed at ingest from the location's SLA target.
+     *
+     * Stored rather than recomputed for the same reason as
+     * `consent_records.iys_upload_due_at`: an owner who raises the target from
+     * 4 hours to 24 must not silently un-breach every item that is already
+     * late. The deadline an item was admitted under is the deadline it keeps.
+     */
+    slaDueAt: timestamp("sla_due_at", { withTimezone: true }),
+
     ...timestamps,
   },
   (table) => [
@@ -423,7 +567,36 @@ export const reviews = pgTable(
       table.locationId,
       table.postedAt.desc(),
     ),
+    // Triage listing: one status within a location, newest first. The Phase 1
+    // index above stays — an unfiltered inbox does not touch status.
+    index("reviews_org_location_status_idx").on(
+      table.organizationId,
+      table.locationId,
+      table.status,
+      table.postedAt.desc(),
+    ),
+    // "Sort by priority" — the default order of a triage queue.
+    index("reviews_org_location_priority_idx").on(
+      table.organizationId,
+      table.locationId,
+      table.priority.desc().nullsLast(),
+      table.postedAt.desc(),
+    ),
+    // "Assigned to me". Partial: most rows are unassigned, and the query never
+    // asks for those.
+    index("reviews_org_assignee_idx")
+      .on(table.organizationId, table.assigneeUserId, table.postedAt.desc())
+      .where(sql`assignee_user_id is not null`),
+    // "Overdue". Only unresolved items can breach, so the closed ones — which
+    // become the bulk of the table — are left out of the index entirely.
+    index("reviews_org_sla_due_idx")
+      .on(table.organizationId, table.slaDueAt)
+      .where(sql`sla_due_at is not null and status in ('open', 'in_progress')`),
     check("reviews_rating_range", sql`${table.rating} is null or ${table.rating} between 1 and 5`),
+    check(
+      "reviews_priority_range",
+      sql`${table.priority} is null or ${table.priority} between 0 and 100`,
+    ),
     // A comment or a mention has no star rating to give. Letting one carry a
     // rating would put an invented number into the reputation pulse.
     check(
@@ -677,6 +850,44 @@ export const tags = pgTable(
   (table) => [
     unique("tags_organization_id_slug_key").on(table.organizationId, table.slug),
     index("tags_organization_id_idx").on(table.organizationId),
+  ],
+);
+
+/**
+ * Tags a person put on a review by hand (P2-T6).
+ *
+ * A separate table rather than another entry in `review_insights.topics`,
+ * because those two are different kinds of claim. `topics` is *what the model
+ * said* — evidence, and rewriting it would falsify the record a re-analysis is
+ * measured against. This is what a colleague decided, and it survives every
+ * re-analysis precisely because the model has no say in it.
+ *
+ * Points at `tags`, the organization's curated vocabulary, rather than storing
+ * free text: tagging fifty reviews "servis" and fifty more "Servis " should not
+ * produce two themes, and a rename in the vocabulary has to reach every review
+ * already carrying it.
+ */
+export const reviewTags = pgTable(
+  "review_tags",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    reviewId: uuid("review_id")
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+    /** Who applied it. Null once they leave — the tag outlives the person. */
+    taggedByUserId: uuid("tagged_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (table) => [
+    unique("review_tags_review_tag_key").on(table.reviewId, table.tagId),
+    index("review_tags_org_tag_idx").on(table.organizationId, table.tagId),
+    index("review_tags_review_idx").on(table.reviewId),
   ],
 );
 
@@ -942,6 +1153,93 @@ export const replies = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Team workflow (P2-T1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Canned replies a team writes once and reuses.
+ *
+ * Separate from `replies` because they are different kinds of object: a reply is
+ * a fact about one review, a template is a piece of the organization's voice
+ * that has no review attached. The body carries `{{placeholders}}` that are
+ * substituted at insert time (P2-T5), so it is never posted as written.
+ *
+ * `language` is the locale the body is written in, not a translation key: a
+ * Turkish template and its English sibling are two rows, because a good reply in
+ * one language is rarely a translation of the other. The picker offers the ones
+ * matching the review's language first.
+ */
+export const replyTemplates = pgTable(
+  "reply_templates",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    body: text("body").notNull(),
+    /** A supported locale (`src/i18n`). Plain text, like every other locale column. */
+    language: text("language").notNull(),
+    /** Free-form labels — "negative", "no-show", "teşekkür". Filters the picker. */
+    tags: text("tags")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    ...timestamps,
+  },
+  (table) => [
+    index("reply_templates_organization_id_idx").on(table.organizationId),
+    // Same name in two languages is the normal case; the same name twice in one
+    // language is a mistake nobody would spot in a dropdown.
+    unique("reply_templates_org_language_name_key").on(
+      table.organizationId,
+      table.language,
+      table.name,
+    ),
+    index("reply_templates_tags_idx").using("gin", table.tags),
+  ],
+);
+
+/**
+ * A named filter combination — "my overdue negatives", "everything from Google".
+ *
+ * `filters` is jsonb rather than columns because it stores the *inbox filter
+ * state*, which is the one shape in this schema guaranteed to keep growing: a
+ * new filter in P2-T3 must not mean a migration plus a backfill of every saved
+ * view. It is validated with Zod on read, so a view saved against a filter that
+ * later disappears degrades to "ignore that key" instead of breaking the screen.
+ *
+ * `owner_user_id` null means shared with the whole organization. A nullable
+ * owner rather than an `is_shared` flag, because the two would be able to
+ * disagree — a shared view that still names a private owner has no meaning.
+ */
+export const savedViews = pgTable(
+  "saved_views",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /** Null = shared with the organization. Otherwise private to this user. */
+    ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** The inbox filter state. Validated by Zod on read — see src/inbox/views.ts. */
+    filters: jsonb("filters").notNull().default({}),
+    /** Display order within the owner's list. Ties break on name. */
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+  },
+  (table) => [
+    // `NULLS NOT DISTINCT` so the shared views (owner null) are held to the same
+    // one-name-one-view rule as a person's own.
+    unique("saved_views_org_owner_name_key")
+      .on(table.organizationId, table.ownerUserId, table.name)
+      .nullsNotDistinct(),
+    index("saved_views_org_owner_idx").on(table.organizationId, table.ownerUserId, table.position),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Notifications (P1a-T5)
 // ---------------------------------------------------------------------------
 
@@ -1132,6 +1430,17 @@ export const consentRecords = pgTable(
     iysUploadDueAt: timestamp("iys_upload_due_at", { withTimezone: true }),
     /** When it actually reached İYS. Null while outstanding. */
     iysUploadedAt: timestamp("iys_uploaded_at", { withTimezone: true }),
+    /**
+     * Which gateway accepted it — the difference between a registered consent
+     * and a development one.
+     *
+     * `iys_uploaded_at` alone would claim the registry holds this permission,
+     * and in a dev or staging database that claim is false: the `local` adapter
+     * accepts everything without leaving the machine. Storing the adapter's
+     * name makes the two permanently distinguishable, so "which of these did a
+     * real registry actually accept" stays an answerable question.
+     */
+    iysUploadedVia: text("iys_uploaded_via"),
     /** Why the last upload attempt failed, if it did. */
     iysUploadError: text("iys_upload_error"),
     ...timestamps,
@@ -1252,10 +1561,15 @@ export type Location = typeof locations.$inferSelect;
 export type Connection = typeof connections.$inferSelect;
 export type Review = typeof reviews.$inferSelect;
 export type NewReview = typeof reviews.$inferInsert;
+export type ReviewStatus = (typeof reviewStatusEnum.enumValues)[number];
+export type MemberLocation = typeof memberLocations.$inferSelect;
+export type ReplyTemplate = typeof replyTemplates.$inferSelect;
+export type SavedView = typeof savedViews.$inferSelect;
 export type ReviewInsight = typeof reviewInsights.$inferSelect;
 export type NewReviewInsight = typeof reviewInsights.$inferInsert;
 export type Sentiment = (typeof sentimentEnum.enumValues)[number];
 export type Tag = typeof tags.$inferSelect;
+export type ReviewTag = typeof reviewTags.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
 export type CampaignChannel = (typeof campaignChannelEnum.enumValues)[number];
@@ -1271,17 +1585,34 @@ export type Session = typeof sessions.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type Invitation = typeof invitations.$inferSelect;
 
-/** Every tenant-owned table — the set RLS must cover. */
+/**
+ * Every tenant-owned table — the set RLS must cover.
+ *
+ * Kept complete rather than as of Phase 0: the list is the checklist a reviewer
+ * reads when adding a table, and one that silently stopped listing `replies`
+ * and `notifications` is worse than no list at all.
+ */
 export const TENANT_TABLES = [
   "memberships",
   "locations",
   "connections",
   "reviews",
   "review_insights",
+  "review_tags",
+  "member_locations",
+  "reply_templates",
+  "saved_views",
   "tags",
   "contacts",
   "campaigns",
   "review_requests",
+  "whatsapp_conversations",
+  "digests",
+  "digest_actions",
+  "digest_deliveries",
+  "replies",
+  "notification_preferences",
+  "notifications",
   "subscriptions",
   "usage_counters",
   "audit_logs",

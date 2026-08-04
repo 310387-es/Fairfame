@@ -398,7 +398,7 @@ describe("the upload queue", () => {
     );
 
     const [pending] = await inTenant(fixture, (tx) => pendingIysUploads(tx, fixture.orgId));
-    await inTenant(fixture, (tx) => markUploaded(tx, fixture.orgId, [pending!.id]));
+    await inTenant(fixture, (tx) => markUploaded(tx, fixture.orgId, [pending!.id], "test-gateway"));
 
     expect(await inTenant(fixture, (tx) => pendingIysUploads(tx, fixture.orgId))).toEqual([]);
   });

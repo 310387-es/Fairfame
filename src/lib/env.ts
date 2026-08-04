@@ -120,6 +120,18 @@ const envSchema = z.object({
    * is invisible while a late alert is the product failing at its promise.
    */
   NOTIFY_SWEEP_INTERVAL_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(120_000),
+  /** How often lapsed response deadlines are looked for (P2-T7). */
+  SLA_SWEEP_INTERVAL_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(300_000),
+
+  /**
+   * How often collected consents are reported to İYS. Defaults to 15 minutes.
+   *
+   * The deadline is three business days, so the interval is not about latency —
+   * it is about how many retries fit inside the margin when the registry is
+   * unreachable. Ninety-six a day means most of a day of downtime costs nobody
+   * a deadline.
+   */
+  IYS_SWEEP_INTERVAL_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(900_000),
 
   /**
    * How often the worker checks for a missing weekly digest. Defaults to 1h.

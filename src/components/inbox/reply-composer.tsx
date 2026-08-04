@@ -3,6 +3,7 @@
 import { Check, Loader2, PenLine, Send, Sparkles, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
+import { TemplatePicker } from "@/components/inbox/template-picker";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -125,6 +126,15 @@ export function ReplyComposer({
             />
 
             <div className="flex flex-wrap items-center gap-2">
+              {/* Inside the editor, not beside "Write a reply": a template is
+                  something you drop *into* what you are writing, and it must be
+                  reachable after you have started rather than only before. */}
+              <TemplatePicker
+                reviewId={reviewId}
+                disabled={pending}
+                onPick={(body) => setText(body)}
+              />
+
               <span
                 className={cn(
                   "text-copy text-muted-foreground",
@@ -175,6 +185,17 @@ export function ReplyComposer({
               {t("writeReply")}
             </Button>
 
+            {/* A template needs no plan and no model call, so it sits with
+                "write it yourself" on the always-available side of the row. */}
+            <TemplatePicker
+              reviewId={reviewId}
+              disabled={pending}
+              onPick={(body) => {
+                setText(body);
+                setWriting(true);
+              }}
+            />
+
             {canUseAi ? (
               <Button
                 type="button"
@@ -220,6 +241,12 @@ export function ReplyComposer({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <TemplatePicker
+              reviewId={reviewId}
+              disabled={pending}
+              onPick={(body) => setText(body)}
+            />
+
             <Button
               type="button"
               size="sm"

@@ -1,129 +1,56 @@
-import { X } from "lucide-react";
+import { AlarmClock, CheckCheck, ThumbsDown, UserRound, X } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { Chip, ChipGroup } from "@/components/inbox/chip";
+import { Segmented } from "@/components/ds/segmented";
+import {
+  ASSIGNEE_ME,
+  EMPTY_INBOX_FILTERS,
+  hasActiveFilters,
+  inboxHref,
+  toggleFilter,
+  type InboxFilterState,
+  type ToggleableFilter,
+} from "@/inbox/filters";
 import type { FacetCounts } from "@/inbox/queries";
-import { cn } from "@/lib/utils";
 
 /**
- * Inbox filters (P1a-T9).
+ * Inbox filters (P1a-T9; quick filters and status in P2-T3).
  *
  * Links, not client state. Every filter is a URL, so a filtered Inbox can be
  * bookmarked, shared with a colleague, opened in a new tab, and — the reason
  * this shape was chosen — **linked to from a digest action**, which is what
  * makes "see the reviews behind this recommendation" a single href.
  *
+ * The state and its serialization live in `@/inbox/filters`, shared with the
+ * page, the pager and saved views. This file decides what to *show*; it has no
+ * opinion about what a filtered URL looks like, which is what stopped a chip
+ * click from quietly dropping the filters it did not know about.
+ *
  * Counts come from the unfiltered location (see `inboxFacets`), so narrowing
  * never hides the option you need to widen back out.
  */
 
-export type InboxFilterState = {
-  source: string | null;
-  sentiment: string | null;
-  theme: string | null;
-  reply: string | null;
-  /** Free text arriving from the command palette's "see all". */
-  query: string | null;
-};
-
-/**
- * The URL parameter each filter is written as.
- *
- * Only `query` differs from its key — it is `?q=` because that is what people
- * expect to be able to type by hand, and what the palette links to.
- */
-const PARAM: Record<keyof InboxFilterState, string> = {
-  source: "source",
-  sentiment: "sentiment",
-  theme: "theme",
-  reply: "reply",
-  query: "q",
-};
-
 /** Toggling: clicking the active option clears it rather than reapplying it. */
-function hrefFor(current: InboxFilterState, key: keyof InboxFilterState, value: string | null) {
-  const next = { ...current, [key]: current[key] === value ? null : value };
-  const params = new URLSearchParams();
-
-  for (const [name, entry] of Object.entries(next)) {
-    if (entry) params.set(PARAM[name as keyof InboxFilterState], entry);
-  }
-
-  const query = params.toString();
-  return query ? `/inbox?${query}` : "/inbox";
-}
-
-/**
- * One facet option.
- *
- * A pill with the count as a separate mono element rather than baked into the
- * label as "Instagram · 67". Two typefaces doing two jobs: the name is prose and
- * the number is data, and tabular digits mean a column of chips stops changing
- * width every time the counts refresh. It is also the difference between the
- * count reading as part of the name and reading as a quantity.
- */
-function Chip({
-  href,
-  active,
-  count,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  count?: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "true" : undefined}
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] transition-colors",
-        "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-        active
-          ? "border-primary bg-primary font-semibold text-primary-foreground hover:border-indigo-700 hover:bg-indigo-700"
-          : "border-line bg-card font-medium text-ink-400 hover:bg-surface-sunken hover:text-foreground",
-      )}
-    >
-      {children}
-      {count === undefined ? null : (
-        <span
-          className={cn(
-            "font-mono text-[11px] tabular-nums",
-            active ? "text-white/80" : "text-graphic-faint",
-          )}
-        >
-          {count}
-        </span>
-      )}
-    </Link>
-  );
-}
-
-function Group({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    // A two-column grid, not a wrapping flex row: the label needs its own
-    // column so a group that wraps onto a second line keeps its chips aligned
-    // with the first, instead of tucking them under the label.
-    <div className="grid grid-cols-[3.5rem_1fr] items-start gap-1.5">
-      {/* Micro-caps, like every other label on a data surface. */}
-      <span className="pt-1.5 text-eyebrow text-faint uppercase">{label}</span>
-      <div className="flex flex-wrap items-center gap-1.5">{children}</div>
-    </div>
-  );
+function hrefFor(current: InboxFilterState, key: ToggleableFilter, value: string | number) {
+  return inboxHref(toggleFilter(current, key, value));
 }
 
 export async function InboxFilterBar({
   facets,
   filters,
   sourceLabels,
+  canTrackSla,
 }: {
   facets: FacetCounts;
   filters: InboxFilterState;
   /** Provider key → display label, from the connector registry. */
   sourceLabels: Record<string, string>;
+  /** False when the plan has no `sla_tracking`, so Overdue is not offered. */
+  canTrackSla: boolean;
 }) {
   const t = await getTranslations("inbox");
-  const active = Object.values(filters).some(Boolean);
+  const active = hasActiveFilters(filters);
 
   const sentimentLabel: Record<string, string> = {
     positive: t("sentimentPositive"),
@@ -131,13 +58,96 @@ export async function InboxFilterBar({
     negative: t("sentimentNegative"),
   };
 
+  const statusLabel: Record<string, string> = {
+    open: t("statusOpen"),
+    in_progress: t("statusInProgress"),
+    done: t("statusDone"),
+    ignored: t("statusIgnored"),
+  };
+
+  const negativeCount = facets.sentiments.find((entry) => entry.value === "negative")?.count;
+
+  /**
+   * The four one-click filters from the build plan.
+   *
+   * Each is a shortcut to a combination that already exists further down the bar
+   * — the same URL, reached in one tap instead of two. They lead because they
+   * are what someone opens the Inbox *to do*: answer what is waiting, deal with
+   * what is angry, work their own queue, catch what is late. Everything below is
+   * the full taxonomy, for when the shortcut is not what you meant.
+   */
+  const quickFilters = [
+    {
+      key: "unanswered",
+      href: hrefFor(filters, "reply", "unanswered"),
+      active: filters.reply === "unanswered",
+      count: facets.unanswered,
+      icon: CheckCheck,
+      label: t("filterUnanswered"),
+    },
+    {
+      key: "negative",
+      href: hrefFor(filters, "sentiment", "negative"),
+      active: filters.sentiment === "negative",
+      count: negativeCount,
+      icon: ThumbsDown,
+      label: t("sentimentNegative"),
+    },
+    {
+      key: "mine",
+      href: hrefFor(filters, "assignee", ASSIGNEE_ME),
+      active: filters.assignee === ASSIGNEE_ME,
+      count: facets.mine,
+      icon: UserRound,
+      label: t("filterAssignedToMe"),
+    },
+    // Offered only where deadlines are tracked. A chip that filtered on a
+    // promise the plan does not make would be a control that means nothing.
+    ...(canTrackSla
+      ? [
+          {
+            key: "overdue",
+            href: hrefFor(filters, "overdue", "1"),
+            active: filters.overdue,
+            count: facets.overdue,
+            icon: AlarmClock,
+            label: t("filterOverdue"),
+          },
+        ]
+      : []),
+  ];
+
   return (
     // No bottom margin: the app shell lays pages out with the system's block
     // gap, and a margin here would double it against the list below.
     <div className="flex flex-col gap-2 rounded-lg border border-line bg-card px-(--card-px) py-3">
+      <ChipGroup label={t("filterQuick")}>
+        {quickFilters.map(({ key, href, active: on, count, icon: Icon, label }) => (
+          <Chip key={key} href={href} active={on} count={count}>
+            <Icon className="size-3" aria-hidden />
+            {label}
+          </Chip>
+        ))}
+      </ChipGroup>
+
+      {facets.statuses.length > 0 ? (
+        <ChipGroup label={t("filterStatus")}>
+          {facets.statuses.map((entry) => (
+            <Chip
+              key={entry.value}
+              href={hrefFor(filters, "status", entry.value)}
+              active={filters.status.includes(entry.value)}
+              count={entry.count}
+            >
+              {statusLabel[entry.value]}
+            </Chip>
+          ))}
+        </ChipGroup>
+      ) : null}
+
       {/* Only offered when there is more than one source to choose between. */}
       {facets.sources.length > 1 ? (
-        <Group label={t("filterSource")}>
+        <ChipGroup label={t("filterSource")}>
           {facets.sources.map((source) => (
             <Chip
               key={source.value}
@@ -148,11 +158,11 @@ export async function InboxFilterBar({
               {sourceLabels[source.value] ?? source.value}
             </Chip>
           ))}
-        </Group>
+        </ChipGroup>
       ) : null}
 
       {facets.sentiments.length > 0 ? (
-        <Group label={t("filterSentiment")}>
+        <ChipGroup label={t("filterSentiment")}>
           {facets.sentiments.map((entry) => (
             <Chip
               key={entry.value}
@@ -163,10 +173,10 @@ export async function InboxFilterBar({
               {sentimentLabel[entry.value]}
             </Chip>
           ))}
-        </Group>
+        </ChipGroup>
       ) : null}
 
-      <Group label={t("filterReply")}>
+      <ChipGroup label={t("filterReply")}>
         <Chip
           href={hrefFor(filters, "reply", "unanswered")}
           active={filters.reply === "unanswered"}
@@ -181,10 +191,10 @@ export async function InboxFilterBar({
         >
           {t("filterAnswered")}
         </Chip>
-      </Group>
+      </ChipGroup>
 
       {facets.themes.length > 0 ? (
-        <Group label={t("filterTheme")}>
+        <ChipGroup label={t("filterTheme")}>
           {facets.themes.map((theme) => (
             <Chip
               key={theme.value}
@@ -205,31 +215,52 @@ export async function InboxFilterBar({
               {filters.theme}
             </Chip>
           ) : null}
-        </Group>
+        </ChipGroup>
       ) : null}
 
       {/* A search arriving from the palette has to be visible and removable.
           Without a chip the list looks arbitrarily short and the only way back
           is the browser's back button. */}
       {filters.query ? (
-        <Group label={t("filterSearch")}>
+        <ChipGroup label={t("filterSearch")}>
           <Chip href={hrefFor(filters, "query", filters.query)} active>
             {filters.query}
           </Chip>
-        </Group>
+        </ChipGroup>
       ) : null}
 
-      {active ? (
-        <div className="pt-1">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+        {/* Sorting is a link, not a toggle: the server decides the order, so it
+            belongs in the URL like every filter above. */}
+        <Segmented
+          label={t("sort")}
+          size="sm"
+          items={[
+            {
+              href: inboxHref({ ...filters, sort: "recent" }),
+              label: t("sortRecent"),
+              active: filters.sort === "recent",
+            },
+            {
+              href: inboxHref({ ...filters, sort: "priority" }),
+              label: t("sortPriority"),
+              active: filters.sort === "priority",
+            },
+          ]}
+        />
+
+        {active ? (
+          // Clearing drops the filters and keeps the order — reordering is not
+          // filtering, and losing it here would be a second, unasked-for change.
           <Link
-            href="/inbox"
+            href={inboxHref({ ...EMPTY_INBOX_FILTERS, sort: filters.sort })}
             className="inline-flex items-center gap-1 text-copy text-muted-foreground underline-offset-4 hover:underline"
           >
             <X className="size-3" aria-hidden />
             {t("clearFilters")}
           </Link>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }

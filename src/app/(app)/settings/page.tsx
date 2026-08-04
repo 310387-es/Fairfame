@@ -1,11 +1,15 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { roleAtLeast } from "@/auth/permissions";
 import { requireActor } from "@/auth/session";
 import { PreferenceForm, type PreferenceValue } from "@/components/notifications/preference-form";
+import { TemplateManager } from "@/components/replies/template-manager";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { listLocations } from "@/lib/active-location";
+import { DEFAULT_LOCALE, isLocale } from "@/i18n/config";
+import { listLocationsForActor } from "@/lib/active-location";
 import { withTenant } from "@/lib/tenancy";
 import { DEFAULT_PREFERENCE, preferencesForUser } from "@/notifications/preferences";
+import { MAX_TEMPLATE_BODY, listReplyTemplates } from "@/replies/templates";
 
 /**
  * Settings.
@@ -15,17 +19,20 @@ import { DEFAULT_PREFERENCE, preferencesForUser } from "@/notifications/preferen
  * which is why the query takes `actor.userId`.
  */
 export default async function SettingsPage() {
-  const [t, tn, actor] = await Promise.all([
+  const [t, tn, tt, actor, locale] = await Promise.all([
     getTranslations("settings"),
     getTranslations("settings.notifications"),
+    getTranslations("templates"),
     requireActor(),
+    getLocale(),
   ]);
 
-  const { locations, preferences } = await withTenant(
+  const { locations, preferences, templates } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => ({
-      locations: await listLocations(tx, actor.organizationId),
+      locations: await listLocationsForActor(tx, actor),
       preferences: await preferencesForUser(tx, actor.organizationId, actor.userId),
+      templates: await listReplyTemplates(tx, actor.organizationId),
     }),
   );
 
@@ -87,9 +94,20 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="mt-4">
-        <CardContent className="py-10 text-center text-body text-muted-foreground">
-          {t("placeholder")}
+      <Card id="templates" className="mt-4 scroll-mt-20">
+        <CardHeader>
+          <CardTitle>{tt("title")}</CardTitle>
+          <CardDescription>{tt("subtitle")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TemplateManager
+            templates={templates}
+            // Templates shape what the whole team says in the business's name,
+            // so writing them is admin work. The server enforces the same rule.
+            canManage={roleAtLeast(actor.role, "admin")}
+            maxChars={MAX_TEMPLATE_BODY}
+            defaultLanguage={isLocale(locale) ? locale : DEFAULT_LOCALE}
+          />
         </CardContent>
       </Card>
     </>

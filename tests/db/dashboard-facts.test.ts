@@ -69,7 +69,12 @@ async function addReview(
       rating: options.rating === undefined ? 4 : options.rating,
       text: "Bir yorum.",
       postedAt: options.postedAt === undefined ? daysBefore(1) : options.postedAt,
-      ...(options.createdAt ? { createdAt: options.createdAt } : {}),
+      // Ingestion time is pinned to the window too, not left to `now()`.
+      // Several facts fall back to `created_at` when a platform gave no posted
+      // time, and a default of "the real clock" put those rows *after* the
+      // window this suite fixes at 2026-08-03 — so the assertions passed only
+      // until that date went by.
+      createdAt: options.createdAt ?? daysBefore(1),
       rawPayload: {},
     })
     .returning({ id: schema.reviews.id });

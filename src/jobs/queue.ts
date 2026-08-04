@@ -79,6 +79,36 @@ export type NotifySweepJob = {
   kind: "notify_sweep";
 };
 
+/**
+ * Alerts on response deadlines that have lapsed (P2-T7).
+ *
+ * Its own sweep rather than a branch of `notify_sweep`, because the two are
+ * triggered by different things. An arrival alert is caused by an *event* — a
+ * row appeared — and the sweep is a safety net behind the sync that already
+ * enqueued one. A breach is caused by *time passing*, so nothing will ever
+ * enqueue it; the sweep is the only thing that can notice, and it has to keep
+ * looking at rows that have not changed.
+ */
+export type SlaSweepJob = {
+  kind: "sla_sweep";
+};
+
+/**
+ * Reports collected marketing permissions to İYS (P1b-T5).
+ *
+ * A sweep for the same reason the SLA one is: the trigger is a deadline, and
+ * deadlines are not events. Turkish law gives three business days from the
+ * moment the box was ticked, and nothing will happen at the end of them.
+ *
+ * It is deliberately not enqueued by the collection form either. A consent that
+ * failed to upload has to be retried, so something must re-read rows that have
+ * not changed — and once that exists, having the form enqueue as well would
+ * only add a second path to keep correct.
+ */
+export type IysSweepJob = {
+  kind: "iys_sweep";
+};
+
 export type DigestJob = {
   kind: "digest";
   organizationId: string;
@@ -114,6 +144,8 @@ export type ReviewJob =
   | AnalyzeSweepJob
   | NotifyJob
   | NotifySweepJob
+  | SlaSweepJob
+  | IysSweepJob
   | DigestJob
   | DigestSweepJob
   | DigestDeliverJob;
@@ -262,6 +294,8 @@ export async function enqueueDigestDelivery(
 export const SCAN_SCHEDULER_ID = "scan-connections";
 export const ANALYZE_SWEEP_SCHEDULER_ID = "analyze-sweep";
 export const NOTIFY_SWEEP_SCHEDULER_ID = "notify-sweep";
+export const SLA_SWEEP_SCHEDULER_ID = "sla-sweep";
+export const IYS_SWEEP_SCHEDULER_ID = "iys-sweep";
 export const DIGEST_SWEEP_SCHEDULER_ID = "digest-sweep";
 
 /**
@@ -309,6 +343,43 @@ export async function scheduleNotifySweep(
     NOTIFY_SWEEP_SCHEDULER_ID,
     { every: everyMs },
     { name: "notify_sweep", data: { kind: "notify_sweep" } },
+  );
+}
+
+/**
+ * Installs the repeating SLA sweep.
+ *
+ * Every five minutes. A deadline is a promise measured in hours, so the
+ * resolution that matters is "within a few minutes of lapsing", not "within
+ * seconds" — and unlike the notification sweep, this one has to re-examine rows
+ * that nothing has touched, so a tighter interval buys precision nobody can use
+ * at a cost that scales with the whole open backlog.
+ */
+export async function scheduleSlaSweep(queue: Queue<ReviewJob>, everyMs = 300_000): Promise<void> {
+  await queue.upsertJobScheduler(
+    SLA_SWEEP_SCHEDULER_ID,
+    { every: everyMs },
+    { name: "sla_sweep", data: { kind: "sla_sweep" } },
+  );
+}
+
+/**
+ * Installs the repeating İYS upload sweep.
+ *
+ * Every fifteen minutes against a three-business-day deadline, which sounds
+ * generous until you count what the margin is for: a gateway outage has to be
+ * survivable without an operator, and retries only happen when the sweep comes
+ * round. Ninety-six attempts a day means a registry can be down for most of a
+ * day and still cost nobody a deadline.
+ *
+ * Tighter would buy nothing — a consent registered five minutes sooner changes
+ * no outcome, since the customer is not waiting on this message today.
+ */
+export async function scheduleIysSweep(queue: Queue<ReviewJob>, everyMs = 900_000): Promise<void> {
+  await queue.upsertJobScheduler(
+    IYS_SWEEP_SCHEDULER_ID,
+    { every: everyMs },
+    { name: "iys_sweep", data: { kind: "iys_sweep" } },
   );
 }
 

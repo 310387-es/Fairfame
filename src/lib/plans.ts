@@ -32,6 +32,13 @@ export const FEATURE_KEYS = [
   "api_access",
   "white_label",
   "benchmarking",
+  // Team workflow (P2-T8). Three separate keys rather than one "team" flag,
+  // because they are three different reasons to upgrade and packaging will
+  // want to move them independently — a solo owner may well be sold SLA
+  // tracking without ever needing bulk actions.
+  "saved_views",
+  "bulk_actions",
+  "sla_tracking",
 ] as const;
 
 export const LIMIT_KEYS = [
@@ -104,6 +111,12 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         api_access: false,
         white_label: false,
         benchmarking: false,
+        // Starter is one location and two seats. Saved views, bulk actions and
+        // SLA tracking are what a *team* needs to divide work between people,
+        // which is the line this tier sits below.
+        saved_views: false,
+        bulk_actions: false,
+        sla_tracking: false,
       },
       limits: {
         max_locations: 1,
@@ -134,6 +147,9 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         api_access: false,
         white_label: false,
         benchmarking: false,
+        saved_views: true,
+        bulk_actions: true,
+        sla_tracking: true,
       },
       limits: {
         max_locations: 3,
@@ -164,6 +180,9 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         api_access: true,
         white_label: false,
         benchmarking: true,
+        saved_views: true,
+        bulk_actions: true,
+        sla_tracking: true,
       },
       limits: {
         max_locations: 10,
@@ -194,6 +213,9 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         api_access: true,
         white_label: true,
         benchmarking: true,
+        saved_views: true,
+        bulk_actions: true,
+        sla_tracking: true,
       },
       limits: {
         max_locations: null,

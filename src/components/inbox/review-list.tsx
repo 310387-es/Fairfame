@@ -6,7 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReplyComposer, type ReplyState } from "@/components/inbox/reply-composer";
+import { SelectCheckbox } from "@/components/inbox/selection";
+import { TriageBar, type AssigneeOption } from "@/components/inbox/triage-bar";
 import type { ReplyAffordance } from "@/connectors/capability-view";
+import type { ReviewStatus } from "@/db/schema";
+import type { SlaState } from "@/inbox/workflow";
 import { MAX_REPLY_CHARS } from "@/prompts/index";
 
 export type InboxReview = {
@@ -32,6 +36,11 @@ export type InboxReview = {
   /** From `review_insights`. Null until analysis has run.  */
   sentiment: "positive" | "neutral" | "negative" | null;
   topics: string[];
+  /** Team triage state (P2-T4). */
+  status: ReviewStatus;
+  assigneeUserId: string | null;
+  sla: SlaState;
+  slaDueAt: Date | null;
 };
 
 export type ReviewListOptions = {
@@ -41,6 +50,17 @@ export type ReviewListOptions = {
   canApprove: boolean;
   /** The review a deep link asked for, outlined so it can be found. */
   highlightId?: string | null;
+  /** Who this location's work may be given to (P2-T4). */
+  assignees: AssigneeOption[];
+  /** False for a client, whose role reads but does not run the queue. */
+  canTriage: boolean;
+  /**
+   * False when the plan has no `bulk_actions`, or the role cannot act.
+   *
+   * A checkbox with no bar to act on it is worse than no checkbox: it invites a
+   * selection and then does nothing with it.
+   */
+  canSelect: boolean;
 };
 
 /**
@@ -115,6 +135,14 @@ export async function ReviewList({
           <Card>
             <CardContent className="space-y-3 py-5">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                {/* The only client code inside an otherwise server-rendered
+                    card — see the note in selection.tsx. */}
+                {options.canSelect ? (
+                  <SelectCheckbox
+                    reviewId={review.id}
+                    label={t("selectReview", { author: review.authorName ?? "—" })}
+                  />
+                ) : null}
                 <span className="font-medium">{review.authorName ?? "—"}</span>
                 <Rating
                   rating={review.rating}
@@ -194,6 +222,22 @@ export async function ReviewList({
                   maxChars={MAX_REPLY_CHARS}
                 />
               ) : null}
+
+              {/*
+                Triage sits below the reply, not above it. The reply is what the
+                card is *for*; status and assignment are what happens to it
+                afterwards, and putting two dropdowns above the customer's words
+                would make every card open with administration.
+              */}
+              <TriageBar
+                reviewId={review.id}
+                status={review.status}
+                assigneeUserId={review.assigneeUserId}
+                sla={review.sla}
+                dueAt={review.slaDueAt ? format.dateTime(review.slaDueAt, "medium") : null}
+                assignees={options.assignees}
+                canTriage={options.canTriage}
+              />
             </CardContent>
           </Card>
         </li>

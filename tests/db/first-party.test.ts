@@ -36,6 +36,8 @@ import { createCaptureTransport, setEmailTransportForTesting } from "@/messaging
 const suffix = crypto.randomUUID().slice(0, 8);
 const orgIds: string[] = [];
 const capture = createCaptureTransport();
+/** Keeps each İYS fixture on its own org, slug, email and rate-limit key. */
+let counter = 0;
 
 type Fixture = { orgId: string; locationId: string };
 
@@ -290,6 +292,7 @@ describe("the funnel", () => {
         authorName: "Dönüş",
         email: "donusum@example.com",
         kvkkAccepted: true,
+        iysAccepted: false,
       },
       { ip: `test-${suffix}-conversion` },
     );
@@ -353,6 +356,7 @@ describe("the funnel", () => {
       authorName: null,
       email: null,
       kvkkAccepted: false,
+      iysAccepted: false,
     };
 
     expect((await submitReview(submission, { ip: `test-${suffix}-once-a` })).ok).toBe(true);
@@ -388,6 +392,7 @@ describe("the funnel", () => {
           authorName: null,
           email: null,
           kvkkAccepted: false,
+          iysAccepted: false,
         },
         { ip: `test-${suffix}-cross` },
       ),
@@ -406,6 +411,7 @@ describe("the funnel", () => {
         authorName: null,
         email: null,
         kvkkAccepted: false,
+        iysAccepted: false,
       },
       { ip: `test-${suffix}-walkin` },
     );
@@ -458,6 +464,7 @@ describe("no rating-gating", () => {
           authorName: null,
           email: null,
           kvkkAccepted: false,
+          iysAccepted: false,
         },
         { ip: `test-${suffix}-gate-${index}` },
       );
@@ -521,6 +528,7 @@ describe("tenant isolation", () => {
         authorName: null,
         email: null,
         kvkkAccepted: false,
+        iysAccepted: false,
       },
       { ip: `test-${suffix}-owner` },
     );
@@ -692,6 +700,7 @@ describe("abuse guards", () => {
           authorName: null,
           email: null,
           kvkkAccepted: false,
+          iysAccepted: false,
         },
         { ip: `test-${suffix}-archived` },
       ),
@@ -711,6 +720,7 @@ describe("abuse guards", () => {
       authorName: null,
       email: null,
       kvkkAccepted: false,
+      iysAccepted: false,
     };
 
     for (let attempt = 1; attempt <= limit; attempt += 1) {
@@ -723,5 +733,85 @@ describe("abuse guards", () => {
     // throttle another's, since a whole café shares one NAT address.
     const other = await makeCampaign(a, { name: "Başka sel", channel: "link" });
     expect((await submitReview({ ...submission, slug: other.slug }, { ip })).ok).toBe(true);
+  });
+});
+
+describe("the İYS opt-in (P1b-T5, the missing half)", () => {
+  /**
+   * The gap this closes: the hosted page captured a KVKK acknowledgement and
+   * nothing else, so an İYS permission could not be obtained through the
+   * product at all — the compliance layer was built and unreachable, and
+   * nothing commercial could ever legally be sent.
+   *
+   * What these assert is that the two permissions stay **separate**. Turkish
+   * law treats "you may process my data" and "you may market to me" as
+   * different things, and İYS is the registry that checks the second.
+   */
+
+  async function submitWith(options: { kvkkAccepted: boolean; iysAccepted: boolean }) {
+    const fixture = await makeOrg(`iys-${suffix}-${counter++}`);
+    const campaign = await makeCampaign(fixture, { destination: "firstparty" });
+
+    const result = await submitReview(
+      {
+        slug: campaign.slug,
+        requestToken: null,
+        rating: 5,
+        comment: "Teşekkürler.",
+        authorName: "Selin",
+        email: `iys-${counter}-${suffix}@example.test`,
+        ...options,
+      },
+      { ip: `test-${suffix}-iys-${counter}` },
+    );
+
+    expect(result.ok).toBe(true);
+
+    const rows = await getAdminDb()
+      .select()
+      .from(schema.consentRecords)
+      .where(eq(schema.consentRecords.organizationId, fixture.orgId));
+
+    return { fixture, rows };
+  }
+
+  it("records no İYS permission when only the privacy box is ticked", async () => {
+    const { rows } = await submitWith({ kvkkAccepted: true, iysAccepted: false });
+
+    expect(rows.map((row) => row.type)).toEqual(["kvkk"]);
+  });
+
+  it("records an İYS permission on its own tick, alongside the KVKK one", async () => {
+    const { rows } = await submitWith({ kvkkAccepted: true, iysAccepted: true });
+
+    expect(rows.filter((row) => row.type === "kvkk")).toHaveLength(1);
+    expect(rows.filter((row) => row.type === "iys")).toHaveLength(1);
+  });
+
+  it("records the channel the person actually gave, and no other", async () => {
+    // An address is permission to be emailed. It is not permission to be
+    // phoned — nobody asked that, and İYS records permission per channel.
+    const { rows } = await submitWith({ kvkkAccepted: true, iysAccepted: true });
+
+    const iys = rows.filter((row) => row.type === "iys");
+    expect(iys.map((row) => row.channel)).toEqual(["email"]);
+  });
+
+  it("starts the three-business-day upload clock", async () => {
+    const { rows } = await submitWith({ kvkkAccepted: true, iysAccepted: true });
+    const [iys] = rows.filter((row) => row.type === "iys");
+
+    expect(iys?.iysUploadDueAt).not.toBeNull();
+    // Captured is not uploaded — the row is a promise to report, not a report.
+    expect(iys?.iysUploadedAt).toBeNull();
+  });
+
+  it("keeps its evidence, so the permission can be proven later", async () => {
+    // "We have a row in our database" is not proof to İYS; the artefact is.
+    const { rows } = await submitWith({ kvkkAccepted: true, iysAccepted: true });
+    const [iys] = rows.filter((row) => row.type === "iys");
+
+    expect(iys?.source).toBe("web_form");
+    expect(iys?.proofRef).toMatch(/^submission:/);
   });
 });
