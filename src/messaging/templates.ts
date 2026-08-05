@@ -825,3 +825,133 @@ ${
 
   return { subject: copy.subject(input), text, html };
 }
+
+// ---------------------------------------------------------------------------
+// Survey invitations (P4-T2)
+// ---------------------------------------------------------------------------
+
+/**
+ * The invitation to answer an NPS or CSAT survey.
+ *
+ * A customer-facing message, so it belongs to the same family as the review
+ * request at the top of this file rather than to the team alerts: a KVKK
+ * reason-for-receipt line and a one-click opt-out are mandatory, and an owner's
+ * copy override replaces the body but never the footer.
+ *
+ * The copy asks the question and nothing else. It does not promise a reward, it
+ * does not say what a good answer looks like, and it never mentions leaving a
+ * public review — where a review is invited is decided *after* the answer, by
+ * `src/surveys/outcome.ts`, identically for everybody. A subject line hinting
+ * that happy customers should go to Google would be rating-gating conducted by
+ * email.
+ */
+export type SurveyInviteEmailInput = {
+  locale: Locale;
+  contactName: string | null;
+  businessName: string;
+  locationName: string;
+  type: "nps" | "csat";
+  /** The business's own question, if it wrote one. */
+  question: string | null;
+  /** The tracked link — /s/{token}. */
+  link: string;
+  unsubscribeUrl: string;
+  overrides?: { subject?: string | undefined; body?: string | undefined };
+};
+
+type SurveyCopy = {
+  subject: (input: SurveyInviteEmailInput) => string;
+  greeting: (name: string | null) => string;
+  /** The default question, per instrument. Overridden by the business's own. */
+  question: Record<"nps" | "csat", (input: SurveyInviteEmailInput) => string>;
+  body: (input: SurveyInviteEmailInput) => string;
+  cta: string;
+  signOff: (business: string) => string;
+  footer: (business: string) => string;
+  unsubscribe: string;
+};
+
+const SURVEY_COPY: Record<Locale, SurveyCopy> = {
+  tr: {
+    subject: ({ locationName }) => `${locationName} hakkında tek bir soru`,
+    greeting: (name) => (name ? `Merhaba ${name},` : "Merhaba,"),
+    question: {
+      nps: ({ businessName }) =>
+        `${businessName} işletmesini bir arkadaşınıza tavsiye etme ihtimaliniz nedir?`,
+      csat: ({ locationName }) => `${locationName} ziyaretinizden ne kadar memnun kaldınız?`,
+    },
+    body: () =>
+      "Yanıtlamak bir dakikanızı bile almaz ve bize gerçekten yardımcı olur. " +
+      "Puanınız ne olursa olsun bizim için aynı derecede değerli.",
+    cta: "Yanıtlayın",
+    signOff: (business) => `Teşekkürler,\n${business}`,
+    footer: (business) =>
+      `Bu e-postayı, ${business} görüşünüzü sorduğu için aldınız. Kişisel verileriniz yalnızca ` +
+      `bu anket için işlenir (KVKK).`,
+    unsubscribe: "Bu e-postaları almayı bırakmak için tıklayın",
+  },
+  en: {
+    subject: ({ locationName }) => `One question about ${locationName}`,
+    greeting: (name) => (name ? `Hi ${name},` : "Hi,"),
+    question: {
+      nps: ({ businessName }) => `How likely are you to recommend ${businessName} to a friend?`,
+      csat: ({ locationName }) => `How satisfied were you with your visit to ${locationName}?`,
+    },
+    body: () =>
+      "It takes less than a minute and it genuinely helps us. Whatever you score us, " +
+      "your answer is equally useful.",
+    cta: "Answer",
+    signOff: (business) => `Thank you,\n${business}`,
+    footer: (business) =>
+      `You received this because ${business} asked for your feedback. Your details are processed ` +
+      `only for this survey.`,
+    unsubscribe: "Unsubscribe from these emails",
+  },
+};
+
+export function renderSurveyInviteEmail(input: SurveyInviteEmailInput): RenderedEmail {
+  const copy = SURVEY_COPY[input.locale];
+  const greeting = copy.greeting(input.contactName);
+  const question = input.question?.trim() || copy.question[input.type](input);
+  const body = input.overrides?.body?.trim() || copy.body(input);
+  const subject = input.overrides?.subject?.trim() || copy.subject(input);
+  const footer = copy.footer(input.businessName);
+
+  const text = [
+    greeting,
+    "",
+    question,
+    "",
+    body,
+    "",
+    input.link,
+    "",
+    copy.signOff(input.businessName),
+    "",
+    "—",
+    footer,
+    `${copy.unsubscribe}: ${input.unsubscribeUrl}`,
+  ].join("\n");
+
+  const html = `<!doctype html>
+<html lang="${input.locale}">
+  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+    <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
+      <p style="margin:0 0 16px;font-size:16px;">${escapeHtml(greeting)}</p>
+      <p style="margin:0 0 16px;font-size:18px;line-height:1.5;font-weight:600;">${escapeHtml(question)}</p>
+      <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">${escapeHtml(body)}</p>
+      <p style="margin:0 0 24px;">
+        <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#3d5af1;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;">${escapeHtml(copy.cta)}</a>
+      </p>
+      <p style="margin:0;font-size:15px;line-height:1.6;white-space:pre-line;">${escapeHtml(copy.signOff(input.businessName))}</p>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(footer)}</p>
+      <p style="margin:0;font-size:12px;color:#6b7280;">
+        <a href="${escapeHtml(input.unsubscribeUrl)}" style="color:#6b7280;">${escapeHtml(copy.unsubscribe)}</a>
+      </p>
+    </div>
+  </body>
+</html>`;
+
+  return { subject, text, html };
+}

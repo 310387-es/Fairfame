@@ -197,9 +197,24 @@ adapter's name (not `local`), and confirm a revoked consent is *not* uploaded.
 
 **Recurring maintenance:** `MOVABLE_HOLIDAYS` in
 `src/compliance/business-days.ts` lists the religious public holidays, which
-move each year. It currently covers through **2027**. Past that,
-`beyondKnownHolidays()` warns and every deadline silently ignores four to seven
-holidays a year. Put this in a calendar.
+move each year. It currently covers through **2030**
+(`MOVABLE_HOLIDAYS_KNOWN_THROUGH`). Past that, `beyondKnownHolidays()` warns and
+every deadline silently ignores four to seven holidays a year. `pnpm golive`
+warns under twelve months of runway and blocks once it lapses. Put this in a
+calendar anyway.
+
+**One send path is still outside the gate, and closing it is a go-live step.**
+Review-request email (`src/collect/requests.ts`, P1b-T1) honours the opt-out but
+does not call `checkSendAllowed`. It predates the gate, and gating it today
+would stop review requests sending in every deployment without a registry —
+which is all of them. Once the adapter above exists there is no such excuse:
+route it through the gate as `commercial`, exactly as `src/surveys/send.ts`
+does. `tests/lib/outbound-consent.test.ts` names this path as the one
+unclosed `customer` entry, so the list stays honest until it is; closing it
+means flipping `gated` to `true` there, which the same test then enforces.
+A review request sent *inside a broadcast* is already gated — the pipeline puts
+every recipient of every kind through `checkSendAllowed` — so the gap is the
+direct sender only.
 
 ---
 

@@ -1,12 +1,17 @@
 "use client";
 
 import {
+  Building2,
   CalendarRange,
+  ClipboardList,
+  Contact,
   Home,
   Inbox,
   LayoutGrid,
   LineChart,
   MapPin,
+  Megaphone,
+  MessageSquare,
   Send,
   Settings,
   Users,
@@ -53,6 +58,23 @@ const GROUPS = [
     label: "groupGrowth",
     items: [
       { href: "/requests", key: "requests", Icon: Send },
+      // Contacts sits in Growth, next to Requests: the two are the same loop
+      // seen from either end — who we asked, and who they turned out to be.
+      // It is not an Account screen; a customer file is worked, not configured.
+      { href: "/contacts", key: "contacts", Icon: Contact },
+      // Surveys sit beside Requests and Contacts for the same reason: all three
+      // are ways of asking a customer something and doing something with the
+      // answer. A survey is not analytics — the score turns up on Insights, but
+      // the asking happens here.
+      { href: "/surveys", key: "surveys", Icon: ClipboardList },
+      // Conversations, not a second Inbox. The Inbox above triages *reviews* —
+      // items that arrive once and must be dealt with. This is people, and the
+      // two behave differently enough that merging them would give one of them
+      // the other's controls.
+      { href: "/messages", key: "messages", Icon: MessageSquare },
+      // Broadcasts last in Growth: it is the thing you reach for once the
+      // contacts, the surveys and the conversations already exist.
+      { href: "/broadcasts", key: "broadcasts", Icon: Megaphone },
       // Showcase sits in Growth rather than Account: a widget is how reviews
       // are turned into something that brings people in, which is the same job
       // review requests do from the other end.
@@ -63,6 +85,9 @@ const GROUPS = [
   {
     label: "groupAccount",
     items: [
+      // Only meaningful for an agency, and harmless otherwise: the console's
+      // empty state explains what a client is and how to link one.
+      { href: "/clients", key: "clients", Icon: Building2 },
       { href: "/team", key: "team", Icon: Users },
       { href: "/settings", key: "settings", Icon: Settings },
     ],

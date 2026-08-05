@@ -43,10 +43,20 @@ function readLocales(): Map<string, string[]> {
   return locales;
 }
 
+/**
+ * Every source file, minus the catalogues themselves.
+ *
+ * Excluded **by path, not by name**. An earlier version skipped any directory
+ * called `messages`, which was fine while `src/i18n/messages` was the only one
+ * — and then P4-T3 added `src/app/(app)/messages` and `src/components/messages`
+ * and eleven live keys were reported as dead. A name match here is a rule about
+ * every directory anybody ever adds; a path match is a rule about the one
+ * directory that is genuinely not source.
+ */
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) return entry.name === "messages" ? [] : sourceFiles(path);
+    if (entry.isDirectory()) return path === MESSAGES_DIR ? [] : sourceFiles(path);
     return SOURCE_EXTENSIONS.some((extension) => entry.name.endsWith(extension)) ? [path] : [];
   });
 }

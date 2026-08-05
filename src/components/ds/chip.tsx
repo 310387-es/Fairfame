@@ -8,6 +8,11 @@ import { cn } from "@/lib/utils";
  * control strip rather than as two components that happen to sit together. It
  * has no server-only dependencies, so a client component can render it too.
  *
+ * Lives in `ds` rather than under `inbox` as of P4-T1, when the contacts screen
+ * became its second caller. Nothing about it was ever about reviews — it is a
+ * filter chip — and a shared control reached for through another feature's
+ * folder is a dependency that gets copied rather than imported the next time.
+ *
  * The count is a separate mono element rather than baked into the label as
  * "Instagram · 67". Two typefaces doing two jobs: the name is prose and the
  * number is data, and tabular digits mean a column of chips stops changing width

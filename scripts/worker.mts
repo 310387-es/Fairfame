@@ -20,6 +20,7 @@ import {
   scheduleNotifySweep,
   scheduleScan,
   scheduleIysSweep,
+  scheduleBroadcastSweep,
   scheduleReportSweep,
   scheduleSlaSweep,
 } from "../src/jobs/queue.ts";
@@ -34,6 +35,7 @@ const SLA_SWEEP_INTERVAL_MS = getEnv().SLA_SWEEP_INTERVAL_MS;
 const IYS_SWEEP_INTERVAL_MS = getEnv().IYS_SWEEP_INTERVAL_MS;
 const DIGEST_SWEEP_INTERVAL_MS = getEnv().DIGEST_SWEEP_INTERVAL_MS;
 const REPORT_SWEEP_INTERVAL_MS = getEnv().REPORT_SWEEP_INTERVAL_MS;
+const BROADCAST_SWEEP_INTERVAL_MS = getEnv().BROADCAST_SWEEP_INTERVAL_MS;
 
 const queueConnection = createRedisConnection();
 const workerConnection = createRedisConnection();
@@ -51,6 +53,7 @@ await scheduleNotifySweep(queue, NOTIFY_SWEEP_INTERVAL_MS);
 await scheduleSlaSweep(queue, SLA_SWEEP_INTERVAL_MS);
 await scheduleIysSweep(queue, IYS_SWEEP_INTERVAL_MS);
 await scheduleReportSweep(queue, REPORT_SWEEP_INTERVAL_MS);
+await scheduleBroadcastSweep(queue, BROADCAST_SWEEP_INTERVAL_MS);
 await scheduleDigestSweep(queue, DIGEST_SWEEP_INTERVAL_MS);
 
 log.info(
@@ -58,6 +61,7 @@ log.info(
     scanIntervalMs: SCAN_INTERVAL_MS,
     analyzeSweepIntervalMs: ANALYZE_SWEEP_INTERVAL_MS,
     notifySweepIntervalMs: NOTIFY_SWEEP_INTERVAL_MS,
+    broadcastSweepIntervalMs: BROADCAST_SWEEP_INTERVAL_MS,
     slaSweepIntervalMs: SLA_SWEEP_INTERVAL_MS,
     iysSweepIntervalMs: IYS_SWEEP_INTERVAL_MS,
     digestSweepIntervalMs: DIGEST_SWEEP_INTERVAL_MS,

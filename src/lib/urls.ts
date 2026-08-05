@@ -51,7 +51,28 @@ export function buildRequestUrl(base: string, token: string): string {
   return `${trimTrailingSlash(base)}/r/${token}`;
 }
 
-/** One-click opt-out. Present in every outbound message, without exception. */
+/**
+ * A survey: `/s/{code}`, where the code is either a 22-character token
+ * addressed to one person or a survey's public slug printed on a card.
+ *
+ * **One route for both**, distinguished by shape rather than by path. A token
+ * is exactly `REQUEST_TOKEN_LENGTH` characters of `CODE_ALPHABET`, which
+ * contains no hyphen; a slug is `name-xxxxxx`, or a bare six characters when
+ * the name transliterates to nothing. Neither can be mistaken for the other, so
+ * `/s/l/{slug}` — a second path segment nobody would remember reading off a
+ * table card — buys nothing.
+ */
+export function buildSurveyUrl(base: string, code: string): string {
+  return `${trimTrailingSlash(base)}/s/${code}`;
+}
+
+/**
+ * One-click opt-out. Present in every outbound message, without exception.
+ *
+ * One route for every kind of token we mint — `unsubscribeByToken` resolves a
+ * review-request token *or* a survey token. A second opt-out URL shape would be
+ * a second thing to get right in a header a mail provider parses.
+ */
 export function buildUnsubscribeUrl(base: string, token: string): string {
   return `${trimTrailingSlash(base)}/u/${token}`;
 }

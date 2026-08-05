@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { Logo } from "@/components/brand/logo";
+import { PublicMark } from "@/components/brand/public-mark";
+import { resolveBrand } from "@/agency/branding";
 import { Stars } from "@/components/ds/stars";
 import type { Locale } from "@/i18n/config";
 import { publicBaseUrl } from "@/lib/urls";
@@ -94,9 +95,11 @@ export default async function LocationReviewsPage({ params }: PageProps) {
 
   if (!page?.published) notFound();
 
-  const [t, content] = await Promise.all([
+  const [t, content, brand] = await Promise.all([
     getTranslations({ locale: page.locale, namespace: "publicPage" }),
     loadLocationPageContent(page),
+    // Whose page this is (P4-T5). An agency's client shows the agency's mark.
+    resolveBrand(page.organizationId),
   ]);
 
   const { reviews, aggregate } = content;
@@ -203,8 +206,15 @@ export default async function LocationReviewsPage({ params }: PageProps) {
       )}
 
       <footer className="mt-10 flex items-center justify-between gap-4 border-t border-line-soft pt-6">
-        <Logo className="h-5 w-auto" />
-        <p className="text-meta text-faint">{t("poweredBy")}</p>
+        <PublicMark brand={brand} />
+        {/*
+          The credit line goes with the mark. An agency that has bought the
+          right to remove ours has bought the sentence too — leaving "Powered by
+          Revira" under somebody else's logo would be the worst of both.
+        */}
+        {brand.whiteLabelled || !brand.showPoweredBy ? null : (
+          <p className="text-meta text-faint">{t("poweredBy")}</p>
+        )}
       </footer>
     </main>
   );

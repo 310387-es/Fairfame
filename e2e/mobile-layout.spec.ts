@@ -172,3 +172,107 @@ function campaignSlug(): string {
   const run = JSON.parse(readFileSync("e2e/.auth/run.json", "utf8")) as { campaignSlug: string };
   return run.campaignSlug;
 }
+
+test.describe("surveys on a phone", () => {
+  /**
+   * The builder (P4-T2), which carries the widest control Phase 4 adds: a
+   * two-column grid of selects plus a hint paragraph that runs about 30% longer
+   * in Turkish. The account has no surveys, and that is fine — the empty state
+   * still renders the create form, which is where the overflow risk lives.
+   */
+  test("the builder fits, with nothing hanging off the side", async ({ page }) => {
+    await page.goto("/surveys");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    expect(await overflowing(page)).toEqual([]);
+    expect(await scrollsSideways(page)).toBe(false);
+  });
+});
+
+test.describe("broadcasts on a phone", () => {
+  /**
+   * The builder (P4-T4): a two-column grid of selects plus a four-figure
+   * results row. The account has no segments, so this renders the "save a
+   * segment first" state — which still carries the page shell and the empty
+   * list, and is where a grid that forgot its breakpoint would show.
+   */
+  test("fits the viewport, with nothing hanging off the side", async ({ page }) => {
+    await page.goto("/broadcasts");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    expect(await overflowing(page)).toEqual([]);
+    expect(await scrollsSideways(page)).toBe(false);
+  });
+});
+
+test.describe("messages on a phone", () => {
+  /**
+   * The conversations inbox (P4-T3): two panes side by side on a desktop, which
+   * on a phone has to become one column. The account has no conversations, so
+   * this exercises the empty state — which still renders the page shell and is
+   * where a two-column grid that forgot its breakpoint would show.
+   */
+  test("fits the viewport, with nothing hanging off the side", async ({ page }) => {
+    await page.goto("/messages");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    expect(await overflowing(page)).toEqual([]);
+    expect(await scrollsSideways(page)).toBe(false);
+  });
+});
+
+test.describe("contacts on a phone", () => {
+  /**
+   * The CRM list (P4-T1), which is the widest thing Phase 4 adds so far: a name,
+   * an email, a phone, a row of tags and a timestamp, all on one line from `sm`
+   * up. On a phone that has to become a stack rather than a squeeze, and the
+   * filter bar above it is three rows of chips that must wrap rather than run
+   * off the side.
+   *
+   * The account this runs against has no contacts, and that is deliberately
+   * fine: the empty state still renders the segments row, the search box and
+   * every chip group, which is where the overflow risk actually lives.
+   */
+  test("the list and its filter bar fit, with nothing hanging off the side", async ({ page }) => {
+    await page.goto("/contacts");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    expect(await overflowing(page)).toEqual([]);
+    expect(await scrollsSideways(page)).toBe(false);
+  });
+
+  test("the filter chips wrap rather than clipping their labels", async ({ page }) => {
+    // Turkish runs about 30% longer than English (docs/15 §7), and these labels
+    // are full sentences — "Mesaj izni kayıtlı". A chip whose text is cut off
+    // is a filter nobody can identify.
+    await page.goto("/contacts");
+
+    const clipped = await page.evaluate(() =>
+      [...document.querySelectorAll("main a, main button")]
+        .filter((el) => el.scrollWidth > el.clientWidth + 1)
+        .map((el) => (el as HTMLElement).innerText.trim().slice(0, 30)),
+    );
+
+    expect(clipped).toEqual([]);
+  });
+});
+
+test.describe("the agency console on a phone", () => {
+  /**
+   * The client roster (P4-T5): a three-column grid per row — name and role,
+   * a summary line, then Open and Unlink — which has to stack below `sm`.
+   *
+   * The account this suite creates is not on the Agency tier, so what renders
+   * is the locked card rather than the roster. That is still worth measuring:
+   * the page shell, heading and card are the same, and a locked state that
+   * overflowed would be the first thing an unentitled visitor saw. The roster
+   * itself is exercised in `tests/db/agency.test.ts` and by hand.
+   */
+  test("fits the viewport, with nothing hanging off the side", async ({ page }) => {
+    await page.goto("/clients");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    expect(await overflowing(page)).toEqual([]);
+    expect(await scrollsSideways(page)).toBe(false);
+  });
+});

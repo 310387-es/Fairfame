@@ -118,10 +118,20 @@ function memberOf<T extends string>(allowed: readonly T[], value: string | null)
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** A date that is not a date is no filter at all, rather than an error page. */
+/**
+ * A date that is not a date is no filter at all, rather than an error page.
+ *
+ * The round-trip is the part that matters, and it was missing until P4-T1
+ * wrote the same guard for contacts and tested it: `Date.parse("2026-02-30")`
+ * does not fail — JavaScript rolls it forward to 2 March — so the shape check
+ * plus `isNaN` accepted a day that does not exist and filtered from the wrong
+ * one. Re-formatting the parsed date and comparing is what catches it.
+ */
 function isoDate(value: string | null): string | null {
   if (value === null || !ISO_DATE.test(value)) return null;
-  return Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)) ? null : value;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10) === value ? value : null;
 }
 
 /**

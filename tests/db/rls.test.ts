@@ -300,3 +300,60 @@ describe("the owner connection", () => {
     expect(rows).toHaveLength(2);
   });
 });
+
+/**
+ * Every tenant table, found in the database rather than listed here (P4-T1).
+ *
+ * The scenario tests above prove the *policy* works, on the tables they happen
+ * to name. What nothing checked was whether a newly added tenant table had a
+ * policy at all — and it had already gone wrong: `report_schedules`,
+ * `report_deliveries` and `competitors` shipped in Phase 3 missing from
+ * `TENANT_TABLES`, whose own comment promises it is "kept complete".
+ *
+ * So the list is derived from `organization_id` in the catalog, in the spirit
+ * of P3-T8's route enumeration: **the next tenant table cannot arrive
+ * unexamined**, because forgetting the policy or the list fails here rather
+ * than in production.
+ */
+describe("every tenant table", () => {
+  type CatalogRow = { table: string; enabled: boolean; forced: boolean; policies: number };
+
+  async function tenantTables(): Promise<CatalogRow[]> {
+    const { rows } = await getAdminDb().execute<CatalogRow>(sql`
+      select c.relname             as table,
+             c.relrowsecurity      as enabled,
+             c.relforcerowsecurity as forced,
+             (select count(*)::int from pg_policy p where p.polrelid = c.oid) as policies
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public'
+         and c.relkind = 'r'
+         and exists (
+           select 1
+             from pg_attribute a
+            where a.attrelid = c.oid
+              and a.attname = 'organization_id'
+              and not a.attisdropped
+         )
+       order by c.relname
+    `);
+
+    return rows;
+  }
+
+  it("has row-level security enabled, forced, and a policy", async () => {
+    const rows = await tenantTables();
+
+    // A sanity floor: if the catalog query silently matched nothing, every
+    // assertion below would vacuously pass.
+    expect(rows.length).toBeGreaterThan(20);
+
+    const unprotected = rows.filter((row) => !row.enabled || !row.forced || row.policies === 0);
+    expect(unprotected).toEqual([]);
+  });
+
+  it("is listed in TENANT_TABLES, and nothing is listed that does not exist", async () => {
+    const inDatabase = (await tenantTables()).map((row) => row.table).sort();
+    expect([...schema.TENANT_TABLES].sort()).toEqual(inDatabase);
+  });
+});

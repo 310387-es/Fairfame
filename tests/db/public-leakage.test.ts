@@ -338,6 +338,20 @@ describe("the next public surface", () => {
         "/u/[token]/route.ts",
         "/api/campaigns/[campaignId]/qr/route.ts",
         "/api/public/reviews/route.ts",
+        /**
+         * Surveys (P4-T2), and why they are in this group rather than the one
+         * above. `/s/{code}` takes a token *or* a public slug and renders the
+         * question, the business's name and its branch — the same amount of
+         * tenant data `/c/{slug}` shows, to somebody who was handed the code.
+         * It publishes **no answers**: nothing a respondent wrote is ever read
+         * back on a public surface, so there is no pool of other people's words
+         * to leak. The two write endpoints resolve their tenant from the code
+         * and accept no organization id, and `tests/db/surveys.test.ts` walks
+         * them.
+         */
+        "/s/[code]/page.tsx",
+        "/api/public/surveys/route.ts",
+        "/api/public/surveys/follow-up/route.ts",
         // Carry no tenant data at all.
         "/api/auth/[...all]/route.ts",
         "/api/connect/[provider]/callback/route.ts",

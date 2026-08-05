@@ -8,8 +8,11 @@ import {
 import {
   createWhatsAppClient,
   normalizePhone,
+  WHATSAPP_PROVIDER,
   type WhatsAppClient,
 } from "../connectors/whatsapp/client.ts";
+import { createMockWhatsAppClient } from "../connectors/whatsapp/mock-client.ts";
+import { resolveMode } from "../connectors/providers.ts";
 import { TEMPLATES, type TemplateName } from "../connectors/whatsapp/templates.ts";
 import { schema } from "../db/client.ts";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/config.ts";
@@ -63,16 +66,28 @@ function localeOf(value: string | null | undefined): Locale {
  *
  * Null rather than a throw: a deployment without WhatsApp credentials is the
  * normal state today, and every caller already has to handle a refusal.
+ *
+ * **`mock` mode returns a client that accepts and reaches nobody (P4-T3).**
+ * Before that, an environment without a WhatsApp Business Account had no client
+ * at all, so no conversation could round-trip anywhere — which made T3's
+ * Definition of Done unreachable in every environment that has ever existed.
+ * `CONNECTOR_WHATSAPP_MODE` already distinguished the two; this is what `mock`
+ * now means. Credentials still win: a deployment that has them is talking to
+ * Meta (or to `pnpm mock:platform`, which is a real socket), and a stray flag
+ * must not silently divert live traffic into a stub.
  */
 export function getWhatsAppClient(): WhatsAppClient | null {
   const env = getEnv();
-  if (!env.WHATSAPP_ACCESS_TOKEN || !env.WHATSAPP_PHONE_NUMBER_ID) return null;
 
-  return createWhatsAppClient({
-    accessToken: env.WHATSAPP_ACCESS_TOKEN,
-    phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
-    ...(env.WHATSAPP_BASE_URL ? { baseUrl: env.WHATSAPP_BASE_URL } : {}),
-  });
+  if (env.WHATSAPP_ACCESS_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID) {
+    return createWhatsAppClient({
+      accessToken: env.WHATSAPP_ACCESS_TOKEN,
+      phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
+      ...(env.WHATSAPP_BASE_URL ? { baseUrl: env.WHATSAPP_BASE_URL } : {}),
+    });
+  }
+
+  return resolveMode(WHATSAPP_PROVIDER).mode === "mock" ? createMockWhatsAppClient() : null;
 }
 
 /**

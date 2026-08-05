@@ -3,7 +3,7 @@
 import { Bookmark, Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { Chip, ChipGroup, chipClassName } from "@/components/inbox/chip";
+import { Chip, ChipGroup, chipClassName } from "@/components/ds/chip";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";

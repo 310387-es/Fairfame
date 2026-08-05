@@ -1,10 +1,11 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { Building2, Check, LogOut } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { signOut } from "@/auth/client";
+import { switchOrganizationAction } from "@/server/agency";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,7 +16,33 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function UserMenu({ name, email, role }: { name: string; email: string; role: string }) {
+/**
+ * The account menu, and — since P4-T5 — the organization switcher.
+ *
+ * **It exists because the agency console was one-way.** "Open" on `/clients`
+ * switched an agency into a client and nothing switched back, so somebody
+ * belonging to several organizations could reach a client and be stuck in it.
+ * That was invisible while every account had exactly one organization.
+ *
+ * The list is only rendered when there is more than one, so a single-org
+ * account sees no new chrome at all. Switching goes through
+ * `switchOrganizationAction`, which delegates the membership check to
+ * BetterAuth — the one check standing between this menu and "set my tenant
+ * context to any id".
+ */
+export function UserMenu({
+  name,
+  email,
+  role,
+  organizations,
+  activeOrganizationId,
+}: {
+  name: string;
+  email: string;
+  role: string;
+  organizations: { id: string; name: string }[];
+  activeOrganizationId: string;
+}) {
   const t = useTranslations("nav");
   const tTeam = useTranslations("team.roles");
   const router = useRouter();
@@ -49,6 +76,47 @@ export function UserMenu({ name, email, role }: { name: string; email: string; r
             {tTeam(role as "owner" | "admin" | "member" | "client")}
           </span>
         </DropdownMenuLabel>
+        {organizations.length > 1 ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-copy font-normal text-muted-foreground">
+              {t("organizations")}
+            </DropdownMenuLabel>
+
+            {organizations.map((organization) => {
+              const active = organization.id === activeOrganizationId;
+
+              return (
+                <DropdownMenuItem
+                  key={organization.id}
+                  disabled={pending || active}
+                  onSelect={() => {
+                    startTransition(async () => {
+                      const result = await switchOrganizationAction({
+                        organizationId: organization.id,
+                      });
+                      // Home rather than staying put: the current page may not
+                      // exist on the other organization's plan, and landing on
+                      // a locked card after a switch reads as a broken switch.
+                      if (result.ok) {
+                        router.push("/home");
+                        router.refresh();
+                      }
+                    });
+                  }}
+                >
+                  {active ? (
+                    <Check className="size-4" aria-hidden />
+                  ) : (
+                    <Building2 className="size-4" aria-hidden />
+                  )}
+                  <span className="truncate">{organization.name}</span>
+                </DropdownMenuItem>
+              );
+            })}
+          </>
+        ) : null}
+
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() => {

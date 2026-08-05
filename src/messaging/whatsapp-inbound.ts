@@ -5,6 +5,7 @@ import { revokeConsent } from "../compliance/consent.ts";
 import { getAdminDb, schema } from "../db/client.ts";
 import { childLogger } from "../lib/logger.ts";
 import { withTenant } from "../lib/tenancy.ts";
+import { applyReceipt, recordInbound } from "./messages.ts";
 
 /**
  * What an inbound WhatsApp event does to our state (P1b-T3).
@@ -61,6 +62,14 @@ export type InboundOutcome = {
   unknown: number;
   optOuts: number;
   statuses: number;
+  /**
+   * Messages Meta had already delivered to us once (P4-T3).
+   *
+   * Counted rather than folded into `matched`, because a redelivery and a new
+   * message are different events and only one of them means the customer
+   * actually said something.
+   */
+  duplicates: number;
 };
 
 /**
@@ -88,7 +97,13 @@ export async function recordInboundEvents(
   events: WebhookEvents,
   now = new Date(),
 ): Promise<InboundOutcome> {
-  const outcome: InboundOutcome = { matched: 0, unknown: 0, optOuts: 0, statuses: 0 };
+  const outcome: InboundOutcome = {
+    matched: 0,
+    unknown: 0,
+    optOuts: 0,
+    statuses: 0,
+    duplicates: 0,
+  };
 
   for (const { message } of events.messages) {
     const phone = normalizePhone(message.from);
@@ -109,6 +124,36 @@ export async function recordInboundEvents(
     const text = inboundText(message);
 
     await withTenant({ organizationId: found.organizationId }, async (tx) => {
+      /**
+       * The message itself, first and unconditionally (P4-T3).
+       *
+       * Written even for an opt-out: "STOP" is the most important thing a
+       * customer ever sends us, and a thread that showed everything except the
+       * moment they asked us to stop would be missing the one message anybody
+       * would later go looking for.
+       *
+       * Idempotent on the platform's id, because **Meta may deliver the same
+       * webhook more than once** — without that a redelivery is
+       * indistinguishable from the customer repeating themself.
+       */
+      const fresh = await recordInbound({
+        tx,
+        organizationId: found.organizationId,
+        contactId: found.contactId,
+        channel: "whatsapp",
+        body: text,
+        externalId: message.id,
+        at: now,
+      });
+
+      if (!fresh) {
+        outcome.duplicates += 1;
+        // A redelivery must not re-open the service window or re-apply an
+        // opt-out: both are facts about when the customer acted, and repeating
+        // them would move a legal timestamp for a message they sent once.
+        return;
+      }
+
       if (isOptOut(text)) {
         await tx
           .update(schema.contacts)
@@ -193,14 +238,21 @@ export async function recordInboundEvents(
 }
 
 /**
- * Records a delivery receipt against the request that produced it.
+ * Records a delivery receipt.
  *
- * `failed` is the interesting one: Meta reports undeliverable numbers this way
- * rather than at send time, so a request that looked sent can turn out not to
- * have been.
+ * Two things can be waiting on one: a **review request** sent over WhatsApp,
+ * and — since P4-T3 — the **message row** in the conversation thread. They are
+ * looked up separately rather than joined, because a receipt may belong to
+ * either, both, or neither: a reply typed into the messages inbox has no
+ * request behind it, and a request sent before the message log existed has no
+ * row in it.
+ *
+ * `failed` is the interesting status: Meta reports an undeliverable number this
+ * way rather than at send time, so something that looked sent can turn out not
+ * to have been.
  */
 async function applyStatus(messageId: string, status: string, now: Date): Promise<boolean> {
-  const [row] = await getAdminDb()
+  const [request] = await getAdminDb()
     .select({
       id: schema.reviewRequests.id,
       organizationId: schema.reviewRequests.organizationId,
@@ -209,19 +261,45 @@ async function applyStatus(messageId: string, status: string, now: Date): Promis
     .where(eq(schema.reviewRequests.externalId, messageId))
     .limit(1);
 
-  if (!row) return false;
+  const [message] = await getAdminDb()
+    .select({ organizationId: schema.messages.organizationId })
+    .from(schema.messages)
+    .where(eq(schema.messages.externalId, messageId))
+    .limit(1);
 
-  const next =
-    status === "failed" ? "failed" : status === "read" || status === "delivered" ? "sent" : null;
+  if (!request && !message) return false;
 
-  if (!next) return false;
+  let applied = false;
 
-  await withTenant({ organizationId: row.organizationId }, (tx) =>
-    tx
-      .update(schema.reviewRequests)
-      .set({ status: next, updatedAt: now })
-      .where(eq(schema.reviewRequests.id, row.id)),
-  );
+  if (request) {
+    // The funnel has three states, not five: for a *request*, "delivered" and
+    // "read" both mean it went out.
+    const next =
+      status === "failed" ? "failed" : status === "read" || status === "delivered" ? "sent" : null;
 
-  return true;
+    if (next) {
+      await withTenant({ organizationId: request.organizationId }, (tx) =>
+        tx
+          .update(schema.reviewRequests)
+          .set({ status: next, updatedAt: now })
+          .where(eq(schema.reviewRequests.id, request.id)),
+      );
+      applied = true;
+    }
+  }
+
+  if (message && isMessageStatus(status)) {
+    // The thread keeps the full ladder — a customer having *read* a reply is
+    // exactly what somebody looking at the conversation wants to know.
+    await withTenant({ organizationId: message.organizationId }, (tx) =>
+      applyReceipt(tx, message.organizationId, messageId, status, now),
+    );
+    applied = true;
+  }
+
+  return applied;
+}
+
+function isMessageStatus(value: string): value is "sent" | "delivered" | "read" | "failed" {
+  return value === "sent" || value === "delivered" || value === "read" || value === "failed";
 }

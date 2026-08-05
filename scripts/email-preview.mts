@@ -28,6 +28,7 @@ import {
   renderReviewAlertEmail,
   renderReviewRequestEmail,
   renderRollupEmail,
+  renderSurveyInviteEmail,
   type RenderedEmail,
 } from "../src/messaging/templates.ts";
 import { reportCopy } from "../src/reports/copy.ts";
@@ -72,6 +73,37 @@ const SAMPLES: Sample[] = [
         businessName: BUSINESS,
         locationName: LOCATION,
         link: "http://localhost:3000/r/abc123def456ghi789jklm",
+        unsubscribeUrl: "http://localhost:3000/u/abc123def456ghi789jklm",
+      }),
+  },
+  {
+    // Two samples, because the instrument changes the default question and that
+    // question is the whole message. One preview would leave half the template
+    // unlooked-at, which is the failure this script exists to prevent.
+    label: "1b · Survey invitation — NPS",
+    render: (locale) =>
+      renderSurveyInviteEmail({
+        locale,
+        contactName: "Ayşe Kaya",
+        businessName: BUSINESS,
+        locationName: LOCATION,
+        type: "nps",
+        question: null,
+        link: "http://localhost:3000/s/abc123def456ghi789jklm",
+        unsubscribeUrl: "http://localhost:3000/u/abc123def456ghi789jklm",
+      }),
+  },
+  {
+    label: "1c · Survey invitation — CSAT, with the business's own question",
+    render: (locale) =>
+      renderSurveyInviteEmail({
+        locale,
+        contactName: null,
+        businessName: BUSINESS,
+        locationName: LOCATION,
+        type: "csat",
+        question: "Kadıköy şubemizdeki servis hızından ne kadar memnun kaldınız?",
+        link: "http://localhost:3000/s/abc123def456ghi789jklm",
         unsubscribeUrl: "http://localhost:3000/u/abc123def456ghi789jklm",
       }),
   },

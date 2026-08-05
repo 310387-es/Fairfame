@@ -94,7 +94,15 @@ describe("an inbound message", () => {
     payload.messages[0]!.message.from = "905321111111";
 
     await recordInboundEvents(payload, first);
-    await recordInboundEvents(payload, second);
+
+    // A *different* message, which is what this test is about. Replaying the
+    // same one is a redelivery, and since P4-T3 that is handled differently —
+    // see the test below. Before the message log existed the two were
+    // indistinguishable, so this fixture was reused for both.
+    const again = events("inbound-text");
+    again.messages[0]!.message.from = "905321111111";
+    again.messages[0]!.message.id = "wamid.second-message";
+    await recordInboundEvents(again, second);
 
     const row = await conversation(fixture.orgId);
     expect(row?.lastInboundAt?.toISOString()).toBe(second.toISOString());
@@ -105,6 +113,38 @@ describe("an inbound message", () => {
       .from(schema.whatsappConversations)
       .where(eq(schema.whatsappConversations.organizationId, fixture.orgId));
     expect(all).toHaveLength(1);
+  });
+
+  it("does not move the window when Meta redelivers the same message", async () => {
+    /**
+     * Meta says it may deliver a webhook more than once. `last_inbound_at` is
+     * the timestamp the 24-hour reply window is measured from — a legal fact
+     * about when the customer wrote — so a redelivery must not advance it, or a
+     * business would get a fresh day to send free text every time Meta retried.
+     */
+    const fixture = await makeOrgWithContact("redeliver", "905321111112");
+    const first = new Date("2026-08-01T10:00:00Z");
+    const retry = new Date("2026-08-01T18:00:00Z");
+
+    const payload = events("inbound-text");
+    payload.messages[0]!.message.from = "905321111112";
+
+    const initial = await recordInboundEvents(payload, first);
+    const repeat = await recordInboundEvents(payload, retry);
+
+    expect(initial.matched).toBe(1);
+    expect(initial.duplicates).toBe(0);
+    expect(repeat.duplicates).toBe(1);
+
+    const row = await conversation(fixture.orgId);
+    expect(row?.lastInboundAt?.toISOString()).toBe(first.toISOString());
+
+    // And the thread shows the customer speaking once, because they did.
+    const stored = await getAdminDb()
+      .select({ id: schema.messages.id })
+      .from(schema.messages)
+      .where(eq(schema.messages.organizationId, fixture.orgId));
+    expect(stored).toHaveLength(1);
   });
 });
 

@@ -253,6 +253,41 @@
       "when": 1785791228127,
       "tag": "0035_competitors",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1785791229127,
+      "tag": "0036_contacts_crm",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1785791230127,
+      "tag": "0037_surveys",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1785791231127,
+      "tag": "0038_messages",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1785791232127,
+      "tag": "0039_broadcasts",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1785791233127,
+      "tag": "0040_agency",
+      "breakpoints": true
     }
   ]
 }
