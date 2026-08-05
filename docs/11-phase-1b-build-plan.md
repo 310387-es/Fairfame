@@ -17,7 +17,7 @@ OAuth **app registration and approvals**: Google Business Profile API access req
 
 ---
 
-## Status (3 Aug 2026) — **Phase 1b complete, code-complete stage**
+## Status (3 Aug 2026; gaps closed 4 Aug; reviewed 5 Aug 2026) — **Phase 1b complete, code-complete stage**
 
 Every task is built. **Nothing gated on a platform is live-verified**, and cannot be until the company exists — that is stage two of the Definition of Done, and `docs/13-go-live.md` is what to do when it arrives.
 
@@ -31,7 +31,16 @@ Every task is built. **Nothing gated on a platform is live-verified**, and canno
 | T5 İYS + KVKK | **Done**, less the real registry — the gateway adapter refuses by default |
 | T6 fixtures, contract tests, go-live suite | **Done** — `pnpm golive` + `docs/13-go-live.md` |
 
-Known gaps carried forward: there is no browser/UI test layer by decision, so button→server-action wiring is unverified; Instagram **DMs** are not implemented; there is **no İYS opt-in tick** on the collection form and **no worker job** draining `pendingIysUploads`, so nothing commercial can be sent to a first-party contact yet; `MOVABLE_HOLIDAYS` needs a yearly refresh past 2027.
+### The gaps this section used to carry — all four closed
+
+Recorded rather than deleted, because "we shipped without X" and "X was never needed" are different histories, and the second one is the version that gets rediscovered the hard way.
+
+- **No browser/UI test layer**, so button→server-action wiring was unverified. **Closed 4 Aug 2026**: Playwright, `pnpm test:e2e`, deliberately outside `pnpm verify` because it needs a live server and database. Evidence: `docs/18-accessibility-verification.md`.
+- **Instagram DMs not implemented.** **Closed 4 Aug 2026**: ingested as `item_type = 'dm'` from the `conversations` edge, with the business's own replies filtered out and no `url`, because a DM is private and there is nothing public to link to. **Answering one is still deliberately not built** — that is a *send*, needing the gate extended to Instagram plus Meta's 24-hour window, and `postReply` refuses with that reason rather than a generic failure.
+- **No İYS opt-in tick and no worker draining `pendingIysUploads`**, so no first-party contact could lawfully be sent a commercial message. **Closed 4 Aug 2026**: the tick is on the collection form and the `iys_sweep` worker (`src/compliance/iys-upload.ts`, `src/jobs/workers/iys-upload.ts`, every 15 min) drains the queue through the configured gateway. `pnpm golive` now blocks on any consent past its three-business-day deadline. **The gateway is still the seam, not an implementation** — see T5.
+- **`MOVABLE_HOLIDAYS` needed a refresh past 2027.** **Closed 4 Aug 2026**: `MOVABLE_HOLIDAYS_KNOWN_THROUGH` is now 2030, and `pnpm golive` warns under 12 months of runway and blocks once it lapses. Still an annual chore, now one the tooling nags about.
+
+**What has not changed:** every platform connector is still fixture-tested only. No live Google, Meta or İYS traffic has ever run through this code. Since 4 Aug all three do run against a fake platform over HTTP (`src/connectors/mock-platform`, `pnpm mock:platform`) — real sockets, real pagination, provider-correct error envelopes — which is not live traffic and cannot prove anything about real quotas, undocumented payload quirks or OAuth consent, but does mean each connector has now talked to something that disagrees with it.
 
 ## Ordered Tasks
 
@@ -89,7 +98,7 @@ Ingest comments / mentions / DMs; inbound webhook; reply where permitted; `norma
 
 **Errors are separated by what an operator must do.** A missing permission is an app-review problem, an expired token is a reconnect, a rate limit is neither — and the messages say so rather than repeating Meta's "Application does not have permission for this action".
 
-**Still to do at go-live:** create the Meta app and complete business verification; obtain `instagram_basic`, `instagram_manage_comments` and `pages_show_list` through app review; set `META_APP_ID`, `META_APP_SECRET`, `INSTAGRAM_VERIFY_TOKEN` and `CONNECTOR_INSTAGRAM_MODE=real`; subscribe the webhook and confirm the challenge; then live-verify a comment ingest, a mention ingest, a reply, and a webhook round trip. **DMs are not implemented** — they need `instagram_manage_messages`, a separate app-review item, and the `dm` item type is declared but unused.
+**Still to do at go-live:** create the Meta app and complete business verification; obtain `instagram_basic`, `instagram_manage_comments` and `pages_show_list` through app review; set `META_APP_ID`, `META_APP_SECRET`, `INSTAGRAM_VERIFY_TOKEN` and `CONNECTOR_INSTAGRAM_MODE=real`; subscribe the webhook and confirm the challenge; then live-verify a comment ingest, a mention ingest, a reply, and a webhook round trip. **DMs are ingested as of 4 Aug 2026** and need `instagram_manage_messages`, which is a separate app-review item — without it the DM edge is logged and skipped while comments and mentions still sync, though a rate limit still propagates so backoff survives. **Answering a DM is deliberately not built**: it is a send, not a reply to public content, and needs the send gate plus Meta's 24-hour customer-service window.
 
 ### P1b-T5 — İYS + KVKK compliance layer — **done, less the real registry (3 Aug 2026)**
 Consent capture + storage (`consent_records`); an **İYS check-before-send** integration point (gateway adapter — stubbed now, real İYS-connected gateway wired at go-live); opt-out handling; the **3-business-day** consent-upload logic; KVKK data-subject **export/delete**. All commercial sends (T3, and SMS later) pass through this gate.
@@ -108,7 +117,7 @@ Consent capture + storage (`consent_records`); an **İYS check-before-send** int
 
 **Withdrawal never deletes.** It sets `revoked_at`, and re-withdrawing keeps the first date — the obligation is to prove the state of a permission over time, and a deleted row proves nothing, including that the person said no.
 
-**The three business days are computed, not approximated.** `business-days.ts` excludes weekends, the seven fixed national holidays and the religious holidays, in Europe/Istanbul. Over Kurban Bayramı the correct deadline is *nine calendar days* out — a naive three-day calculation would be six days early, exactly when a backlog builds. The religious dates are a hard-coded list because there is no rule reliable enough to compute them; `MOVABLE_HOLIDAYS_KNOWN_THROUGH` is 2027 and `beyondKnownHolidays()` warns rather than being quietly wrong. **This list needs updating annually.**
+**The three business days are computed, not approximated.** `business-days.ts` excludes weekends, the seven fixed national holidays and the religious holidays, in Europe/Istanbul. Over Kurban Bayramı the correct deadline is *nine calendar days* out — a naive three-day calculation would be six days early, exactly when a backlog builds. The religious dates are a hard-coded list because there is no rule reliable enough to compute them; `MOVABLE_HOLIDAYS_KNOWN_THROUGH` is **2030** (extended 4 Aug 2026) and `beyondKnownHolidays()` warns rather than being quietly wrong. **This list needs updating annually** — `pnpm golive` warns under 12 months of runway and blocks once it lapses, so the chore is nagged about rather than remembered.
 
 **The deadline is stored, not derived**, so a later calendar correction cannot move a deadline that has already elapsed or been reported. Overdue rows stay in the queue: an obligation that has been missed still has to be discharged, and hiding it would make the queue look healthy precisely when it is not.
 
@@ -118,7 +127,9 @@ Consent capture + storage (`consent_records`); an **İYS check-before-send** int
 
 **Export covers what can honestly be attributed.** A first-party submission links to a contact through `review_requests.review_id`; a review left directly on a platform carries no contact id, and matching on a display name would be guesswork that could hand one person another's words.
 
-**Still to do at go-live:** choose a BSP and add its adapter beside `local`; register with İYS and obtain credentials; set `IYS_GATEWAY` accordingly; add an **İYS opt-in tick to the collection form** — until one exists, no first-party contact can be sent a commercial WhatsApp message, which is the correct default but not the intended product; build the worker job that drains `pendingIysUploads` through the gateway; and refresh the movable-holiday list each year.
+**Built since (4 Aug 2026):** the İYS opt-in tick is on the collection form, and the `iys_sweep` worker drains `pendingIysUploads` through the configured gateway every 15 minutes — so a captured permission now reaches the registry rather than sitting in a queue nothing read.
+
+**Still to do at go-live:** choose a BSP and add its adapter beside `local`; register with İYS and obtain credentials; set `IYS_GATEWAY` accordingly; and refresh the movable-holiday list each year. **The gateway remains the seam, not an implementation** — `none` refuses (correct before go-live) and `local` accepts without contacting anyone, which is why every accepted row records `iys_uploaded_via`: a `local` upload must stay distinguishable from a registered one forever. Nothing commercial can actually be sent until a real BSP adapter exists.
 
 ### P1b-T6 — Fixtures, tests & Go-Live suite — **done (3 Aug 2026)**
 Recorded fixtures per platform; contract tests per connector; a documented **live-verification suite** to run when credentials arrive; provider flags default to **mock in dev**, real only where creds are present.
@@ -136,7 +147,7 @@ Recorded fixtures per platform; contract tests per connector; a documented **liv
 
 **"Not configured" is a normal answer.** The expected state today is that every platform is unconfigured, so the exit code reflects whether something is *broken* — a platform someone believes is live and is not — rather than whether everything is ready. `IYS_GATEWAY=none` outside production is the intended pre-launch default and reports as unconfigured; in production it blocks.
 
-**Still to do at go-live:** everything in `docs/13-go-live.md`, per platform, in the order given there (Google → İYS + the collection opt-in → WhatsApp → Instagram).
+**Still to do at go-live:** everything in `docs/13-go-live.md`, per platform, in the order given there (Google → İYS → WhatsApp → Instagram). The collection opt-in that used to sit in that chain is built; what remains on the İYS step is the BSP adapter and the registry credentials.
 
 ---
 

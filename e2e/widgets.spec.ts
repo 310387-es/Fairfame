@@ -26,6 +26,13 @@ const CREATE = /oluştur|create/i;
 const PUBLISH = /^(yayına al|publish)$/i;
 const APPROVE_ALL = /onayla|approve all/i;
 
+/** The layout picker's options, keyed by the layout each one selects. */
+const LAYOUT_OPTIONS = {
+  grid: /izgara|^grid$/i,
+  list: /liste|^list$/i,
+  carousel: /kaydırmalı|carousel/i,
+} as const;
+
 test.describe("building a widget", () => {
   test("creates, approves, publishes, and serves only approved reviews", async ({ page }) => {
     await page.goto("/widgets");
@@ -166,11 +173,32 @@ test.describe("building a widget", () => {
     await page.getByRole("button", { name: APPROVE_ALL }).click();
     await expect(page.getByRole("button", { name: APPROVE_ALL })).toBeHidden();
 
-    const measure = () =>
-      page.evaluate(() => {
-        const frame = document.querySelector('iframe[src*="/preview"]') as HTMLIFrameElement;
-        const doc = frame.contentDocument!;
-        const win = frame.contentWindow!;
+    /**
+     * Every fact about one layout, read in a single pass — and `null` until the
+     * frame is actually showing the layout that was just picked.
+     *
+     * Both halves matter. Changing the layout changes the preview's `src`, so
+     * the frame *navigates*, and the height it is wearing is posted from inside
+     * it after the new document loads. So there is a window in which the frame
+     * still has the previous layout's height while the new document is already
+     * measurable — reading the two numbers in separate round trips lands in
+     * that window on a slow machine, which is how CI saw a 355px gap that no
+     * local run ever produced. Keying on the rendered `rvw-${layout}` class,
+     * rather than on the `src` React updates immediately, also stops the poll
+     * from being satisfied by the *old* document sitting there unchanged.
+     */
+    const measure = (layout: string) =>
+      page.evaluate((expected) => {
+        const frame = document.querySelector('iframe[src*="/preview"]') as HTMLIFrameElement | null;
+        const doc = frame?.contentDocument;
+        const win = frame?.contentWindow;
+        const root = doc?.querySelector(".rvw") as HTMLElement | null;
+        const row = doc?.querySelector("ul");
+
+        // Mid-navigation: `about:blank`, or a document that has not painted.
+        // Not a failure — a state to poll past.
+        if (!frame || !win || !root || !row) return null;
+        if (!row.classList.contains(`rvw-${expected}`)) return null;
 
         // Whether it *can* scroll, not what some property reports: only an
         // attempted scroll distinguishes a real overflow from a stale metric.
@@ -178,34 +206,36 @@ test.describe("building a widget", () => {
         const scrolled = win.scrollX;
         win.scrollTo(0, 0);
 
-        const row = doc.querySelector("ul");
+        const frameHeight = Math.round(frame.getBoundingClientRect().height);
+        const contentHeight = Math.round(root.getBoundingClientRect().height);
+
         return {
           scrolled,
-          rowScrolls: row ? row.scrollWidth > row.clientWidth : false,
-          frameHeight: Math.round(frame.getBoundingClientRect().height),
-          contentHeight: Math.round(
-            (doc.querySelector(".rvw") as HTMLElement).getBoundingClientRect().height,
-          ),
+          rowScrolls: row.scrollWidth > row.clientWidth,
+          // Within a pixel or two: the frame is sized from a rounded
+          // measurement. Computed here so the whole judgement is one
+          // observation of one document, not two reads either side of a gap.
+          hugsContent: Math.abs(frameHeight - contentHeight) <= 2,
+          frameHeight,
+          contentHeight,
         };
-      });
+      }, layout);
 
-    for (const layout of [/kaydırmalı|carousel/i, /izgara|^grid$/i, /liste|^list$/i]) {
+    for (const layout of ["carousel", "grid", "list"] as const) {
       await page.locator("#w-layout").click();
-      await page.getByRole("option", { name: layout }).click();
+      await page.getByRole("option", { name: LAYOUT_OPTIONS[layout] }).click();
 
       await expect
-        .poll(measure, { message: `layout ${layout} should hug its content` })
-        .toMatchObject({ scrolled: 0 });
-
-      const { frameHeight, contentHeight } = await measure();
-      // Within a pixel: the frame is sized from a rounded measurement.
-      expect(Math.abs(frameHeight - contentHeight)).toBeLessThanOrEqual(2);
+        .poll(() => measure(layout), { message: `the ${layout} layout should hug its content` })
+        .toMatchObject({ scrolled: 0, hugsContent: true });
     }
 
     // The carousel keeps its *own* scroller — that is the layout, not a bug.
     await page.locator("#w-layout").click();
-    await page.getByRole("option", { name: /kaydırmalı|carousel/i }).click();
-    await expect.poll(measure).toMatchObject({ rowScrolls: true, scrolled: 0 });
+    await page.getByRole("option", { name: LAYOUT_OPTIONS.carousel }).click();
+    await expect
+      .poll(() => measure("carousel"))
+      .toMatchObject({ rowScrolls: true, scrolled: 0, hugsContent: true });
   });
 
   test("the rating badge replaces the reviews, and the controls that picked them", async ({
@@ -265,11 +295,21 @@ test.describe("building a widget", () => {
      * a small box in a wide empty panel. Only an inline-sized root reports a
      * width — a block one would just be handing back the frame's own width.
      */
-    /** The worst of the two gaps between the frame and the widget inside it. */
+    /**
+     * The worst of the two gaps between the frame and the widget inside it —
+     * and `Infinity` until the frame is really showing the badge.
+     *
+     * Same reason as the layout test above: switching the layout navigates the
+     * frame, and every other layout hugs its frame too, so a poll that only
+     * asked "is the gap small" would be answered by the *grid* still sitting
+     * there and never look at a badge at all.
+     */
     const worstGap = () =>
       page.evaluate(() => {
-        const frame = document.querySelector('iframe[src*="/preview"]') as HTMLIFrameElement;
-        const root = frame.contentDocument!.querySelector(".rvw") as HTMLElement;
+        const frame = document.querySelector('iframe[src*="/preview"]') as HTMLIFrameElement | null;
+        const root = frame?.contentDocument?.querySelector(".rvw--badge") as HTMLElement | null;
+        if (!frame || !root) return Infinity;
+
         const outer = frame.getBoundingClientRect();
         const inner = root.getBoundingClientRect();
         // Rounded, because the frame is sized from a rounded measurement.
