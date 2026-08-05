@@ -13,7 +13,7 @@ import {
 import { sendReviewRequests } from "@/collect/requests";
 import { schema } from "@/db/client";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * Campaign and review-request mutations.
@@ -30,7 +30,7 @@ export async function createCampaignAction(formData: FormData): Promise<ActionRe
   const parsed = parseCreateCampaign(formData);
 
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return invalidInput(parsed.error, parsed.error.issues[0]?.message ?? "Invalid input.");
   }
 
   try {
@@ -82,13 +82,12 @@ export async function sendRequestsAction(formData: FormData): Promise<SendReques
 
   const parsed = sendRequestsSchema.safeParse({ campaignId, recipients });
   if (!parsed.success) {
-    return {
-      ok: false,
-      error:
-        recipients.length > MAX_RECIPIENTS_PER_SEND
-          ? `Send to at most ${MAX_RECIPIENTS_PER_SEND} people at a time.`
-          : "Add at least one valid email address.",
-    };
+    return invalidInput(
+      parsed.error,
+      recipients.length > MAX_RECIPIENTS_PER_SEND
+        ? `Send to at most ${MAX_RECIPIENTS_PER_SEND} people at a time.`
+        : "Add at least one valid email address.",
+    );
   }
 
   try {

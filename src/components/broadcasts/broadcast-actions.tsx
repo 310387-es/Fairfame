@@ -3,8 +3,9 @@
 import { Send, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAction } from "@/components/ui/use-action";
 import { cancelBroadcastAction, sendBroadcastAction } from "@/server/broadcasts";
 
 /**
@@ -29,51 +30,50 @@ export function BroadcastActions({
   canCancel: boolean;
 }) {
   const t = useTranslations("broadcasts");
+  const tf = useTranslations("feedback");
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [refusals, setRefusals] = useState<Record<string, number> | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const send = () => {
-    setError(null);
     setNotice(null);
     setRefusals(null);
 
-    startTransition(async () => {
-      const result = await sendBroadcastAction({ id: broadcastId });
+    run(() => sendBroadcastAction({ id: broadcastId }), {
+      // No `success` string: the outcome below is the message — "2 sent, 3
+      // refused" says more than "Sent", and saying both would be two answers
+      // to one question.
+      onSuccess: (result) => {
+        if (!result) return;
 
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
+        // A half-finished send is a failure the operator has to see, and it
+        // arrives on the *ok* path because the broadcast was claimed before it
+        // broke (P4-T4). Report it as what it is.
+        if (result.abandoned) {
+          setNotice(result.abandoned);
+          return;
+        }
 
-      if (result.abandoned) {
-        setError(result.abandoned);
-        return;
-      }
-
-      setNotice(
-        t("sendOutcome", {
-          sent: result.sent ?? 0,
-          refused: result.refused ?? 0,
-          failed: result.failed ?? 0,
-        }),
-      );
-      setRefusals(result.refusals ?? null);
-      router.refresh();
+        setNotice(
+          t("sendOutcome", {
+            sent: result.sent ?? 0,
+            refused: result.refused ?? 0,
+            failed: result.failed ?? 0,
+          }),
+        );
+        setRefusals(result.refusals ?? null);
+        router.refresh();
+      },
     });
   };
 
   const cancel = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await cancelBroadcastAction({ id: broadcastId });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      router.refresh();
+    run(() => cancelBroadcastAction({ id: broadcastId }), {
+      success: tf("saved"),
+      onSuccess: () => {
+        router.refresh();
+      },
     });
   };
 
@@ -109,12 +109,6 @@ export function BroadcastActions({
             </li>
           ))}
         </ul>
-      ) : null}
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
       ) : null}
     </div>
   );

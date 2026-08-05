@@ -288,6 +288,41 @@
       "when": 1785791233127,
       "tag": "0040_agency",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1785791234127,
+      "tag": "0041_last_active_organization",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1785791235127,
+      "tag": "0042_owner_replied_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1785791236127,
+      "tag": "0043_connection_first_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1785791237127,
+      "tag": "0044_digest_action_lever",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1785791238127,
+      "tag": "0045_billing_ids",
+      "breakpoints": true
     }
   ]
 }

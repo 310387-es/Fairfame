@@ -42,6 +42,7 @@ export function toConnection(row: typeof schema.connections.$inferSelect): Conne
     encryptedTokens: row.encryptedTokens,
     cursor: row.cursor,
     lastSyncedAt: row.lastSyncedAt,
+    firstSyncedAt: row.firstSyncedAt,
     nextSyncAt: row.nextSyncAt,
     failureCount: row.failureCount,
     createdAt: row.createdAt,
@@ -231,6 +232,11 @@ export async function syncConnectionWithin(
       cursor,
       status: "active",
       lastSyncedAt: now,
+      // Written once, on the sync that brought in the history (W1.3). Every
+      // review this sync inserted predates it, which is how the notification
+      // sweep tells a backfill from the news — `last_synced_at` cannot, because
+      // by then it has moved.
+      firstSyncedAt: connection.firstSyncedAt ?? now,
       nextSyncAt,
       // A success clears the slate: the next failure starts backoff from the
       // bottom rather than from wherever the last incident left off.

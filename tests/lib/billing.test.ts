@@ -44,13 +44,28 @@ describe("provider registry", () => {
     expect(providerForCurrency("")).toBeNull();
   });
 
-  it("assigns each currency to exactly one provider", () => {
-    const seen = new Map<string, string>();
-    for (const provider of listBillingProviders()) {
-      for (const currency of provider.currencies) {
-        expect(seen.has(currency), `${currency} is claimed twice`).toBe(false);
-        seen.set(currency, provider.key);
-      }
+  /**
+   * This used to assert that each currency belonged to exactly one provider,
+   * and that invariant was deliberately given up in W1.8.
+   *
+   * TRY is now claimed twice — by iyzico, which is the right provider for
+   * Türkiye because e-fatura is a legal obligation there, and by Stripe as a
+   * fallback so a Turkish business can be charged at all while that adapter is
+   * a stub. What has to hold instead is that the *resolution* is unambiguous:
+   * one provider comes back, the same one every time, and a configured one is
+   * preferred over a merely preferred one.
+   */
+  it("resolves every claimed currency to exactly one provider", () => {
+    const claimed = [...new Set(listBillingProviders().flatMap((provider) => provider.currencies))];
+
+    expect(claimed.length).toBeGreaterThan(0);
+
+    for (const currency of claimed) {
+      const resolved = providerForCurrency(currency);
+      expect(resolved, `${currency} resolves to nothing`).not.toBeNull();
+      // Stable: asking twice must not depend on iteration order or on which
+      // module happened to load first.
+      expect(providerForCurrency(currency)?.key).toBe(resolved?.key);
     }
   });
 

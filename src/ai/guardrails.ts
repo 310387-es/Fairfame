@@ -154,3 +154,49 @@ export function boundOutput(value: string, maxChars: number): string {
   const lastSpace = slice.lastIndexOf(" ");
   return (lastSpace > maxChars * 0.8 ? slice.slice(0, lastSpace) : slice).trimEnd();
 }
+
+/**
+ * The letters that make Turkish text Turkish (W1.6).
+ *
+ * `ı` and `İ` are the pair that matters most — a dotless i and a dotted capital
+ * exist in no other language the product serves — but all six are here because
+ * a sentence can legitimately avoid any one of them.
+ */
+const TURKISH_LETTERS = /[ıİşŞğĞçÇöÖüÜ]/;
+
+export function hasTurkishLetters(text: string): boolean {
+  return TURKISH_LETTERS.test(text);
+}
+
+/**
+ * Did the model actually write Turkish, or ASCII-folded pidgin? (W1.6)
+ *
+ * **The failure this catches.** Asked for Turkish, a small model will happily
+ * return *"Musteri sikayetleri arttı"* — recognisably Turkish words with the
+ * diacritics stripped. It parses, it fits the schema, it passes every length
+ * bound, and it lands on the product's hero screen looking like something
+ * typed on a phone with the wrong keyboard. A Turkish business owner reads
+ * that as "these people do not speak my language", and no amount of good
+ * analysis underneath recovers from it.
+ *
+ * **Why it compares against the input.** A short Turkish sentence can honestly
+ * contain none of these letters, so "output has no diacritics" is not by itself
+ * evidence of anything. What *is* evidence is output with none while the
+ * customer quotes it was written from are full of them: the material was
+ * Turkish and the summary is not. That comparison is what makes this a check
+ * rather than a superstition, and it is the same shape as the eval set's
+ * Turkish half — a model can be fine in English and mediocre here.
+ *
+ * Returns true when the output should be rejected and the call retried.
+ */
+export function looksAsciiFolded(options: {
+  locale: string;
+  output: string;
+  /** The customer text the output was written from. */
+  source: string;
+}): boolean {
+  if (options.locale !== "tr") return false;
+  if (!hasTurkishLetters(options.source)) return false;
+
+  return !hasTurkishLetters(options.output);
+}

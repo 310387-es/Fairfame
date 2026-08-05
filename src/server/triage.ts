@@ -6,7 +6,7 @@ import { resolveLocationScope } from "@/auth/scope";
 import { withAuthenticatedTenant } from "@/auth/session";
 import { assignReview, setReviewStatus, TriageError } from "@/inbox/triage";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * Triage actions (P2-T4).
@@ -45,7 +45,7 @@ export async function setReviewStatusAction(input: {
   status: string;
 }): Promise<ActionResult> {
   const parsed = statusSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Unknown status." };
+  if (!parsed.success) return invalidInput(parsed.error, "Unknown status.");
 
   try {
     await withAuthenticatedTenant(
@@ -79,7 +79,7 @@ export async function assignReviewAction(input: {
   assigneeUserId: string | null;
 }): Promise<ActionResult> {
   const parsed = assignSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Unknown assignee." };
+  if (!parsed.success) return invalidInput(parsed.error, "Unknown assignee.");
 
   try {
     await withAuthenticatedTenant(

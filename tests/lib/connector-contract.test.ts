@@ -54,6 +54,7 @@ function connectionFor(connector: Connector, config: Record<string, unknown>): C
     encryptedTokens: null,
     cursor: null,
     lastSyncedAt: null,
+    firstSyncedAt: null,
     nextSyncAt: null,
     failureCount: 0,
     createdAt: new Date(),

@@ -66,6 +66,19 @@ export const googlePendingConfigSchema = z.object({ locationId: z.uuid() });
 /** Stop paginating after this many pages, whatever Google says. */
 const MAX_PAGES = 40;
 
+/**
+ * A Google timestamp, or null when it will not parse.
+ *
+ * The API's own schema types these as plain strings, so a malformed one is a
+ * possibility rather than a contradiction. Null is the right answer: an
+ * unparseable reply time must leave the review looking unanswered rather than
+ * putting an `Invalid Date` into a column the whole inbox filters on.
+ */
+function parseTimestamp(value: string): Date | null {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function parseConfig(connection: Connection): GoogleConfig {
   const parsed = googleConfigSchema.safeParse(connection.config);
 
@@ -233,6 +246,22 @@ export function createGoogleConnector(options: GoogleClientOptions = {}): Connec
         // v4 exposes no per-review permalink. The location's Maps URI is the
         // closest thing and belongs on the connection, not on every row.
         url: null,
+        /**
+         * The owner's own reply, made in Google Business Profile (W1.2).
+         *
+         * This is the case the whole work package is about: most owners were
+         * already answering in Google before they had us, and the Inbox used to
+         * look for a key named `ownerReply` — which Google has never sent — so
+         * every one of those reviews read as unanswered and went overdue.
+         *
+         * `updateTime` on the reply is optional in the API, so fall back to the
+         * review's own: Google moves it when a reply is added, which makes it
+         * the closest honest answer to "when". Only ever consulted when a reply
+         * is actually present.
+         */
+        ownerRepliedAt: review.reviewReply
+          ? parseTimestamp(review.reviewReply.updateTime ?? review.updateTime)
+          : null,
         rawPayload: raw.payload,
       };
     },

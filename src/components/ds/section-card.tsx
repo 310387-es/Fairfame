@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
  * separators. The header keeps its padding either way.
  */
 export function SectionCard({
+  id,
   title,
   icon,
   tone = "muted",
@@ -30,6 +31,8 @@ export function SectionCard({
   className,
   bodyClassName,
 }: {
+  /** An anchor, for a link that has to land on this card (W1.8). */
+  id?: string;
   title: ReactNode;
   icon?: LucideIcon;
   tone?: "muted" | "accent" | "rating" | "negative" | "solid";
@@ -45,7 +48,7 @@ export function SectionCard({
   bodyClassName?: string;
 }) {
   return (
-    <Card className={cn("gap-0", className)}>
+    <Card {...(id ? { id } : {})} className={cn("gap-0", className)}>
       <header className="flex items-center gap-2.5 px-(--card-px) pb-3">
         {icon ? <IconTile icon={icon} tone={tone} /> : null}
         <h2 className="text-title">{title}</h2>

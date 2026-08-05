@@ -195,12 +195,14 @@ export default async function InboxPage({
       // stamped, so an upgrade reveals real history rather than starting fresh.
       sla: canTrackSla ? slaState(review, now) : ("none" as const),
       slaDueAt: canTrackSla ? review.slaDueAt : null,
-      // The provider payload is retained verbatim, so an owner reply made on
-      // the platform itself is discoverable even though we did not post it.
-      hasOwnerReply:
-        typeof review.rawPayload === "object" &&
-        review.rawPayload !== null &&
-        "ownerReply" in review.rawPayload,
+      // An owner reply made on the platform itself, normalised at ingest.
+      //
+      // This used to sniff `raw_payload` for an `ownerReply` key — a shape only
+      // the mock connector has ever produced, so it was blind to the real
+      // Google `reviewReply` — and it fed this badge and nothing else, which is
+      // how a review could read "answered on Google" while the chips beside it
+      // counted it unanswered and overdue. See `src/inbox/answered.ts`.
+      hasOwnerReply: review.ownerRepliedAt !== null,
       reply_: review.reply,
     };
   });

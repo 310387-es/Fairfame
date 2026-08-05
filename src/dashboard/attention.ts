@@ -1,5 +1,6 @@
-import { and, desc, eq, gte, isNull, lt, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, or, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
+import { liveReplyJoin, UNANSWERED } from "../inbox/answered.ts";
 import type { Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import type { RangeWindow } from "./range.ts";
@@ -117,24 +118,18 @@ export async function needsAttention(
         eq(schema.reviewInsights.organizationId, schema.reviews.organizationId),
       ),
     )
-    .leftJoin(
-      schema.replies,
-      and(
-        eq(schema.replies.reviewId, schema.reviews.id),
-        eq(schema.replies.organizationId, schema.reviews.organizationId),
-        ne(schema.replies.status, "failed"),
-      ),
-    )
+    .leftJoin(schema.replies, liveReplyJoin)
     .where(
       and(
         eq(schema.reviews.organizationId, organizationId),
         eq(schema.reviews.locationId, locationId),
         gte(effectiveAt, window.start),
         lt(effectiveAt, window.end),
-        // Unanswered: no live reply at all. A draft counts as answered here on
-        // purpose — someone is already on it, and surfacing it again would send
-        // two people to the same review.
-        isNull(schema.replies.id),
+        // Unanswered: no live reply at all, and none the owner left on the
+        // platform (W1.2). A draft counts as answered here on purpose —
+        // someone is already on it, and surfacing it again would send two
+        // people to the same review.
+        UNANSWERED,
         // Cheap pre-filter so the text of every happy review stays on the
         // database side. The real ranking happens in `rankAttention`, and an
         // item with neither a low rating nor negative sentiment can never

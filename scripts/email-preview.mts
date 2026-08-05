@@ -28,6 +28,8 @@ import {
   renderReviewAlertEmail,
   renderReviewRequestEmail,
   renderRollupEmail,
+  renderInvitationEmail,
+  renderPasswordResetEmail,
   renderSurveyInviteEmail,
   type RenderedEmail,
 } from "../src/messaging/templates.ts";
@@ -324,6 +326,41 @@ const SAMPLES: Sample[] = [
         content,
       };
     },
+  },
+  {
+    /**
+     * The one email in the product sent to somebody who is not a customer and
+     * not yet a colleague (W1.9). It carries no unsubscribe footer, which is
+     * the thing worth *looking* at rather than taking on trust — every other
+     * template here has one, and a missing footer is invisible in code review.
+     */
+    label: "9 · Team invitation",
+    render: (locale) =>
+      renderInvitationEmail({
+        locale,
+        inviterName: "Ömer Eş",
+        businessName: BUSINESS,
+        roleLabel: locale === "tr" ? "Yönetici" : "Admin",
+        link: "http://localhost:3000/invite/6f1c2f2a-0b2e-4a55-9a3e-8b2d1f4c9e77",
+        expiresAt: new Date(PREVIEW_NOW.getTime() + 7 * 24 * 60 * 60 * 1000),
+      }),
+  },
+  {
+    /**
+     * The one email whose absence locks somebody out for good (W1.9b). Worth
+     * previewing for the sentence at the bottom rather than the button: this is
+     * also what a person sees when a stranger types their address into a login
+     * form, and "your password has not changed" is what stops that being
+     * alarming.
+     */
+    label: "10 · Password reset",
+    render: (locale) =>
+      renderPasswordResetEmail({
+        locale,
+        name: "Ömer Eş",
+        link: "http://localhost:3000/api/auth/reset-password/preview-token?callbackURL=%2Freset-password",
+        expiresInMinutes: 60,
+      }),
   },
 ];
 

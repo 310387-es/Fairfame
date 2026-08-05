@@ -1,12 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import type { LocationOption } from "@/lib/active-location";
+import { useAction } from "@/components/ui/use-action";
 import { setMemberLocationsAction } from "@/server/team";
 
 /**
@@ -44,11 +45,11 @@ export function MemberScope({
   roleLabel: string;
 }) {
   const t = useTranslations("team");
+  const tf = useTranslations("feedback");
   const [restricted, setRestricted] = useState(member.locationIds.length > 0);
   const [selected, setSelected] = useState<string[]>(member.locationIds);
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const isOwner = member.role === "owner";
   const dirty =
@@ -62,23 +63,17 @@ export function MemberScope({
     );
   };
 
-  const save = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await setMemberLocationsAction({
-        userId: member.userId,
-        // "All locations" is the empty set — the same thing the absence of rows
-        // has always meant.
-        locationIds: restricted ? selected : [],
-      });
-
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setSaved(true);
-    });
-  };
+  const save = () =>
+    run(
+      () =>
+        setMemberLocationsAction({
+          userId: member.userId,
+          // "All locations" is the empty set — the same thing the absence of
+          // rows has always meant.
+          locationIds: restricted ? selected : [],
+        }),
+      { success: tf("saved"), onSuccess: () => setSaved(true) },
+    );
 
   return (
     <div className="flex flex-col gap-3 rounded-md border border-line p-4">
@@ -156,12 +151,6 @@ export function MemberScope({
           ) : null}
         </>
       )}
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }

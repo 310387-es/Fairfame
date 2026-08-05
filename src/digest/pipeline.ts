@@ -1,11 +1,13 @@
-import { and, asc, desc, eq, gte, lt, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { runAi } from "../ai/client.ts";
+import { LlmError } from "../ai/types.ts";
 import { getEmbeddingProvider } from "../ai/embeddings.ts";
-import { boundOutput } from "../ai/guardrails.ts";
+import { boundOutput, looksAsciiFolded } from "../ai/guardrails.ts";
 import { schema } from "../db/client.ts";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/config.ts";
 import { can, recordUsage, withinLimit } from "../lib/entitlements.ts";
+import { liveReplyJoin } from "../inbox/answered.ts";
 import { childLogger } from "../lib/logger.ts";
 import { withTenant, type TenantDatabase } from "../lib/tenancy.ts";
 import {
@@ -16,6 +18,8 @@ import {
   MAX_SUMMARY_CHARS,
   socialPostPrompt,
   DIGEST_ACTION_COUNT,
+  DIGEST_LEVERS,
+  type DigestLever,
 } from "../prompts/index.ts";
 import { draftReplyForReview } from "../replies/service.ts";
 import {
@@ -65,6 +69,8 @@ const MAX_REPLY_DRAFTS = 2;
 export type DigestAction = {
   position: number;
   text: string;
+  /** Which of `DIGEST_LEVERS` this pulls (W1.6). */
+  lever: DigestLever;
   evidence: { themeSlug: string; reviewIds: string[] };
 };
 
@@ -94,7 +100,51 @@ export type DigestPayload = {
     /** The specific actions carried over, so the briefing can close the loop. */
     stillOpen: { text: string; themeSlug: string }[];
   } | null;
+  /**
+   * Why there is no briefing this week, when there is none (W1.6).
+   *
+   * A stated refusal rather than an empty one. The audit found a digest full of
+   * confident, evidence-free sentences composed from almost nothing — which is
+   * worse than no digest, because an owner who acts on filler and finds nothing
+   * there stops opening it. `no_reviews` means nobody wrote anything;
+   * `not_enough_analysed` means they did and we have not read it yet, which is
+   * a different problem with a different fix, so the screen says which.
+   */
+  insufficient?: {
+    reason: "no_reviews" | "not_enough_analysed";
+    /** Reviews in the window, analysed or not — what the link goes to. */
+    reviewCount: number;
+    analysedCount: number;
+  };
 };
+
+/**
+ * Below this many analysed reviews, the week is an anecdote (W1.6).
+ *
+ * Five, which is small enough that a quiet café still gets briefings and large
+ * enough that a theme means more than one person having a bad Tuesday. The
+ * figure is a judgement rather than a derivation, and it is written down here
+ * so it can be argued with in one place rather than guessed at in three.
+ */
+export const MIN_ANALYSED_REVIEWS = 5;
+
+/**
+ * The reviews an action cited, by the quote numbers the prompt printed.
+ *
+ * One-based, because that is how the prompt numbers them and a model told
+ * "quote 1" must not silently mean quote 0. Out-of-range numbers are dropped
+ * rather than clamped: a citation of quote 40 when there were 12 is not a
+ * near-miss to be rounded into quote 12, it is a fabrication, and passing it
+ * through would put an unrelated review behind an action. Deduplicated, since
+ * a model citing the same quote twice means one review, not two.
+ */
+function resolveEvidence(refs: number[], quotes: { reviewId: string }[]): string[] {
+  const ids = refs
+    .map((ref) => quotes[ref - 1]?.reviewId)
+    .filter((id): id is string => id !== undefined);
+
+  return [...new Set(ids)];
+}
 
 /** The model's half, after validation. */
 const composedSchema = z.object({
@@ -102,7 +152,17 @@ const composedSchema = z.object({
   summary: z.string().min(1),
   callouts: z.array(z.string()).max(3).default([]),
   actions: z
-    .array(z.object({ text: z.string().min(1), theme: z.string() }))
+    .array(
+      z.object({
+        text: z.string().min(1),
+        theme: z.string(),
+        // At least one, enforced here as well as in the response schema: a
+        // provider that does not honour `minItems` still cannot get an
+        // evidence-free action past this (W1.6).
+        quoteRefs: z.array(z.number().int()).min(1),
+        lever: z.enum(DIGEST_LEVERS),
+      }),
+    )
     .min(DIGEST_ACTION_COUNT)
     .max(DIGEST_ACTION_COUNT),
 });
@@ -124,7 +184,7 @@ export type GenerateResult = {
   digestId: string;
   status: "ready" | "skipped" | "failed";
   /** Set when nothing was generated. */
-  reason?: "already_exists" | "no_reviews";
+  reason?: "already_exists" | "no_reviews" | "not_enough_analysed";
   pulse: number | null;
   reviewCount: number;
   actions: number;
@@ -149,13 +209,11 @@ async function gather(
       topics: schema.reviewInsights.topics,
       embedding: schema.reviewInsights.embedding,
       replyId: schema.replies.id,
+      ownerRepliedAt: schema.reviews.ownerRepliedAt,
     })
     .from(schema.reviews)
     .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
-    .leftJoin(
-      schema.replies,
-      and(eq(schema.replies.reviewId, schema.reviews.id), ne(schema.replies.status, "failed")),
-    )
+    .leftJoin(schema.replies, liveReplyJoin)
     .where(
       and(
         eq(schema.reviews.organizationId, organizationId),
@@ -179,7 +237,11 @@ async function gather(
     sentimentScore: row.sentimentScore,
     topics: row.topics ?? [],
     embedding: row.embedding,
-    hasReply: row.replyId !== null,
+    // Including one the owner left on the platform (W1.2). Without it the
+    // digest's "answer these" list hands an owner complaints they already
+    // answered in Google — the one item in the week's plan that is meant to be
+    // work nobody has done yet.
+    hasReply: row.replyId !== null || row.ownerRepliedAt !== null,
   }));
 }
 
@@ -409,6 +471,66 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
 
   const themes = clusterThemes(reviews, { labelVectors });
   const priorThemes = clusterThemes(priorReviews, { labelVectors });
+
+  /**
+   * Refuse to compose a briefing out of nothing (W1.6).
+   *
+   * The audit's digest read as confident Turkish filler with "0 reviews on"
+   * under every action, and this is where that came from: with no themes there
+   * is nothing for an action to cite, so every one fell through to `themes[0]`,
+   * which was `undefined`. The model was asked to write three actions anyway,
+   * and obliged — because that is what models do.
+   *
+   * Two conditions, and they are different problems:
+   *
+   *   - **No themes at all.** Nothing to say anything about.
+   *   - **Fewer than `MIN_ANALYSED_REVIEWS` analysed.** A theme drawn from two
+   *     reviews is an anecdote, and "customers are unhappy about parking"
+   *     stated from one comment is a claim the data does not support.
+   *
+   * Refusing costs a week's briefing. Composing costs the owner's trust in
+   * every briefing after it, which is the more expensive of the two.
+   */
+  const analysedCount = reviews.filter((review) => review.sentiment !== null).length;
+
+  if (themes.length === 0 || analysedCount < MIN_ANALYSED_REVIEWS) {
+    log.info(
+      { organizationId, locationId, themes: themes.length, analysedCount },
+      "Digest declined: not enough analysed feedback",
+    );
+
+    await withTenant({ organizationId }, async (tx) =>
+      tx
+        .update(schema.digests)
+        .set({
+          status: "ready",
+          pulseScore: computePulse(reviews),
+          pulseDelta: null,
+          reviewCount: reviews.length,
+          payload: {
+            ...emptyPayload(priorActionsOutcome),
+            insufficient: {
+              reason: "not_enough_analysed",
+              reviewCount: reviews.length,
+              analysedCount,
+            },
+          },
+          locale: localeOf(location.locale ?? location.organizationLocale),
+          generatedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(schema.digests.id, digestId)),
+    );
+
+    return {
+      digestId,
+      status: "ready",
+      reason: "not_enough_analysed",
+      pulse: computePulse(reviews),
+      reviewCount: reviews.length,
+      actions: 0,
+    };
+  }
   const pulse = computePulse(reviews);
   const priorPulse = prior?.pulseScore ?? computePulse(priorReviews);
 
@@ -431,6 +553,22 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
     quotes: quotesFor(theme, byId),
   }));
 
+  /**
+   * The quotes exactly as the prompt numbers them (W1.6).
+   *
+   * Built once and used twice — printed for the model, then read back to turn
+   * the numbers it cites into review ids. Two separate flattenings of the same
+   * data would eventually disagree about what quote 4 was, and the failure
+   * would be an action linking to somebody else's review.
+   */
+  const promptQuotes = themePayload.flatMap((theme) =>
+    theme.quotes.map((quote) => ({
+      theme: theme.label,
+      text: quote.text,
+      reviewId: quote.reviewId,
+    })),
+  );
+
   try {
     const prompt = digestPrompt({
       locale,
@@ -450,9 +588,7 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
         negative: theme.negative,
       })),
       changes,
-      quotes: themePayload.flatMap((theme) =>
-        theme.quotes.map((quote) => ({ theme: theme.label, text: quote.text })),
-      ),
+      quotes: promptQuotes.map((quote) => ({ theme: quote.theme, text: quote.text })),
     });
 
     const { response } = await runAi({
@@ -460,6 +596,45 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
       actorUserId: args.actorUserId ?? null,
       task: "digest",
       prompt,
+      /**
+       * Reject and ask again, rather than publish it (W1.6).
+       *
+       * Two failures that a schema cannot see, both of which reached the hero
+       * screen in the audit: a Turkish briefing written without a single
+       * Turkish letter, and an action citing no evidence at all. Both are
+       * cheap to retry — this is one call a week per location — and expensive
+       * to ship.
+       */
+      validate: (candidate) => {
+        if (
+          looksAsciiFolded({
+            locale,
+            output: candidate.text,
+            source: promptQuotes.map((quote) => quote.text).join(" "),
+          })
+        ) {
+          throw new LlmError("The Turkish briefing came back without Turkish letters.", {
+            provider: candidate.provider,
+            retryable: true,
+            code: "ascii_folded",
+          });
+        }
+
+        const parsed = composedSchema.safeParse(JSON.parse(extractJson(candidate.text)));
+        if (!parsed.success) return;
+
+        const citesNothing = parsed.data.actions.some(
+          (action) => resolveEvidence(action.quoteRefs, promptQuotes).length === 0,
+        );
+
+        if (citesNothing) {
+          throw new LlmError("An action cited no reviews.", {
+            provider: candidate.provider,
+            retryable: true,
+            code: "no_evidence",
+          });
+        }
+      },
     });
 
     const composed = composedSchema.parse(JSON.parse(extractJson(response.text)));
@@ -484,9 +659,12 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
       priorActionsOutcome,
     };
 
-    // Actions are matched back to a real theme so "evidence-linked" is a fact
-    // rather than a label. A model naming a theme that does not exist gets the
-    // largest theme instead — the briefing still points at real reviews.
+    // Actions are matched back to real reviews so "evidence-linked" is a fact
+    // rather than a label. The model's own citations come first — those are the
+    // reviews it actually reasoned from, and W2.1's "show me exactly these"
+    // button depends on them being the real ones. The theme is the fallback:
+    // a model naming a theme that does not exist gets the largest one, and the
+    // briefing still points somewhere real.
     const actions: DigestAction[] = composed.actions
       .slice(0, DIGEST_ACTION_COUNT)
       .map((action, index) => {
@@ -495,12 +673,16 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
           themes.find((candidate) => candidate.slugs.includes(action.theme)) ??
           themes[0];
 
+        const cited = resolveEvidence(action.quoteRefs, promptQuotes);
+        const reviewIds = cited.length > 0 ? cited : (theme?.reviewIds ?? []).slice(0, 5);
+
         return {
           position: index + 1,
           text: boundOutput(action.text, MAX_ACTION_CHARS),
+          lever: action.lever,
           evidence: {
             themeSlug: theme?.label ?? "",
-            reviewIds: (theme?.reviewIds ?? []).slice(0, 5),
+            reviewIds,
           },
         };
       });
@@ -536,6 +718,7 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
             position: action.position,
             text: action.text,
             evidence: action.evidence,
+            lever: action.lever,
           })),
         );
       }

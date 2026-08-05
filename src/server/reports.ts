@@ -6,7 +6,7 @@ import { withAuthenticatedTenant } from "@/auth/session";
 import { requireFeature } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
 import { setSchedule } from "@/reports/store";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * The one write behind the Insights report card (P3-T5).
@@ -39,7 +39,7 @@ export async function setReportScheduleAction(input: {
   locationId: string;
 }): Promise<ActionResult> {
   const parsed = inputSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid input.");
 
   try {
     await withAuthenticatedTenant(

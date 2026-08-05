@@ -17,7 +17,7 @@ import {
 import { TriageError } from "@/inbox/triage";
 import { childLogger } from "@/lib/logger";
 import { draftReplyForReview } from "@/replies/service";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * Bulk actions (P2-T6).
@@ -81,7 +81,7 @@ export async function bulkSetStatusAction(input: {
       status: z.enum(["open", "in_progress", "done", "ignored"]),
     })
     .safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Nothing selected." };
+  if (!parsed.success) return invalidInput(parsed.error, "Nothing selected.");
 
   try {
     return await runBulk((tx, actor) => bulkSetStatus(tx, actor, parsed.data));
@@ -98,7 +98,7 @@ export async function bulkAssignAction(input: {
   const parsed = z
     .object({ reviewIds: idsSchema, assigneeUserId: z.uuid().nullable() })
     .safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Nothing selected." };
+  if (!parsed.success) return invalidInput(parsed.error, "Nothing selected.");
 
   try {
     return await runBulk((tx, actor) => bulkAssign(tx, actor, parsed.data));
@@ -115,7 +115,7 @@ export async function bulkTagAction(input: {
   const parsed = z
     .object({ reviewIds: idsSchema, slug: z.string().trim().min(1).max(48) })
     .safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Give the tag a name." };
+  if (!parsed.success) return invalidInput(parsed.error, "Give the tag a name.");
 
   try {
     return await runBulk((tx, actor) => bulkTag(tx, actor, parsed.data));
@@ -132,7 +132,7 @@ export async function bulkUntagAction(input: {
   const parsed = z
     .object({ reviewIds: idsSchema, slug: z.string().trim().min(1).max(48) })
     .safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Name the tag to remove." };
+  if (!parsed.success) return invalidInput(parsed.error, "Name the tag to remove.");
 
   try {
     return await runBulk((tx, actor) => bulkUntag(tx, actor, parsed.data));
@@ -154,7 +154,7 @@ export async function bulkDraftFromTemplateAction(input: {
   templateId: string;
 }): Promise<BulkResult> {
   const parsed = z.object({ reviewIds: idsSchema, templateId: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Pick a template." };
+  if (!parsed.success) return invalidInput(parsed.error, "Pick a template.");
 
   try {
     return await runBulk((tx, actor) => bulkDraftFromTemplate(tx, actor, parsed.data));
@@ -166,7 +166,7 @@ export async function bulkDraftFromTemplateAction(input: {
 
 export async function bulkDraftWithAiAction(input: { reviewIds: string[] }): Promise<BulkResult> {
   const parsed = z.object({ reviewIds: idsSchema }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Nothing selected." };
+  if (!parsed.success) return invalidInput(parsed.error, "Nothing selected.");
 
   try {
     return await runBulk((tx, actor) =>

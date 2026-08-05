@@ -2,13 +2,14 @@
 
 import { Archive, Check, Copy, Download, ExternalLink, Send } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_RECIPIENTS_PER_SEND } from "@/collect/input";
+import { useAction } from "@/components/ui/use-action";
 import { archiveCampaignAction, sendRequestsAction } from "@/server/campaigns";
 
 /**
@@ -38,10 +39,10 @@ export type CampaignCardProps = {
 
 export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
   const t = useTranslations("requests");
+  const tf = useTranslations("feedback");
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
   const formRef = useRef<HTMLFormElement>(null);
 
   const archived = campaign.status === "archived";
@@ -53,7 +54,6 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
       setTimeout(() => setCopied(false), 2_000);
     } catch {
       // Clipboard access can be denied; the link is on screen either way.
-      setError(null);
     }
   }
 
@@ -104,7 +104,25 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
 
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <Label className="text-copy text-muted-foreground">{t("link")}</Label>
-            <code className="truncate rounded-md bg-muted px-2 py-1 text-copy">{campaign.url}</code>
+            {/*
+              `wrap-anywhere`, not `truncate` (P1-12).
+
+              A public link has no spaces, so `white-space: nowrap` made this
+              element's *min-content* the width of the whole URL — and a grid
+              item cannot shrink below its min-content. The card came out 541px
+              wide on a 390px phone, pushing the whole page sideways. Hiding the
+              overflow did not help: `truncate` clips what is painted and
+              changes nothing about the width the layout asks for.
+
+              `overflow-wrap: anywhere` is the one that also collapses
+              min-content, which is why it fixes the layout where `break-word`
+              would not. It is the same treatment the hosted-page URL on
+              `/locations` already had — which is why that screen was the
+              cheaper of the two to fix.
+            */}
+            <code className="rounded-md bg-muted px-2 py-1 text-copy wrap-anywhere">
+              {campaign.url}
+            </code>
 
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={copyLink}>
@@ -135,26 +153,24 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
           <form
             ref={formRef}
             action={(formData) => {
-              setError(null);
               setSummary(null);
-              startTransition(async () => {
-                const result = await sendRequestsAction(formData);
-                if (!result.ok) {
-                  setError(result.error);
-                  return;
-                }
-
-                formRef.current?.reset();
-                setSummary(
-                  t("sendResult", {
-                    sent: result.sent,
-                    failed: result.failed,
-                    skipped: result.skipped,
-                  }) +
-                    (result.invalid.length > 0
-                      ? ` — ${t("invalidAddresses", { list: result.invalid.join(", ") })}`
-                      : ""),
-                );
+              run(() => sendRequestsAction(formData), {
+                // The summary below counts what actually went out, which is
+                // the answer; "Sent" on top of it would be noise.
+                onSuccess: (result) => {
+                  if (!result) return;
+                  formRef.current?.reset();
+                  setSummary(
+                    t("sendResult", {
+                      sent: result.sent,
+                      failed: result.failed,
+                      skipped: result.skipped,
+                    }) +
+                      (result.invalid.length > 0
+                        ? ` — ${t("invalidAddresses", { list: result.invalid.join(", ") })}`
+                        : ""),
+                  );
+                },
               });
             }}
             className="space-y-2 border-t pt-4"
@@ -184,12 +200,6 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
           <p className="border-t pt-4 text-body text-muted-foreground">{t("linkOnlyHint")}</p>
         ) : null}
 
-        {error ? (
-          <p role="alert" className="text-body text-destructive">
-            {error}
-          </p>
-        ) : null}
-
         {canManage && !archived ? (
           <div>
             <Button
@@ -197,9 +207,8 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
               variant="ghost"
               disabled={pending}
               onClick={() =>
-                startTransition(async () => {
-                  const result = await archiveCampaignAction({ campaignId: campaign.id });
-                  if (!result.ok) setError(result.error);
+                run(() => archiveCampaignAction({ campaignId: campaign.id }), {
+                  success: tf("saved"),
                 })
               }
             >

@@ -406,18 +406,48 @@ describe("sync to notification", () => {
       .where(eq(schema.notifications.organizationId, orgId));
   }
 
-  it("notifies the team about reviews a sync ingested", async () => {
+  /**
+   * Arrives at the review a person is actually told about (W1.3).
+   *
+   * This test used to sync once and assert one notification per review, which
+   * is precisely the behaviour the audit reported: connect a source, and every
+   * review the business ever received arrives as an alert. The pipeline half of
+   * the T5 Definition of Done — "a mock review reaches a person, through the
+   * queue, without anyone calling the notifier" — is unchanged and still
+   * asserted; what changed is which review qualifies.
+   */
+  it("stays quiet through the backfill, then notifies about what arrives after it", async () => {
     const target = await makeOrgWithMember("notify");
     const connectionId = await connectMock(target.orgId, target.locationId);
 
     await enqueueSync(queue, { organizationId: target.orgId, connectionId });
     await drain();
 
-    const reviews = await reviewsFor(target.orgId);
-    const notifications = await notificationsFor(target.orgId);
+    // Reviews landed, and nobody was told: a first sync is history.
+    expect((await reviewsFor(target.orgId)).length).toBeGreaterThan(0);
+    expect(await notificationsFor(target.orgId)).toHaveLength(0);
 
-    expect(reviews.length).toBeGreaterThan(0);
-    expect(notifications).toHaveLength(reviews.length);
+    const [arrived] = await getAdminDb()
+      .insert(schema.reviews)
+      .values({
+        organizationId: target.orgId,
+        locationId: target.locationId,
+        source: "mock",
+        sourceReviewId: `after-backfill-${suffix}`,
+        authorName: "Zeynep",
+        rating: 5,
+        text: "Bugün geldim, harikaydı.",
+        postedAt: new Date(),
+        rawPayload: {},
+      })
+      .returning({ id: schema.reviews.id });
+
+    await runNotifySweep(queue);
+    await drain();
+
+    const notifications = await notificationsFor(target.orgId);
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]?.reviewId).toBe(arrived!.id);
   });
 
   it("marks a negative review urgent on its way through the pipeline", async () => {
@@ -481,6 +511,22 @@ describe("sync to notification", () => {
     // Sync directly, bypassing the worker: the shape of a job lost to a crash.
     const { syncConnection } = await import("@/connectors/sync");
     await syncConnection(target.orgId, connectionId);
+
+    // Something that genuinely arrived after the backfill — otherwise there is
+    // nothing for the sweep to find, and this would pass while asleep (W1.3).
+    await getAdminDb()
+      .insert(schema.reviews)
+      .values({
+        organizationId: target.orgId,
+        locationId: target.locationId,
+        source: "mock",
+        sourceReviewId: `after-crash-${suffix}`,
+        authorName: "Zeynep",
+        rating: 4,
+        text: "Az önce uğradım.",
+        postedAt: new Date(),
+        rawPayload: {},
+      });
 
     expect(await notificationsFor(target.orgId)).toHaveLength(0);
 

@@ -2,12 +2,13 @@
 
 import { Bookmark, Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Chip, ChipGroup, chipClassName } from "@/components/ds/chip";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAction } from "@/components/ui/use-action";
 import { createSavedViewAction, deleteSavedViewAction } from "@/server/saved-views";
 
 /**
@@ -49,34 +50,27 @@ export function SavedViews({
   canSave: boolean;
 }) {
   const t = useTranslations("inbox");
+  const tf = useTranslations("feedback");
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [shared, setShared] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const activeId = views.find((view) => hrefQuery(view.href) === currentQuery)?.id ?? null;
 
   const save = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await createSavedViewAction({ name, shared, params: currentParams });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setName("");
-      setShared(false);
-      setOpen(false);
+    run(() => createSavedViewAction({ name, shared, params: currentParams }), {
+      success: tf("saved"),
+      onSuccess: () => {
+        setName("");
+        setShared(false);
+        setOpen(false);
+      },
     });
   };
 
   const remove = (id: string) => {
-    setError(null);
-    startTransition(async () => {
-      const result = await deleteSavedViewAction({ id });
-      if (!result.ok) setError(result.error);
-    });
+    run(() => deleteSavedViewAction({ id }), { success: tf("deleted") });
   };
 
   if (views.length === 0 && !canSave) return null;
@@ -165,7 +159,6 @@ export function SavedViews({
                 variant="ghost"
                 onClick={() => {
                   setOpen(false);
-                  setError(null);
                 }}
                 disabled={pending}
               >
@@ -176,12 +169,6 @@ export function SavedViews({
 
           <p className="text-meta text-faint">{t("saveViewHint")}</p>
         </div>
-      ) : null}
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
       ) : null}
     </div>
   );

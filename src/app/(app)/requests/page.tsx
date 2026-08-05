@@ -1,10 +1,11 @@
+import { Send } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { roleAtLeast } from "@/auth/permissions";
 import { requireActor } from "@/auth/session";
 import { listCampaigns, listRecentRequests } from "@/collect/campaigns";
 import { CampaignCard } from "@/components/requests/campaign-card";
 import { CampaignForm } from "@/components/requests/campaign-form";
-import { PageHeader } from "@/components/shell/page-header";
+import { ResourcePage } from "@/components/ds/resource-page";
 import { Card, CardContent } from "@/components/ui/card";
 import { listLocationsForActor } from "@/lib/active-location";
 import { withinLimit } from "@/lib/entitlements";
@@ -61,48 +62,45 @@ export default async function RequestsPage() {
 
   const canManage = roleAtLeast(actor.role, "admin");
 
-  return (
-    <>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+  // Without a location there is nothing to ask *about*, so that is a reason
+  // rather than a form nobody can submit (W1.7).
+  const create = !canManage
+    ? null
+    : locations.length === 0
+      ? { blocked: t("noLocations") }
+      : {
+          label: t("newCampaign"),
+          title: t("newCampaign"),
+          description: t("newCampaignDescription"),
+          form: <CampaignForm locations={locations} />,
+        };
 
-      <p className="mb-1 text-body text-muted-foreground">
+  return (
+    <ResourcePage
+      title={t("title")}
+      subtitle={t("subtitle")}
+      icon={Send}
+      isEmpty={cards.length === 0}
+      empty={{ line: t("empty"), hint: t("newCampaignDescription") }}
+      create={create}
+    >
+      <p className="text-body text-muted-foreground">
         {limit.limit === null
           ? t("usageUnlimited", { used: limit.current })
           : t("usage", { used: limit.current, limit: limit.limit })}
       </p>
-      <p className="mb-6 max-w-2xl text-body text-pretty text-muted-foreground">
-        {t("complianceNote")}
-      </p>
+      <p className="max-w-2xl text-body text-pretty text-muted-foreground">{t("complianceNote")}</p>
 
-      {canManage ? (
-        <div className="mb-6">
-          {locations.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-body text-muted-foreground">
-                {t("noLocations")}
-              </CardContent>
-            </Card>
-          ) : (
-            <CampaignForm locations={locations} />
-          )}
-        </div>
-      ) : null}
-
-      {cards.length === 0 ? (
-        <Card>
-          <CardContent className="py-14 text-center text-body text-muted-foreground">
-            {t("empty")}
-          </CardContent>
-        </Card>
-      ) : (
-        <ul className="grid gap-3 lg:grid-cols-2">
-          {cards.map((campaign) => (
-            <li key={campaign.id}>
-              <CampaignCard campaign={campaign} canManage={canManage} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="grid gap-3 lg:grid-cols-2">
+        {cards.map((campaign) => (
+          // `min-w-0`: a grid item defaults to `min-width: auto`, so without it
+          // the track is floored at the card's min-content width and no amount
+          // of wrapping inside can bring the page back (P1-12).
+          <li key={campaign.id} className="min-w-0">
+            <CampaignCard campaign={campaign} canManage={canManage} />
+          </li>
+        ))}
+      </ul>
 
       <h2 className="mt-10 mb-3 text-title">{t("recentTitle")}</h2>
 
@@ -154,6 +152,6 @@ export default async function RequestsPage() {
           </CardContent>
         </Card>
       )}
-    </>
+    </ResourcePage>
   );
 }

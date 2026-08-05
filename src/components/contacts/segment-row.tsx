@@ -2,11 +2,12 @@
 
 import { Plus, Users, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Chip, ChipGroup, chipClassName } from "@/components/ds/chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAction } from "@/components/ui/use-action";
 import { deleteSegmentAction, saveSegmentAction } from "@/server/contacts";
 
 /**
@@ -44,32 +45,25 @@ export function SegmentRow({
   canSave: boolean;
 }) {
   const t = useTranslations("contacts");
+  const tf = useTranslations("feedback");
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const activeId = segments.find((segment) => hrefQuery(segment.href) === currentQuery)?.id ?? null;
 
   const save = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await saveSegmentAction({ name, query: currentQuery });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setName("");
-      setOpen(false);
+    run(() => saveSegmentAction({ name, query: currentQuery }), {
+      success: tf("saved"),
+      onSuccess: () => {
+        setName("");
+        setOpen(false);
+      },
     });
   };
 
   const remove = (id: string) => {
-    setError(null);
-    startTransition(async () => {
-      const result = await deleteSegmentAction({ id });
-      if (!result.ok) setError(result.error);
-    });
+    run(() => deleteSegmentAction({ id }), { success: tf("deleted") });
   };
 
   if (segments.length === 0 && !(canManage && canSave)) return null;
@@ -144,7 +138,6 @@ export function SegmentRow({
                 variant="ghost"
                 onClick={() => {
                   setOpen(false);
-                  setError(null);
                 }}
                 disabled={pending}
               >
@@ -155,12 +148,6 @@ export function SegmentRow({
 
           <p className="text-meta text-faint">{t("segmentHint")}</p>
         </div>
-      ) : null}
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
       ) : null}
     </div>
   );

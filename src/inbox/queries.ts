@@ -6,7 +6,6 @@ import {
   isNotNull,
   isNull,
   lt,
-  ne,
   or,
   sql,
   type AnyColumn,
@@ -16,6 +15,7 @@ import { z } from "zod";
 import { schema } from "../db/client.ts";
 import type { ReviewStatus, Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
+import { ANSWERED, liveReplyJoin, UNANSWERED } from "./answered.ts";
 import {
   ASSIGNEE_ME,
   ASSIGNEE_NOBODY,
@@ -423,15 +423,23 @@ function inboxPredicate(organizationId: string, locationId: string, filters: Inb
           // returned is the kind of contradiction that costs a reader their
           // trust in both. `slaState()` treats a first response as terminal, and
           // this is the same rule written as SQL.
+          //
+          // `owner_replied_at` joined it in W1.2. It was the omission that made
+          // the chip claim 78 overdue reviews the owner had already answered on
+          // Google — the badge said "answered", the filter said "overdue", and
+          // both were reading different columns.
           isNull(schema.reviews.firstResponseAt),
+          isNull(schema.reviews.ownerRepliedAt),
         )
       : undefined,
     filters.postedFrom ? sql`${schema.reviews.postedAt} >= ${filters.postedFrom}` : undefined,
     filters.postedTo ? sql`${schema.reviews.postedAt} < ${filters.postedTo}` : undefined,
+    // One definition, shared with the chips and with `slaState` — see
+    // `src/inbox/answered.ts`. A reply the owner left on the platform counts.
     filters.reply === "unanswered"
-      ? isNull(schema.replies.id)
+      ? UNANSWERED
       : filters.reply === "answered"
-        ? sql`${schema.replies.id} is not null`
+        ? ANSWERED
         : undefined,
   );
 }
@@ -454,6 +462,8 @@ export type InboxRow = {
   priority: number | null;
   slaDueAt: Date | null;
   firstResponseAt: Date | null;
+  /** When the business answered on the platform itself (W1.2). */
+  ownerRepliedAt: Date | null;
   assignee: { id: string; name: string | null } | null;
   reply: {
     id: string;
@@ -504,10 +514,7 @@ export async function countInbox(
     .select({ total: sql<number>`count(distinct ${schema.reviews.id})::int` })
     .from(schema.reviews)
     .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
-    .leftJoin(
-      schema.replies,
-      and(eq(schema.replies.reviewId, schema.reviews.id), ne(schema.replies.status, "failed")),
-    )
+    .leftJoin(schema.replies, liveReplyJoin)
     .where(inboxPredicate(organizationId, locationId, filters));
 
   return row?.total ?? 0;
@@ -566,10 +573,7 @@ export async function locateReview(
     .select({ before: sql<number>`count(distinct ${schema.reviews.id})::int` })
     .from(schema.reviews)
     .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
-    .leftJoin(
-      schema.replies,
-      and(eq(schema.replies.reviewId, schema.reviews.id), ne(schema.replies.status, "failed")),
-    )
+    .leftJoin(schema.replies, liveReplyJoin)
     .where(
       and(
         inboxPredicate(organizationId, locationId, filters),
@@ -583,10 +587,7 @@ export async function locateReview(
     .select({ hit: sql<number>`count(distinct ${schema.reviews.id})::int` })
     .from(schema.reviews)
     .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
-    .leftJoin(
-      schema.replies,
-      and(eq(schema.replies.reviewId, schema.reviews.id), ne(schema.replies.status, "failed")),
-    )
+    .leftJoin(schema.replies, liveReplyJoin)
     .where(
       and(inboxPredicate(organizationId, locationId, filters), eq(schema.reviews.id, reviewId)),
     );
@@ -620,6 +621,7 @@ export async function listInbox(
       priority: schema.reviews.priority,
       slaDueAt: schema.reviews.slaDueAt,
       firstResponseAt: schema.reviews.firstResponseAt,
+      ownerRepliedAt: schema.reviews.ownerRepliedAt,
       assigneeUserId: schema.reviews.assigneeUserId,
       assigneeName: schema.users.name,
       sentiment: schema.reviewInsights.sentiment,
@@ -634,10 +636,7 @@ export async function listInbox(
     })
     .from(schema.reviews)
     .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
-    .leftJoin(
-      schema.replies,
-      and(eq(schema.replies.reviewId, schema.reviews.id), ne(schema.replies.status, "failed")),
-    )
+    .leftJoin(schema.replies, liveReplyJoin)
     // The assignee's name, for the card. The id being joined on came from a row
     // this tenant already owns, so the join cannot reach a stranger.
     .leftJoin(schema.users, eq(schema.users.id, schema.reviews.assigneeUserId))
@@ -673,6 +672,7 @@ export async function listInbox(
     priority: row.priority,
     slaDueAt: row.slaDueAt,
     firstResponseAt: row.firstResponseAt,
+    ownerRepliedAt: row.ownerRepliedAt,
     assignee: row.assigneeUserId ? { id: row.assigneeUserId, name: row.assigneeName } : null,
     sentiment: row.sentiment,
     sentimentScore: row.sentimentScore,
@@ -795,9 +795,7 @@ export async function inboxFacets(
   const totals = await tx
     .select({
       total: sql<number>`count(*)::int`.mapWith(Number),
-      unanswered: sql<number>`count(*) filter (where ${schema.replies.id} is null)::int`.mapWith(
-        Number,
-      ),
+      unanswered: sql<number>`count(*) filter (where ${UNANSWERED})::int`.mapWith(Number),
       // Exactly the predicate the `overdue` filter uses. A chip that promises
       // 129 and shows 124 is worse than no chip at all.
       overdue: sql<number>`count(*) filter (
@@ -805,6 +803,7 @@ export async function inboxFacets(
           and ${schema.reviews.slaDueAt} < now()
           and ${schema.reviews.status} in ('open', 'in_progress')
           and ${schema.reviews.firstResponseAt} is null
+          and ${schema.reviews.ownerRepliedAt} is null
       )::int`.mapWith(Number),
       unassigned:
         sql<number>`count(*) filter (where ${schema.reviews.assigneeUserId} is null)::int`.mapWith(
@@ -815,10 +814,7 @@ export async function inboxFacets(
       )::int`.mapWith(Number),
     })
     .from(schema.reviews)
-    .leftJoin(
-      schema.replies,
-      and(eq(schema.replies.reviewId, schema.reviews.id), ne(schema.replies.status, "failed")),
-    )
+    .leftJoin(schema.replies, liveReplyJoin)
     .where(scope);
 
   const sentimentOrder: Sentiment[] = ["negative", "neutral", "positive"];

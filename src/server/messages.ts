@@ -7,7 +7,7 @@ import { withAuthenticatedTenant } from "@/auth/session";
 import { getContact } from "@/contacts/queries";
 import { requireFeature } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 import { sendMessage } from "@/messaging/outbound";
 import { TEMPLATES } from "@/connectors/whatsapp/templates";
 
@@ -65,7 +65,7 @@ export type SendMessageResult = ActionResult<{ intent?: string }>;
 export async function sendMessageAction(input: unknown): Promise<SendMessageResult> {
   const parsed = sendSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid message." };
+    return invalidInput(parsed.error, parsed.error.issues[0]?.message ?? "Invalid message.");
   }
 
   const data = parsed.data;

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
+import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 // `--font-sans` / `--font-mono` are the names `globals.css` maps into the
@@ -56,7 +57,13 @@ export default async function RootLayout({
           </style>
         </noscript>
 
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        {/* The toast viewport lives at the root rather than in the app shell:
+            the sign-in and sign-up forms are outside `(app)` and fail in
+            exactly the same ways, and a feedback system with a hole in it at
+            the first screen a customer sees is not one (W1.5). */}
+        <NextIntlClientProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

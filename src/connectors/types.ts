@@ -41,6 +41,12 @@ export type Connection = {
   cursor: string | null;
   /** Last successful sync, or null if it has never completed one. */
   lastSyncedAt: Date | null;
+  /**
+   * When the **first** sync finished — the backfill (W1.3). Written once and
+   * never moved, which is what lets the notification sweep tell "history we
+   * just learned about" from "something that happened".
+   */
+  firstSyncedAt: Date | null;
   /** Earliest the scheduler may sync again — backoff and rate-limit deferral. */
   nextSyncAt: Date | null;
   /** Consecutive failures. Zero after any success. */
@@ -63,7 +69,7 @@ export type Connection = {
  */
 export type NewConnection = Omit<
   Connection,
-  "id" | "createdAt" | "lastSyncedAt" | "nextSyncAt" | "failureCount"
+  "id" | "createdAt" | "lastSyncedAt" | "firstSyncedAt" | "nextSyncAt" | "failureCount"
 >;
 
 /**
@@ -103,6 +109,16 @@ export type CanonicalReview = {
   language: string | null;
   postedAt: Date | null;
   url: string | null;
+  /**
+   * When the business answered this on the platform itself, if it did (W1.2).
+   *
+   * The connector's job, because only the connector knows its own payload:
+   * Google says `reviewReply`, the mock says `ownerReply`, and a connector with
+   * no notion of an owner reply leaves it undefined. Normalising it here is
+   * what stopped the Inbox sniffing `raw_payload` for one provider's key and
+   * quietly getting the answer wrong for every other.
+   */
+  ownerRepliedAt?: Date | null;
   rawPayload: Record<string, unknown>;
 };
 

@@ -6,7 +6,7 @@ import { withAuthenticatedTenant } from "@/auth/session";
 import { parseInboxFilters } from "@/inbox/filters";
 import { createSavedView, deleteSavedView, savedViewNameSchema } from "@/inbox/views";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * Saved-view actions (P2-T3).
@@ -38,7 +38,7 @@ export async function createSavedViewAction(input: {
   params: Record<string, string>;
 }): Promise<ActionResult> {
   const parsed = createSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Give the view a name." };
+  if (!parsed.success) return invalidInput(parsed.error, "Give the view a name.");
 
   try {
     await withAuthenticatedTenant(async (tx, actor) => {
@@ -62,7 +62,7 @@ export async function createSavedViewAction(input: {
 
 export async function deleteSavedViewAction(input: { id: string }): Promise<ActionResult> {
   const parsed = z.object({ id: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Unknown view." };
+  if (!parsed.success) return invalidInput(parsed.error, "Unknown view.");
 
   try {
     const removed = await withAuthenticatedTenant((tx, actor) =>

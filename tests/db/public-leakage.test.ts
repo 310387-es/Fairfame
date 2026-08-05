@@ -358,6 +358,17 @@ describe("the next public surface", () => {
         "/api/connect/[provider]/start/route.ts",
         "/api/health/route.ts",
         "/api/webhooks/instagram/route.ts",
+        /**
+         * Stripe's webhook (W1.8). Carries no tenant data *out* — it answers
+         * `{received:true}` and nothing else — but it is the one public route
+         * that can change what an organization is entitled to, so it is worth
+         * saying why that is safe. The `Stripe-Signature` HMAC is verified
+         * before the body is parsed, and `applyBillingEvent` takes the
+         * organization from metadata *we* set on the subscription rather than
+         * from anything a caller can supply. Unsigned or unattributable events
+         * are refused and dropped respectively.
+         */
+        "/api/webhooks/stripe/route.ts",
         "/api/webhooks/whatsapp/route.ts",
         "/embed/widget.js/route.ts",
         "/page.tsx",

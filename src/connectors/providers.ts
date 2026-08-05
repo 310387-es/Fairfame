@@ -73,6 +73,21 @@ export type ProviderDescriptor = {
   modeEnvVar?: string;
   /** What blocks go-live, shown in the UI while the provider is on mock. */
   goLiveNote?: string;
+  /**
+   * A development instrument, not a source anybody can buy (W1.4).
+   *
+   * "Mock source" and "Fixture provider" were offered to customers on the
+   * Locations screen alongside Google — connect buttons for things that do not
+   * exist, in a product being shown to design partners. They are still fully
+   * available; they are just no longer *advertised*, which is the whole
+   * difference between a test seam and a feature.
+   *
+   * A flag on the descriptor rather than a name check in the component, for the
+   * reason every provider fact lives here: the next test connector should be
+   * hidden by declaring itself, not by somebody remembering to extend an
+   * `if` in the UI.
+   */
+  devOnly?: boolean;
 };
 
 const DEFAULT_RATE_LIMIT: RateLimitPolicy = {
@@ -87,6 +102,7 @@ export const PROVIDERS: Record<string, ProviderDescriptor> = {
     label: "Mock source",
     capabilities: mockCapabilities,
     requiresOAuth: false,
+    devOnly: true,
     // Generated in-process: the only limit that matters is not spinning.
     rateLimit: { requestsPerMinute: 600, minSyncIntervalMs: 30_000, maxBackoffMs: 300_000 },
   },
@@ -196,6 +212,7 @@ export const PROVIDERS: Record<string, ProviderDescriptor> = {
     label: "Fixture provider",
     capabilities: { read: "excerpt", reply: "none", realtime: false },
     requiresOAuth: true,
+    devOnly: true,
     oauth: {
       authorizeUrl: "https://fixture.invalid/oauth/authorize",
       tokenUrl: "https://fixture.invalid/oauth/token",

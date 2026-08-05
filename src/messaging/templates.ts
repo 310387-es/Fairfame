@@ -955,3 +955,179 @@ export function renderSurveyInviteEmail(input: SurveyInviteEmailInput): Rendered
 
   return { subject, text, html };
 }
+
+// ---------------------------------------------------------------------------
+// Team invitation (W1.9)
+// ---------------------------------------------------------------------------
+
+export type InvitationEmailInput = {
+  locale: Locale;
+  /** Who is asking, so the recipient knows why this landed. */
+  inviterName: string;
+  businessName: string;
+  /** In the recipient's language, already translated by the caller. */
+  roleLabel: string;
+  link: string;
+  expiresAt: Date;
+};
+
+const INVITE_COPY: Record<
+  Locale,
+  {
+    subject: (input: InvitationEmailInput) => string;
+    lead: (input: InvitationEmailInput) => string;
+    role: (input: InvitationEmailInput) => string;
+    cta: string;
+    expiry: (input: InvitationEmailInput) => string;
+    ignore: string;
+  }
+> = {
+  tr: {
+    subject: (input) => `${input.businessName} sizi ekibine davet ediyor`,
+    lead: (input) =>
+      `${input.inviterName}, ${input.businessName} hesabında sizinle çalışmak istiyor.`,
+    role: (input) => `Rolünüz: ${input.roleLabel}.`,
+    cta: "Daveti kabul et",
+    expiry: (input) =>
+      `Bu davet ${input.expiresAt.toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} tarihine kadar geçerli.`,
+    ignore: "Bunu beklemiyorduysanız, bu e-postayı yok sayabilirsiniz.",
+  },
+  en: {
+    subject: (input) => `${input.businessName} invited you to their team`,
+    lead: (input) =>
+      `${input.inviterName} would like you to work with them on ${input.businessName}.`,
+    role: (input) => `Your role: ${input.roleLabel}.`,
+    cta: "Accept invitation",
+    expiry: (input) =>
+      `This invitation is good until ${input.expiresAt.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}.`,
+    ignore: "If you were not expecting this, you can ignore this email.",
+  },
+};
+
+/**
+ * The email that makes a team a team (W1.9).
+ *
+ * **No unsubscribe footer, deliberately.** Every other template in this file
+ * carries one because it is a *commercial* message to a customer and Turkish
+ * law says so. This is a one-off, person-to-person request to join a workspace
+ * — closer to a password reset than to marketing — and there is no ongoing
+ * subscription to opt out of. Offering one would imply a list they are on.
+ *
+ * It also never goes through `checkSendAllowed`: the consent gate governs
+ * messages to *customers*, and demanding an İYS permission before a business
+ * can invite its own manager is a misreading of the regime. That classification
+ * is asserted in `tests/lib/outbound-consent.test.ts` rather than left implied.
+ */
+export function renderInvitationEmail(input: InvitationEmailInput): RenderedEmail {
+  const copy = INVITE_COPY[input.locale];
+
+  const text = [
+    copy.lead(input),
+    copy.role(input),
+    "",
+    input.link,
+    "",
+    copy.expiry(input),
+    copy.ignore,
+  ].join("\n");
+
+  const html = `<!doctype html>
+<html lang="${input.locale}">
+  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+    <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
+      <p style="margin:0 0 16px;font-size:18px;line-height:1.5;font-weight:600;">${escapeHtml(copy.lead(input))}</p>
+      <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">${escapeHtml(copy.role(input))}</p>
+      <p style="margin:0 0 24px;">
+        <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#3d5af1;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;">${escapeHtml(copy.cta)}</a>
+      </p>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.expiry(input))}</p>
+      <p style="margin:0;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.ignore)}</p>
+    </div>
+  </body>
+</html>`;
+
+  return { subject: copy.subject(input), text, html };
+}
+
+// ---------------------------------------------------------------------------
+// Password reset (W1.9b)
+// ---------------------------------------------------------------------------
+
+export type PasswordResetEmailInput = {
+  locale: Locale;
+  /** What to call them. Falls back to the address when there is no name. */
+  name: string;
+  link: string;
+  /** How long the link is good for, in minutes — stated, not implied. */
+  expiresInMinutes: number;
+};
+
+const RESET_COPY: Record<
+  Locale,
+  {
+    subject: string;
+    lead: (input: PasswordResetEmailInput) => string;
+    cta: string;
+    expiry: (input: PasswordResetEmailInput) => string;
+    ignore: string;
+  }
+> = {
+  tr: {
+    subject: "Revira parolanızı sıfırlayın",
+    lead: (input) =>
+      `Merhaba ${input.name}, yeni bir parola belirlemek için aşağıdaki bağlantıyı kullanın.`,
+    cta: "Yeni parola belirle",
+    expiry: (input) => `Bu bağlantı ${input.expiresInMinutes} dakika geçerli.`,
+    ignore: "Bu isteği siz yapmadıysanız hiçbir şey yapmanıza gerek yok — parolanız değişmedi.",
+  },
+  en: {
+    subject: "Reset your Revira password",
+    lead: (input) => `Hello ${input.name}, use the link below to set a new password.`,
+    cta: "Set a new password",
+    expiry: (input) => `This link is good for ${input.expiresInMinutes} minutes.`,
+    ignore: "If you did not ask for this, there is nothing to do — your password has not changed.",
+  },
+};
+
+/**
+ * The way back into an account (W1.9b).
+ *
+ * **The one email whose absence locks somebody out permanently.** Until this,
+ * `emailAndPassword` had no `sendResetPassword` callback, so BetterAuth refused
+ * the endpoint outright with `RESET_PASSWORD_DISABLED` — a teammate invited in
+ * W1.9 who forgot their twelve-character password had no route back in, and
+ * neither did the person who invited them.
+ *
+ * No unsubscribe footer and no consent gate, for the same reason as the
+ * invitation: this is a transactional reply to something the recipient just
+ * asked for. It is the clearest case in the product of a message that is not
+ * marketing.
+ *
+ * **It says what to do if you did not ask.** A password-reset email is also
+ * what somebody sees when a stranger types their address into a login form, and
+ * "your password has not changed" is the sentence that stops that being
+ * alarming.
+ */
+export function renderPasswordResetEmail(input: PasswordResetEmailInput): RenderedEmail {
+  const copy = RESET_COPY[input.locale];
+
+  const text = [copy.lead(input), "", input.link, "", copy.expiry(input), copy.ignore].join("\n");
+
+  const html = `<!doctype html>
+<html lang="${input.locale}">
+  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+    <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
+      <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">${escapeHtml(copy.lead(input))}</p>
+      <p style="margin:0 0 24px;">
+        <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#3d5af1;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;">${escapeHtml(copy.cta)}</a>
+      </p>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.expiry(input))}</p>
+      <p style="margin:0;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.ignore)}</p>
+    </div>
+  </body>
+</html>`;
+
+  return { subject: copy.subject, text, html };
+}

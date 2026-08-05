@@ -1,3 +1,4 @@
+import { MapPin } from "lucide-react";
 import { and, count, eq, isNotNull, sql } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
 import { requireActor } from "@/auth/session";
@@ -9,8 +10,7 @@ import {
   type ConnectedSource,
   type LocationRow,
 } from "@/components/locations/location-card";
-import { PageHeader } from "@/components/shell/page-header";
-import { Card, CardContent } from "@/components/ui/card";
+import { ResourcePage } from "@/components/ds/resource-page";
 import { describeConnectableProviders, describeProvider } from "@/connectors/capability-view";
 import { FIRST_PARTY_PROVIDER } from "@/connectors/firstparty";
 import { schema } from "@/db/client";
@@ -27,8 +27,26 @@ import { listPublicPages } from "@/seo/store";
  * handshake or attaches a mock comes from the environment's flags. Nothing on
  * this page names a platform.
  */
-export default async function LocationsPage() {
-  const [t, actor] = await Promise.all([getTranslations("locations"), requireActor()]);
+export default async function LocationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ dev?: string }>;
+}) {
+  const [t, actor, params] = await Promise.all([
+    getTranslations("locations"),
+    requireActor(),
+    searchParams,
+  ]);
+
+  /**
+   * Whether to offer the development connectors (W1.4).
+   *
+   * Both conditions, not either: `?dev=1` is a convenience for whoever is
+   * working on the thing, and `NODE_ENV` is the part that cannot be typed into
+   * an address bar by a customer who saw the query string in a screen
+   * recording. In production this is false however the URL is written.
+   */
+  const includeDevOnly = process.env.NODE_ENV !== "production" && params.dev === "1";
 
   const { locations, connections, reviewCounts, publicPages, approvedCount, limit } =
     await withTenant(
@@ -95,13 +113,12 @@ export default async function LocationsPage() {
    * its own when a collection campaign is created, and offering a second way to
    * create it would be two buttons for one thing.
    */
-  const connectableCatalogue: ConnectableSource[] = describeConnectableProviders()
+  const connectableCatalogue: ConnectableSource[] = describeConnectableProviders({ includeDevOnly })
     .filter((view) => view.provider !== FIRST_PARTY_PROVIDER)
     .map((view) => ({
       provider: view.provider,
       label: view.label,
       sync: view.sync,
-      reply: view.reply,
       isMock: view.isMock,
       canAuthorize: view.canAuthorize,
       ...(view.modeReason ? { modeReason: view.modeReason } : {}),
@@ -120,7 +137,6 @@ export default async function LocationsPage() {
           label: view?.label ?? connection.provider,
           status: connection.status,
           sync: view?.sync ?? "monitor",
-          reply: view?.reply ?? "none",
           isMock: view?.isMock ?? false,
           // Serialized for the client component boundary.
           // A pending connection has credentials but no chosen place yet.
@@ -146,51 +162,49 @@ export default async function LocationsPage() {
 
   const canManage = roleAtLeast(actor.role, "admin");
 
+  // A spent plan limit is a `blocked` reason rather than a disabled button:
+  // "you have used all 3 of your locations" is something a reader can act on,
+  // and a greyed-out control is not (W1.7).
+  const create = !canManage
+    ? null
+    : !limit.allowed
+      ? { blocked: t("limitReached", { limit: limit.limit ?? 0 }) }
+      : {
+          label: t("add"),
+          title: t("addTitle"),
+          description: t("addDescription"),
+          form: <AddLocationForm />,
+        };
+
   return (
-    <>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+    <ResourcePage
+      title={t("title")}
+      subtitle={t("subtitle")}
+      icon={MapPin}
+      isEmpty={rows.length === 0}
+      empty={{ line: t("empty"), hint: t("addDescription") }}
+      create={create}
+    >
+      <p className="text-body text-muted-foreground">
+        {limit.limit === null
+          ? t("usageUnlimited", { used: limit.current })
+          : t("usage", { used: limit.current, limit: limit.limit })}
+      </p>
 
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-body text-muted-foreground">
-          {limit.limit === null
-            ? t("usageUnlimited", { used: limit.current })
-            : t("usage", { used: limit.current, limit: limit.limit })}
-        </p>
-      </div>
-
-      {canManage ? (
-        <div className="mb-6">
-          <AddLocationForm
-            disabled={!limit.allowed}
-            disabledReason={
-              limit.allowed ? undefined : t("limitReached", { limit: limit.limit ?? 0 })
-            }
-          />
-        </div>
-      ) : null}
-
-      {rows.length === 0 ? (
-        <Card>
-          <CardContent className="py-14 text-center text-body text-muted-foreground">
-            {t("empty")}
-          </CardContent>
-        </Card>
-      ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {rows.map((location) => (
-            <li key={location.id}>
-              <LocationCard
-                location={location}
-                canManage={canManage}
-                // The origin a customer's visitors reach, which is not
-                // necessarily the one an admin is signed in to — src/lib/urls.ts.
-                publicOrigin={publicBaseUrl()}
-                approvedCount={approvedCount}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {rows.map((location) => (
+          <li key={location.id}>
+            <LocationCard
+              location={location}
+              canManage={canManage}
+              // The origin a customer's visitors reach, which is not
+              // necessarily the one an admin is signed in to — src/lib/urls.ts.
+              publicOrigin={publicBaseUrl()}
+              approvedCount={approvedCount}
+            />
+          </li>
+        ))}
+      </ul>
+    </ResourcePage>
   );
 }

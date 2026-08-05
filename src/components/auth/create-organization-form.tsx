@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { organization } from "@/auth/client";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,15 +34,14 @@ function slugify(value: string): string {
 
 export function CreateOrganizationForm() {
   const t = useTranslations("auth");
+  const { toast } = useToast();
   const tErrors = useTranslations("errors");
   const router = useRouter();
 
-  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
     setPending(true);
 
     const name = String(new FormData(event.currentTarget).get("name") ?? "").trim();
@@ -53,7 +53,7 @@ export function CreateOrganizationForm() {
 
     if (created.error) {
       setPending(false);
-      setError(created.error.message ?? tErrors("generic"));
+      toast("error", created.error.message ?? tErrors("generic"));
       return;
     }
 
@@ -63,7 +63,7 @@ export function CreateOrganizationForm() {
     setPending(false);
 
     if (activated.error) {
-      setError(activated.error.message ?? tErrors("generic"));
+      toast("error", activated.error.message ?? tErrors("generic"));
       return;
     }
 
@@ -88,12 +88,6 @@ export function CreateOrganizationForm() {
             <Label htmlFor="name">{t("orgName")}</Label>
             <Input id="name" name="name" required autoComplete="organization" />
           </div>
-
-          {error ? (
-            <p role="alert" className="text-body text-destructive">
-              {error}
-            </p>
-          ) : null}
 
           <Button type="submit" className="w-full" disabled={pending}>
             {t("createOrg")}

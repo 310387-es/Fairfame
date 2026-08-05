@@ -39,12 +39,23 @@ function SheetContent({
   className,
   children,
   side = "left",
+  tone = "ink",
   title,
   hideTitle = false,
   closeLabel,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "left" | "right";
+  /**
+   * Which surface the panel is (W1.7).
+   *
+   * This component was written for the mobile navigation rail and hard-coded
+   * the ink surface — including a `text-white/62` close button, which is
+   * invisible the moment the panel is a white card. A create panel is a card,
+   * so the two surfaces are named rather than left to whoever remembers to
+   * override four classes at the call site.
+   */
+  tone?: "ink" | "surface";
   title: string;
   hideTitle?: boolean;
   closeLabel: string;
@@ -58,7 +69,15 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed inset-y-0 z-50 flex w-(--rail-width) max-w-[85vw] flex-col bg-rail text-on-ink shadow-md transition ease-out",
+          // No blanket `transition`: `animate-in`/`animate-out` already own the
+          // motion, and a transition on *every* property on top of a running
+          // keyframe animation means the element never settles — Playwright
+          // reports "element is not stable" and a real click can land on a
+          // moving target (W1.7).
+          "fixed inset-y-0 z-50 flex max-w-[85vw] flex-col shadow-md",
+          tone === "ink"
+            ? "w-(--rail-width) bg-rail text-on-ink"
+            : "w-(--rail-width) bg-card text-foreground",
           side === "left"
             ? "left-0 data-open:slide-in-from-left data-closed:slide-out-to-left"
             : "right-0 data-open:slide-in-from-right data-closed:slide-out-to-right",
@@ -70,14 +89,24 @@ function SheetContent({
         {hideTitle ? (
           <SheetPrimitive.Title className="sr-only">{title}</SheetPrimitive.Title>
         ) : (
-          <SheetPrimitive.Title className="px-(--page-gutter) pt-4 text-title">
+          <SheetPrimitive.Title
+            className={cn(
+              "text-title",
+              tone === "ink" ? "px-(--page-gutter) pt-4" : "px-(--card-px) pt-5 pb-3",
+            )}
+          >
             {title}
           </SheetPrimitive.Title>
         )}
 
         <SheetPrimitive.Close
           aria-label={closeLabel}
-          className="absolute top-3.5 right-3 grid size-8 place-items-center rounded-md text-white/62 transition-colors hover:bg-white/8 hover:text-white focus-visible:ring-3 focus-visible:ring-white/40 focus-visible:outline-none"
+          className={cn(
+            "absolute top-3.5 right-3 grid size-8 place-items-center rounded-md transition-colors focus-visible:ring-3 focus-visible:outline-none",
+            tone === "ink"
+              ? "text-white/62 hover:bg-white/8 hover:text-white focus-visible:ring-white/40"
+              : "text-ink-400 hover:bg-surface-sunken hover:text-foreground focus-visible:ring-ring/50",
+          )}
         >
           <XIcon className="size-4" aria-hidden />
         </SheetPrimitive.Close>

@@ -1,5 +1,6 @@
 import { and, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
+import { liveReplyJoin } from "../inbox/answered.ts";
 import type { Sentiment } from "../db/schema.ts";
 import type { RangeWindow } from "../dashboard/range.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
@@ -91,7 +92,11 @@ export async function loadInsightFacts(
       // The earliest *published* reply. `min` rather than a plain join, so a
       // review with two replies yields one fact instead of two and does not
       // double-count in every volume figure on the page.
-      repliedAt: sql<Date | null>`min(${schema.replies.postedAt})`,
+      // `least` folds in the reply the owner left on the platform (W1.2):
+      // response rate and response time here answered "did *we* post it",
+      // which reports a business that replies to everything in Google as
+      // replying to nothing. Postgres's `least` ignores nulls.
+      repliedAt: sql<Date | null>`least(min(${schema.replies.postedAt}), ${schema.reviews.ownerRepliedAt})`,
     })
     .from(schema.reviews)
     .leftJoin(
@@ -101,16 +106,9 @@ export async function loadInsightFacts(
         eq(schema.reviewInsights.organizationId, schema.reviews.organizationId),
       ),
     )
-    .leftJoin(
-      schema.replies,
-      and(
-        eq(schema.replies.reviewId, schema.reviews.id),
-        eq(schema.replies.organizationId, schema.reviews.organizationId),
-        // A failed attempt leaves the review answerable again, so it must not
-        // read as answered — the rule the Inbox and the reply service use.
-        ne(schema.replies.status, "failed"),
-      ),
-    )
+    // A failed attempt leaves the review answerable again, so it must not read
+    // as answered — one join condition, shared with the Inbox (W1.2).
+    .leftJoin(schema.replies, liveReplyJoin)
     .where(
       and(
         eq(schema.reviews.organizationId, organizationId),
@@ -126,6 +124,7 @@ export async function loadInsightFacts(
     )
     .groupBy(
       schema.reviews.id,
+      schema.reviews.ownerRepliedAt,
       schema.reviews.postedAt,
       schema.reviews.createdAt,
       schema.reviews.locationId,

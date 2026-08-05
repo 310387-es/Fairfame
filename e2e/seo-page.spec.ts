@@ -66,6 +66,11 @@ test.describe("a hosted review page", () => {
 async function runPublishFlow(page: Page) {
   // --- Approve something, or the page would be honest but empty ----------
   await page.goto("/widgets");
+  // Behind the create panel now (W1.7).
+  await page
+    .getByRole("button", { name: /new widget|yeni bileşen/i })
+    .first()
+    .click();
   await page.locator("#widget-name").fill("E2E sayfa");
   await page
     .locator("form")

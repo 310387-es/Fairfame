@@ -26,6 +26,15 @@ export type CheckoutRequest = {
   planKey: PlanKey;
   /** ISO 4217, e.g. "TRY". */
   currency: string;
+  /**
+   * The provider's existing customer for this organization, when there is one
+   * (W1.8).
+   *
+   * Passing it is what keeps a business to *one* customer record across
+   * cancellations and restarts. Omitted the first time, when the provider mints
+   * one during checkout.
+   */
+  customerId?: string | undefined;
   successUrl: string;
   cancelUrl: string;
 };
@@ -39,6 +48,14 @@ export type CheckoutSession = {
 export type BillingEvent = {
   id: string;
   type: "subscription.created" | "subscription.updated" | "subscription.canceled" | "unknown";
+  /**
+   * The provider's id for the subscription this event is about (W1.8).
+   *
+   * Stored on our row so a later question — "which Stripe subscription is this
+   * organization actually being charged on" — has an answer that does not
+   * involve searching a dashboard by name.
+   */
+  providerSubscriptionId: string | null;
   organizationId: string | null;
   planKey: PlanKey | null;
   status: "trialing" | "active" | "past_due" | "canceled" | "incomplete" | null;

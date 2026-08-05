@@ -1,9 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAction } from "@/components/ui/use-action";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -50,9 +51,10 @@ export function PreferenceForm({
   overridden,
 }: PreferenceFormProps) {
   const t = useTranslations("settings.notifications");
+  const tf = useTranslations("feedback");
   const [draft, setDraft] = useState<PreferenceValue>(value);
   const [saved, setSaved] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const update = <K extends keyof PreferenceValue>(key: K, next: PreferenceValue[K]) => {
     setDraft((current) => ({ ...current, [key]: next }));
@@ -144,12 +146,12 @@ export function PreferenceForm({
               variant="ghost"
               size="sm"
               disabled={pending}
-              onClick={() => {
-                startTransition(async () => {
-                  await clearNotificationPreferenceAction({ locationId });
-                  setSaved(false);
-                });
-              }}
+              onClick={() =>
+                run(() => clearNotificationPreferenceAction({ locationId }), {
+                  success: tf("removed"),
+                  onSuccess: () => setSaved(false),
+                })
+              }
             >
               {t("reset")}
             </Button>
@@ -159,12 +161,12 @@ export function PreferenceForm({
             type="button"
             size="sm"
             disabled={pending}
-            onClick={() => {
-              startTransition(async () => {
-                const result = await saveNotificationPreferenceAction({ locationId, ...draft });
-                setSaved(result.ok);
-              });
-            }}
+            onClick={() =>
+              run(() => saveNotificationPreferenceAction({ locationId, ...draft }), {
+                success: tf("saved"),
+                onSuccess: () => setSaved(true),
+              })
+            }
           >
             {t("save")}
           </Button>

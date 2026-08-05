@@ -10,7 +10,7 @@ import { parseBranding } from "@/agency/branding";
 import { schema } from "@/db/client";
 import { requireFeature } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 import { eq } from "drizzle-orm";
 
 /**
@@ -38,7 +38,7 @@ export async function linkClientAction(input: {
       label: z.string().trim().max(80).nullish(),
     })
     .safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid client." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid client.");
 
   try {
     await withAuthenticatedTenant(
@@ -71,7 +71,7 @@ export async function unlinkClientAction(input: {
   clientOrganizationId: string;
 }): Promise<ActionResult> {
   const parsed = z.object({ clientOrganizationId: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid client." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid client.");
 
   try {
     await withAuthenticatedTenant(
@@ -111,7 +111,7 @@ export async function switchOrganizationAction(input: {
   organizationId: string;
 }): Promise<ActionResult> {
   const parsed = z.object({ organizationId: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid organization." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid organization.");
 
   try {
     await auth.api.setActiveOrganization({
@@ -156,7 +156,7 @@ const brandingInputSchema = z.object({
 export async function saveBrandingAction(input: unknown): Promise<ActionResult> {
   const parsed = brandingInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid branding." };
+    return invalidInput(parsed.error, parsed.error.issues[0]?.message ?? "Invalid branding.");
   }
 
   const data = parsed.data;

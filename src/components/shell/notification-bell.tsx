@@ -9,7 +9,7 @@ import { Stars } from "@/components/ds/stars";
 // The constant from the db-free module; the type is erased, so importing it
 // from `feed` costs the bundle nothing.
 import type { FeedItem } from "@/notifications/feed";
-import { FEED_PAGE_SIZE } from "@/notifications/types";
+import { BADGE_CAP, FEED_PAGE_SIZE } from "@/notifications/types";
 import {
   listNotificationsAction,
   markAllNotificationsReadAction,
@@ -170,13 +170,12 @@ export function NotificationBell({ unread, urgent }: { unread: number; urgent: b
           <span
             aria-hidden
             className={cn(
-              // Pinned to the icon's top-right and pulled slightly outside it,
-              // so a three-digit count grows away from the glyph, not over it.
+              // Pinned to the icon's top-right and pulled slightly outside it.
               "absolute -top-0.5 -right-1 min-w-[17px] rounded-full px-1 py-px text-center font-mono text-[10px] leading-[1.3] font-semibold tabular-nums",
               urgent ? "bg-destructive text-white" : "bg-ink-500 text-white",
             )}
           >
-            {unread > 99 ? "99+" : unread}
+            {unread > BADGE_CAP ? `${BADGE_CAP}+` : unread}
           </span>
         ) : null}
       </Popover.Trigger>

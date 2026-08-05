@@ -7,7 +7,7 @@ import { withAuthenticatedTenant } from "@/auth/session";
 import { schema } from "@/db/client";
 import { requireFeature } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * Naming and un-naming competitors (P3-T6).
@@ -38,7 +38,8 @@ export async function addCompetitorAction(input: {
   locationId: string;
 }): Promise<ActionResult> {
   const parsed = addSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Give the competitor a name and a listing." };
+  if (!parsed.success)
+    return invalidInput(parsed.error, "Give the competitor a name and a listing.");
 
   try {
     await withAuthenticatedTenant(
@@ -73,7 +74,7 @@ export async function addCompetitorAction(input: {
 
 export async function removeCompetitorAction(input: { id: string }): Promise<ActionResult> {
   const parsed = z.object({ id: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid input.");
 
   try {
     await withAuthenticatedTenant(

@@ -1,5 +1,6 @@
-import { and, eq, gte, lt, ne, sql } from "drizzle-orm";
+import { and, eq, gte, lt, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
+import { liveReplyJoin } from "../inbox/answered.ts";
 import type { Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import type { RangeWindow } from "./range.ts";
@@ -39,7 +40,10 @@ export type ReviewFact = {
   sentiment: Sentiment | null;
   sentimentScore: number | null;
   topics: string[];
-  /** When a reply was actually published, if one was. */
+  /**
+   * When this review was answered, if it was — by a reply we published or by
+   * one the owner left on the platform (W1.2). The earlier of the two.
+   */
   repliedAt: Date | null;
 };
 
@@ -72,7 +76,13 @@ export async function loadFacts(
       // The earliest *published* reply. `min` rather than a plain join so a
       // review with two replies yields one fact rather than two, which would
       // otherwise double-count it in every volume figure on the page.
-      repliedAt: sql<Date | null>`min(${schema.replies.postedAt})`,
+      //
+      // `least` folds in the reply the owner left on the platform (W1.2), which
+      // feeds the response rate, the response-time average and the "still
+      // waiting" count — all three of which used to report a business that
+      // answers every review in Google as answering none of them. Postgres's
+      // `least` ignores nulls, so this is "the earlier of whichever exist".
+      repliedAt: sql<Date | null>`least(min(${schema.replies.postedAt}), ${schema.reviews.ownerRepliedAt})`,
     })
     .from(schema.reviews)
     .leftJoin(
@@ -82,16 +92,9 @@ export async function loadFacts(
         eq(schema.reviewInsights.organizationId, schema.reviews.organizationId),
       ),
     )
-    .leftJoin(
-      schema.replies,
-      and(
-        eq(schema.replies.reviewId, schema.reviews.id),
-        eq(schema.replies.organizationId, schema.reviews.organizationId),
-        // A failed attempt leaves the review answerable again, so it must not
-        // read as answered — the same rule the Inbox and the reply service use.
-        ne(schema.replies.status, "failed"),
-      ),
-    )
+    // A failed attempt leaves the review answerable again, so it must not read
+    // as answered — one join condition, shared with the Inbox (W1.2).
+    .leftJoin(schema.replies, liveReplyJoin)
     .where(
       and(
         eq(schema.reviews.organizationId, organizationId),
@@ -102,6 +105,7 @@ export async function loadFacts(
     )
     .groupBy(
       schema.reviews.id,
+      schema.reviews.ownerRepliedAt,
       schema.reviews.postedAt,
       schema.reviews.createdAt,
       schema.reviews.source,

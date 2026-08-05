@@ -5,6 +5,9 @@ import { BrandingForm } from "@/components/agency/branding-form";
 import { PreferenceForm, type PreferenceValue } from "@/components/notifications/preference-form";
 import { TemplateManager } from "@/components/replies/template-manager";
 import { PageHeader } from "@/components/shell/page-header";
+import { PlanSection } from "@/components/billing/plan-section";
+import { canCheckout } from "@/billing/checkout";
+import { PLAN_CATALOG, PLAN_KEYS } from "@/lib/plans";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DEFAULT_LOCALE, isLocale } from "@/i18n/config";
 import { listLocationsForActor } from "@/lib/active-location";
@@ -12,7 +15,7 @@ import { withTenant } from "@/lib/tenancy";
 import { DEFAULT_PREFERENCE, preferencesForUser } from "@/notifications/preferences";
 import { MAX_TEMPLATE_BODY, listReplyTemplates } from "@/replies/templates";
 import { parseBranding } from "@/agency/branding";
-import { can } from "@/lib/entitlements";
+import { can, getEntitlements, withinLimit } from "@/lib/entitlements";
 import { schema } from "@/db/client";
 import { eq } from "drizzle-orm";
 
@@ -24,34 +27,42 @@ import { eq } from "drizzle-orm";
  * which is why the query takes `actor.userId`.
  */
 export default async function SettingsPage() {
-  const [t, tn, tt, tb, actor, locale] = await Promise.all([
+  const [t, tn, tt, tb, tp, actor, locale] = await Promise.all([
     getTranslations("settings"),
     getTranslations("settings.notifications"),
     getTranslations("templates"),
     getTranslations("branding"),
+    getTranslations("billing"),
     requireActor(),
     getLocale(),
   ]);
 
-  const { locations, preferences, templates, organization, canWhiteLabel } = await withTenant(
-    { organizationId: actor.organizationId, userId: actor.userId },
-    async (tx) => ({
-      locations: await listLocationsForActor(tx, actor),
-      preferences: await preferencesForUser(tx, actor.organizationId, actor.userId),
-      templates: await listReplyTemplates(tx, actor.organizationId),
-      organization: await tx
-        .select({
-          logo: schema.organizations.logo,
-          branding: schema.organizations.branding,
-          customDomain: schema.organizations.customDomain,
-        })
-        .from(schema.organizations)
-        .where(eq(schema.organizations.id, actor.organizationId))
-        .limit(1)
-        .then(([row]) => row ?? null),
-      canWhiteLabel: await can({ organizationId: actor.organizationId, tx }, "white_label"),
-    }),
-  );
+  const { locations, preferences, templates, organization, canWhiteLabel, entitlements, requests } =
+    await withTenant(
+      { organizationId: actor.organizationId, userId: actor.userId },
+      async (tx) => ({
+        locations: await listLocationsForActor(tx, actor),
+        preferences: await preferencesForUser(tx, actor.organizationId, actor.userId),
+        templates: await listReplyTemplates(tx, actor.organizationId),
+        organization: await tx
+          .select({
+            logo: schema.organizations.logo,
+            branding: schema.organizations.branding,
+            customDomain: schema.organizations.customDomain,
+            currency: schema.organizations.currency,
+          })
+          .from(schema.organizations)
+          .where(eq(schema.organizations.id, actor.organizationId))
+          .limit(1)
+          .then(([row]) => row ?? null),
+        canWhiteLabel: await can({ organizationId: actor.organizationId, tx }, "white_label"),
+        entitlements: await getEntitlements({ organizationId: actor.organizationId, tx }),
+        requests: await withinLimit(
+          { organizationId: actor.organizationId, tx },
+          "requests_per_month",
+        ),
+      }),
+    );
 
   const branding = parseBranding(organization?.branding);
 
@@ -65,9 +76,60 @@ export default async function SettingsPage() {
       }
     : DEFAULT_PREFERENCE;
 
+  /**
+   * The four tiers, straight from the catalog (W1.8).
+   *
+   * Highlights are the *differences*, not a feature matrix: three lines a
+   * reader can compare at a glance beats twenty checkboxes they will not read.
+   * They come from i18n rather than from the catalog because they are marketing
+   * copy in two languages, while the catalog holds the numbers the product
+   * enforces — and those two things change for different reasons.
+   */
+  // Literal keys rather than a two-part template: `pnpm check:i18n` only
+  // follows a single dot-namespaced dynamic segment, and a key it cannot see
+  // reads as dead. The same reason `broadcasts/page.tsx` spells its labels out.
+  const highlights: Record<(typeof PLAN_KEYS)[number], string[]> = {
+    starter: [tp("highlights.starter1"), tp("highlights.starter2"), tp("highlights.starter3")],
+    growth: [tp("highlights.growth1"), tp("highlights.growth2"), tp("highlights.growth3")],
+    pro: [tp("highlights.pro1"), tp("highlights.pro2"), tp("highlights.pro3")],
+    agency: [tp("highlights.agency1"), tp("highlights.agency2"), tp("highlights.agency3")],
+  };
+
+  const plans = PLAN_KEYS.map((key) => ({
+    key,
+    name: PLAN_CATALOG[key].name,
+    priceMonth: PLAN_CATALOG[key].priceMonth,
+    currency: PLAN_CATALOG[key].currency,
+    highlights: highlights[key],
+  }));
+
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
+
+      <PlanSection
+        current={entitlements.effectivePlanKey}
+        isTrialing={entitlements.isTrialing}
+        trialEndsAt={entitlements.trialEndsAt?.toISOString() ?? null}
+        plans={plans}
+        usage={[
+          {
+            label: tp("usageRequests"),
+            used: requests.current,
+            limit: requests.limit,
+          },
+          {
+            label: tp("usageLocations"),
+            used: locations.length,
+            limit: entitlements.entitlements.limits.max_locations,
+          },
+        ]}
+        // Asked here rather than inside the component: whether a payment
+        // provider exists is a server fact, and shipping the answer beats
+        // shipping the question.
+        canCheckout={canCheckout(organization?.currency ?? "TRY")}
+        canManage={actor.role === "owner"}
+      />
 
       <Card id="notifications" className="scroll-mt-20">
         <CardHeader>

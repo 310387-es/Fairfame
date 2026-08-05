@@ -3,8 +3,10 @@
 import { Download, MailX, Pencil, Trash2, Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAction } from "@/components/ui/use-action";
+import type { ActionResult } from "@/server/action-result";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -45,44 +47,36 @@ export function ContactAdmin({
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(name ?? "");
   const [confirmErase, setConfirmErase] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run: runAction, pending } = useAction();
 
-  const run = (fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) => {
-    setError(null);
+  const run = <T,>(fn: () => Promise<ActionResult<T>>, after?: (result: T | undefined) => void) => {
     setNotice(null);
-    startTransition(async () => {
-      const result = await fn();
-      if (!result.ok) {
-        setError(result.error ?? t("actionFailed"));
-        return;
-      }
-      after?.();
+    runAction(fn, {
+      // No blanket success string: each caller below says what it did — a KVKK
+      // export and an erasure are not both "Saved" (W1.5).
+      onSuccess: (result) => after?.(result as T | undefined),
+      message: (result) => result.error || t("actionFailed"),
     });
   };
 
   const download = () => {
-    setError(null);
-    setNotice(null);
-    startTransition(async () => {
-      const result = await exportContactAction({ contactId });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      // `URL.revokeObjectURL` immediately after the click: the anchor has
-      // already handed the blob to the download, and leaving the URL alive
-      // keeps the personal data addressable for the life of the tab.
-      const blob = new Blob([result.json ?? "{}"], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `contact-${contactId}.json`;
-      anchor.click();
-      URL.revokeObjectURL(url);
-      setNotice(t("exportDone"));
-    });
+    run(
+      () => exportContactAction({ contactId }),
+      (result) => {
+        // `URL.revokeObjectURL` immediately after the click: the anchor has
+        // already handed the blob to the download, and leaving the URL alive
+        // keeps the personal data addressable for the life of the tab.
+        const blob = new Blob([result?.json ?? "{}"], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `contact-${contactId}.json`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        setNotice(t("exportDone"));
+      },
+    );
   };
 
   return (
@@ -119,7 +113,6 @@ export function ContactAdmin({
               onClick={() => {
                 setDraftName(name ?? "");
                 setEditing(false);
-                setError(null);
               }}
             >
               {t("cancel")}
@@ -217,11 +210,6 @@ export function ContactAdmin({
       {notice ? (
         <p role="status" className="text-copy text-ink-400">
           {notice}
-        </p>
-      ) : null}
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
         </p>
       ) : null}
     </div>

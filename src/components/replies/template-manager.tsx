@@ -2,7 +2,7 @@
 
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { LOCALES, LOCALE_LABELS, type Locale } from "@/i18n/config";
 import { TEMPLATE_VARIABLES } from "@/replies/template-vars";
+import { useAction } from "@/components/ui/use-action";
 import { deleteReplyTemplateAction, saveReplyTemplateAction } from "@/server/reply-templates";
 
 /**
@@ -54,32 +55,25 @@ export function TemplateManager({
   defaultLanguage: Locale;
 }) {
   const t = useTranslations("templates");
+  const tf = useTranslations("feedback");
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const over = (draft?.body.length ?? 0) > maxChars;
 
   const save = () => {
     if (!draft) return;
-    setError(null);
 
-    startTransition(async () => {
-      const result = await saveReplyTemplateAction(draft);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setDraft(null);
+    run(() => saveReplyTemplateAction(draft), {
+      success: tf("saved"),
+      onSuccess: () => {
+        setDraft(null);
+      },
     });
   };
 
   const remove = (id: string) => {
-    setError(null);
-    startTransition(async () => {
-      const result = await deleteReplyTemplateAction({ id });
-      if (!result.ok) setError(result.error);
-    });
+    run(() => deleteReplyTemplateAction({ id }), { success: tf("deleted") });
   };
 
   return (
@@ -231,12 +225,6 @@ export function TemplateManager({
             {t("add")}
           </Button>
         </div>
-      ) : null}
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
       ) : null}
     </div>
   );

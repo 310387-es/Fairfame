@@ -97,16 +97,58 @@ function syntheticFor(responseSchema: Record<string, unknown>, prompt: string): 
 }
 
 /**
- * A plausible briefing. The theme labels are lifted out of the prompt's own
- * facts block, so the actions really do cite themes that exist — which is what
- * the pipeline's evidence-linking asserts against.
+ * A plausible briefing. The theme labels *and the quote numbers* are lifted out
+ * of the prompt's own text, so the actions really do cite themes and reviews
+ * that exist — which is what the pipeline's evidence-linking asserts against.
+ *
+ * The quote citations are not decoration here either (W1.6): the pipeline now
+ * rejects and retries any action citing nothing, so a stub that ignored the
+ * requirement would exhaust the retries and fail every digest test. A stub that
+ * can break the same rules as a real model is the only kind worth having.
  */
 function syntheticDigest(prompt: string): Record<string, unknown> {
   const labels = [...prompt.matchAll(/^- ([^:\n]+): \d+ total/gm)]
     .map((match) => match[1]?.trim())
     .filter((label): label is string => Boolean(label));
 
+  // The prompt prints quotes as `[1] (theme) text`. Reading the numbers back
+  // rather than assuming 1..n means the stub stays correct if the quote budget
+  // per theme changes.
+  const quoteNumbers = [...prompt.matchAll(/^\[(\d+)\] \(/gm)]
+    .map((match) => Number(match[1]))
+    .filter((value) => Number.isFinite(value));
+
   const pick = (index: number) => labels[index % Math.max(1, labels.length)] ?? "other";
+  const cite = (index: number) =>
+    quoteNumbers.length === 0 ? [1] : [quoteNumbers[index % quoteNumbers.length] ?? 1];
+
+  const levers = ["staffing", "hours", "menu_item", "reply_backlog", "signage", "process"];
+
+  /**
+   * Answer in the language that was asked for (W1.6).
+   *
+   * The pipeline rejects and retries a Turkish briefing that comes back with no
+   * Turkish letters in it, which is a real failure of small models and was on
+   * the audit's hero screen. A stub that always answered in English would fail
+   * that check on every Turkish digest — correctly, which is the point: the
+   * stub has to be able to satisfy the same contract a real model does, or the
+   * tests are testing the stub's shortcomings.
+   */
+  const turkish = /^Write in: Turkish\.$/m.test(prompt);
+
+  if (turkish) {
+    return {
+      headline: "Bu haftanın özeti.",
+      summary: "Çevrimdışı üretilmiş, deterministik bir haftalık değerlendirme.",
+      callouts: labels.slice(0, 2).map((label) => `Müşteriler ${label} konusundan bahsetti.`),
+      actions: [0, 1, 2].map((index) => ({
+        text: `${index + 1}. iş: bu hafta ${pick(index)} konusuyla ilgilenin.`,
+        theme: pick(index),
+        quoteRefs: cite(index),
+        lever: levers[index % levers.length],
+      })),
+    };
+  }
 
   return {
     headline: "Stub briefing for the period.",
@@ -115,6 +157,8 @@ function syntheticDigest(prompt: string): Record<string, unknown> {
     actions: [0, 1, 2].map((index) => ({
       text: `Stub action ${index + 1}: address ${pick(index)} this week.`,
       theme: pick(index),
+      quoteRefs: cite(index),
+      lever: levers[index % levers.length],
     })),
   };
 }

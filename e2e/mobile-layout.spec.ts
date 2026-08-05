@@ -276,3 +276,54 @@ test.describe("the agency console on a phone", () => {
     expect(await scrollsSideways(page)).toBe(false);
   });
 });
+
+/**
+ * The two screens the audit measured as overflowing (P1-12, folded into Wave 1).
+ *
+ * `/requests` came in at 595px on a 390px phone and `/locations` at 401px, and
+ * neither was in this suite — which is precisely why nobody noticed. The cause
+ * on both is the same: a **public link printed verbatim**. A campaign's URL and
+ * a location's hosted-page URL are long, unbroken, and carry no spaces for a
+ * browser to wrap at, so they push their container as wide as the string.
+ *
+ * These pages are checked with the strict rule rather than the scrolling-
+ * ancestor exception used for Insights' comparison table: a URL is not a table.
+ * Nothing here is legitimately wider than the phone.
+ */
+test.describe("the two screens that were overflowing", () => {
+  test("requests fits, including the campaign's public link", async ({ page }) => {
+    await page.goto("/requests");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    expect(await overflowing(page)).toEqual([]);
+    expect(await scrollsSideways(page)).toBe(false);
+  });
+
+  test("locations fits, including the hosted page's URL", async ({ page }) => {
+    await page.goto("/locations");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    expect(await overflowing(page)).toEqual([]);
+    expect(await scrollsSideways(page)).toBe(false);
+  });
+
+  /**
+   * The specific defect, asserted on the element rather than on the page.
+   *
+   * A page can pass the two checks above while a link is *clipped* — hidden by
+   * `overflow: hidden` on an ancestor rather than wrapped — and a URL somebody
+   * cannot read or select is no more use than one that breaks the layout.
+   */
+  test("a long URL wraps instead of being clipped or cut off", async ({ page }) => {
+    await page.goto("/requests");
+
+    const clipped = await page.evaluate(() =>
+      [...document.querySelectorAll("p, code, span, div")]
+        .filter((el) => /^https?:\/\//.test(el.textContent?.trim() ?? ""))
+        .filter((el) => el.scrollWidth > el.clientWidth + 1)
+        .map((el) => el.textContent?.trim().slice(0, 60) ?? ""),
+    );
+
+    expect(clipped).toEqual([]);
+  });
+});

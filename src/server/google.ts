@@ -16,7 +16,7 @@ import { requestAnalysis, requestNotifications } from "@/jobs/client";
 import { schema } from "@/db/client";
 import { childLogger } from "@/lib/logger";
 import type { TenantDatabase } from "@/lib/tenancy";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * Finishing a Google connection: choose which business location it syncs.
@@ -65,7 +65,7 @@ export async function listGoogleTargetsAction(input: {
   connectionId: string;
 }): Promise<ListTargetsResult> {
   const parsed = connectionInput.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid connection." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid connection.");
 
   if (resolveMode(GOOGLE_PROVIDER).mode !== "real") {
     // On mock there is no Google account to enumerate, and pretending
@@ -101,7 +101,7 @@ export async function mapGoogleLocationAction(input: {
   title?: string;
 }): Promise<ActionResult> {
   const parsed = mappingInput.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid selection." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid selection.");
 
   let organizationId = "";
   let changed = false;

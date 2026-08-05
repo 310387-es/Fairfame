@@ -65,6 +65,7 @@ export async function upsertReviews(
         language: review.language,
         postedAt: review.postedAt,
         url: review.url,
+        ownerRepliedAt: review.ownerRepliedAt ?? null,
         rawPayload: review.rawPayload,
         slaDueAt: slaDueAt(review.postedAt, slaHours.get(review.locationId)),
       })),
@@ -88,6 +89,19 @@ export async function upsertReviews(
         language: sql`excluded.language`,
         postedAt: sql`excluded.posted_at`,
         url: sql`excluded.url`,
+        /**
+         * Updated on re-sync, unlike the workflow columns above — learning that
+         * the owner has since answered on Google is the entire point of the
+         * column (W1.2), and it is a fact the platform owns rather than
+         * something the team did here.
+         *
+         * `coalesce` so a provider that stops reporting a reply — a page that
+         * drops the field, a payload shape we cannot read this time — does not
+         * silently un-answer a review and send it back into the overdue queue.
+         * Deletion of a platform reply is not something any connector reports,
+         * so treating absence as "no longer answered" would only ever be wrong.
+         */
+        ownerRepliedAt: sql`coalesce(excluded.owner_replied_at, ${schema.reviews.ownerRepliedAt})`,
         rawPayload: sql`excluded.raw_payload`,
         updatedAt: new Date(),
       },

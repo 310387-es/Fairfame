@@ -148,6 +148,23 @@ describe("a new mock review reaching the inbox", () => {
     expect(page.rows.every((row) => row.status === "open")).toBe(true);
     expect(page.rows.every((row) => row.slaDueAt !== null)).toBe(true);
 
+    // A review that arrived *after* the backfill. The first sync is history and
+    // notifies nobody (W1.3), so without this there would be nothing to alert
+    // about and the assertion below would be testing silence.
+    await getAdminDb()
+      .insert(schema.reviews)
+      .values({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        source: "mock",
+        sourceReviewId: `arrived-${counter++}`,
+        authorName: "Zeynep",
+        rating: 2,
+        text: "Bugün geldim, servis çok yavaştı.",
+        postedAt: new Date(),
+        rawPayload: {},
+      });
+
     const outcome = await notifyPendingReviews({ organizationId: fixture.orgId });
     expect(outcome.created).toBeGreaterThan(0);
 

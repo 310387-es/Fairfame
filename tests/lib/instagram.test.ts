@@ -45,6 +45,7 @@ const connection: Connection = {
   encryptedTokens: null,
   cursor: null,
   lastSyncedAt: null,
+  firstSyncedAt: null,
   nextSyncAt: null,
   failureCount: 0,
   createdAt: new Date(),

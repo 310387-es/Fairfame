@@ -1,6 +1,21 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+/**
+ * Opens the create panel (W1.7).
+ *
+ * Widgets are made in a sheet now rather than in a form nailed to the page, so
+ * every "fill the name" here needs the panel open first. By accessible name
+ * rather than position: the button is in the empty state on a fresh account and
+ * in the page header once there are rows, and matching the name covers both.
+ */
+async function openCreatePanel(page: Page): Promise<void> {
+  await page
+    .getByRole("button", { name: /new widget|yeni bileşen/i })
+    .first()
+    .click();
+}
 
 /**
  * The widget builder, end to end (P3-T1).
@@ -38,6 +53,8 @@ test.describe("building a widget", () => {
     await page.goto("/widgets");
 
     // --- Create ------------------------------------------------------------
+
+    await openCreatePanel(page);
     await page.locator("#widget-name").fill("E2E vitrin");
     await page
       .locator("form")
@@ -163,6 +180,7 @@ test.describe("building a widget", () => {
      * geometry.
      */
     await page.goto("/widgets");
+    await openCreatePanel(page);
     await page.locator("#widget-name").fill("E2E yerleşim");
     await page
       .locator("form")
@@ -260,6 +278,7 @@ test.describe("building a widget", () => {
      * which of its controls still apply.
      */
     await page.goto("/widgets");
+    await openCreatePanel(page);
     await page.locator("#widget-name").fill("E2E rozet");
     await page
       .locator("form")
@@ -456,6 +475,7 @@ test.describe("building a widget", () => {
     // link — so it is asserted after a direct navigation, with no history to
     // fall back on.
     await page.goto("/widgets");
+    await openCreatePanel(page);
     await page.locator("#widget-name").fill("E2E geri");
     await page
       .locator("form")
@@ -474,6 +494,8 @@ test.describe("building a widget", () => {
 
   test("a draft widget is invisible to the public", async ({ page }) => {
     await page.goto("/widgets");
+
+    await openCreatePanel(page);
 
     await page.locator("#widget-name").fill("E2E taslak");
     await page

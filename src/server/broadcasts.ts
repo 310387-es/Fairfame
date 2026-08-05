@@ -9,7 +9,7 @@ import { broadcastInputSchema, cancelBroadcast, createBroadcast } from "@/broadc
 import { schema } from "@/db/client";
 import { requireFeature } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 import { audienceSize } from "@/broadcasts/audience";
 import { segmentFilters } from "@/broadcasts/audience";
 
@@ -32,7 +32,7 @@ export async function createBroadcastAction(
 ): Promise<ActionResult<{ id?: string }>> {
   const parsed = broadcastInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid broadcast." };
+    return invalidInput(parsed.error, parsed.error.issues[0]?.message ?? "Invalid broadcast.");
   }
 
   try {
@@ -85,7 +85,7 @@ export type SendBroadcastResult = ActionResult<{
  */
 export async function sendBroadcastAction(input: { id: string }): Promise<SendBroadcastResult> {
   const parsed = z.object({ id: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid broadcast." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid broadcast.");
 
   try {
     const organizationId = await withAuthenticatedTenant(
@@ -120,7 +120,7 @@ export async function sendBroadcastAction(input: { id: string }): Promise<SendBr
 
 export async function cancelBroadcastAction(input: { id: string }): Promise<ActionResult> {
   const parsed = z.object({ id: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid broadcast." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid broadcast.");
 
   try {
     await withAuthenticatedTenant(
@@ -153,7 +153,7 @@ export async function audienceSizeAction(input: {
   const parsed = z
     .object({ segmentId: z.uuid(), channel: z.enum(["email", "sms", "whatsapp"]) })
     .safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid audience." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid audience.");
 
   try {
     const size = await withAuthenticatedTenant(

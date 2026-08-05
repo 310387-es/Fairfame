@@ -2,9 +2,10 @@
 
 import { MapPin, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { GoogleTarget } from "@/connectors/google/mapping";
+import { useAction } from "@/components/ui/use-action";
 import { listGoogleTargetsAction, mapGoogleLocationAction } from "@/server/google";
 
 /**
@@ -21,42 +22,34 @@ import { listGoogleTargetsAction, mapGoogleLocationAction } from "@/server/googl
  */
 export function GoogleMapping({ connectionId }: { connectionId: string }) {
   const t = useTranslations("sources");
+  const tf = useTranslations("feedback");
   const [targets, setTargets] = useState<GoogleTarget[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   function load() {
-    setError(null);
-    startTransition(async () => {
-      const result = await listGoogleTargetsAction({ connectionId });
-      if (result.ok) setTargets(result.targets);
-      else setError(result.error);
+    // No success toast: the list appearing *is* the confirmation.
+    run(() => listGoogleTargetsAction({ connectionId }), {
+      onSuccess: (result) => setTargets(result?.targets ?? []),
     });
   }
 
   function choose(target: GoogleTarget) {
-    setError(null);
-    startTransition(async () => {
-      const result = await mapGoogleLocationAction({
-        connectionId,
-        accountId: target.accountId,
-        googleLocationId: target.googleLocationId,
-        title: target.title,
-      });
-      if (!result.ok) setError(result.error);
-    });
+    run(
+      () =>
+        mapGoogleLocationAction({
+          connectionId,
+          accountId: target.accountId,
+          googleLocationId: target.googleLocationId,
+          title: target.title,
+        }),
+      { success: tf("saved") },
+    );
   }
 
   return (
     <div className="space-y-2 rounded-lg border border-dashed p-3">
       <p className="text-title">{t("finishSetup")}</p>
       <p className="text-copy text-muted-foreground">{t("finishSetupHint")}</p>
-
-      {error ? (
-        <p role="alert" className="text-body text-destructive">
-          {error}
-        </p>
-      ) : null}
 
       {targets === null ? (
         <Button size="sm" variant="outline" disabled={pending} onClick={load}>

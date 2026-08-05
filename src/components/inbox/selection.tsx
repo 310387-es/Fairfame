@@ -1,8 +1,10 @@
 "use client";
 
+import { useAction } from "@/components/ui/use-action";
+import type { ActionResult } from "@/server/action-result";
 import { Loader2, Sparkles, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { createContext, useContext, useMemo, useState, useTransition } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -107,26 +109,28 @@ export function BulkBar({
   const { selected, clear } = useSelection();
   const [tag, setTag] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run: runAction, pending } = useAction();
 
   const reviewIds = [...selected];
   if (reviewIds.length === 0) return null;
 
-  const run = (action: () => Promise<{ ok: boolean; error?: string; changed?: number }>) => {
-    setError(null);
+  /**
+   * Every bulk control goes through here (W1.5).
+   *
+   * No `success` string: the bar's own message says how many rows actually
+   * changed, and "Saved" beside "40 updated" would be two answers to one
+   * question. A *failure* still toasts, which is the half that was missing.
+   */
+  const run = (action: () => Promise<ActionResult<{ changed?: number }>>) => {
     setMessage(null);
 
-    startTransition(async () => {
-      const result = await action();
-      if (!result.ok) {
-        setError(result.error ?? t("bulkFailed"));
-        return;
-      }
-      // The count is what actually changed, not what was selected — a bar that
-      // says "40 updated" after skipping nine is a bar nobody can trust.
-      setMessage(t("bulkDone", { count: result.changed ?? 0 }));
-      clear();
+    runAction(action, {
+      onSuccess: (result) => {
+        // The count is what actually changed, not what was selected — a bar
+        // that says "40 updated" after skipping nine is a bar nobody can trust.
+        setMessage(t("bulkDone", { count: result?.changed ?? 0 }));
+        clear();
+      },
     });
   };
 
@@ -285,11 +289,6 @@ export function BulkBar({
       {message ? (
         <p role="status" className="text-copy text-muted-foreground">
           {message}
-        </p>
-      ) : null}
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
         </p>
       ) : null}
     </div>

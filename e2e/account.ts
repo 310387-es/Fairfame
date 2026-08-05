@@ -71,7 +71,22 @@ export async function createAccount(page: Page, baseURL: string | undefined): Pr
   // A location, then a source connected to it. The mock connector backfills
   // reviews on its first sync, so this is also how the inbox gets something to
   // show — no hand-written review rows anywhere.
-  await page.goto("/locations");
+  //
+  // `?dev=1` because the mock and fixture connectors are no longer offered to
+  // customers (W1.4) — they are development instruments, and a suite that
+  // reaches one has to say so the same way a developer does. The flag only
+  // works outside production, which is the point of it.
+  await page.goto("/locations?dev=1");
+
+  // Creating opens a panel now rather than sitting on the page (W1.7). On an
+  // empty account the button is *in* the empty state; once there are rows it
+  // moves to the page header. Matching on the accessible name rather than the
+  // position covers both, which is the point of the shared component.
+  await page
+    .getByRole("button", { name: /add location|şube ekle/i })
+    .first()
+    .click();
+
   // Targeted by the field's own id rather than by a visible label, so the setup
   // does not break the day somebody rewords the form in either locale.
   await page.locator("#name").fill("Kadıköy");
@@ -83,8 +98,12 @@ export async function createAccount(page: Page, baseURL: string | undefined): Pr
 
   await expect(page.getByText("Kadıköy").first()).toBeVisible();
 
+  // By the provider's own label rather than by position: the connect list is
+  // sorted alphabetically, so `.first()` silently meant "whatever sorts first"
+  // and would now be Google's OAuth link. "Mock source" comes from the registry
+  // and is not translated, so this matches in either locale.
   await page
-    .getByRole("button", { name: /bağla|connect/i })
+    .getByRole("button", { name: /mock source/i })
     .first()
     .click();
   await expect(page.getByRole("button", { name: /şimdi eşitle|sync now/i }).first()).toBeVisible({

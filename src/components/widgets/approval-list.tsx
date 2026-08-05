@@ -4,11 +4,12 @@ import { ListChecks } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic } from "react";
 import { CardLink, SectionCard } from "@/components/ds/section-card";
 import { Stars } from "@/components/ds/stars";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAction } from "@/components/ui/use-action";
 import { approveAllMatchingAction, setDisplayApprovalAction } from "@/server/widgets";
 
 /**
@@ -55,8 +56,7 @@ export function ApprovalList({
 }) {
   const t = useTranslations("widgets");
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const { run, pending } = useAction();
 
   /**
    * The tick moves when you press it, not when the server agrees.
@@ -75,23 +75,22 @@ export function ApprovalList({
       ),
   );
 
+  // No success toast on either: the row's own tick is the confirmation, and a
+  // toast per approval would bury the screen during a bulk pass (W1.5).
   const setApproval = (reviewIds: string[], next: boolean) => {
-    setError(null);
-    startTransition(async () => {
-      applyOptimistic({ ids: reviewIds, approved: next });
-      const result = await setDisplayApprovalAction({ reviewIds, approved: next });
-      if (result.ok) router.refresh();
-      else setError(result.error);
+    applyOptimistic({ ids: reviewIds, approved: next });
+    run(() => setDisplayApprovalAction({ reviewIds, approved: next }), {
+      onSuccess: () => router.refresh(),
+      // The optimistic tick has to come back off when the server refuses.
+      onError: () => router.refresh(),
     });
   };
 
   const approveAll = () => {
-    setError(null);
-    startTransition(async () => {
-      applyOptimistic({ ids: candidates.map((candidate) => candidate.id), approved: true });
-      const result = await approveAllMatchingAction({ widgetId });
-      if (result.ok) router.refresh();
-      else setError(result.error);
+    applyOptimistic({ ids: candidates.map((candidate) => candidate.id), approved: true });
+    run(() => approveAllMatchingAction({ widgetId }), {
+      onSuccess: () => router.refresh(),
+      onError: () => router.refresh(),
     });
   };
 
@@ -112,12 +111,6 @@ export function ApprovalList({
       }
     >
       <p className="px-(--card-px) pb-3 text-meta text-faint">{t("approvalNote")}</p>
-
-      {error ? (
-        <p role="alert" className="px-(--card-px) pb-3 text-body text-destructive">
-          {error}
-        </p>
-      ) : null}
 
       {shown.length === 0 ? (
         <p className="px-(--card-px) pb-(--card-py) text-body text-ink-400">{t("approvalEmpty")}</p>

@@ -2,11 +2,12 @@
 
 import { Swords, Trash2, TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { SectionCard } from "@/components/ds/section-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAction } from "@/components/ui/use-action";
 import { addCompetitorAction, removeCompetitorAction } from "@/server/competitors";
 
 /**
@@ -54,10 +55,10 @@ export function BenchmarkCard({
   canManage: boolean;
 }) {
   const t = useTranslations("insights");
+  const tf = useTranslations("feedback");
   const [name, setName] = useState("");
   const [ref, setRef] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   if (locked) {
     return (
@@ -68,29 +69,17 @@ export function BenchmarkCard({
   }
 
   const add = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await addCompetitorAction({
-        name,
-        provider: "google",
-        externalRef: ref,
-        locationId: "",
-      });
-      if (result.ok) {
+    run(() => addCompetitorAction({ name, provider: "google", externalRef: ref, locationId: "" }), {
+      success: tf("created"),
+      onSuccess: () => {
         setName("");
         setRef("");
-      } else {
-        setError(result.error);
-      }
+      },
     });
   };
 
   const remove = (id: string) => {
-    setError(null);
-    startTransition(async () => {
-      const result = await removeCompetitorAction({ id });
-      if (!result.ok) setError(result.error);
-    });
+    run(() => removeCompetitorAction({ id }), { success: tf("deleted") });
   };
 
   return (
@@ -209,12 +198,6 @@ export function BenchmarkCard({
               {t(pending ? "benchmark.adding" : "benchmark.add")}
             </Button>
           </div>
-        ) : null}
-
-        {error ? (
-          <p role="alert" className="text-body text-destructive">
-            {error}
-          </p>
         ) : null}
       </div>
     </SectionCard>

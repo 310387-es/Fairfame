@@ -13,7 +13,7 @@ import { eraseSubject, exportSubject } from "@/compliance/subject-rights";
 import { schema } from "@/db/client";
 import { requireFeature } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 import type { TenantDatabase } from "@/lib/tenancy";
 import type { AuthenticatedActor } from "@/auth/session";
 
@@ -69,7 +69,7 @@ export async function addContactTagAction(input: {
 }): Promise<ActionResult<{ slug?: string; label?: string }>> {
   const parsed = contactIdSchema.extend({ label: contactTagLabelSchema }).safeParse(input);
   if (!parsed.success)
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid tag." };
+    return invalidInput(parsed.error, parsed.error.issues[0]?.message ?? "Invalid tag.");
 
   try {
     const tag = await withAuthenticatedTenant(
@@ -100,7 +100,7 @@ export async function removeContactTagAction(input: {
   slug: string;
 }): Promise<ActionResult> {
   const parsed = contactIdSchema.extend({ slug: z.string().min(1).max(80) }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid tag." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid tag.");
 
   try {
     await withAuthenticatedTenant(
@@ -140,7 +140,7 @@ export async function renameContactAction(input: {
    * human — so it is a new contact, made the way every other contact is made.
    */
   const parsed = contactIdSchema.extend({ name: z.string().trim().max(120) }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid name." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid name.");
 
   try {
     await withAuthenticatedTenant(
@@ -193,7 +193,7 @@ export async function setContactSubscriptionAction(input: {
   subscribed: boolean;
 }): Promise<ActionResult> {
   const parsed = contactIdSchema.extend({ subscribed: z.boolean() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid input.");
 
   try {
     await withAuthenticatedTenant(
@@ -254,7 +254,7 @@ export async function saveSegmentAction(input: {
     .object({ name: segmentNameSchema, query: z.string().max(2_000) })
     .safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid segment." };
+    return invalidInput(parsed.error, parsed.error.issues[0]?.message ?? "Invalid segment.");
   }
 
   try {
@@ -283,7 +283,7 @@ export async function saveSegmentAction(input: {
 
 export async function deleteSegmentAction(input: { id: string }): Promise<ActionResult> {
   const parsed = z.object({ id: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid segment." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid segment.");
 
   try {
     await withAuthenticatedTenant(
@@ -319,7 +319,7 @@ export async function exportContactAction(input: {
   contactId: string;
 }): Promise<ActionResult<{ json?: string }>> {
   const parsed = contactIdSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid contact." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid contact.");
 
   try {
     const json = await withAuthenticatedTenant(
@@ -360,7 +360,7 @@ export async function exportContactAction(input: {
  */
 export async function eraseContactAction(input: { contactId: string }): Promise<ActionResult> {
   const parsed = contactIdSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid contact." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid contact.");
 
   try {
     await withAuthenticatedTenant(

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { withAuthenticatedTenant } from "@/auth/session";
 import { requireFeature, requireWithinLimit } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 import { approveAllMatching, setDisplayApproval } from "@/widgets/approval";
 import { widgetFiltersSchema, widgetStyleSchema } from "@/widgets/config";
 import {
@@ -45,7 +45,7 @@ export async function createWidgetAction(input: {
   locationId: string;
 }): Promise<ActionResult<{ id?: string }>> {
   const parsed = z.object({ name: nameSchema, locationId: locationSchema }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Give the widget a name." };
+  if (!parsed.success) return invalidInput(parsed.error, "Give the widget a name.");
 
   try {
     const widget = await withAuthenticatedTenant(
@@ -84,7 +84,7 @@ const saveSchema = z.object({
 
 export async function saveWidgetAction(input: unknown): Promise<WidgetActionResult> {
   const parsed = saveSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Those settings are not valid." };
+  if (!parsed.success) return invalidInput(parsed.error, "Those settings are not valid.");
 
   const { id, ...update } = parsed.data;
 
@@ -120,7 +120,7 @@ export async function setWidgetPublishedAction(input: {
   published: boolean;
 }): Promise<WidgetActionResult> {
   const parsed = z.object({ id: z.uuid(), published: z.boolean() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Unknown widget." };
+  if (!parsed.success) return invalidInput(parsed.error, "Unknown widget.");
 
   try {
     const widget = await withAuthenticatedTenant(
@@ -146,7 +146,7 @@ export async function setWidgetPublishedAction(input: {
 
 export async function deleteWidgetAction(input: { id: string }): Promise<ActionResult> {
   const parsed = z.object({ id: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Unknown widget." };
+  if (!parsed.success) return invalidInput(parsed.error, "Unknown widget.");
 
   try {
     const removed = await withAuthenticatedTenant(
@@ -182,7 +182,7 @@ export async function setDisplayApprovalAction(input: {
   const parsed = z
     .object({ reviewIds: z.array(z.uuid()).min(1).max(200), approved: z.boolean() })
     .safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Nothing to change." };
+  if (!parsed.success) return invalidInput(parsed.error, "Nothing to change.");
 
   try {
     const changed = await withAuthenticatedTenant(
@@ -220,7 +220,7 @@ export async function approveAllMatchingAction(input: {
   widgetId: string;
 }): Promise<ActionResult<{ changed?: number }>> {
   const parsed = z.object({ widgetId: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Unknown widget." };
+  if (!parsed.success) return invalidInput(parsed.error, "Unknown widget.");
 
   try {
     const result = await withAuthenticatedTenant(

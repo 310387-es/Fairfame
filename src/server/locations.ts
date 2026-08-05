@@ -9,7 +9,7 @@ import { schema } from "@/db/client";
 import { requireFeature, requireWithinLimit } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
 import { writeActiveLocationCookie } from "@/lib/active-location";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 import { FIRST_PARTY_PROVIDER } from "@/connectors/firstparty";
 import { getProvider, resolveMode } from "@/connectors/providers";
 import { requestAnalysis, requestNotifications } from "@/jobs/client";
@@ -30,7 +30,7 @@ export async function createLocationAction(formData: FormData): Promise<ActionRe
   const parsed = parseCreateLocation(formData);
 
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    return invalidInput(parsed.error, parsed.error.issues[0]?.message ?? "Invalid input.");
   }
 
   try {
@@ -93,7 +93,7 @@ export async function connectSourceAction(input: {
   provider: string;
 }): Promise<ActionResult> {
   const parsed = connectSourceSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid location." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid location.");
 
   const provider = input.provider;
   const descriptor = getProvider(provider);
@@ -102,6 +102,30 @@ export async function connectSourceAction(input: {
   const resolution = resolveMode(provider);
   if (resolution.mode === "off") {
     return { ok: false, error: `"${descriptor.label}" is switched off here.` };
+  }
+
+  /**
+   * The same two exclusions the connect list applies (W1.4).
+   *
+   * Hiding a button is not a gate — the action is reachable by anyone who can
+   * post to it, and it is what actually creates the row. `describeConnectableProviders`
+   * decides what is *offered*; this decides what is *accepted*, and they have
+   * to agree or the screen is decorative.
+   *
+   * The outbound case is the one that was reaching customers: connecting
+   * WhatsApp here got as far as `syncConnection`, which threw
+   * `Provider "whatsapp" cannot read reviews.` — a sentence written for
+   * whoever wrote the connector, shown to whoever bought the product. The
+   * refusal now happens before anything is created, and says what to do.
+   */
+  if (descriptor.capabilities.read === "none") {
+    return {
+      ok: false,
+      error: `"${descriptor.label}" is a messaging channel, not a review source. Connect it under Messages.`,
+    };
+  }
+  if (descriptor.devOnly === true && process.env.NODE_ENV === "production") {
+    return { ok: false, error: `"${descriptor.label}" is not available here.` };
   }
   if (resolution.mode === "real" && descriptor.requiresOAuth) {
     return { ok: false, error: "This source needs authorization. Use the connect link instead." };
@@ -167,7 +191,7 @@ export async function connectSourceAction(input: {
 /** Pulls any new reviews for one connection on demand. */
 export async function syncNowAction(input: { connectionId: string }): Promise<ActionResult> {
   const parsed = syncNowSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid connection." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid connection.");
 
   let organizationId = "";
   let changed = false;
@@ -231,7 +255,7 @@ export async function setPublicPageAction(input: {
   published: boolean;
 }): Promise<ActionResult<{ slug?: string }>> {
   const parsed = z.object({ locationId: z.uuid(), published: z.boolean() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid input.");
 
   try {
     const state = await withAuthenticatedTenant(

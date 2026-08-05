@@ -3,14 +3,14 @@
 import { Link2, MessageSquare, RefreshCw, ShieldCheck } from "lucide-react";
 import { useFormatter, useNow, useTranslations } from "next-intl";
 import Link from "next/link";
-import { useState, useTransition } from "react";
 import { GoogleMapping } from "@/components/connections/google-mapping";
 import { PublicPageControl } from "@/components/locations/public-page-control";
 import { SourceBadges } from "@/components/connections/source-badges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { ReplyAffordance, SyncKind } from "@/connectors/capability-view";
+import type { SyncKind } from "@/connectors/capability-view";
+import { useAction } from "@/components/ui/use-action";
 import { connectSourceAction, syncNowAction } from "@/server/locations";
 
 /**
@@ -28,7 +28,6 @@ export type ConnectedSource = {
   label: string;
   status: "pending" | "active" | "error" | "disconnected";
   sync: SyncKind;
-  reply: ReplyAffordance;
   isMock: boolean;
   /** Authorized but not yet pointed at a place on the platform. */
   needsSetup: boolean;
@@ -43,7 +42,6 @@ export type ConnectableSource = {
   provider: string;
   label: string;
   sync: SyncKind;
-  reply: ReplyAffordance;
   isMock: boolean;
   /** True when the provider is live and the flow starts at its consent screen. */
   canAuthorize: boolean;
@@ -83,16 +81,7 @@ export function LocationCard({
   // it explicitly keeps this render identical on the server and after
   // hydration, instead of each side reading its own Date.now().
   const now = useNow();
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  function run(action: () => Promise<{ ok: boolean; error?: string }>) {
-    setError(null);
-    startTransition(async () => {
-      const result = await action();
-      if (!result.ok) setError(result.error ?? null);
-    });
-  }
+  const { run, pending } = useAction();
 
   return (
     <Card>
@@ -122,12 +111,7 @@ export function LocationCard({
               <li key={source.connectionId} className="space-y-1.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-title">{source.label}</span>
-                  <SourceBadges
-                    sync={source.sync}
-                    reply={source.reply}
-                    isMock={source.isMock}
-                    status={source.status}
-                  />
+                  <SourceBadges sync={source.sync} isMock={source.isMock} status={source.status} />
                 </div>
 
                 <p className="text-copy text-muted-foreground">
@@ -176,12 +160,6 @@ export function LocationCard({
               </li>
             ))}
           </ul>
-        ) : null}
-
-        {error ? (
-          <p role="alert" className="text-body text-destructive">
-            {error}
-          </p>
         ) : null}
 
         {canManage && location.connectable.length > 0 ? (

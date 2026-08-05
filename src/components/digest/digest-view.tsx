@@ -62,6 +62,16 @@ export async function DigestView({ digest }: { digest: Digest }) {
   if (!payload) return null;
 
   const quiet = digest.reviewCount === 0;
+
+  /**
+   * The week we declined to write about (W1.6).
+   *
+   * Distinct from a quiet week: reviews *did* arrive, we have not analysed
+   * enough of them to say anything true, and the honest thing is to say so and
+   * point at what is waiting. The audit's alternative — three confident
+   * sentences and "0 reviews on" under each action — is what this replaces.
+   */
+  const insufficient = payload.insufficient;
   const changes = payload.changes.map((change) => ({
     direction: change.direction,
     text: formatChange(change, (key, values) => t(key, values)),
@@ -96,6 +106,35 @@ export async function DigestView({ digest }: { digest: Digest }) {
               <p className="max-w-[64ch] text-body leading-relaxed text-pretty text-on-ink-muted">
                 {t("quietWeekBody")}
               </p>
+            </>
+          ) : insufficient ? (
+            <>
+              <h2 className="max-w-[52ch] text-title text-balance">{t("thinWeek")}</h2>
+              <p className="max-w-[64ch] text-body leading-relaxed text-pretty text-on-ink-muted">
+                {/* Two different problems, and only one of them fixes itself.
+                    Everything read and still too few is a *volume* problem —
+                    telling somebody we have not analysed their reviews when we
+                    have is the sort of small lie that costs a screen its
+                    credibility. */}
+                {t(
+                  insufficient.analysedCount >= insufficient.reviewCount
+                    ? "thinWeekBodyThin"
+                    : "thinWeekBodyPending",
+                  {
+                    reviews: insufficient.reviewCount,
+                    analysed: insufficient.analysedCount,
+                  },
+                )}
+              </p>
+              {/* Somewhere to go, not just an apology: the reviews are in the
+                  Inbox whether or not we managed to say anything about them. */}
+              <Link
+                href="/inbox"
+                className="inline-flex w-fit items-center gap-1.5 rounded-sm text-body font-medium text-on-ink underline underline-offset-2"
+              >
+                {t("thinWeekLink")}
+                <ArrowRight className="size-3.5" aria-hidden />
+              </Link>
             </>
           ) : (
             <>

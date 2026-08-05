@@ -26,6 +26,7 @@ function connection(overrides: Partial<Connection> = {}): Connection {
     encryptedTokens: null,
     cursor: null,
     lastSyncedAt: null,
+    firstSyncedAt: null,
     nextSyncAt: null,
     failureCount: 0,
     // Fixed anchor: the mock's backfill hangs off this, so timestamps are

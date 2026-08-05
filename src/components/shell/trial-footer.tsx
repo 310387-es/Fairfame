@@ -51,7 +51,7 @@ export async function TrialFooter({
       ) : null}
 
       <Link
-        href="/settings"
+        href="/settings#plan"
         className="mt-2.5 block rounded-md bg-cta-brief py-[7px] text-center text-[12.5px] font-semibold text-cta-brief-text transition-all hover:brightness-95 focus-visible:ring-3 focus-visible:ring-white/40 focus-visible:outline-none active:translate-y-px"
       >
         {t("trialAction")}

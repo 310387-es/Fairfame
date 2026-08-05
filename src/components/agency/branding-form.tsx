@@ -2,11 +2,12 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAction } from "@/components/ui/use-action";
 import { saveBrandingAction } from "@/server/agency";
 
 /**
@@ -36,36 +37,35 @@ export function BrandingForm({
   canWhiteLabel: boolean;
 }) {
   const t = useTranslations("branding");
+  const tf = useTranslations("feedback");
   const router = useRouter();
   const [values, setValues] = useState(initial);
-  const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const set = <K extends keyof typeof values>(key: K, value: (typeof values)[K]) =>
     setValues((current) => ({ ...current, [key]: value }));
 
   const submit = () => {
-    setError(null);
     setSaved(false);
 
-    startTransition(async () => {
-      const result = await saveBrandingAction({
-        senderName: values.senderName.trim() || null,
-        primaryColor: values.primaryColor.trim() || null,
-        logoUrl: values.logoUrl.trim() || null,
-        hidePoweredBy: values.hidePoweredBy,
-        customDomain: values.customDomain.trim() || null,
-      });
-
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-
-      setSaved(true);
-      router.refresh();
-    });
+    run(
+      () =>
+        saveBrandingAction({
+          senderName: values.senderName.trim() || null,
+          primaryColor: values.primaryColor.trim() || null,
+          logoUrl: values.logoUrl.trim() || null,
+          hidePoweredBy: values.hidePoweredBy,
+          customDomain: values.customDomain.trim() || null,
+        }),
+      {
+        success: tf("saved"),
+        onSuccess: () => {
+          setSaved(true);
+          router.refresh();
+        },
+      },
+    );
   };
 
   return (
@@ -147,12 +147,6 @@ export function BrandingForm({
           </span>
         ) : null}
       </div>
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }

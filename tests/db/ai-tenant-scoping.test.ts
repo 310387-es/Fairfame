@@ -102,7 +102,13 @@ async function makeFixture(label: string, marker: string): Promise<Fixture> {
 
   // Several reviews, each carrying the marker, so any path that gathered
   // context across tenants would pick one of them up.
-  for (let index = 0; index < 3; index += 1) {
+  //
+  // Six rather than three, to clear `MIN_ANALYSED_REVIEWS` (W1.6): the digest
+  // declines to compose from thinner data than that, and a declined digest
+  // makes no prompt at all — which would let this leakage test pass by never
+  // asking anything. The whole point is that a prompt *is* built and contains
+  // only one tenant's words.
+  for (let index = 0; index < 6; index += 1) {
     const [review] = await getAdminDb()
       .insert(schema.reviews)
       .values({

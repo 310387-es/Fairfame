@@ -2,9 +2,10 @@
 
 import { Check, Copy, ExternalLink, Globe } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAction } from "@/components/ui/use-action";
 import { setPublicPageAction } from "@/server/locations";
 import { locationPageUrl } from "@/seo/urls";
 
@@ -41,21 +42,28 @@ export function PublicPageControl({
   canManage: boolean;
 }) {
   const t = useTranslations("locations");
+  const tf = useTranslations("feedback");
   const [state, setState] = useState({ slug, published });
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const url = state.slug ? locationPageUrl(origin, state.slug) : null;
 
-  const toggle = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await setPublicPageAction({ locationId, published: !state.published });
-      if (result.ok) setState({ slug: result.slug ?? state.slug, published: !state.published });
-      else setError(result.error);
+  const toggle = () =>
+    run(() => setPublicPageAction({ locationId, published: !state.published }), {
+      // Named rather than a bare "Saved": publishing a page to the open
+      // internet and taking it down again are different enough that the
+      // confirmation should say which one just happened.
+      success: state.published ? tf("unpublished") : tf("published"),
+      // The slug is minted server-side on the *first* publish and comes back in
+      // the result — dropping it here left the page published with no address
+      // to show, which is exactly what the e2e publish flow caught.
+      onSuccess: (result) =>
+        setState((current) => ({
+          slug: result?.slug ?? current.slug,
+          published: !current.published,
+        })),
     });
-  };
 
   const copy = async () => {
     if (!url) return;
@@ -129,12 +137,6 @@ export function PublicPageControl({
             </>
           ) : null}
         </div>
-      ) : null}
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
       ) : null}
 
       {/* Announced when it changes, so a screen-reader user learns the copy

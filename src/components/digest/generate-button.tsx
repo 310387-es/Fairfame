@@ -2,8 +2,9 @@
 
 import { Loader2, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAction } from "@/components/ui/use-action";
 import { digestProgressAction, generateDigestAction } from "@/server/digests";
 
 /**
@@ -52,8 +53,7 @@ export function GenerateDigestButton({
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("idle");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   // Read by the loop on every pass, so a poll cannot outlive the component and
   // refresh a page the reader has already navigated away from.
@@ -115,19 +115,12 @@ export function GenerateDigestButton({
         size="sm"
         disabled={pending}
         onClick={() => {
-          setError(null);
-
-          startTransition(async () => {
-            const result = await generateDigestAction({ locationId });
-
-            if (!result.ok) {
-              setPhase("idle");
-              setError(result.error);
-              return;
-            }
-
-            setPhase("composing");
-            void watch();
+          run(() => generateDigestAction({ locationId }), {
+            onSuccess: () => {
+              setPhase("composing");
+              void watch();
+            },
+            onError: () => setPhase("idle"),
           });
         }}
       >
@@ -141,7 +134,6 @@ export function GenerateDigestButton({
 
       {phase === "slow" ? <p className="text-copy text-muted-foreground">{slowLabel}</p> : null}
       {phase === "failed" ? <p className="text-copy text-destructive">{failedLabel}</p> : null}
-      {error ? <p className="text-copy text-destructive">{error}</p> : null}
     </div>
   );
 }

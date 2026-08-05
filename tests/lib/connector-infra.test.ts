@@ -562,6 +562,7 @@ describe("the fixture-backed provider", () => {
     encryptedTokens: null,
     cursor: null,
     lastSyncedAt: null,
+    firstSyncedAt: null,
     nextSyncAt: null,
     failureCount: 0,
     createdAt: new Date("2026-08-01T00:00:00Z"),

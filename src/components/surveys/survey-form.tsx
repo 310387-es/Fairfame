@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SURVEY_TYPES, type SurveyType } from "@/surveys/scoring";
+import { useAction } from "@/components/ui/use-action";
+import { useCreateSheet } from "@/components/ds/create-sheet";
 import { createSurveyAction, updateSurveyAction } from "@/server/surveys";
 
 /**
@@ -60,18 +62,18 @@ export function SurveyForm({
   // Translated here, like every other authenticated screen: these render in the
   // reader's locale, which is the one `useTranslations` resolves.
   const t = useTranslations("surveys");
+  const tf = useTranslations("feedback");
   const router = useRouter();
   const [values, setValues] = useState(initial);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { close } = useCreateSheet();
+  const { run, pending } = useAction();
 
   const editing = Boolean(initial.id);
   const set = <K extends keyof SurveyFormValues>(key: K, value: SurveyFormValues[K]) =>
     setValues((current) => ({ ...current, [key]: value }));
 
   const submit = () => {
-    setError(null);
-    startTransition(async () => {
+    (() => {
       const payload = {
         name: values.name,
         locationId: values.locationId,
@@ -83,22 +85,24 @@ export function SurveyForm({
         status: values.status,
       };
 
-      const result = initial.id
-        ? await updateSurveyAction({ ...payload, id: initial.id })
-        : await createSurveyAction({ ...payload, type: values.type });
-
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-
-      if (!initial.id && "id" in result && result.id) {
-        router.push(`/surveys/${result.id}`);
-        return;
-      }
-
-      router.refresh();
-    });
+      run(
+        () =>
+          initial.id
+            ? updateSurveyAction({ ...payload, id: initial.id })
+            : createSurveyAction({ ...payload, type: values.type }),
+        {
+          success: initial.id ? tf("saved") : tf("created"),
+          onSuccess: (result) => {
+            close();
+            if (!initial.id && result && "id" in result && result.id) {
+              router.push(`/surveys/${result.id}`);
+              return;
+            }
+            router.refresh();
+          },
+        },
+      );
+    })();
   };
 
   return (
@@ -257,12 +261,6 @@ export function SurveyForm({
           {pending ? t("saving") : editing ? t("save") : t("create")}
         </Button>
       </div>
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }

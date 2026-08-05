@@ -1,8 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAction } from "@/components/ui/use-action";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { sendSurveyAction, type SendSurveyResult } from "@/server/surveys";
@@ -33,12 +34,14 @@ export function SurveySend({ surveyId }: { surveyId: string }) {
   const t = useTranslations("surveys");
   const [recipients, setRecipients] = useState("");
   const [result, setResult] = useState<SendSurveyResult | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const send = () => {
     setResult(null);
-    startTransition(async () => {
-      setResult(await sendSurveyAction({ surveyId, recipients }));
+    // No success string: the per-recipient outcome below is the answer, and
+    // "Sent" beside "2 sent, 3 refused" would contradict it (W1.5).
+    run(() => sendSurveyAction({ surveyId, recipients }), {
+      onSuccess: (outcome) => setResult(outcome ?? null),
     });
   };
 

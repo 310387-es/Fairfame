@@ -17,7 +17,7 @@ import {
   templateTagsSchema,
   TemplateError,
 } from "@/replies/templates";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * Reply-template actions (P2-T5).
@@ -109,7 +109,7 @@ export async function saveReplyTemplateAction(input: {
 }): Promise<ActionResult> {
   const parsed = saveSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Give the template a name and something to say." };
+    return invalidInput(parsed.error, "Give the template a name and something to say.");
   }
 
   try {
@@ -134,7 +134,7 @@ export async function saveReplyTemplateAction(input: {
 
 export async function deleteReplyTemplateAction(input: { id: string }): Promise<ActionResult> {
   const parsed = z.object({ id: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Unknown template." };
+  if (!parsed.success) return invalidInput(parsed.error, "Unknown template.");
 
   try {
     const removed = await withAuthenticatedTenant(

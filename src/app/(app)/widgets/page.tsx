@@ -4,6 +4,7 @@ import { roleAtLeast } from "@/auth/permissions";
 import { requireActor } from "@/auth/session";
 import { SectionCard } from "@/components/ds/section-card";
 import { PageHeader } from "@/components/shell/page-header";
+import { ResourcePage } from "@/components/ds/resource-page";
 import { CreateWidget } from "@/components/widgets/create-widget";
 import { WidgetRow } from "@/components/widgets/widget-row";
 import { listLocationsForActor } from "@/lib/active-location";
@@ -38,59 +39,65 @@ export default async function WidgetsPage() {
   const included = entitlements.entitlements.features.widgets;
   const canManage = roleAtLeast(actor.role, "admin");
 
-  return (
-    <>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
-
-      {!included ? (
+  if (!included) {
+    return (
+      <>
+        <PageHeader title={t("title")} subtitle={t("subtitle")} />
         <SectionCard title={t("lockedTitle")} icon={LayoutGrid}>
           <p className="pb-(--card-py) text-body text-ink-400">{t("lockedBody")}</p>
         </SectionCard>
-      ) : (
-        <>
-          <SectionCard
-            title={t("listTitle")}
-            icon={LayoutGrid}
-            meta={
-              limit.limit === null
-                ? undefined
-                : t("limitMeta", { used: limit.current, limit: limit.limit })
-            }
-            flush
-          >
-            {widgets.length === 0 ? (
-              <p className="px-(--card-px) pb-(--card-py) text-body text-ink-400">{t("empty")}</p>
-            ) : (
-              <ul className="border-t border-line-soft">
-                {widgets.map((widget) => (
-                  <WidgetRow
-                    key={widget.id}
-                    widget={{
-                      id: widget.id,
-                      name: widget.name,
-                      published: widget.published,
-                      layout: widget.style.layout,
-                      locationName:
-                        locations.find((location) => location.id === widget.locationId)?.name ??
-                        null,
-                    }}
-                    canManage={canManage}
-                  />
-                ))}
-              </ul>
-            )}
-          </SectionCard>
+      </>
+    );
+  }
 
-          {canManage ? (
-            <CreateWidget
-              locations={locations.map(({ id, name }) => ({ id, name }))}
-              // The server enforces the limit too; this only avoids offering a
-              // form that would be refused.
-              atLimit={!limit.allowed}
+  // The server enforces the limit too; this decides what to *offer*, and a
+  // spent allowance is a sentence rather than a form that would be refused.
+  const create = !canManage
+    ? null
+    : !limit.allowed
+      ? { blocked: t("atLimit") }
+      : {
+          label: t("createTitle"),
+          title: t("createTitle"),
+          form: <CreateWidget locations={locations.map(({ id, name }) => ({ id, name }))} />,
+        };
+
+  return (
+    <ResourcePage
+      title={t("title")}
+      subtitle={t("subtitle")}
+      icon={LayoutGrid}
+      isEmpty={widgets.length === 0}
+      empty={{ line: t("empty") }}
+      create={create}
+    >
+      <SectionCard
+        title={t("listTitle")}
+        icon={LayoutGrid}
+        meta={
+          limit.limit === null
+            ? undefined
+            : t("limitMeta", { used: limit.current, limit: limit.limit })
+        }
+        flush
+      >
+        <ul className="border-t border-line-soft">
+          {widgets.map((widget) => (
+            <WidgetRow
+              key={widget.id}
+              widget={{
+                id: widget.id,
+                name: widget.name,
+                published: widget.published,
+                layout: widget.style.layout,
+                locationName:
+                  locations.find((location) => location.id === widget.locationId)?.name ?? null,
+              }}
+              canManage={canManage}
             />
-          ) : null}
-        </>
-      )}
-    </>
+          ))}
+        </ul>
+      </SectionCard>
+    </ResourcePage>
   );
 }

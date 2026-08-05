@@ -14,7 +14,7 @@ import {
   saveReplyDraft,
   writeReplyDraft,
 } from "@/replies/service";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * Reply actions (P1a-T6).
@@ -47,7 +47,7 @@ function toReplyResult(error: unknown): ActionResult {
 
 export async function draftReplyAction(input: { reviewId: string }): Promise<ActionResult> {
   const parsed = reviewIdSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid review." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid review.");
 
   try {
     await withAuthenticatedTenant(
@@ -85,7 +85,7 @@ export async function writeReplyAction(input: {
   const parsed = z
     .object({ reviewId: z.uuid(), text: z.string().min(1).max(4_000) })
     .safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Write something first." };
+  if (!parsed.success) return invalidInput(parsed.error, "Write something first.");
 
   try {
     await withAuthenticatedTenant(
@@ -115,10 +115,10 @@ export async function saveReplyAction(input: {
 }): Promise<ActionResult> {
   const parsed = saveSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: `A reply must be between 1 and ${MAX_REPLY_CHARS} characters.`,
-    };
+    return invalidInput(
+      parsed.error,
+      `A reply must be between 1 and ${MAX_REPLY_CHARS} characters.`,
+    );
   }
 
   try {
@@ -145,7 +145,7 @@ export async function saveReplyAction(input: {
 
 export async function approveReplyAction(input: { replyId: string }): Promise<ActionResult> {
   const parsed = replyIdSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid reply." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid reply.");
 
   try {
     await withAuthenticatedTenant(
@@ -171,7 +171,7 @@ export async function approveReplyAction(input: { replyId: string }): Promise<Ac
 
 export async function postReplyAction(input: { replyId: string }): Promise<ActionResult> {
   const parsed = replyIdSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid reply." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid reply.");
 
   try {
     // The rejection is returned rather than thrown, so that the `failed` row
@@ -198,7 +198,7 @@ export async function postReplyAction(input: { replyId: string }): Promise<Actio
 
 export async function discardReplyAction(input: { replyId: string }): Promise<ActionResult> {
   const parsed = replyIdSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid reply." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid reply.");
 
   try {
     await withAuthenticatedTenant(

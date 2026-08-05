@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql, type SQL } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import { can } from "../lib/entitlements.ts";
 import { childLogger } from "../lib/logger.ts";
@@ -24,6 +24,65 @@ const log = childLogger({ module: "notifications/service" });
 
 /** Stars at or below this count as negative regardless of what the model says. */
 export const NEGATIVE_RATING_THRESHOLD = 3;
+
+/**
+ * The connection a review came from, joined by what identifies it (W1.3).
+ *
+ * `reviews` carries no `connection_id` — a review belongs to a location and a
+ * source, and `unique(location_id, provider)` means that pair names at most one
+ * connection, so the join cannot fan out and multiply a review.
+ *
+ * A LEFT join because plenty of reviews have no connection at all: a first-party
+ * form submission, a seeded row, a test fixture. Those are handled explicitly in
+ * `IS_NEWS` rather than silently dropped.
+ */
+export const reviewConnectionJoin = and(
+  eq(schema.connections.organizationId, schema.reviews.organizationId),
+  eq(schema.connections.locationId, schema.reviews.locationId),
+  eq(schema.connections.provider, schema.reviews.source),
+);
+
+/**
+ * Is this review something that *happened*, as opposed to history we have only
+ * just been shown? (W1.3)
+ *
+ * **The bug.** Connecting Google to a fresh account produced 217 unread
+ * notifications — every review the business had ever received, delivered as if
+ * all of it had just occurred. The only bound was
+ * `reviews.created_at > now() - interval '7 days'`, and `created_at` is when
+ * *we* wrote the row: on a first sync every review in a decade of history is
+ * seven minutes old. A bell that cries wolf 217 times on day one is a bell the
+ * owner switches off, and then the one alert that mattered goes unread too.
+ *
+ * Two rules, and a review has to pass both:
+ *
+ *   1. **It did not arrive in the backfill.** Everything a connection's first
+ *      sync pulls in is history by definition. `first_synced_at` is stamped once
+ *      and never moved precisely so this stays askable — `last_synced_at` has
+ *      moved on by the time the sweep runs.
+ *   2. **It was posted after the business started watching.** A review written
+ *      before the connection existed was never ours to be notified about.
+ *
+ * Rule 2 catches the audit's case on its own. Rule 1 is for the gap this product
+ * opens deliberately: a Google connection is created `pending` and only syncs
+ * once somebody maps it to a business location, which can be days later — so
+ * reviews written in between are newer than the connection and would still land
+ * in one heap.
+ *
+ * **A review with no connection is news.** That is a first-party form
+ * submission, where somebody has this moment filled in a card at the counter.
+ * Defaulting the other way would silence the one source whose arrivals are
+ * unambiguously live.
+ */
+export const IS_NEWS: SQL = sql`(
+  ${schema.connections.id} is null
+  or (
+    (${schema.connections.firstSyncedAt} is null
+       or ${schema.reviews.createdAt} > ${schema.connections.firstSyncedAt})
+    and coalesce(${schema.reviews.postedAt}, ${schema.reviews.createdAt})
+          > ${schema.connections.createdAt}
+  )
+)`;
 
 /** How much review text the feed entry carries. */
 const EXCERPT_CHARS = 180;
@@ -120,6 +179,7 @@ async function pendingReviews(
     .innerJoin(schema.locations, eq(schema.locations.id, schema.reviews.locationId))
     .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
     .leftJoin(schema.notifications, eq(schema.notifications.reviewId, schema.reviews.id))
+    .leftJoin(schema.connections, reviewConnectionJoin)
     .where(
       and(
         eq(schema.reviews.organizationId, organizationId),
@@ -127,6 +187,9 @@ async function pendingReviews(
         // Reviews that predate the organization's interest are not news. The
         // window is generous; the sweep is a safety net, not an archive tour.
         sql`${schema.reviews.createdAt} > now() - interval '7 days'`,
+        // …and this is the rule that actually holds, because the window above
+        // measures when *we* wrote the row and a backfill writes all of it now.
+        IS_NEWS,
       ),
     )
     .orderBy(schema.reviews.id, desc(schema.reviews.createdAt))
@@ -390,6 +453,11 @@ async function claimBreaches(
       where inner_r.organization_id = ${organizationId}::uuid
         and inner_r.sla_alerted_at is null
         and inner_r.first_response_at is null
+        -- And nobody answered it on the platform either (W1.2). Without this
+        -- the sweep emails a manager about reviews their own owner replied to
+        -- in Google — the worst form of the fake-overdue bug, because it leaves
+        -- the product to argue with somebody who knows they answered.
+        and inner_r.owner_replied_at is null
         and inner_r.sla_due_at is not null
         and inner_r.sla_due_at < ${now}
         and inner_r.status in ('open', 'in_progress')

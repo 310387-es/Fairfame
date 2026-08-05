@@ -7,7 +7,7 @@ import { connectSource } from "@/connectors/sync";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { EMBEDDING_DIMENSIONS } from "@/db/schema";
 import { weekWindow } from "@/digest/metrics";
-import { generateDigest, type DigestPayload } from "@/digest/pipeline";
+import { generateDigest, MIN_ANALYSED_REVIEWS, type DigestPayload } from "@/digest/pipeline";
 import { digestProgress, latestDigest, listDigests, setActionStatus } from "@/digest/queries";
 import { currentPeriod } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
@@ -158,6 +158,34 @@ afterAll(async () => {
   await closeDatabasePools();
 });
 
+/**
+ * Tops a fixture up past `MIN_ANALYSED_REVIEWS` (W1.6).
+ *
+ * The pipeline now declines to compose a briefing from fewer than five
+ * analysed reviews — three is an anecdote, and the audit's filler digest came
+ * from exactly that. Suites that test *composition* therefore have to hand it a
+ * real week's worth; the refusal itself is tested on its own below.
+ *
+ * Deliberately neutral filler on its own theme, so it adds volume without
+ * moving any assertion about the themes a suite actually cares about.
+ */
+async function padToThreshold(
+  fixture: Fixture,
+  options: { axis?: number; postedAt?: Date } = {},
+): Promise<void> {
+  for (let index = 0; index < MIN_ANALYSED_REVIEWS; index += 1) {
+    await addReview(fixture, {
+      rating: 4,
+      text: `Dolgu yorumu ${index + 1}: yer fena değildi.`,
+      topics: ["genel"],
+      sentiment: "neutral",
+      score: 0.05,
+      axis: options.axis ?? 6,
+      ...(options.postedAt ? { postedAt: options.postedAt } : {}),
+    });
+  }
+}
+
 describe("generating a digest", () => {
   let fixture: Fixture;
 
@@ -188,6 +216,25 @@ describe("generating a digest", () => {
       score: 0.9,
       axis: 4,
     });
+    // Past `MIN_ANALYSED_REVIEWS` (W1.6). Three analysed reviews is an
+    // anecdote, and the pipeline now declines to compose a briefing from one —
+    // so a fixture that tests *composition* has to give it a real week's worth.
+    await addReview(fixture, {
+      rating: 4,
+      text: "Kahve güzeldi ama masalar biraz kirliydi.",
+      topics: ["temizlik"],
+      sentiment: "neutral",
+      score: 0.1,
+      axis: 2,
+    });
+    await addReview(fixture, {
+      rating: 2,
+      text: "Siparişimiz karıştı, servis yine yavaştı.",
+      topics: ["servis"],
+      sentiment: "negative",
+      score: -0.7,
+      axis: 0,
+    });
 
     await generateDigest({
       organizationId: fixture.orgId,
@@ -202,7 +249,7 @@ describe("generating a digest", () => {
     const row = await digestRow(fixture.orgId);
 
     expect(row?.status).toBe("ready");
-    expect(row?.reviewCount).toBe(3);
+    expect(row?.reviewCount).toBe(5);
     expect(row?.periodStart.toISOString()).toBe(WINDOW.start.toISOString());
     expect(row?.generatedAt).not.toBeNull();
   });
@@ -254,14 +301,15 @@ describe("generating a digest", () => {
     expect(payload.themes.length).toBeGreaterThan(0);
 
     const servis = payload.themes.find((theme) => theme.label === "servis");
-    expect(servis?.count).toBe(2);
-    expect(servis?.negative).toBe(2);
-    expect(servis?.quotes).toHaveLength(2);
+    expect(servis?.count).toBe(3);
+    expect(servis?.negative).toBe(3);
+    expect(servis?.quotes).toHaveLength(3);
 
     // Worst first: an action has to answer a theme's harshest review, and the
     // owner needs the complaint verbatim more than the praise.
     expect(servis?.quotes[0]?.text).toContain("Garson hiç ilgilenmedi");
     expect(servis?.quotes[1]?.text).toContain("Servis çok yavaştı");
+    expect(servis?.quotes[2]?.text).toContain("Siparişimiz karıştı");
   });
 
   it("records the prompt revision and model that composed it", async () => {
@@ -296,6 +344,7 @@ describe("progress", () => {
 
   it("reports a claimed row as pending before it is composed", async () => {
     const fixture = await makeFixture("progress-pending");
+    await padToThreshold(fixture);
 
     // The claim the pipeline makes before spending anything on the model.
     await getAdminDb().insert(schema.digests).values({
@@ -317,6 +366,7 @@ describe("progress", () => {
 
   it("reports ready with the time it was composed", async () => {
     const fixture = await makeFixture("progress-ready");
+    await padToThreshold(fixture);
 
     await addReview(fixture, {
       rating: 4,
@@ -347,7 +397,9 @@ describe("progress", () => {
 
   it("answers only for the caller's own organization", async () => {
     const mine = await makeFixture("progress-mine");
+    await padToThreshold(mine);
     const theirs = await makeFixture("progress-theirs");
+    await padToThreshold(theirs);
 
     await getAdminDb().insert(schema.digests).values({
       organizationId: theirs.orgId,
@@ -372,6 +424,7 @@ describe("progress", () => {
 describe("reproducibility", () => {
   it("computes identical numbers on a regeneration", async () => {
     const fixture = await makeFixture("repro");
+    await padToThreshold(fixture);
 
     await addReview(fixture, {
       rating: 4,
@@ -414,6 +467,7 @@ describe("reproducibility", () => {
 
   it("keeps one digest per location and window", async () => {
     const fixture = await makeFixture("one-per-week");
+    await padToThreshold(fixture);
     await addReview(fixture, { rating: 5, topics: ["servis"], sentiment: "positive", score: 0.8 });
 
     const args = {
@@ -436,6 +490,7 @@ describe("reproducibility", () => {
 
   it("replaces the previous actions rather than accumulating them", async () => {
     const fixture = await makeFixture("replace-actions");
+    await padToThreshold(fixture);
     await addReview(fixture, { rating: 2, topics: ["servis"], sentiment: "negative", score: -0.7 });
 
     const args = {
@@ -454,6 +509,7 @@ describe("reproducibility", () => {
 
   it("does nothing on a second run without force", async () => {
     const fixture = await makeFixture("idempotent");
+    await padToThreshold(fixture);
     await addReview(fixture, { rating: 5, topics: ["servis"], sentiment: "positive", score: 0.9 });
 
     const args = {
@@ -474,6 +530,17 @@ describe("reproducibility", () => {
 describe("themes across languages", () => {
   it("merges a Turkish and an English theme that mean the same thing", async () => {
     const fixture = await makeFixture("bilingual");
+    // Padded on the same two labels rather than with neutral filler, so the
+    // theme count stays a statement about the merge (W1.6).
+    for (let index = 0; index < 3; index += 1) {
+      await addReview(fixture, {
+        rating: 4,
+        topics: ["personel"],
+        sentiment: "positive",
+        score: 0.6,
+        axis: index,
+      });
+    }
     const shared = 7;
 
     // The pipeline embeds theme *labels*, so the merge is driven by a stub
@@ -528,7 +595,7 @@ describe("themes across languages", () => {
     // The follow-up flagged in T3 and T4: without this the briefing lists
     // "personel (2)" and "staff (1)" as two unrelated concerns.
     expect(payload.themes).toHaveLength(1);
-    expect(payload.themes[0]?.count).toBe(3);
+    expect(payload.themes[0]?.count).toBe(6);
     expect(payload.themes[0]?.slugs).toEqual(expect.arrayContaining(["personel", "staff"]));
   });
 });
@@ -536,6 +603,7 @@ describe("themes across languages", () => {
 describe("assets", () => {
   it("drafts replies for unanswered negatives and one social post", async () => {
     const fixture = await makeFixture("assets");
+    await padToThreshold(fixture);
 
     await addReview(fixture, {
       rating: 1,
@@ -577,6 +645,7 @@ describe("assets", () => {
 
   it("skips the assets when the plan has spent its allowance", async () => {
     const fixture = await makeFixture("capped-assets");
+    await padToThreshold(fixture);
 
     await getAdminDb().insert(schema.usageCounters).values({
       organizationId: fixture.orgId,
@@ -613,10 +682,16 @@ describe("assets", () => {
 describe("closing the loop", () => {
   it("reports what happened to the previous week's actions", async () => {
     const fixture = await makeFixture("loop");
+    await padToThreshold(fixture);
     const priorWindowRange = {
       start: new Date(WINDOW.start.getTime() - 7 * 24 * 60 * 60 * 1000),
       end: WINDOW.start,
     };
+    // Both weeks need a real week's worth: the point of this test is that the
+    // *prior* digest produced actions to report on, and a declined one has none.
+    await padToThreshold(fixture, {
+      postedAt: new Date(priorWindowRange.start.getTime() + 2 * 60 * 60 * 1000),
+    });
 
     await addReview(fixture, {
       rating: 2,
@@ -687,6 +762,7 @@ describe("closing the loop", () => {
 
   it("computes a delta against the previous digest", async () => {
     const fixture = await makeFixture("delta");
+    await padToThreshold(fixture);
     const earlier = {
       start: new Date(WINDOW.start.getTime() - 7 * 24 * 60 * 60 * 1000),
       end: WINDOW.start,
@@ -752,6 +828,9 @@ describe("edge cases", () => {
   it("ignores reviews outside the window", async () => {
     const fixture = await makeFixture("window");
 
+    // Not padded: this test counts what fell *inside* the window, and filler
+    // would be counted too. It asserts the window filter, not composition, so
+    // the digest declining for thin data is fine here.
     await addReview(fixture, { rating: 5, topics: ["servis"], sentiment: "positive", score: 0.9 });
     await addReview(fixture, {
       rating: 1,
@@ -773,6 +852,7 @@ describe("edge cases", () => {
 
   it("records a failure rather than leaving the row pending", async () => {
     const fixture = await makeFixture("fail");
+    await padToThreshold(fixture);
     await addReview(fixture, { rating: 3, topics: ["servis"], sentiment: "neutral", score: 0 });
 
     setLlmProviderForTesting(createStubProvider({ simulate: { failures: 99, retryable: false } }));
@@ -797,6 +877,7 @@ describe("edge cases", () => {
 describe("reads and isolation", () => {
   it("returns the newest ready digest with its actions", async () => {
     const fixture = await makeFixture("read");
+    await padToThreshold(fixture);
     await addReview(fixture, { rating: 4, topics: ["servis"], sentiment: "positive", score: 0.4 });
 
     await generateDigest({
@@ -817,6 +898,7 @@ describe("reads and isolation", () => {
 
   it("lists a location's digest history", async () => {
     const fixture = await makeFixture("history");
+    await padToThreshold(fixture);
     await addReview(fixture, { rating: 4, topics: ["servis"], sentiment: "positive", score: 0.4 });
 
     await generateDigest({
@@ -835,7 +917,9 @@ describe("reads and isolation", () => {
 
   it("never reads another organization's digest", async () => {
     const mine = await makeFixture("iso-mine");
+    await padToThreshold(mine);
     const theirs = await makeFixture("iso-theirs");
+    await padToThreshold(theirs);
 
     await addReview(theirs, { rating: 1, topics: ["servis"], sentiment: "negative", score: -0.9 });
     await generateDigest({
@@ -856,7 +940,9 @@ describe("reads and isolation", () => {
 
   it("cannot close another organization's action", async () => {
     const mine = await makeFixture("iso-action-mine");
+    await padToThreshold(mine);
     const theirs = await makeFixture("iso-action-theirs");
+    await padToThreshold(theirs);
 
     await addReview(theirs, { rating: 2, topics: ["servis"], sentiment: "negative", score: -0.5 });
     await generateDigest({

@@ -15,5 +15,16 @@ export const authClient = createAuthClient({
   plugins: [organizationClient({ ac, roles })],
 });
 
-export const { signIn, signUp, signOut, useSession, organization, useActiveOrganization } =
-  authClient;
+export const {
+  signIn,
+  signUp,
+  signOut,
+  useSession,
+  organization,
+  useActiveOrganization,
+  // Password recovery (W1.9b). Both are BetterAuth's own endpoints: the first
+  // answers identically whether or not the address has an account, and the
+  // second is the only thing that can judge a token.
+  requestPasswordReset,
+  resetPassword,
+} = authClient;

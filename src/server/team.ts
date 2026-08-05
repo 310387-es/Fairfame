@@ -5,7 +5,7 @@ import { z } from "zod";
 import { setMemberLocations, ScopeError } from "@/auth/scope";
 import { withAuthenticatedTenant } from "@/auth/session";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * Team actions (P2 follow-up).
@@ -35,7 +35,7 @@ export async function setMemberLocationsAction(input: {
   locationIds: string[];
 }): Promise<ActionResult> {
   const parsed = schema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Pick at least one location." };
+  if (!parsed.success) return invalidInput(parsed.error, "Pick at least one location.");
 
   try {
     await withAuthenticatedTenant(

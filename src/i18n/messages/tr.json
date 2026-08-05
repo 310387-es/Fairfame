@@ -46,7 +46,9 @@
     "searchMore": "Gelen kutusunda tümünü gör",
     "searchThemeCount": "{count} yorum",
     "searchNoText": "Metin yok",
-    "searchBusy": "Aranıyor…"
+    "searchBusy": "Aranıyor…",
+    "dismiss": "Kapat",
+    "close": "Kapat"
   },
   "home": {
     "rangeLabel": "Zaman aralığı",
@@ -327,6 +329,8 @@
     "archiveSubtitle": "{location} için neler oldu ve ne yapmalısınız.",
     "quietWeek": "Sakin bir hafta — yeni yorum gelmedi.",
     "quietWeekBody": "Şimdilik yapılacak bir şey yok. Müşteriler yazmaya başlayınca plan da geri gelir.",
+    "thinWeek": "Plan çıkarmak için yeterli değil",
+    "thinWeekLink": "Gelenleri görün",
     "reviewCount": "{count, plural, =0 {yorum yok} =1 {1 yorum} other {# yorum}}",
     "pulse": "İtibar nabzı",
     "pulseHint": "Yıldız puanları ve müşterilerin yazdıklarının birleşimi.",
@@ -385,7 +389,9 @@
     "flat": "değişmedi",
     "points": "{value} puan",
     "openWeek": "{period} özetini aç",
-    "briefingLabel": "Bu hafta"
+    "briefingLabel": "Bu hafta",
+    "thinWeekBodyThin": "Bu hafta {reviews, plural, =1 {yalnızca 1 yorum} other {yalnızca # yorum}} geldi. Bu, bir eğilimi kötü bir günden ayırmak için az; bu yüzden tahmin yürütmedik.",
+    "thinWeekBodyPending": "{reviews, plural, =1 {1 yorum} other {# yorum}} geldi ve {analysed, plural, =0 {henüz hiçbiri çözümlenmedi} other {şimdiye kadar yalnızca # tanesi çözümlendi}}. Tahmine dayalı bir plan yazmak yerine, bekleyenleri gösteriyoruz."
   },
   "inbox": {
     "title": "Gelen kutusu",
@@ -452,14 +458,13 @@
     "bulkDraftAi": "Yapay zekâ ile taslak",
     "bulkClear": "Temizle",
     "bulkDone": "{count, plural, =0 {Hiçbir şey değişmedi} =1 {1 yorum güncellendi} other {# yorum güncellendi}}",
-    "bulkFailed": "Bu işlem yapılamadı.",
     "bulkDraftNote": "Taslak oluşturmak yanıtları incelemeye hazırlar. Biri onaylamadan hiçbir şey gönderilmez.",
     "bulkUntag": "Kaldır"
   },
   "locations": {
     "title": "Şubeler",
     "subtitle": "Yorum topladığınız şubeler ve mekanlar.",
-    "empty": "Henüz şube yok.",
+    "empty": "Henüz şube yok",
     "add": "Şube ekle",
     "name": "Ad",
     "address": "Adres",
@@ -507,14 +512,9 @@
     "poweredBy": "Yorumlar Revira ile"
   },
   "sources": {
-    "liveSync": "Canlı eşitleme",
     "monitorOnly": "Yalnızca izleme",
-    "outboundOnly": "Yalnızca gönderim",
-    "replyInApp": "Buradan yanıtla",
-    "replyOnPlatform": "Platformda yanıtla",
-    "sampleData": "Örnek veri",
+    "demoData": "Demo verisi",
     "needsAttention": "İlgi gerekiyor",
-    "pending": "Kurulum tamamlanıyor",
     "connect": "Bağla",
     "connectLive": "{provider} bağla",
     "connected": "Bağlı",
@@ -726,7 +726,7 @@
     },
     "empty": {
       "title": "Henüz anket yok",
-      "body": "Aşağıdan bir tane oluşturun. NPS sizi tavsiye etme ihtimalini, CSAT ise tek bir ziyaretten duyulan memnuniyeti sorar."
+      "body": "NPS, birinin sizi tavsiye etme olasılığını sorar; CSAT ise tek bir ziyaretten ne kadar memnun kaldığını."
     },
     "newSurvey": "Yeni anket",
     "typeNps": "NPS",
@@ -876,7 +876,7 @@
     },
     "empty": {
       "title": "Henüz gönderim yok",
-      "body": "Bir gönderim; yorum talebini, anketi ya da mesajı bir segmentteki herkese iletir. Önce Kişiler ekranında bir segment kaydedin."
+      "body": "Bir gönderim; bir segmentteki herkese yorum isteği, anket veya mesaj gönderir."
     },
     "newBroadcast": "Yeni gönderim",
     "noSegments": "Önce Kişiler ekranında bir segment kaydedin — gönderimin bir kitleye ihtiyacı var.",
@@ -1018,7 +1018,6 @@
   "team": {
     "title": "Ekip",
     "subtitle": "Bu organizasyona kimler erişebilir ve ne yapabilir.",
-    "placeholder": "Davetler ve rol yönetimi sonraki aşamada geliyor.",
     "role": "Rol",
     "roles": {
       "owner": "Sahip",
@@ -1035,12 +1034,26 @@
     "save": "Kaydet",
     "saved": "Kaydedildi",
     "scopeLegend": "{name} kişisinin görebileceği şubeler",
-    "noLocations": "Önce bir şube ekleyin — henüz atanacak bir şey yok."
+    "noLocations": "Önce bir şube ekleyin — henüz atanacak bir şey yok.",
+    "inviteSectionTitle": "Ekip arkadaşı davet edin",
+    "inviteSectionSubtitle": "Bağlantılı bir e-posta alırlar. Kabul edene kadar hiçbir şey olmaz.",
+    "inviteEmail": "E-posta",
+    "inviteEmailPlaceholder": "arkadas@ornek.com",
+    "inviteRole": "Rol",
+    "invite": "Davet gönder",
+    "inviting": "Gönderiliyor…",
+    "inviteExpires": "{date} tarihinde doluyor",
+    "inviteCancel": "Geri çek",
+    "seatsSpent": "Paketiniz {limit} kişilik ve hepsi dolu. Bir kişi daha eklemek için paketi yükseltin.",
+    "inviteBody": "Kabul ettiğinizde bu işletmeye {role} olarak katılırsınız.",
+    "inviteAccept": "Kabul et ve katıl",
+    "inviteAccepting": "Katılınıyor…",
+    "inviteInvalid": "Bu davet kullanılamıyor",
+    "inviteInvalidBody": "Süresi dolmuş, geri çekilmiş, daha önce kullanılmış ya da başka bir adrese gönderilmiş olabilir. Sizi davet eden kişiden yenisini isteyin."
   },
   "settings": {
     "title": "Ayarlar",
     "subtitle": "Organizasyon tercihleri ve faturalandırma.",
-    "placeholder": "Faturalandırma ve organizasyon ayarları sonraki aşamada geliyor.",
     "language": "Dil",
     "organization": "Organizasyon",
     "notifications": {
@@ -1077,9 +1090,29 @@
     "noAccount": "Hesabınız yok mu?",
     "createOrgTitle": "Organizasyonunuzu oluşturun",
     "createOrgSubtitle": "Şubeleriniz ve yorumlarınız bu çalışma alanında yaşar.",
+    "chooseOrgTitle": "Bir organizasyon seçin",
+    "chooseOrgSubtitle": "Birden fazla çalışma alanına üyesiniz. Açmak istediğinizi seçin.",
+    "createOrgInstead": "Yeni bir organizasyon oluşturun",
     "orgName": "Organizasyon adı",
     "createOrg": "Organizasyon oluştur",
-    "passwordHint": "En az 12 karakter."
+    "passwordHint": "En az 12 karakter.",
+    "forgotLink": "Unuttunuz mu?",
+    "forgotTitle": "Parolanızı sıfırlayın",
+    "forgotSubtitle": "Giriş yaptığınız adresi yazın, size bir bağlantı gönderelim.",
+    "forgotSubmit": "Bağlantıyı gönder",
+    "forgotSending": "Gönderiliyor…",
+    "forgotSentBody": "Bu adrese ait bir hesap varsa bağlantı yola çıktı. Bir saat geçerli.",
+    "forgotTryAgain": "Başka bir adres deneyin",
+    "backToSignIn": "Girişe dön",
+    "resetTitle": "Yeni bir parola seçin",
+    "resetNew": "Yeni parola",
+    "resetConfirm": "Yeni parola (tekrar)",
+    "resetMismatch": "Bunlar aynı değil.",
+    "resetSubmit": "Kaydet ve giriş yap",
+    "resetSaving": "Kaydediliyor…",
+    "resetDone": "Parola değişti. Bu parolayla giriş yapın.",
+    "resetInvalidTitle": "Bu bağlantı kullanılamıyor",
+    "resetInvalidBody": "Sıfırlama bağlantıları bir saat geçerlidir ve bir kez kullanılır. Yenisini isteyin."
   },
   "errors": {
     "generic": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
@@ -1087,6 +1120,17 @@
     "signUpFailed": "Hesap oluşturulamadı.",
     "required": "Bu alan zorunludur.",
     "forbidden": "Bunu yapma yetkiniz yok."
+  },
+  "feedback": {
+    "saved": "Kaydedildi",
+    "created": "Oluşturuldu",
+    "deleted": "Silindi",
+    "sent": "Gönderildi",
+    "updated": "Güncellendi",
+    "published": "Yayına alındı",
+    "unpublished": "Yayından kaldırıldı",
+    "copied": "Kopyalandı",
+    "removed": "Kaldırıldı"
   },
   "notifications": {
     "title": "Bildirimler",
@@ -1187,7 +1231,7 @@
     "subtitle": "Yorumlarınızı kendi sitenizde gösterin.",
     "listTitle": "Bileşenleriniz",
     "limitMeta": "{limit} hakkın {used} tanesi kullanıldı",
-    "empty": "Henüz bileşen yok. Aşağıdan bir tane oluşturun; siz yayına almadan taslak kalır.",
+    "empty": "Henüz bileşen yok — bir bileşen siz yayına alana kadar taslak kalır.",
     "lockedTitle": "Bileşenler bu pakete dahil değil",
     "lockedBody": "Yorumlarınızı kendi sitenizde göstermek için paketinizi yükseltin.",
     "createTitle": "Yeni bileşen",
@@ -1271,5 +1315,34 @@
     "starLabel": "5 üzerinden {rating}",
     "showMore": "{count} tane daha göster",
     "backToList": "Tüm bileşenler"
+  },
+  "billing": {
+    "title": "Paket ve faturalama",
+    "current": "Mevcut",
+    "currentTrial": "Deneme",
+    "trialEnds": "Deneme {date} tarihinde bitiyor",
+    "perMonth": "aylık {amount}",
+    "quoted": "Bizimle görüşün",
+    "choose": "{plan} paketini seç",
+    "contactUs": "Anlaşmaya göre fiyatlanır — bize ulaşın.",
+    "notAvailable": "Para biriminizde henüz ödeme alamıyoruz.",
+    "unlimited": "{used} kullanıldı · sınırsız",
+    "ofLimit": "{limit} hakkın {used} tanesi",
+    "usageRequests": "Yorum istekleri",
+    "usageLocations": "Şubeler",
+    "highlights": {
+      "starter1": "1 şube",
+      "starter2": "Yorumlar, yanıtlar ve haftalık plan",
+      "starter3": "1 site bileşeni",
+      "growth1": "3 şubeye kadar",
+      "growth2": "Yapay zekâ yanıtları, eğilimler ve anketler",
+      "growth3": "Kişiler ve gönderimler",
+      "pro1": "10 şubeye kadar",
+      "pro2": "Zamanlanmış raporlar ve kıyaslama",
+      "pro3": "Ekip akışı ve SLA",
+      "agency1": "Sınırsız şube",
+      "agency2": "Beyaz etiket ve müşteri konsolu",
+      "agency3": "API erişimi"
+    }
   }
 }

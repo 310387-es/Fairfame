@@ -3,7 +3,7 @@
 import { Send, ShieldAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAction } from "@/components/ui/use-action";
 import { sendMessageAction } from "@/server/messages";
 
 /**
@@ -64,12 +65,12 @@ export function Composer({
   canSend: boolean;
 }) {
   const t = useTranslations("messages");
+  const tf = useTranslations("feedback");
   const router = useRouter();
   const [body, setBody] = useState("");
   const [template, setTemplate] = useState<string>(templates[0]?.name ?? "");
   const [values, setValues] = useState<Record<string, string>>({});
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   // Free text is only legal inside the window, and only on WhatsApp. On SMS
   // every message is business-initiated, so there is nothing a "reply" would
@@ -78,30 +79,34 @@ export function Composer({
   const selected = templates.find((entry) => entry.name === template);
 
   const send = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = freeTextAllowed
-        ? await sendMessageAction({ kind: "reply", contactId, channel, body })
-        : await sendMessageAction({
-            kind: "template",
-            contactId,
-            channel,
-            template,
-            values: (selected?.variables ?? []).map((variable) => values[variable] ?? ""),
-          });
-
-      if (!result.ok) {
-        const refusal = refusalOf(result.code);
-        // The gate's own reasons get product copy; anything else falls back to
-        // the message the server produced, which is already human-readable.
-        setError(refusal && REFUSALS.has(refusal) ? t(`refusal.${refusal}`) : result.error);
-        return;
-      }
-
-      setBody("");
-      setValues({});
-      router.refresh();
-    });
+    run(
+      () =>
+        freeTextAllowed
+          ? sendMessageAction({ kind: "reply", contactId, channel, body })
+          : sendMessageAction({
+              kind: "template",
+              contactId,
+              channel,
+              template,
+              values: (selected?.variables ?? []).map((variable) => values[variable] ?? ""),
+            }),
+      {
+        success: tf("sent"),
+        onSuccess: () => {
+          setBody("");
+          setValues({});
+          router.refresh();
+        },
+        // The consent gate's own reasons get product copy — "no registered
+        // permission for this person" rather than a code — because a refusal
+        // the operator cannot act on is the one place a generic message costs
+        // real money. Anything else keeps the server's own sentence.
+        message: (result) => {
+          const refusal = refusalOf(result.code);
+          return refusal && REFUSALS.has(refusal) ? t(`refusal.${refusal}`) : result.error;
+        },
+      },
+    );
   };
 
   if (!canSend) {
@@ -197,12 +202,6 @@ export function Composer({
           {pending ? t("sending") : t("send")}
         </Button>
       </div>
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAction } from "@/components/ui/use-action";
+import { useCreateSheet } from "@/components/ds/create-sheet";
 import { audienceSizeAction, createBroadcastAction } from "@/server/broadcasts";
 
 /**
@@ -56,6 +58,7 @@ export function BroadcastForm({
   templates: { name: string; variables: string[] }[];
 }) {
   const t = useTranslations("broadcasts");
+  const tf = useTranslations("feedback");
   const router = useRouter();
 
   const [name, setName] = useState("");
@@ -68,8 +71,8 @@ export function BroadcastForm({
   const [values, setValues] = useState<Record<string, string>>({});
   const [scheduledAt, setScheduledAt] = useState("");
   const [fetchedSize, setFetchedSize] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { close } = useCreateSheet();
+  const { run, pending } = useAction();
 
   /**
    * The channel that will actually be used — **derived, not synchronised.**
@@ -111,30 +114,30 @@ export function BroadcastForm({
   const selectedTemplate = templates.find((entry) => entry.name === templateName);
 
   const submit = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await createBroadcastAction({
-        name,
-        kind,
-        channel,
-        segmentId,
-        campaignId: kind === "review_request" ? campaignId : null,
-        surveyId: kind === "survey" ? surveyId : null,
-        templateName: kind === "message" ? templateName : null,
-        templateValues:
-          kind === "message"
-            ? (selectedTemplate?.variables ?? []).map((variable) => values[variable] ?? "")
-            : [],
-        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
-      });
-
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-
-      if ("id" in result && result.id) router.push(`/broadcasts/${result.id}`);
-    });
+    run(
+      () =>
+        createBroadcastAction({
+          name,
+          kind,
+          channel,
+          segmentId,
+          campaignId: kind === "review_request" ? campaignId : null,
+          surveyId: kind === "survey" ? surveyId : null,
+          templateName: kind === "message" ? templateName : null,
+          templateValues:
+            kind === "message"
+              ? (selectedTemplate?.variables ?? []).map((variable) => values[variable] ?? "")
+              : [],
+          scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+        }),
+      {
+        success: tf("created"),
+        onSuccess: (result) => {
+          close();
+          if (result && "id" in result && result.id) router.push(`/broadcasts/${result.id}`);
+        },
+      },
+    );
   };
 
   const missingPayload =
@@ -303,12 +306,6 @@ export function BroadcastForm({
           {pending ? t("creating") : scheduledAt ? t("schedule") : t("createDraft")}
         </Button>
       </div>
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { childLogger } from "@/lib/logger";
 import { listFeed, markAllRead, markRead, type FeedItem } from "@/notifications/feed";
 import { FEED_PAGE_SIZE } from "@/notifications/types";
 import { clearPreference, savePreference } from "@/notifications/preferences";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * Notification actions (P1a-T5).
@@ -34,7 +34,7 @@ const preferenceSchema = z.object({
 
 export async function markNotificationsReadAction(input: { ids: string[] }): Promise<ActionResult> {
   const parsed = markReadSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid selection." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid selection.");
 
   try {
     await withAuthenticatedTenant(async (tx, actor) => {
@@ -99,7 +99,7 @@ export async function saveNotificationPreferenceAction(input: {
   email: boolean;
 }): Promise<ActionResult> {
   const parsed = preferenceSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid preference." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid preference.");
 
   try {
     await withAuthenticatedTenant(async (tx, actor) => {
@@ -123,7 +123,7 @@ export async function clearNotificationPreferenceAction(input: {
   locationId: string;
 }): Promise<ActionResult> {
   const parsed = z.object({ locationId: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid location." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid location.");
 
   try {
     await withAuthenticatedTenant(async (tx, actor) => {

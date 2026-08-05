@@ -72,6 +72,10 @@ export async function assignPlan(input: AssignPlanInput): Promise<AssignPlanResu
         planId: plan.id,
         status,
         currentPeriodEnd: input.currentPeriodEnd ?? null,
+        // Only when the caller has one. A plan assigned by hand — a comp, a
+        // support fix — must not blank the pointer to a live subscription the
+        // provider is still billing (W1.8).
+        ...(input.providerRef ? { providerSubscriptionId: input.providerRef } : {}),
         updatedAt: new Date(),
       })
       .where(eq(schema.subscriptions.id, existing.id));
@@ -81,6 +85,7 @@ export async function assignPlan(input: AssignPlanInput): Promise<AssignPlanResu
       planId: plan.id,
       status,
       currentPeriodEnd: input.currentPeriodEnd ?? null,
+      providerSubscriptionId: input.providerRef ?? null,
     });
   }
 

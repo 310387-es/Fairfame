@@ -1,6 +1,8 @@
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { applyBillingEvent } from "@/billing/checkout";
 import { assignPlan, cancelSubscription } from "@/billing/subscriptions";
+import type { BillingEvent } from "@/billing/types";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { can, withinLimit } from "@/lib/entitlements";
 import { DEFAULT_PLAN_KEY } from "@/lib/plans";
@@ -173,5 +175,112 @@ describe("no payment provider is involved", () => {
 
     await assignPlan({ organizationId: org, planKey: "starter" });
     expect(await can(org, "api_access")).toBe(false);
+  });
+});
+
+/**
+ * A verified billing event becomes a plan change (W1.8).
+ *
+ * The webhook is the only path by which a payment turns into access, and until
+ * this it had no test: the endpoint was exercised by hand against a real Stripe
+ * account, which is not something CI can do. What is testable — and what the
+ * whole integration comes down to — is the last step: given a normalised event,
+ * does the subscription end up where it should?
+ *
+ * `parseWebhook` is deliberately *not* faked here. Its job is signature
+ * verification, and a test that stubbed that out would assert the one thing
+ * that must never be assumed.
+ */
+describe("applying a billing event", () => {
+  // Unique per call. `provider_subscription_id` carries a unique index — one
+  // Stripe subscription belongs to one organization — and sharing a literal
+  // here made two tests collide on it, which is the index working.
+  let counter = 0;
+
+  const event = (over: Partial<BillingEvent>): BillingEvent => ({
+    id: `evt_test_${(counter += 1)}`,
+    type: "subscription.updated",
+    providerSubscriptionId: `sub_test_${counter}`,
+    organizationId: null,
+    planKey: "growth",
+    status: "active",
+    currentPeriodEnd: new Date("2026-09-05T00:00:00Z"),
+    raw: {},
+    ...over,
+  });
+
+  async function subscriptionRow(organizationId: string) {
+    const [row] = await getAdminDb()
+      .select({
+        status: schema.subscriptions.status,
+        providerRef: schema.subscriptions.providerSubscriptionId,
+        planKey: schema.plans.key,
+      })
+      .from(schema.subscriptions)
+      .innerJoin(schema.plans, eq(schema.plans.id, schema.subscriptions.planId))
+      .where(eq(schema.subscriptions.organizationId, organizationId));
+
+    return row;
+  }
+
+  it("moves the plan, and records which subscription paid for it", async () => {
+    const org = await makeOrg("webhook-upgrade");
+    await assignPlan({ organizationId: org, planKey: "starter" });
+
+    const outcome = await applyBillingEvent(
+      event({ organizationId: org, planKey: "pro", providerSubscriptionId: "sub_live_1" }),
+    );
+
+    expect(outcome).toBe("applied");
+    const row = await subscriptionRow(org);
+    expect(row?.planKey).toBe("pro");
+    expect(row?.status).toBe("active");
+    // Without this, "which Stripe subscription is this business on" is a
+    // question answerable only by searching a dashboard by name.
+    expect(row?.providerRef).toBe("sub_live_1");
+  });
+
+  it("keeps the plan on a cancellation and only moves the status", async () => {
+    const org = await makeOrg("webhook-cancel");
+    await assignPlan({ organizationId: org, planKey: "pro" });
+
+    await applyBillingEvent(
+      event({ organizationId: org, type: "subscription.canceled", planKey: null }),
+    );
+
+    const row = await subscriptionRow(org);
+    // `src/lib/entitlements.ts` decides what a lapsed account still keeps — a
+    // published SEO page, per P3-T7 — and it needs to know which plan it was.
+    expect(row?.planKey).toBe("pro");
+    expect(row?.status).toBe("canceled");
+  });
+
+  it("keeps a paid plan through dunning rather than cutting access off", async () => {
+    const org = await makeOrg("webhook-dunning");
+    await assignPlan({ organizationId: org, planKey: "growth" });
+
+    await applyBillingEvent(event({ organizationId: org, status: "past_due" }));
+
+    expect((await subscriptionRow(org))?.status).toBe("past_due");
+    // The point of the grace period: an expired card must not close an account.
+    expect(await can(org, "crm")).toBe(true);
+  });
+
+  it("ignores an event it cannot attribute to an organization", async () => {
+    // `organizationId` comes from metadata we set ourselves on the
+    // subscription. Its absence means the subscription was created outside this
+    // flow — by hand in a dashboard — and guessing at an owner would be worse
+    // than doing nothing.
+    expect(await applyBillingEvent(event({ organizationId: null }))).toBe("ignored");
+  });
+
+  it("ignores an event type it does not model", async () => {
+    const org = await makeOrg("webhook-unknown");
+    await assignPlan({ organizationId: org, planKey: "starter" });
+
+    expect(await applyBillingEvent(event({ organizationId: org, type: "unknown" }))).toBe(
+      "ignored",
+    );
+    expect((await subscriptionRow(org))?.planKey).toBe("starter");
   });
 });

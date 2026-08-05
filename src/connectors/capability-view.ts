@@ -36,6 +36,8 @@ export type CapabilityView = {
   canAuthorize: boolean;
   /** What still stands between this provider and go-live. */
   goLiveNote?: string;
+  /** A development instrument rather than a source a customer can have (W1.4). */
+  devOnly: boolean;
 };
 
 export function syncKindOf(capabilities: Capability): SyncKind {
@@ -89,16 +91,42 @@ export function describeProvider(provider: string): CapabilityView | null {
     // Only a provider that is genuinely live has a consent screen to visit.
     canAuthorize: resolution.mode === "real" && descriptor.requiresOAuth,
     ...(descriptor.goLiveNote ? { goLiveNote: descriptor.goLiveNote } : {}),
+    devOnly: descriptor.devOnly === true,
   };
 }
 
 /**
- * Capability views for the sources an organization could add, keyed by
- * provider. Providers switched off in this environment are absent.
+ * The sources an organization could *add* — which is a narrower question than
+ * "which providers exist" (W1.4).
+ *
+ * Three exclusions, and each was on screen until this was written:
+ *
+ *   1. **Providers switched off in this environment.** As before.
+ *   2. **Anything that cannot read reviews.** WhatsApp declares
+ *      `read: "none"` — it is a channel you message people on, not a place
+ *      reviews come from — and yet "Connect WhatsApp Business" sat on the
+ *      Locations screen next to Google. Pressing it reached `syncConnection`
+ *      and threw `Provider "whatsapp" cannot read reviews.` at a customer, in
+ *      English, in a Turkish product. The card already hid *Sync now* for these
+ *      sources once connected; the connect button was the same rule, unapplied.
+ *      A capability test rather than a name test, so the next outbound-only
+ *      provider is right by construction. WhatsApp gets its own home in W2.2,
+ *      where a channel is a first-class thing rather than a broken source.
+ *   3. **Development instruments**, unless `includeDevOnly` says otherwise —
+ *      see `devOnly` in the registry.
+ *
+ * The exclusions are about what is *offered*. A connection that already exists
+ * keeps working and keeps rendering: hiding a source somebody is using would
+ * turn a tidy-up into data loss.
  */
-export function describeConnectableProviders(): CapabilityView[] {
+export function describeConnectableProviders(
+  options: { includeDevOnly?: boolean } = {},
+): CapabilityView[] {
   return Object.keys(PROVIDERS)
     .map(describeProvider)
-    .filter((view): view is CapabilityView => view !== null && view.mode !== "off")
+    .filter((view): view is CapabilityView => view !== null)
+    .filter((view) => view.mode !== "off")
+    .filter((view) => view.capabilities.read !== "none")
+    .filter((view) => options.includeDevOnly === true || !view.devOnly)
     .sort((left, right) => left.label.localeCompare(right.label));
 }

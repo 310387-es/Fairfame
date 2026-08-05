@@ -3,11 +3,12 @@
 import { ArrowRight, Plus, Unlink } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { useAction } from "@/components/ui/use-action";
 import { linkClientAction, switchOrganizationAction, unlinkClientAction } from "@/server/agency";
 
 /**
@@ -42,46 +43,38 @@ export function ClientRoster({
   canManage: boolean;
 }) {
   const t = useTranslations("clients");
+  const tf = useTranslations("feedback");
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [slug, setSlug] = useState("");
   const [label, setLabel] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const open = (organizationId: string) => {
-    setError(null);
-    startTransition(async () => {
-      const result = await switchOrganizationAction({ organizationId });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      router.push("/home");
+    run(() => switchOrganizationAction({ organizationId }), {
+      onSuccess: () => {
+        router.push("/home");
+      },
     });
   };
 
   const link = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await linkClientAction({ slug: slug.trim(), label: label.trim() || null });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setSlug("");
-      setLabel("");
-      setAdding(false);
-      router.refresh();
+    run(() => linkClientAction({ slug: slug.trim(), label: label.trim() || null }), {
+      onSuccess: () => {
+        setSlug("");
+        setLabel("");
+        setAdding(false);
+        router.refresh();
+      },
     });
   };
 
   const unlink = (organizationId: string) => {
-    setError(null);
-    startTransition(async () => {
-      const result = await unlinkClientAction({ clientOrganizationId: organizationId });
-      if (!result.ok) setError(result.error);
-      else router.refresh();
+    run(() => unlinkClientAction({ clientOrganizationId: organizationId }), {
+      success: tf("saved"),
+      onSuccess: () => {
+        router.refresh();
+      },
     });
   };
 
@@ -180,7 +173,6 @@ export function ClientRoster({
                 disabled={pending}
                 onClick={() => {
                   setAdding(false);
-                  setError(null);
                 }}
               >
                 {t("cancel")}
@@ -195,12 +187,6 @@ export function ClientRoster({
             </Button>
           </div>
         )
-      ) : null}
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
       ) : null}
     </div>
   );

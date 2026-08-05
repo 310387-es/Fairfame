@@ -225,6 +225,10 @@ export function createMockConnector(identity: {
         language: payload.language,
         postedAt: new Date(payload.createdAt),
         url: payload.permalink,
+        // The business answered on the platform (W1.2). Read here rather than
+        // sniffed out of `raw_payload` by the Inbox, which is how one
+        // provider's key came to stand for every provider's.
+        ownerRepliedAt: payload.ownerReply ? new Date(payload.ownerReply.repliedAt) : null,
         // Always keep the provider response verbatim.
         rawPayload: raw.payload,
       };

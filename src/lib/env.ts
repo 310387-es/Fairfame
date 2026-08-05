@@ -317,6 +317,16 @@ const envSchema = z.object({
   // Billing is skeleton-only in Phase 0, so every credential is optional and
   // an empty string means "absent" rather than "configured with nothing".
   STRIPE_SECRET_KEY: optionalSecret,
+  /**
+   * Verifies that a webhook really came from Stripe (W1.8).
+   *
+   * Separate from the secret key because it is a different secret with a
+   * different lifecycle — it is minted per endpoint and rotates when the
+   * endpoint does. Without it `parseWebhook` refuses, which is correct: an
+   * unverified billing webhook is a way for anybody who knows the URL to grant
+   * themselves a plan.
+   */
+  STRIPE_WEBHOOK_SECRET: optionalSecret,
   /** Türkiye billing (TRY + e-fatura). Stubbed until a later phase. */
   IYZICO_API_KEY: optionalSecret,
   IYZICO_SECRET_KEY: optionalSecret,

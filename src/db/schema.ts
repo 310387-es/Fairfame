@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   index,
@@ -355,6 +356,23 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   locale: text("locale"),
+  /**
+   * Which organization this person's next session opens in (W1.1).
+   *
+   * A session is short-lived and a preference is not, so the memory lives on
+   * the user rather than being re-derived — or, as it was until now, not
+   * derived at all. Read and re-checked against membership by
+   * `src/auth/active-organization.ts`; nothing else may treat it as authority,
+   * because a remembered organization is a *preference*, and the only thing
+   * that grants access is a row in `memberships`.
+   *
+   * Deliberately not a BetterAuth `additionalField`: it is ours to write, and
+   * declaring it there would also make it something a signup request could set.
+   */
+  lastActiveOrganizationId: uuid("last_active_organization_id").references(
+    (): AnyPgColumn => organizations.id,
+    { onDelete: "set null" },
+  ),
   ...timestamps,
 });
 
@@ -386,6 +404,19 @@ export const organizations = pgTable("organizations", {
    * builders read and nothing more — see `src/agency/branding.ts`.
    */
   customDomain: text("custom_domain").unique(),
+  /**
+   * The payment provider this organization is billed through, and its own
+   * identifier for them (W1.8).
+   *
+   * On the organization rather than on `subscriptions`: a business keeps one
+   * customer record for as long as it exists — through cancellations, restarts
+   * and plan changes — and hanging it off the subscription would mint a fresh
+   * one every time somebody re-subscribed. The provider is stored beside the id
+   * because an id is meaningless without it; `cus_123` is Stripe's, and the
+   * same column holds an iyzico reference for a Turkish organization.
+   */
+  billingProvider: text("billing_provider"),
+  billingCustomerId: text("billing_customer_id"),
   /** BetterAuth's organization metadata — it stores stringified JSON here, so
    *  this is deliberately text and kept separate from `settings`. */
   metadata: text("metadata"),
@@ -554,6 +585,20 @@ export const connections = pgTable(
     /** Last successful sync. Drives "Last synced …" in the UI. */
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
     /**
+     * When this connection's **first** sync finished — the backfill (W1.3).
+     *
+     * Set once and never moved, which is what makes it usable long after the
+     * fact: `last_synced_at` moves on every sync, so by the time notifications
+     * are computed there is no way left to ask "was that the first one?".
+     *
+     * Everything a first sync brings in is history, not news. An owner who
+     * connects Google on Tuesday did not have 217 things happen to them on
+     * Tuesday, and a notification that says otherwise trains them to ignore the
+     * bell — which is the one thing a notification cannot survive.
+     * `src/notifications/service.ts` is the only reader.
+     */
+    firstSyncedAt: timestamp("first_synced_at", { withTimezone: true }),
+    /**
      * Earliest the scheduler may sync this connection again. The scan skips
      * anything still in the future, which is what makes backoff and rate-limit
      * deferral mean something against a scheduler that rescans every minute.
@@ -635,6 +680,30 @@ export const reviews = pgTable(
      * follow-up reply must not overwrite it.
      */
     firstResponseAt: timestamp("first_response_at", { withTimezone: true }),
+    /**
+     * When the business answered **on the platform itself** (W1.2).
+     *
+     * Source data, not workflow: it records something the provider told us, the
+     * way `posted_at` does. Most owners were replying in Google Business
+     * Profile long before they had us, and until this column existed those
+     * replies were invisible to every count on every screen — the review read
+     * as unanswered, went overdue, and sat at the top of the triage queue.
+     *
+     * Normalised at ingest by each connector from its own payload shape,
+     * because only the connector knows it: Google writes `reviewReply`, the
+     * mock writes `ownerReply`, and the read-time sniff this replaces knew
+     * about exactly one of them.
+     *
+     * Deliberately **not** merged into `first_response_at`, which means "when
+     * the team answered through the product" and is the numerator of every
+     * response-time figure. Writing a platform timestamp into it would put a
+     * number we did not measure into a metric we report.
+     *
+     * Unlike the workflow columns, a re-sync *does* update this one — learning
+     * that the owner has since answered on Google is the entire point.
+     * `src/inbox/answered.ts` is the only interpreter.
+     */
+    ownerRepliedAt: timestamp("owner_replied_at", { withTimezone: true }),
     /**
      * When the team was told this deadline had lapsed (P2-T7).
      *
@@ -1647,6 +1716,20 @@ export const digestActions = pgTable(
     text: text("text").notNull(),
     /** `{ themeSlug, reviewIds[] }` — what the recommendation rests on. */
     evidence: jsonb("evidence").notNull(),
+    /**
+     * Which lever this action pulls — one of `DIGEST_LEVERS` (W1.6).
+     *
+     * Text rather than an enum, because the list is a *prompt* constraint and
+     * will move as the product learns what owners actually act on; a database
+     * enum would make each revision a migration and a deploy. Nullable so every
+     * digest written before this column keeps its meaning rather than being
+     * backfilled with a guess about what somebody meant.
+     *
+     * Stored rather than derived because it is what the model committed to at
+     * the time, and W2.1's completion tracking asks "which kinds of action does
+     * this business actually finish" — a question the text alone cannot answer.
+     */
+    lever: text("lever"),
     status: digestActionStatusEnum("status").notNull().default("open"),
     completedByUserId: uuid("completed_by_user_id").references(() => users.id, {
       onDelete: "set null",
@@ -2137,6 +2220,12 @@ export const subscriptions = pgTable(
       .references(() => plans.id, { onDelete: "restrict" }),
     status: subscriptionStatusEnum("status").notNull().default("trialing"),
     currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+    /**
+     * The provider's id for *this* subscription (W1.8), so a webhook can find
+     * the row it is about rather than guessing from an organization and a
+     * timestamp. Null for a trial, which nobody is paying for yet.
+     */
+    providerSubscriptionId: text("provider_subscription_id"),
     /** Per-org entitlement overrides: comps, custom deals, grandfathering. */
     overrides: jsonb("overrides").notNull().default({}),
     ...timestamps,

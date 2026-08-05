@@ -2,10 +2,11 @@
 
 import { Plus, Tag, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { chipClassName } from "@/components/ds/chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAction } from "@/components/ui/use-action";
 import { addContactTagAction, removeContactTagAction } from "@/server/contacts";
 
 /**
@@ -36,33 +37,26 @@ export function ContactTagsEditor({
   canEdit: boolean;
 }) {
   const t = useTranslations("contacts");
+  const tf = useTranslations("feedback");
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const add = (value: string) => {
     const trimmed = value.trim();
     if (trimmed.length === 0) return;
 
-    setError(null);
-    startTransition(async () => {
-      const result = await addContactTagAction({ contactId, label: trimmed });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setLabel("");
-      setAdding(false);
+    run(() => addContactTagAction({ contactId, label: trimmed }), {
+      success: tf("saved"),
+      onSuccess: () => {
+        setLabel("");
+        setAdding(false);
+      },
     });
   };
 
   const remove = (slug: string) => {
-    setError(null);
-    startTransition(async () => {
-      const result = await removeContactTagAction({ contactId, slug });
-      if (!result.ok) setError(result.error);
-    });
+    run(() => removeContactTagAction({ contactId, slug }), { success: tf("deleted") });
   };
 
   return (
@@ -135,7 +129,6 @@ export function ContactTagsEditor({
                 variant="ghost"
                 onClick={() => {
                   setAdding(false);
-                  setError(null);
                 }}
                 disabled={pending}
               >
@@ -161,12 +154,6 @@ export function ContactTagsEditor({
             </div>
           ) : null}
         </div>
-      ) : null}
-
-      {error ? (
-        <p role="alert" className="text-copy text-destructive">
-          {error}
-        </p>
       ) : null}
     </div>
   );

@@ -2,25 +2,38 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "@/auth/client";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function SignInForm() {
   const t = useTranslations("auth");
+  const { toast } = useToast();
   const tErrors = useTranslations("errors");
   const router = useRouter();
+  /**
+   * Where to go afterwards, when something sent us here (W1.9).
+   *
+   * An invitation link bounces an unauthenticated visitor to sign-in; without
+   * this they land on Home and the invitation is lost, which is the one moment
+   * where the product must not forget what somebody was trying to do.
+   *
+   * **Only a path is honoured.** A full URL here would be an open redirect —
+   * `?next=https://evil.test` on a page that has just taken a password.
+   */
+  const search = useSearchParams();
+  const next = search.get("next");
+  const destination = next?.startsWith("/") && !next.startsWith("//") ? next : null;
 
-  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
     setPending(true);
 
     const form = new FormData(event.currentTarget);
@@ -34,11 +47,11 @@ export function SignInForm() {
     if (result.error) {
       // Deliberately generic: distinguishing "no such user" from "wrong
       // password" hands an attacker a free account-enumeration oracle.
-      setError(tErrors("signInFailed"));
+      toast("error", tErrors("signInFailed"));
       return;
     }
 
-    router.push("/home");
+    router.push(destination ?? "/home");
     router.refresh();
   }
 
@@ -61,7 +74,17 @@ export function SignInForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">{t("password")}</Label>
+            <div className="flex items-baseline justify-between gap-3">
+              <Label htmlFor="password">{t("password")}</Label>
+              {/* Beside the field it is about, which is where somebody looks
+                  the moment they realise they cannot remember it (W1.9b). */}
+              <Link
+                href="/forgot-password"
+                className="rounded-sm text-copy text-ink-400 underline-offset-2 hover:text-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
+                {t("forgotLink")}
+              </Link>
+            </div>
             <Input
               id="password"
               name="password"
@@ -71,12 +94,6 @@ export function SignInForm() {
             />
           </div>
 
-          {error ? (
-            <p role="alert" className="text-body text-destructive">
-              {error}
-            </p>
-          ) : null}
-
           <Button type="submit" className="w-full" disabled={pending}>
             {t("signIn")}
           </Button>
@@ -84,7 +101,12 @@ export function SignInForm() {
 
         <p className="mt-4 text-center text-body text-muted-foreground">
           {t("noAccount")}{" "}
-          <Link href="/sign-up" className="font-medium text-primary hover:underline">
+          <Link
+            // Carry the destination across, or an invited person who clicks
+            // through to create an account loses the invitation (W1.9).
+            href={destination ? `/sign-up?next=${encodeURIComponent(destination)}` : "/sign-up"}
+            className="font-medium text-primary hover:underline"
+          >
             {t("signUp")}
           </Link>
         </p>

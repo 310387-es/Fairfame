@@ -2,25 +2,38 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { signUp } from "@/auth/client";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function SignUpForm() {
   const t = useTranslations("auth");
+  const { toast } = useToast();
   const tErrors = useTranslations("errors");
   const router = useRouter();
+  /**
+   * Where to go afterwards, when something sent us here (W1.9).
+   *
+   * An invitation link bounces an unauthenticated visitor to sign-in; without
+   * this they land on Home and the invitation is lost, which is the one moment
+   * where the product must not forget what somebody was trying to do.
+   *
+   * **Only a path is honoured.** A full URL here would be an open redirect —
+   * `?next=https://evil.test` on a page that has just taken a password.
+   */
+  const search = useSearchParams();
+  const next = search.get("next");
+  const destination = next?.startsWith("/") && !next.startsWith("//") ? next : null;
 
-  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
     setPending(true);
 
     const form = new FormData(event.currentTarget);
@@ -35,12 +48,12 @@ export function SignUpForm() {
     if (result.error) {
       // Surface the server's message when there is one — a rejected password
       // length is actionable, unlike a failed sign-in.
-      setError(result.error.message ?? tErrors("signUpFailed"));
+      toast("error", result.error.message ?? tErrors("signUpFailed"));
       return;
     }
 
     // A brand-new account has no organization yet.
-    router.push("/create-organization");
+    router.push(destination ?? "/create-organization");
     router.refresh();
   }
 
@@ -80,12 +93,6 @@ export function SignUpForm() {
             <p className="text-copy text-muted-foreground">{t("passwordHint")}</p>
           </div>
 
-          {error ? (
-            <p role="alert" className="text-body text-destructive">
-              {error}
-            </p>
-          ) : null}
-
           <Button type="submit" className="w-full" disabled={pending}>
             {t("signUp")}
           </Button>
@@ -93,7 +100,12 @@ export function SignUpForm() {
 
         <p className="mt-4 text-center text-body text-muted-foreground">
           {t("haveAccount")}{" "}
-          <Link href="/sign-in" className="font-medium text-primary hover:underline">
+          <Link
+            // Carry the destination across, or an invited person who clicks
+            // through to create an account loses the invitation (W1.9).
+            href={destination ? `/sign-in?next=${encodeURIComponent(destination)}` : "/sign-in"}
+            className="font-medium text-primary hover:underline"
+          >
             {t("signIn")}
           </Link>
         </p>

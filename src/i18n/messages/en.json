@@ -46,7 +46,9 @@
     "searchMore": "See all in the Inbox",
     "searchThemeCount": "{count} reviews",
     "searchNoText": "No text",
-    "searchBusy": "Searching…"
+    "searchBusy": "Searching…",
+    "dismiss": "Dismiss",
+    "close": "Close"
   },
   "home": {
     "rangeLabel": "Time range",
@@ -327,6 +329,8 @@
     "archiveSubtitle": "What happened at {location}, and what to do about it.",
     "quietWeek": "A quiet week — no new reviews came in.",
     "quietWeekBody": "Nothing to act on. The plan resumes as soon as customers start writing again.",
+    "thinWeek": "Not enough to draw a plan from",
+    "thinWeekLink": "See what came in",
     "reviewCount": "{count, plural, =0 {no reviews} =1 {1 review} other {# reviews}}",
     "pulse": "Reputation pulse",
     "pulseHint": "Blended from star ratings and what customers actually wrote.",
@@ -385,7 +389,9 @@
     "flat": "unchanged",
     "points": "{value} pts",
     "openWeek": "Open the digest for {period}",
-    "briefingLabel": "This week"
+    "briefingLabel": "This week",
+    "thinWeekBodyThin": "{reviews, plural, =1 {Only 1 review arrived this week} other {Only # reviews arrived this week}}. That is too little to tell a pattern from a bad Tuesday, so we have not guessed at one.",
+    "thinWeekBodyPending": "{reviews, plural, =1 {1 review arrived} other {# reviews arrived}}, and {analysed, plural, =0 {none have been analysed yet} =1 {only 1 has been analysed so far} other {only # have been analysed so far}}. Rather than guess at a plan, here is what is waiting."
   },
   "inbox": {
     "title": "Inbox",
@@ -452,14 +458,13 @@
     "bulkDraftAi": "Draft with AI",
     "bulkClear": "Clear",
     "bulkDone": "{count, plural, =0 {Nothing changed} =1 {1 review updated} other {# reviews updated}}",
-    "bulkFailed": "That did not work.",
     "bulkDraftNote": "Drafting writes replies for review. Nothing is posted until someone approves it.",
     "bulkUntag": "Remove"
   },
   "locations": {
     "title": "Locations",
     "subtitle": "The branches and venues you collect reviews for.",
-    "empty": "No locations yet.",
+    "empty": "No locations yet",
     "add": "Add location",
     "name": "Name",
     "address": "Address",
@@ -507,14 +512,9 @@
     "poweredBy": "Reviews by Revira"
   },
   "sources": {
-    "liveSync": "Live sync",
     "monitorOnly": "Monitor only",
-    "outboundOnly": "Outbound only",
-    "replyInApp": "Reply from here",
-    "replyOnPlatform": "Reply on the platform",
-    "sampleData": "Sample data",
+    "demoData": "Demo data",
     "needsAttention": "Needs attention",
-    "pending": "Finishing setup",
     "connect": "Connect",
     "connectLive": "Connect {provider}",
     "connected": "Connected",
@@ -726,7 +726,7 @@
     },
     "empty": {
       "title": "No surveys yet",
-      "body": "Create one below. NPS asks how likely somebody is to recommend you; CSAT asks how satisfied they were with one visit."
+      "body": "NPS asks how likely somebody is to recommend you; CSAT asks how satisfied they were with one visit."
     },
     "newSurvey": "New survey",
     "typeNps": "NPS",
@@ -876,7 +876,7 @@
     },
     "empty": {
       "title": "No broadcasts yet",
-      "body": "A broadcast sends a review request, a survey or a message to everyone in a segment. Save a segment on Contacts first."
+      "body": "A broadcast sends a review request, a survey or a message to everyone in a segment."
     },
     "newBroadcast": "New broadcast",
     "noSegments": "Save a segment on Contacts first — a broadcast needs an audience.",
@@ -1018,7 +1018,6 @@
   "team": {
     "title": "Team",
     "subtitle": "Who can access this organization, and what they can do.",
-    "placeholder": "Invitations and role management arrive in a later phase.",
     "role": "Role",
     "roles": {
       "owner": "Owner",
@@ -1035,12 +1034,26 @@
     "save": "Save",
     "saved": "Saved",
     "scopeLegend": "Locations {name} can see",
-    "noLocations": "Add a location first — there is nothing to assign yet."
+    "noLocations": "Add a location first — there is nothing to assign yet.",
+    "inviteSectionTitle": "Invite a teammate",
+    "inviteSectionSubtitle": "They get an email with a link. Nothing happens until they accept it.",
+    "inviteEmail": "Email",
+    "inviteEmailPlaceholder": "teammate@example.com",
+    "inviteRole": "Role",
+    "invite": "Send invitation",
+    "inviting": "Sending…",
+    "inviteExpires": "expires {date}",
+    "inviteCancel": "Withdraw",
+    "seatsSpent": "Your plan includes {limit} seats and they are all taken. Upgrade to add another.",
+    "inviteBody": "Accepting adds you to this business as {role}.",
+    "inviteAccept": "Accept and join",
+    "inviteAccepting": "Joining…",
+    "inviteInvalid": "This invitation cannot be used",
+    "inviteInvalidBody": "It may have expired, been withdrawn, already been used, or been sent to a different address. Ask whoever invited you to send a new one."
   },
   "settings": {
     "title": "Settings",
     "subtitle": "Organization preferences and billing.",
-    "placeholder": "Billing and organization settings arrive in a later phase.",
     "language": "Language",
     "organization": "Organization",
     "notifications": {
@@ -1077,9 +1090,29 @@
     "noAccount": "Don't have an account?",
     "createOrgTitle": "Create your organization",
     "createOrgSubtitle": "This is the workspace your locations and reviews live in.",
+    "chooseOrgTitle": "Choose an organization",
+    "chooseOrgSubtitle": "You belong to more than one workspace. Pick the one to open.",
+    "createOrgInstead": "Create a new organization",
     "orgName": "Organization name",
     "createOrg": "Create organization",
-    "passwordHint": "At least 12 characters."
+    "passwordHint": "At least 12 characters.",
+    "forgotLink": "Forgot?",
+    "forgotTitle": "Reset your password",
+    "forgotSubtitle": "Tell us the address you sign in with and we will send a link.",
+    "forgotSubmit": "Send the link",
+    "forgotSending": "Sending…",
+    "forgotSentBody": "If that address has an account, a link is on its way. It is good for an hour.",
+    "forgotTryAgain": "Try another address",
+    "backToSignIn": "Back to sign in",
+    "resetTitle": "Choose a new password",
+    "resetNew": "New password",
+    "resetConfirm": "New password again",
+    "resetMismatch": "These do not match.",
+    "resetSubmit": "Save and sign in",
+    "resetSaving": "Saving…",
+    "resetDone": "Password changed. Sign in with it.",
+    "resetInvalidTitle": "This link cannot be used",
+    "resetInvalidBody": "Reset links last an hour and can be used once. Ask for a new one."
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -1087,6 +1120,17 @@
     "signUpFailed": "We could not create that account.",
     "required": "This field is required.",
     "forbidden": "You do not have permission to do that."
+  },
+  "feedback": {
+    "saved": "Saved",
+    "created": "Created",
+    "deleted": "Deleted",
+    "sent": "Sent",
+    "updated": "Updated",
+    "published": "Published",
+    "unpublished": "Unpublished",
+    "copied": "Copied",
+    "removed": "Removed"
   },
   "notifications": {
     "title": "Notifications",
@@ -1187,7 +1231,7 @@
     "subtitle": "Put your reviews on your own website.",
     "listTitle": "Your widgets",
     "limitMeta": "{used} of {limit} used",
-    "empty": "No widgets yet. Make one below and it stays a draft until you publish it.",
+    "empty": "No widgets yet — a widget stays a draft until you publish it.",
     "lockedTitle": "Widgets are not part of this plan",
     "lockedBody": "Upgrade to display your reviews on your own site.",
     "createTitle": "New widget",
@@ -1271,5 +1315,34 @@
     "starLabel": "{rating} out of 5",
     "showMore": "Show {count} more",
     "backToList": "All widgets"
+  },
+  "billing": {
+    "title": "Plan and billing",
+    "current": "Current",
+    "currentTrial": "Trial",
+    "trialEnds": "Trial ends {date}",
+    "perMonth": "{amount} / month",
+    "quoted": "Talk to us",
+    "choose": "Choose {plan}",
+    "contactUs": "Priced per deal — get in touch.",
+    "notAvailable": "We cannot take payment in your currency yet.",
+    "unlimited": "{used} used · unlimited",
+    "ofLimit": "{used} of {limit}",
+    "usageRequests": "Review requests",
+    "usageLocations": "Locations",
+    "highlights": {
+      "starter1": "1 location",
+      "starter2": "Reviews, replies and the weekly plan",
+      "starter3": "1 website widget",
+      "growth1": "Up to 3 locations",
+      "growth2": "AI replies, trends and surveys",
+      "growth3": "Contacts and campaigns",
+      "pro1": "Up to 10 locations",
+      "pro2": "Scheduled reports and benchmarking",
+      "pro3": "Team workflow and SLAs",
+      "agency1": "Unlimited locations",
+      "agency2": "White-label and the client console",
+      "agency3": "API access"
+    }
   }
 }

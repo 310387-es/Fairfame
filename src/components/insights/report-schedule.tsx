@@ -2,7 +2,7 @@
 
 import { Check, CalendarClock } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { SectionCard } from "@/components/ds/section-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAction } from "@/components/ui/use-action";
 import { setReportScheduleAction } from "@/server/reports";
 
 /**
@@ -45,10 +46,10 @@ export function ReportSchedule({
   locked: string | null;
 }) {
   const t = useTranslations("insights");
+  const tf = useTranslations("feedback");
   const [state, setState] = useState({ enabled, cadence, locationId });
   const [saved, setSaved] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const patch = (next: Partial<typeof state>) => {
     setState((current) => ({ ...current, ...next }));
@@ -57,22 +58,23 @@ export function ReportSchedule({
 
   const save = (override: Partial<typeof state> = {}) => {
     const next = { ...state, ...override };
-    setError(null);
-    startTransition(async () => {
-      const result = await setReportScheduleAction({
-        ...next,
-        // The sentinel becomes the empty string the action's schema reads as
-        // "every branch". Radix will not hold an empty string as a value, so
-        // the translation has to happen at exactly one edge — this one.
-        locationId: next.locationId === ALL_BRANCHES ? "" : next.locationId,
-      });
-      if (result.ok) {
-        setState(next);
-        setSaved(true);
-      } else {
-        setError(result.error);
-      }
-    });
+    run(
+      () =>
+        setReportScheduleAction({
+          ...next,
+          // The sentinel becomes the empty string the action's schema reads as
+          // "every branch". Radix will not hold an empty string as a value, so
+          // the translation has to happen at exactly one edge — this one.
+          locationId: next.locationId === ALL_BRANCHES ? "" : next.locationId,
+        }),
+      {
+        success: tf("saved"),
+        onSuccess: () => {
+          setState(next);
+          setSaved(true);
+        },
+      },
+    );
   };
 
   if (locked) {
@@ -156,12 +158,6 @@ export function ReportSchedule({
             </Button>
           )}
         </div>
-
-        {error ? (
-          <p role="alert" className="text-body text-destructive">
-            {error}
-          </p>
-        ) : null}
       </div>
     </SectionCard>
   );

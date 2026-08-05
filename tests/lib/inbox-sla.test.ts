@@ -16,6 +16,7 @@ const hoursFromNow = (hours: number) => new Date(now.getTime() + hours * 3_600_0
 const review = (overrides: Partial<Parameters<typeof slaState>[0]> = {}) => ({
   slaDueAt: hoursFromNow(12),
   firstResponseAt: null,
+  ownerRepliedAt: null,
   status: "open" as const,
   postedAt: hoursFromNow(-12),
   ...overrides,
@@ -89,5 +90,61 @@ describe("slaState", () => {
   it("falls back to the default window when there is no posted time", () => {
     expect(slaState(review({ postedAt: null, slaDueAt: hoursFromNow(1) }), now)).toBe("due_soon");
     expect(slaState(review({ postedAt: null, slaDueAt: hoursFromNow(20) }), now)).toBe("ok");
+  });
+
+  /**
+   * An answer the owner left on the platform (W1.2).
+   *
+   * This is the whole fake-overdue bug in one place: before the column existed
+   * these reviews had a null `first_response_at`, so a review the owner had
+   * personally answered in Google went red and stayed red.
+   */
+  describe("an answer given on the platform", () => {
+    it("stops the clock exactly as our own reply does", () => {
+      const answeredInGoogle = review({
+        slaDueAt: hoursFromNow(-5),
+        firstResponseAt: null,
+        ownerRepliedAt: hoursFromNow(-8),
+      });
+
+      expect(slaState(answeredInGoogle, now)).toBe("met");
+      expect(slaState(answeredInGoogle, hoursFromNow(1000))).toBe("met");
+    });
+
+    it("is judged against the deadline like any other answer", () => {
+      expect(
+        slaState(
+          review({ slaDueAt: hoursFromNow(-8), firstResponseAt: null, ownerRepliedAt: null }),
+          now,
+        ),
+      ).toBe("overdue");
+
+      expect(
+        slaState(
+          review({
+            slaDueAt: hoursFromNow(-8),
+            firstResponseAt: null,
+            ownerRepliedAt: hoursFromNow(-2),
+          }),
+          now,
+        ),
+      ).toBe("missed");
+    });
+
+    it("yields to the response we measured ourselves", () => {
+      // Both exist: the platform's timestamp is what we were told, ours is what
+      // we observed, and response-time figures are built on the latter. Here
+      // they disagree across the deadline, so which one wins is visible.
+      expect(
+        slaState(
+          review({
+            slaDueAt: hoursFromNow(-6),
+            firstResponseAt: hoursFromNow(-9),
+            ownerRepliedAt: hoursFromNow(-2),
+          }),
+          now,
+        ),
+      ).toBe("met");
+    });
   });
 });

@@ -116,6 +116,19 @@ const SEND_PATHS: Record<string, SendPath> = {
     gated: false,
     why: "Scheduled PDF reports, to the member who scheduled one for themselves.",
   },
+  "auth/config.ts": {
+    audience: "team",
+    gated: false,
+    why:
+      "Two transactional emails to a person, not a customer: the team invitation " +
+      "(W1.9) and the password reset (W1.9b). A one-off request to join a workspace, " +
+      "and a reply to somebody who has just asked for a way back into their own " +
+      "account. Neither has an ongoing subscription to opt out of, and demanding an " +
+      "İYS permission before a business may invite its own manager — or before a " +
+      "locked-out user may recover — is a misreading of the regime, not caution. " +
+      "Neither carries an unsubscribe footer for the same reason: offering one would " +
+      "imply a list they are on.",
+  },
 };
 
 function sourceFiles(dir: string, prefix = ""): string[] {

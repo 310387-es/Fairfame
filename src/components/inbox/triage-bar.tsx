@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import type { ReviewStatus } from "@/db/schema";
 import type { SlaState } from "@/inbox/workflow";
+import { useAction } from "@/components/ui/use-action";
 import { assignReviewAction, setReviewStatusAction } from "@/server/triage";
 
 /**
@@ -54,37 +55,25 @@ export function TriageBar({
   const t = useTranslations("inbox");
   const [currentStatus, setCurrentStatus] = useState(status);
   const [currentAssignee, setCurrentAssignee] = useState(assigneeUserId ?? UNASSIGNED);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   const changeStatus = (next: ReviewStatus) => {
     const previous = currentStatus;
     setCurrentStatus(next);
-    setError(null);
 
-    startTransition(async () => {
-      const result = await setReviewStatusAction({ reviewId, status: next });
-      if (!result.ok) {
-        setCurrentStatus(previous);
-        setError(result.error);
-      }
+    // No success toast: the control the reader just changed already shows the
+    // new value, and narrating it back would be noise on every card (W1.5).
+    run(() => setReviewStatusAction({ reviewId, status: next }), {
+      onError: () => setCurrentStatus(previous),
     });
   };
 
   const changeAssignee = (next: string) => {
     const previous = currentAssignee;
     setCurrentAssignee(next);
-    setError(null);
 
-    startTransition(async () => {
-      const result = await assignReviewAction({
-        reviewId,
-        assigneeUserId: next === UNASSIGNED ? null : next,
-      });
-      if (!result.ok) {
-        setCurrentAssignee(previous);
-        setError(result.error);
-      }
+    run(() => assignReviewAction({ reviewId, assigneeUserId: next === UNASSIGNED ? null : next }), {
+      onError: () => setCurrentAssignee(previous),
     });
   };
 
@@ -133,12 +122,6 @@ export function TriageBar({
       </Select>
 
       <SlaBadge state={sla} dueAt={dueAt} />
-
-      {error ? (
-        <span role="alert" className="text-copy text-destructive">
-          {error}
-        </span>
-      ) : null}
     </div>
   );
 }

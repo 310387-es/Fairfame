@@ -7,6 +7,7 @@ import { requireActor } from "@/auth/session";
 import { BroadcastForm } from "@/components/broadcasts/broadcast-form";
 import { SectionCard } from "@/components/ds/section-card";
 import { PageHeader } from "@/components/shell/page-header";
+import { ResourcePage } from "@/components/ds/resource-page";
 import { Badge } from "@/components/ui/badge";
 import { TEMPLATES } from "@/connectors/whatsapp/templates";
 import { listBroadcasts } from "@/broadcasts/store";
@@ -84,57 +85,26 @@ export default async function BroadcastsPage() {
     cancelled: t("statusCancelled"),
   } as const;
 
-  return (
-    <>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
-
-      {broadcasts.length === 0 ? (
-        <SectionCard title={t("empty.title")} icon={Megaphone}>
-          <p className="pb-(--card-py) text-body text-ink-400">{t("empty.body")}</p>
-        </SectionCard>
-      ) : (
-        <ul className="divide-y divide-line-soft rounded-lg border border-line bg-card">
-          {broadcasts.map((row) => (
-            <li key={row.id}>
-              <Link
-                href={`/broadcasts/${row.id}`}
-                className="grid gap-1.5 px-(--card-px) py-3 transition-colors hover:bg-surface-sunken focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.2fr)] sm:items-center sm:gap-3"
-              >
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <span className="truncate text-copy font-semibold text-foreground">
-                    {row.name}
-                  </span>
-                  <Badge variant={row.status === "sent" ? "positive" : "secondary"}>
-                    {statusLabel[row.status]}
-                  </Badge>
-                </div>
-
-                <p className="truncate text-meta text-ink-400">
-                  {kindLabel[row.kind]} · {row.segmentName ?? t("segmentGone")}
-                </p>
-
-                <p className="text-meta whitespace-nowrap text-faint sm:text-right">
-                  {row.status === "sent"
-                    ? t("resultLine", {
-                        sent: row.sent,
-                        refused: row.refused,
-                        failed: row.failed,
-                      })
-                    : row.scheduledAt
-                      ? t("scheduledFor", { at: format.dateTime(row.scheduledAt, "short") })
-                      : t("notScheduled")}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {canManage ? (
-        <SectionCard title={t("newBroadcast")} icon={Megaphone}>
-          {segments.length === 0 ? (
-            <p className="pb-(--card-py) text-body text-ink-400">{t("noSegments")}</p>
-          ) : (
+  /**
+   * Three boxes became one (W1.7).
+   *
+   * This screen used to render an "empty" card, *and* a permanently-open "New
+   * broadcast" card, *and* — inside that — a paragraph explaining you had to
+   * save a segment first. Three ways of saying "there is nothing here yet", one
+   * of which was an eleven-control form.
+   *
+   * The missing audience is now a `blocked` reason rather than a second card,
+   * so the screen says the one thing that has to happen next and says it once.
+   */
+  const create = !canManage
+    ? null
+    : segments.length === 0
+      ? { blocked: t("noSegments") }
+      : {
+          label: t("newBroadcast"),
+          title: t("newBroadcast"),
+          description: t("empty.body"),
+          form: (
             <BroadcastForm
               segments={segments.map(({ id, name }) => ({ id, name }))}
               campaigns={campaigns.map(({ id, name }) => ({ id, name }))}
@@ -146,9 +116,51 @@ export default async function BroadcastsPage() {
                 variables: [...template.variables],
               }))}
             />
-          )}
-        </SectionCard>
-      ) : null}
-    </>
+          ),
+        };
+
+  return (
+    <ResourcePage
+      title={t("title")}
+      subtitle={t("subtitle")}
+      icon={Megaphone}
+      isEmpty={broadcasts.length === 0}
+      empty={{ line: t("empty.title"), hint: t("empty.body") }}
+      create={create}
+    >
+      <ul className="divide-y divide-line-soft rounded-lg border border-line bg-card">
+        {broadcasts.map((row) => (
+          <li key={row.id}>
+            <Link
+              href={`/broadcasts/${row.id}`}
+              className="grid gap-1.5 px-(--card-px) py-3 transition-colors hover:bg-surface-sunken focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.2fr)] sm:items-center sm:gap-3"
+            >
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="truncate text-copy font-semibold text-foreground">{row.name}</span>
+                <Badge variant={row.status === "sent" ? "positive" : "secondary"}>
+                  {statusLabel[row.status]}
+                </Badge>
+              </div>
+
+              <p className="truncate text-meta text-ink-400">
+                {kindLabel[row.kind]} · {row.segmentName ?? t("segmentGone")}
+              </p>
+
+              <p className="text-meta whitespace-nowrap text-faint sm:text-right">
+                {row.status === "sent"
+                  ? t("resultLine", {
+                      sent: row.sent,
+                      refused: row.refused,
+                      failed: row.failed,
+                    })
+                  : row.scheduledAt
+                    ? t("scheduledFor", { at: format.dateTime(row.scheduledAt, "short") })
+                    : t("notScheduled")}
+              </p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </ResourcePage>
   );
 }

@@ -33,6 +33,11 @@ setup("create an account with reviews to look at", async ({ page, baseURL }) => 
   // through the form for the same reason as the location: a hand-inserted row
   // can be a shape the product would never produce.
   await page.goto("/requests");
+  // Behind the create panel now (W1.7), same as the location above.
+  await page
+    .getByRole("button", { name: /new campaign|yeni kampanya/i })
+    .first()
+    .click();
   await page.locator("#campaign-name").fill("E2E ziyaret sonrası");
   await page
     .locator("form")

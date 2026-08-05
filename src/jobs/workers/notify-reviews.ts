@@ -4,8 +4,10 @@ import { getAdminDb, schema } from "../../db/client.ts";
 import { childLogger } from "../../lib/logger.ts";
 import { sendPendingEmails } from "../../notifications/email.ts";
 import {
+  IS_NEWS,
   notifyPendingReviews,
   notifySlaBreaches,
+  reviewConnectionJoin,
   upgradeUrgencyFromInsights,
 } from "../../notifications/service.ts";
 import { enqueueNotify, type ReviewJob } from "../queue.ts";
@@ -47,17 +49,23 @@ export type NotifySweepResult = { organizations: number };
  * The `notifications` left join mirrors `pendingReviews` in
  * ../../notifications/service.ts — including the seven-day window, without
  * which every organization would appear here forever once a member turned
- * notifications off.
+ * notifications off, and `IS_NEWS`, which is imported rather than restated so
+ * the two cannot drift apart.
  */
 export async function runNotifySweep(queue: Queue<ReviewJob>): Promise<NotifySweepResult> {
   const rows = await getAdminDb()
     .select({ organizationId: schema.reviews.organizationId })
     .from(schema.reviews)
     .leftJoin(schema.notifications, eq(schema.notifications.reviewId, schema.reviews.id))
+    .leftJoin(schema.connections, reviewConnectionJoin)
     .where(
       and(
         isNull(schema.notifications.id),
         sql`${schema.reviews.createdAt} > now() - interval '7 days'`,
+        // The backfill rule too, so the sweep does not wake a job for an
+        // organization whose every candidate the service will then discard
+        // (W1.3). Two predicates that must agree, so they are one import.
+        IS_NEWS,
       ),
     )
     .groupBy(schema.reviews.organizationId)

@@ -1,0 +1,17 @@
+-- Every weekly action names a lever (W1.6, docs/remediation-plan.md).
+--
+-- The audit's digest was three sentences of confident filler — the sort of
+-- advice that is true of every business in the world and actionable by none of
+-- them. Part of the fix is in the prompt (a closed list: staffing, hours,
+-- menu_item, reply_backlog, signage, process); this is where the choice is
+-- kept, so it can be checked afterwards rather than merely demanded.
+--
+-- Text rather than a Postgres enum: the list is a prompt constraint and will
+-- move as the product learns which levers owners actually pull. An enum would
+-- make every revision a migration.
+--
+-- Nullable, and deliberately not backfilled. Actions written before this column
+-- existed were composed without the constraint, and inventing a lever for them
+-- would put a decision nobody made into the record that W2.1's completion
+-- tracking reads.
+ALTER TABLE "digest_actions" ADD COLUMN "lever" text;

@@ -8,7 +8,7 @@ import { MAX_RECIPIENTS_PER_SEND, parseRecipientList } from "@/collect/input";
 import { schema } from "@/db/client";
 import { requireFeature } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 import { createSurvey, surveyInputSchema, updateSurvey } from "@/surveys/store";
 import { sendSurveyInvites, type RefusedRecipient } from "@/surveys/send";
 
@@ -30,7 +30,7 @@ export async function createSurveyAction(
 ): Promise<ActionResult<{ id?: string; slug?: string }>> {
   const parsed = surveyInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid survey." };
+    return invalidInput(parsed.error, parsed.error.issues[0]?.message ?? "Invalid survey.");
   }
 
   try {
@@ -74,7 +74,7 @@ export async function updateSurveyAction(input: unknown): Promise<ActionResult> 
   const parsed = surveyInputSchema.omit({ type: true }).extend({ id: z.uuid() }).safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid survey." };
+    return invalidInput(parsed.error, parsed.error.issues[0]?.message ?? "Invalid survey.");
   }
 
   const { id, ...fields } = parsed.data;
@@ -137,7 +137,7 @@ export async function sendSurveyAction(input: {
   const parsed = z
     .object({ surveyId: z.uuid(), recipients: z.string().max(40_000) })
     .safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid input.");
 
   const { recipients, invalid } = parseRecipientList(parsed.data.recipients);
 

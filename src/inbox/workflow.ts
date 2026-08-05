@@ -1,8 +1,9 @@
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { schema } from "../db/client.ts";
 import type { ReviewStatus, Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
+import { answeredAt, liveReplyJoin } from "./answered.ts";
 
 /**
  * The derived half of inbox triage (P2-T1).
@@ -149,6 +150,12 @@ export function slaState(
   review: {
     slaDueAt: Date | null;
     firstResponseAt: Date | null;
+    /**
+     * When the business answered on the platform itself (W1.2). Without it,
+     * every review an owner had already answered in Google read as overdue
+     * forever — the single largest source of the audit's fake overdue count.
+     */
+    ownerRepliedAt: Date | null;
     status: ReviewStatus;
     postedAt?: Date | null;
   },
@@ -156,8 +163,12 @@ export function slaState(
 ): SlaState {
   if (!review.slaDueAt) return "none";
 
-  if (review.firstResponseAt) {
-    return review.firstResponseAt <= review.slaDueAt ? "met" : "missed";
+  // An answer is an answer whoever gave it. `answeredAt` prefers the response
+  // *we* measured and falls back to the platform's timestamp, which is why this
+  // can still say honestly whether the deadline was met.
+  const answered = answeredAt(review);
+  if (answered) {
+    return answered <= review.slaDueAt ? "met" : "missed";
   }
 
   // Resolved without a reply — someone phoned the customer, or it was spam.
@@ -278,15 +289,13 @@ export async function refreshPriority(
       priority: schema.reviews.priority,
       sentiment: schema.reviewInsights.sentiment,
       replyId: schema.replies.id,
+      ownerRepliedAt: schema.reviews.ownerRepliedAt,
     })
     .from(schema.reviews)
     .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
-    // The same join the inbox uses: a rejected attempt leaves the review
-    // unanswered, so it must not sink in the queue.
-    .leftJoin(
-      schema.replies,
-      and(eq(schema.replies.reviewId, schema.reviews.id), ne(schema.replies.status, "failed")),
-    )
+    // The same join every "is it answered" question uses: a rejected attempt
+    // leaves the review unanswered, so it must not sink in the queue.
+    .leftJoin(schema.replies, liveReplyJoin)
     .where(
       and(eq(schema.reviews.organizationId, organizationId), inArray(schema.reviews.id, unique)),
     );
@@ -297,7 +306,9 @@ export async function refreshPriority(
       priority: computePriority({
         rating: row.rating,
         sentiment: row.sentiment,
-        answered: row.replyId !== null,
+        // A reply the owner left on Google answers the customer just as well as
+        // one we posted, so it must sink the review the same way (W1.2).
+        answered: row.replyId !== null || row.ownerRepliedAt !== null,
       }),
       previous: row.priority,
     }))

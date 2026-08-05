@@ -2,7 +2,7 @@
 
 import { Check, Code2, Eye, Settings2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { type ReactNode, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { SectionCard } from "@/components/ds/section-card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LOCALES } from "@/i18n/config";
+import { useAction } from "@/components/ui/use-action";
 import { saveWidgetAction, setWidgetPublishedAction } from "@/server/widgets";
 import {
   SIZE_MESSAGE_TYPE,
@@ -101,14 +102,14 @@ export function WidgetBuilder({
   approvals: ReactNode;
 }) {
   const t = useTranslations("widgets");
+  const tf = useTranslations("feedback");
   const [name, setName] = useState(initialName);
   const [locationId, setLocationId] = useState(initialLocationId ?? "all");
   const [filters, setFilters] = useState(initialFilters);
   const [style, setStyle] = useState(initialStyle);
   const [published, setPublished] = useState(initialPublished);
   const [saved, setSaved] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   /**
    * A badge draws the aggregate, not the reviews — so every control that picks
@@ -210,27 +211,23 @@ export function WidgetBuilder({
   }, []);
 
   const save = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await saveWidgetAction({
-        id: widgetId,
-        name,
-        locationId: locationId === "all" ? "" : locationId,
-        filters,
-        style,
-      });
-
-      if (result.ok) setSaved(true);
-      else setError(result.error);
-    });
+    run(
+      () =>
+        saveWidgetAction({
+          id: widgetId,
+          name,
+          locationId: locationId === "all" ? "" : locationId,
+          filters,
+          style,
+        }),
+      { success: tf("saved"), onSuccess: () => setSaved(true) },
+    );
   };
 
   const togglePublished = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await setWidgetPublishedAction({ id: widgetId, published: !published });
-      if (result.ok) setPublished(!published);
-      else setError(result.error);
+    run(() => setWidgetPublishedAction({ id: widgetId, published: !published }), {
+      success: published ? tf("unpublished") : tf("published"),
+      onSuccess: () => setPublished(!published),
     });
   };
 
@@ -451,12 +448,6 @@ export function WidgetBuilder({
             <p className="text-meta text-faint">
               {published ? t("publishedNote") : t("draftNote")}
             </p>
-
-            {error ? (
-              <p role="alert" className="text-body text-destructive">
-                {error}
-              </p>
-            ) : null}
           </div>
         </SectionCard>
 

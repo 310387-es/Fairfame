@@ -1,8 +1,9 @@
 "use client";
 
+import { useAction } from "@/components/ui/use-action";
 import { Check, Loader2, PenLine, Send, Sparkles, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { TemplatePicker } from "@/components/inbox/template-picker";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,8 +64,7 @@ export function ReplyComposer({
   maxChars,
 }: ReplyComposerProps) {
   const t = useTranslations("replies");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, pending } = useAction();
 
   // The server action revalidates, so a regenerated draft arrives as a new
   // prop. Tracking the prop we last rendered and resetting during render —
@@ -78,14 +78,6 @@ export function ReplyComposer({
     setServerText(reply?.text ?? "");
     setText(reply?.text ?? "");
   }
-
-  const run = (action: () => Promise<{ ok: boolean; error?: string }>) => {
-    setError(null);
-    startTransition(async () => {
-      const result = await action();
-      if (!result.ok) setError(result.error ?? t("failed"));
-    });
-  };
 
   const posted = reply?.status === "posted";
   const approved = reply?.status === "approved";
@@ -163,7 +155,6 @@ export function ReplyComposer({
                 onClick={() => {
                   setWriting(false);
                   setText("");
-                  setError(null);
                 }}
               >
                 {t("cancel")}
@@ -302,8 +293,6 @@ export function ReplyComposer({
       {reply?.lastError ? (
         <p className="text-copy text-destructive">{t("lastError", { reason: reply.lastError })}</p>
       ) : null}
-
-      {error ? <p className="text-copy text-destructive">{error}</p> : null}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { weekWindow } from "@/digest/metrics";
 import { digestProgress, setActionStatus, type DigestProgress } from "@/digest/queries";
 import { requestDigest } from "@/jobs/client";
 import { childLogger } from "@/lib/logger";
-import { toActionResult, type ActionResult } from "@/server/action-result";
+import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
  * Digest actions (P1a-T7).
@@ -22,7 +22,7 @@ const log = childLogger({ module: "server/digests" });
 
 export async function generateDigestAction(input: { locationId: string }): Promise<ActionResult> {
   const parsed = z.object({ locationId: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid location." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid location.");
 
   try {
     const queued = await withAuthenticatedTenant(
@@ -64,7 +64,7 @@ export async function digestProgressAction(input: {
   locationId: string;
 }): Promise<ActionResult<DigestProgress>> {
   const parsed = z.object({ locationId: z.uuid() }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid location." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid location.");
 
   try {
     const progress = await withAuthenticatedTenant(
@@ -98,7 +98,7 @@ export async function setDigestActionStatusAction(input: {
   status: string;
 }): Promise<ActionResult> {
   const parsed = statusSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid action." };
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid action.");
 
   try {
     const updated = await withAuthenticatedTenant(

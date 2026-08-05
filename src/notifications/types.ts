@@ -13,3 +13,18 @@
 
 /** One scroll-page of notifications in the bell's popover. */
 export const FEED_PAGE_SIZE = 20;
+
+/**
+ * The largest number the bell's badge will print; past it, `9+` (W1.3).
+ *
+ * A badge is a nudge, not a readout. Nobody triages differently at 44 than at
+ * 217 — both mean "more than you are going to deal with in one sitting" — and
+ * printing the real figure on a fresh account made the product's first
+ * impression a number the owner could only feel bad about. The count itself is
+ * still exact everywhere it means something: the popover lists them, and
+ * mark-all-read clears them.
+ *
+ * Here rather than in the component because this module is the db-free home for
+ * shared notification constants — the `"use client"` rule in CLAUDE.md.
+ */
+export const BADGE_CAP = 9;

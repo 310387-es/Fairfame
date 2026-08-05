@@ -166,6 +166,21 @@ export type RunAiArgs = {
   provider?: LlmProvider | undefined;
   timeoutMs?: number | undefined;
   maxRetries?: number | undefined;
+  /**
+   * Checks the response before it is accepted, and rejects it by throwing
+   * (W1.6).
+   *
+   * The retry loop below wraps the *provider call*, so a response that arrives
+   * intact but is unusable — schema-valid Turkish with every diacritic stripped,
+   * an action citing no evidence — had no way to earn a second attempt. It was
+   * either taken as-is or thrown away entirely, and for the once-a-week digest
+   * both are bad answers when asking again costs one call.
+   *
+   * Throw an `LlmError` with `retryable: true` to ask again; anything else
+   * fails the call outright. A validator that always throws burns exactly
+   * `maxRetries` attempts and then surfaces, which is the intended ceiling.
+   */
+  validate?: ((response: LlmResponse) => void) | undefined;
   /** Injected for deterministic backoff in tests. */
   sleep?: ((ms: number) => Promise<void>) | undefined;
   random?: (() => number) | undefined;
@@ -245,6 +260,12 @@ export async function runAi(args: RunAiArgs): Promise<AiOutcome> {
 
     try {
       const response = await provider.complete(args.prompt.request, controller.signal);
+
+      // Before the cost is recorded as a success: a rejected response still
+      // cost money and still belongs in the audit trail, which the catch path
+      // below records as a failure.
+      args.validate?.(response);
+
       const durationMs = Date.now() - startedAt;
       const cost = estimateCost(response.model, response.usage);
 
