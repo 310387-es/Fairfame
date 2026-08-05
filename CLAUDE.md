@@ -98,4 +98,4 @@ AI operator commands: `pnpm ai:smoke` (one call, checks the key and model), `pnp
 
 ## Docs
 
-`docs/` holds the full plan (01 master → 18). Read 02, 03, 06 before building; 09 (Phase 0), 10 (1a), 11 (1b) and 17 (Phase 2) are the build plans; 12 is the AI-guardrail evidence, 13 the go-live runbook, 14 the digest-surfaces plan, **15 the design system — read it before any UI work**, 16 code hygiene, 18 the accessibility and mobile evidence. `home-live-dashboard.md` is the superseded Home handoff, kept for its metric definitions.
+`docs/` holds the full plan (01 master → 20; `docs/README.md` is the index). Read 02, 03, 06 before building; 09 (Phase 0), 10 (1a), 11 (1b), 17 (Phase 2), 19 (Phase 3) and 20 (Phase 4, planned, not started) are the build plans; 12 is the AI-guardrail evidence, 13 the go-live runbook, 14 the digest-surfaces plan, **15 the design system — read it before any UI work**, 16 code hygiene, 18 the accessibility and mobile evidence. Numbering is chronological, so a build plan's number is not its phase number. `home-live-dashboard.md` is the superseded Home handoff, kept for its metric definitions.

@@ -2,7 +2,9 @@
 
 Planning and design documentation for **Revira** *(provisional name)* — a review & customer-voice management SaaS. Launch market: Türkiye. Built global-ready.
 
-> Source-of-truth planning docs. `CLAUDE.md` (repo root) gives Claude Code its project context. Build plans: `09` (Phase 0), `10` (Phase 1a), `11` (Phase 1b) — all built. `13` is what to do when credentials arrive.
+> Source-of-truth planning docs. `CLAUDE.md` (repo root) gives Claude Code its project context. Build plans: `09` (Phase 0), `10` (Phase 1a), `11` (Phase 1b), `17` (Phase 2), `19` (Phase 3) — all built; `20` (Phase 4) is planned and not started. `13` is what to do when credentials arrive.
+>
+> **Numbering is chronological, not thematic** — a doc keeps the number it was written under. `14` was briefly used twice; the Phase 4 plan now sits at `20`, after the phase plan before it.
 
 ## Index
 
@@ -21,8 +23,13 @@ Planning and design documentation for **Revira** *(provisional name)* — a revi
 | 11 | [Phase 1b Build Plan](./11-phase-1b-build-plan.md) | ✅ Built — real connectors against documented APIs + fixtures; credentials and live verification at go-live. |
 | 12 | [AI Guardrail Validation](./12-ai-guardrail-validation.md) | What has actually been tested about the AI layer: threat model, structural defences, adversarial results, known gaps. |
 | 13 | [Go-Live](./13-go-live.md) | Per-platform prerequisites and verification steps for when the company exists — plus what `pnpm golive` checks and what it deliberately does not. |
-
 | 14 | [Digest Surfaces](./14-digest-surfaces.md) | Where the weekly digest goes now Home is a live dashboard: email (D1), a `/digest` archive (D2), the copy move (D3), WhatsApp (D4) — and the weekly-vs-daily cadence decision. |
+| 15 | [Design System](./15-design-system.md) | Tokens, type, components and layout rules. **Read before any UI work** — one theme, no dark mode, no literal hex. |
+| 16 | [Code Hygiene](./16-code-hygiene.md) | What `pnpm knip` and `pnpm check:i18n` gate, and the standing exceptions — including what is unshipped rather than dead. |
+| 17 | [Phase 2 Build Plan](./17-phase-2-build-plan.md) | ✅ Done — unified inbox, triage, assignment and SLA, saved views, bulk actions, team scope. |
+| 18 | [Accessibility & Mobile Verification](./18-accessibility-verification.md) | Evidence for the WCAG AA and 390px requirements: what was automated, what was checked by hand, and with which screen readers. |
+| 19 | [Phase 3 Build Plan](./19-phase-3-build-plan.md) | ✅ Done — widgets, rating badge, SEO review pages, the Insights workspace, scheduled PDF reports, competitor benchmarking. |
+| 20 | [Phase 4 Build Plan](./20-phase-4-build-plan.md) | ⏳ Planned — contacts/CRM, surveys, two-way messaging, campaigns, agency white-label. Not started. |
 | — | [Home — Live Dashboard](./home-live-dashboard.md) | Implementation handoff for the Home redesign: tokens, layout, the ten widgets, data notes. |
 
 Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude Code.
@@ -37,6 +44,9 @@ Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude
 - **Phase 0 — Foundations:** ✅ done.
 - **Phase 1a — AI layer & Action Digest (on mock):** ✅ done, and live-verified against a real model.
 - **Phase 1b — real connectors:** ✅ code-complete. T1 first-party collection is live-tested; T0 infrastructure, T5 compliance and T6 the contract/go-live suite are done. **T2 Google, T3 WhatsApp and T4 Instagram are fixture-tested only** — credentials, platform approvals (Google Business Profile, Meta verification + app review, İYS) and live verification are gated on company formation. See [`13-go-live.md`](./13-go-live.md).
+- **Phase 2 — unified inbox & team workflow:** ✅ done, on the mock connector.
+- **Phase 3 — showcase & analyze:** ✅ done, on the mock connector. Live competitor data is gated on go-live.
+- **Phase 4 — engage:** ⏳ planned, not started. Outbound messaging is gated on credentials the way 1b is.
 
 ## Stack (locked)
 
