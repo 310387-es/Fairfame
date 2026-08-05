@@ -149,6 +149,20 @@ export type ReportSweepJob = {
   kind: "report_sweep";
 };
 
+/**
+ * Sends every broadcast whose scheduled time has arrived (P4-T4).
+ *
+ * A sweep, like the others, and for the same reason — a due time is not an
+ * event, something has to come looking. It runs far more often than they do
+ * because the granularity a business expects is different: "send this at 10am
+ * on Thursday" tolerates a minute, not an hour. The query is one partial index
+ * scan when nothing is due, and the claim in `runBroadcast` is what makes two
+ * sweeps racing produce one send.
+ */
+export type BroadcastSweepJob = {
+  kind: "broadcast_sweep";
+};
+
 export type ReviewJob =
   | ScanJob
   | SyncJob
@@ -161,7 +175,8 @@ export type ReviewJob =
   | DigestJob
   | DigestSweepJob
   | DigestDeliverJob
-  | ReportSweepJob;
+  | ReportSweepJob
+  | BroadcastSweepJob;
 
 /**
  * BullMQ requires `maxRetriesPerRequest: null`: its blocking commands park on
@@ -312,6 +327,7 @@ export const IYS_SWEEP_SCHEDULER_ID = "iys-sweep";
 
 /** Stable scheduler id, so re-running the worker does not stack schedulers. */
 export const REPORT_SWEEP_SCHEDULER_ID = "report-sweep";
+export const BROADCAST_SWEEP_SCHEDULER_ID = "broadcast-sweep";
 export const DIGEST_SWEEP_SCHEDULER_ID = "digest-sweep";
 
 /**
@@ -418,6 +434,26 @@ export async function scheduleReportSweep(
     REPORT_SWEEP_SCHEDULER_ID,
     { every: everyMs },
     { name: "report_sweep", data: { kind: "report_sweep" } },
+  );
+}
+
+/**
+ * Installs the repeating broadcast sweep (P4-T4).
+ *
+ * Every minute by default, unlike the hourly sweeps around it. A report is due
+ * once a week and an hour's slack is invisible; a campaign scheduled for 10am
+ * on Thursday is a promise about a time somebody chose, and an hour late is a
+ * different campaign. The cost of the extra frequency is one partial-index scan
+ * that finds nothing.
+ */
+export async function scheduleBroadcastSweep(
+  queue: Queue<ReviewJob>,
+  everyMs = 60_000,
+): Promise<void> {
+  await queue.upsertJobScheduler(
+    BROADCAST_SWEEP_SCHEDULER_ID,
+    { every: everyMs },
+    { name: "broadcast_sweep", data: { kind: "broadcast_sweep" } },
   );
 }
 

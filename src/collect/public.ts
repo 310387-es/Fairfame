@@ -149,6 +149,54 @@ export async function markRequestOpened(
 export type UnsubscribeResult = { ok: boolean; email: string | null };
 
 /**
+ * Which contact a token in an outbound message belongs to.
+ *
+ * **Every kind of token we mint has to resolve here**, because there is one
+ * opt-out URL shape and one route behind it, and a mail provider parsing
+ * `List-Unsubscribe` does not know which of our features sent the message. When
+ * P4-T2 added survey invitations, a lookup that only knew about review requests
+ * would have shipped a compliance footer whose link quietly did nothing — the
+ * worst possible failure for the one control a recipient is legally entitled to.
+ *
+ * Review requests first because they are far the more common; a survey token is
+ * the same shape, so both must be tried rather than distinguished by looking.
+ */
+async function contactBehindToken(
+  token: string,
+): Promise<{ organizationId: string; contactId: string; via: string; entityId: string } | null> {
+  const request = await resolveRequestByToken(token);
+  if (request?.contactId) {
+    return {
+      organizationId: request.campaign.organizationId,
+      contactId: request.contactId,
+      via: "email_link",
+      entityId: request.campaign.campaignId,
+    };
+  }
+
+  const [survey] = await getAdminDb()
+    .select({
+      organizationId: schema.surveyResponses.organizationId,
+      contactId: schema.surveyResponses.contactId,
+      surveyId: schema.surveyResponses.surveyId,
+    })
+    .from(schema.surveyResponses)
+    .where(eq(schema.surveyResponses.token, token))
+    .limit(1);
+
+  if (survey?.contactId) {
+    return {
+      organizationId: survey.organizationId,
+      contactId: survey.contactId,
+      via: "survey_email_link",
+      entityId: survey.surveyId,
+    };
+  }
+
+  return null;
+}
+
+/**
  * Honours an opt-out from a link in a message we sent.
  *
  * Idempotent, and irreversible from here: `unsubscribed_at` is only ever set,
@@ -158,11 +206,12 @@ export async function unsubscribeByToken(
   token: string,
   now = new Date(),
 ): Promise<UnsubscribeResult> {
-  const request = await resolveRequestByToken(token);
-  if (!request?.contactId) return { ok: false, email: null };
+  if (!looksLikeToken(token)) return { ok: false, email: null };
 
-  const contactId = request.contactId;
-  const organizationId = request.campaign.organizationId;
+  const source = await contactBehindToken(token);
+  if (!source) return { ok: false, email: null };
+
+  const { organizationId, contactId } = source;
 
   return withTenant({ organizationId }, async (tx) => {
     const [contact] = await tx
@@ -182,7 +231,7 @@ export async function unsubscribeByToken(
       actorUserId: null,
       action: "contact.unsubscribed",
       entity: `contact:${contactId}`,
-      meta: { via: "email_link", campaignId: request.campaign.campaignId },
+      meta: { via: source.via, sourceId: source.entityId },
     });
 
     return { ok: contact !== undefined, email: contact?.email ?? null };

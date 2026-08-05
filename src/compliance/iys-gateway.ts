@@ -80,6 +80,32 @@ export function createLocalGateway(nodeEnv: string): IysGateway {
  * when none is configured — the caller logs it so a deployment that cannot send
  * says so loudly at boot rather than at the first refused message.
  */
+/**
+ * Gateway names that mean "the İYS registry actually holds this permission".
+ *
+ * **Empty on purpose, and that is the true answer today.** `local` accepts
+ * without contacting anyone, so a consent it marked uploaded is registered
+ * nowhere — the whole reason `consent_records.iys_uploaded_via` exists is that
+ * the two are otherwise indistinguishable in the table. A real BSP adapter adds
+ * its name here when it lands, and every screen that asks the question below
+ * starts telling the truth about it on the same commit.
+ *
+ * An allowlist rather than a denylist of `local`: an adapter nobody has vetted
+ * should not count as a registration merely because it is new.
+ */
+const REGISTRY_GATEWAYS: readonly string[] = [];
+
+/**
+ * Did a real registry accept this consent?
+ *
+ * The İYS counterpart of `CompetitorSource.isReal` (P3-T6), and here for the
+ * same reason: a surface must be able to distinguish a development artefact
+ * from the thing it stands in for, without guessing from a name.
+ */
+export function isRegisteredVia(via: string | null): boolean {
+  return via !== null && REGISTRY_GATEWAYS.includes(via);
+}
+
 export function installIysGateway(): string | null {
   const env = getEnv();
 

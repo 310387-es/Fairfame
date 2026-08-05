@@ -24,6 +24,13 @@ async function tabThrough(page: Page, steps: number) {
       const el = document.activeElement;
       if (!el || el === document.body) return null;
 
+      // Next's development error overlay mounts a focusable custom element
+      // outside the app. It is not part of the product and does not exist in a
+      // production build, so counting it would fail these assertions for a
+      // reason no user will ever see. Screens with fewer controls than the
+      // inbox tab far enough to reach it.
+      if (el.closest("nextjs-portal")) return null;
+
       const style = getComputedStyle(el);
       const label =
         el.getAttribute("aria-label") ?? (el as HTMLElement).innerText ?? el.textContent ?? "";
@@ -103,5 +110,44 @@ test.describe("moving through the inbox with a keyboard", () => {
     const distinct = new Set(stops.map((stop) => `${stop.role}:${stop.name}`));
 
     expect(distinct.size).toBeGreaterThan(20);
+  });
+});
+
+test.describe("moving through contacts with a keyboard", () => {
+  /**
+   * The Phase 4 screen (P4-T1). Its controls are deliberately links and a plain
+   * GET form rather than client state, so most of this is the browser's own
+   * behaviour — which is exactly why it is worth asserting that it survived:
+   * a chip rendered as a `<div onClick>` would look identical and stop being
+   * reachable at all.
+   */
+  test("reaches the search box and every filter chip, each named and ringed", async ({ page }) => {
+    await page.goto("/contacts");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    const stops = await tabThrough(page, 40);
+
+    expect(stops.length, "tabbing should reach the page's controls").toBeGreaterThan(10);
+    expect(stops.filter((stop) => stop.name === "")).toEqual([]);
+    expect(stops.filter((stop) => !stop.ring)).toEqual([]);
+
+    // The search field is a real input, so it is a focus stop with an
+    // accessible name rather than a placeholder pretending to be a label.
+    const search = page.getByRole("searchbox");
+    await expect(search).toBeVisible();
+    await expect(search).toHaveAttribute("aria-label", /.+/);
+  });
+
+  test("submits a search with Enter, keeping the filters already applied", async ({ page }) => {
+    // The form carries every other filter as hidden inputs. Without them,
+    // pressing Enter in the search box would silently clear the tag you had
+    // selected — which reads as "the filter is broken", not "the form is".
+    await page.goto("/contacts?sub=unsubscribed");
+
+    await page.getByRole("searchbox").fill("ayse");
+    await page.getByRole("searchbox").press("Enter");
+
+    await page.waitForURL(/\/contacts\?.*q=ayse/);
+    expect(new URL(page.url()).searchParams.get("sub")).toBe("unsubscribed");
   });
 });

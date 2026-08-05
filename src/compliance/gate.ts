@@ -136,16 +136,35 @@ export type IysGateway = {
   }): Promise<IysUploadOutcome[]>;
 };
 
-let gateway: IysGateway | null = null;
+/**
+ * The installed gateway, held on `globalThis` rather than in a module variable.
+ *
+ * **Found by running it (P4-T4).** Next's `instrumentation.ts` hook is bundled
+ * separately from the app's own module graph, so `installIysGateway()` at boot
+ * populated one instance of this module while a server action read another. The
+ * boot log said `İYS gateway is 'local'` and the very next commercial send was
+ * refused with `iys_not_configured` — a contradiction visible only in a
+ * successful gated send through the browser, which is why three tasks' worth of
+ * unit and DB tests (which install the gateway in their own process) never saw
+ * it.
+ *
+ * A `globalThis` singleton is the standard shape for exactly this in Next, and
+ * it is right for more than convenience: **there is one İYS registry per
+ * deployment.** A per-bundle gateway is not a thing that can meaningfully
+ * exist, so a per-bundle variable was always the wrong container.
+ */
+const GATEWAY_KEY = Symbol.for("revira.iys.gateway");
+
+type GatewayHolder = { [GATEWAY_KEY]?: IysGateway | null };
 
 /** Installs the İYS gateway. T5's job; tests use it too. */
 export function setIysGateway(next: IysGateway | null): void {
-  gateway = next;
+  (globalThis as GatewayHolder)[GATEWAY_KEY] = next;
 }
 
 /** The installed gateway, or null when this deployment has none. */
 export function getIysGateway(): IysGateway | null {
-  return gateway;
+  return (globalThis as GatewayHolder)[GATEWAY_KEY] ?? null;
 }
 
 /**
@@ -304,6 +323,8 @@ export async function checkSendAllowed(
     // registry check is skipped.
     return { allowed: true, intent, reason: "consented" };
   }
+
+  const gateway = getIysGateway();
 
   if (!gateway) {
     log.warn(

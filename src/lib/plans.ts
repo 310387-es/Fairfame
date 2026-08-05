@@ -63,6 +63,73 @@ export const FEATURE_KEYS = [
   "saved_views",
   "bulk_actions",
   "sla_tracking",
+  /**
+   * Contact profiles, the timeline and segments (P4-T1).
+   *
+   * `docs/05` has no line for this — it was written before Phase 4 existed — so
+   * the packaging comes from `docs/20` P4-T6, which puts "messaging + surveys +
+   * CRM" at Growth and above. Starter is one location and two seats; the thing
+   * it is sold is the review loop, and a customer database is what starts
+   * mattering when there is somebody whose job is to work it.
+   *
+   * Deliberately one key covering the profiles, the timeline and the segments
+   * together: they are not three purchases, and a plan that granted the list
+   * without the history would be selling a spreadsheet.
+   */
+  "crm",
+  /**
+   * NPS / CSAT surveys (P4-T2).
+   *
+   * Growth and above, from the same `docs/20` P4-T6 line as `crm`. Its own key
+   * rather than sharing that one: a business may well want a customer file
+   * without running surveys, and the point of a key is that moving one is a
+   * config edit. The Insights survey card is gated on **both** this and
+   * `analytics` — a panel that answered when the workspace around it would not
+   * is a way to read a paid feature by URL.
+   */
+  "surveys",
+  /**
+   * Two-way messaging with customers (P4-T3).
+   *
+   * Growth and above, the third key from `docs/20` P4-T6's "messaging +
+   * surveys + CRM" line. Its own key for the same reason the other two have
+   * theirs: a business may want a customer file and surveys without running a
+   * WhatsApp inbox, and moving one of the three must be a config edit.
+   *
+   * It gates the *screen and the send*, not the **inbound webhook**. A message
+   * a customer has already sent must still be recorded and must still be able
+   * to opt them out, whatever the plan says — dropping an inbound "STOP"
+   * because a subscription lapsed would be the worst possible way to save
+   * money.
+   */
+  "messaging",
+  /**
+   * Unified outbound broadcasts (P4-T4).
+   *
+   * Growth and above. `docs/20` P4-T6 lists "campaigns" on its own line, apart
+   * from the messaging/surveys/CRM group, and the split is real: a business can
+   * want a customer file and a survey without ever scheduling a send to five
+   * hundred people. The thing this gates is *scale* — which is also the thing
+   * that costs money and the thing a consent mistake multiplies.
+   */
+  "broadcasts",
+  /**
+   * The agency console — `/clients` (P4-T6).
+   *
+   * **Agency tier, because `docs/20` P4-T6 says so**, and this reverses my own
+   * first judgement. T5 shipped it ungated on the argument that a roster is
+   * bookkeeping over access somebody already has, so there is nothing to sell.
+   * That argument is not wrong, but it is an argument about *this* screen, and
+   * the plan prices "white-label + agency console" together as the thing an
+   * agency buys. A build plan that says which tier a feature is on is a pricing
+   * decision already taken.
+   *
+   * **The organization switcher is deliberately *not* behind this.** Being able
+   * to leave an organization you are a member of is not a feature; a person
+   * stranded in a client account because somebody downgraded is a support
+   * ticket, not an upsell.
+   */
+  "agency_console",
 ] as const;
 
 export const LIMIT_KEYS = [
@@ -149,6 +216,11 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         // it back would withhold the thing that demonstrates the product works
         // from the tier most likely to need convincing.
         sla_tracking: true,
+        crm: false,
+        surveys: false,
+        messaging: false,
+        broadcasts: false,
+        agency_console: false,
       },
       limits: {
         max_locations: 1,
@@ -185,6 +257,11 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         saved_views: true,
         bulk_actions: true,
         sla_tracking: true,
+        crm: true,
+        surveys: true,
+        messaging: true,
+        broadcasts: true,
+        agency_console: false,
       },
       limits: {
         max_locations: 3,
@@ -221,6 +298,11 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         saved_views: true,
         bulk_actions: true,
         sla_tracking: true,
+        crm: true,
+        surveys: true,
+        messaging: true,
+        broadcasts: true,
+        agency_console: false,
       },
       limits: {
         max_locations: 10,
@@ -257,6 +339,11 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         saved_views: true,
         bulk_actions: true,
         sla_tracking: true,
+        crm: true,
+        surveys: true,
+        messaging: true,
+        broadcasts: true,
+        agency_console: true,
       },
       limits: {
         max_locations: null,

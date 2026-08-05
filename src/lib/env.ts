@@ -98,6 +98,26 @@ const envSchema = z.object({
    */
   IYS_GATEWAY: z.enum(["none", "local"]).default("none"),
 
+  /**
+   * The SMS gateway (P4-T3). Deployment plumbing, not a connectable source —
+   * see the module note in `src/messaging/sms.ts`.
+   *
+   * Defaults to `none`, which refuses. In Türkiye the gateway is usually also
+   * the İYS integration, so a deployment that has not chosen one cannot send
+   * commercial SMS and should not be able to. `mock` accepts without leaving
+   * the machine and refuses outright in production.
+   */
+  SMS_GATEWAY: z.enum(["none", "mock"]).default("none"),
+
+  /**
+   * How often the worker looks for a broadcast whose time has come (P4-T4).
+   *
+   * A minute by default, unlike the hourly sweeps: "send at 10am on Thursday"
+   * is a promise about a time somebody chose, and an hour late is a different
+   * campaign. Costs one partial-index scan when nothing is due.
+   */
+  BROADCAST_SWEEP_INTERVAL_MS: z.coerce.number().int().min(5_000).max(3_600_000).default(60_000),
+
   IYS_REQUIRED: z
     .enum(["true", "false"])
     .default("true")
@@ -181,6 +201,22 @@ const envSchema = z.object({
    */
   PUBLIC_SUBMIT_LIMIT: z.coerce.number().int().min(1).max(1_000).default(5),
   PUBLIC_SUBMIT_WINDOW_SECONDS: z.coerce.number().int().min(1).max(86_400).default(600),
+
+  /**
+   * The same guard for an anonymous survey answer (P4-T2), and deliberately
+   * looser than the review one.
+   *
+   * A review is written by one customer who was asked; a survey card sits on a
+   * table or comes with the bill, so a dozen people on one café's Wi-Fi
+   * answering within ten minutes is the **normal case**, not abuse. At the
+   * review endpoint's 5 the sixth genuine customer would be turned away — found
+   * by hitting it, seeding a demo survey.
+   *
+   * It guards the *slug* path only. An invited answer arrives with an
+   * unguessable token that may be used exactly once, so a limit there would
+   * cost real answers and prevent nothing.
+   */
+  PUBLIC_SURVEY_LIMIT: z.coerce.number().int().min(1).max(1_000).default(30),
 
   // -------------------------------------------------------------------------
   // Connector infrastructure (P1b-T0)

@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { roleAtLeast } from "@/auth/permissions";
 import { requireActor } from "@/auth/session";
+import { BrandingForm } from "@/components/agency/branding-form";
 import { PreferenceForm, type PreferenceValue } from "@/components/notifications/preference-form";
 import { TemplateManager } from "@/components/replies/template-manager";
 import { PageHeader } from "@/components/shell/page-header";
@@ -10,6 +11,10 @@ import { listLocationsForActor } from "@/lib/active-location";
 import { withTenant } from "@/lib/tenancy";
 import { DEFAULT_PREFERENCE, preferencesForUser } from "@/notifications/preferences";
 import { MAX_TEMPLATE_BODY, listReplyTemplates } from "@/replies/templates";
+import { parseBranding } from "@/agency/branding";
+import { can } from "@/lib/entitlements";
+import { schema } from "@/db/client";
+import { eq } from "drizzle-orm";
 
 /**
  * Settings.
@@ -19,22 +24,36 @@ import { MAX_TEMPLATE_BODY, listReplyTemplates } from "@/replies/templates";
  * which is why the query takes `actor.userId`.
  */
 export default async function SettingsPage() {
-  const [t, tn, tt, actor, locale] = await Promise.all([
+  const [t, tn, tt, tb, actor, locale] = await Promise.all([
     getTranslations("settings"),
     getTranslations("settings.notifications"),
     getTranslations("templates"),
+    getTranslations("branding"),
     requireActor(),
     getLocale(),
   ]);
 
-  const { locations, preferences, templates } = await withTenant(
+  const { locations, preferences, templates, organization, canWhiteLabel } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => ({
       locations: await listLocationsForActor(tx, actor),
       preferences: await preferencesForUser(tx, actor.organizationId, actor.userId),
       templates: await listReplyTemplates(tx, actor.organizationId),
+      organization: await tx
+        .select({
+          logo: schema.organizations.logo,
+          branding: schema.organizations.branding,
+          customDomain: schema.organizations.customDomain,
+        })
+        .from(schema.organizations)
+        .where(eq(schema.organizations.id, actor.organizationId))
+        .limit(1)
+        .then(([row]) => row ?? null),
+      canWhiteLabel: await can({ organizationId: actor.organizationId, tx }, "white_label"),
     }),
   );
+
+  const branding = parseBranding(organization?.branding);
 
   const defaultRow = preferences.find((row) => row.locationId === null);
   const defaultValue: PreferenceValue = defaultRow
@@ -93,6 +112,31 @@ export default async function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/*
+        Branding (P4-T5). Admin only: it changes what a business's customers
+        see, which is not a per-person preference like the block above.
+      */}
+      {roleAtLeast(actor.role, "admin") ? (
+        <Card id="branding" className="mt-4 scroll-mt-20">
+          <CardHeader>
+            <CardTitle>{tb("title")}</CardTitle>
+            <CardDescription>{tb("subtitle")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BrandingForm
+              initial={{
+                senderName: branding.senderName ?? "",
+                primaryColor: branding.primaryColor ?? "",
+                logoUrl: organization?.logo ?? "",
+                hidePoweredBy: branding.hidePoweredBy ?? false,
+                customDomain: organization?.customDomain ?? "",
+              }}
+              canWhiteLabel={canWhiteLabel}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card id="templates" className="mt-4 scroll-mt-20">
         <CardHeader>

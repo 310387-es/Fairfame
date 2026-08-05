@@ -15,6 +15,7 @@ import { SearchPalette } from "@/components/shell/search-palette";
 import { SidebarNav } from "@/components/shell/sidebar-nav";
 import { TrialFooter } from "@/components/shell/trial-footer";
 import { UserMenu } from "@/components/shell/user-menu";
+import { listOrganizationsForUser } from "@/agency/clients";
 import { getLocale } from "@/i18n/locale";
 import {
   listLocationsForActor,
@@ -45,6 +46,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const locale = await getLocale();
+
+  // Outside the tenant transaction on purpose: this is the *user's* own
+  // membership list, not tenant data, and scoping it to the organization they
+  // happen to be in would return exactly one row — the one they are already on.
+  const organizations = await listOrganizationsForUser(actor.userId);
 
   const { locations, entitlements, unread } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
@@ -123,6 +129,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               name={session?.user.name ?? ""}
               email={session?.user.email ?? ""}
               role={actor.role}
+              organizations={organizations.map(({ id, name }) => ({ id, name }))}
+              activeOrganizationId={actor.organizationId}
             />
           </div>
         </header>

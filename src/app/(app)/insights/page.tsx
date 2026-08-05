@@ -33,6 +33,9 @@ import {
 import { listLocationsForActor } from "@/lib/active-location";
 import { loadBenchmark } from "@/competitors/benchmark";
 import { can } from "@/lib/entitlements";
+import { SurveyScoreCard } from "@/components/insights/survey-score-card";
+import { loadSurveyInsights } from "@/surveys/insights";
+import { headline, MIN_MEANINGFUL_RESPONSES } from "@/surveys/scoring";
 import { getSchedule } from "@/reports/store";
 import { withTenant } from "@/lib/tenancy";
 import { ANALYZE_PROMPT_ID } from "@/prompts";
@@ -70,8 +73,19 @@ export default async function InsightsPage({ searchParams }: PageProps) {
   const range = parseRange(query.range);
   const window = rangeWindow(range, new Date());
 
-  const { facts, locations, schedule, canAnalytics, canSchedule, canBenchmark, benchmark } =
-    await withTenant({ organizationId: actor.organizationId, userId: actor.userId }, async (tx) => {
+  const {
+    facts,
+    locations,
+    schedule,
+    canAnalytics,
+    canSchedule,
+    canBenchmark,
+    canSurveys,
+    surveyScores,
+    benchmark,
+  } = await withTenant(
+    { organizationId: actor.organizationId, userId: actor.userId },
+    async (tx) => {
       const locations = await listLocationsForActor(tx, actor);
 
       return {
@@ -86,6 +100,16 @@ export default async function InsightsPage({ searchParams }: PageProps) {
         canAnalytics: await can({ organizationId: actor.organizationId, tx }, "analytics"),
         canSchedule: await can({ organizationId: actor.organizationId, tx }, "scheduled_reports"),
         canBenchmark: await can({ organizationId: actor.organizationId, tx }, "benchmarking"),
+        // Gated on `surveys` *and* on `analytics` above: the card lives inside
+        // the Insights workspace, and a panel that answered when the workspace
+        // around it would not is a way to read a paid feature by URL.
+        canSurveys: await can({ organizationId: actor.organizationId, tx }, "surveys"),
+        surveyScores: await loadSurveyInsights(
+          tx,
+          actor.organizationId,
+          locations.map((location) => location.id),
+          window,
+        ),
         // Lifetime, not the selected range — a listing shows an all-time
         // rating, so the two halves have to be measured the same way.
         benchmark: await loadBenchmark(
@@ -101,7 +125,8 @@ export default async function InsightsPage({ searchParams }: PageProps) {
           ANALYZE_PROMPT_ID,
         ),
       };
-    });
+    },
+  );
 
   const { current, previous } = facts;
 
@@ -340,6 +365,37 @@ export default async function InsightsPage({ searchParams }: PageProps) {
               negative: theme.negative,
             }))}
           />
+
+          {canSurveys && surveyScores.length > 0 ? (
+            <SurveyScoreCard
+              title={t("surveys")}
+              note={t("surveysNote")}
+              thinSample={t("surveysThin", { min: MIN_MEANINGFUL_RESPONSES })}
+              rows={surveyScores.map((entry) => {
+                const now = headline(entry.current);
+                const before = entry.previous ? headline(entry.previous) : null;
+
+                return {
+                  type: entry.type,
+                  label: entry.type === "nps" ? t("surveyNps") : t("surveyCsat"),
+                  // Formatted here, server-side. "—" rather than "0": an NPS of
+                  // zero is a real result, so printing it for "nobody answered"
+                  // would show a score nobody earned.
+                  value: now.value === null ? null : number(now.value, now.digits),
+                  responses: entry.current.responses,
+                  thin:
+                    entry.current.responses > 0 &&
+                    entry.current.responses < MIN_MEANINGFUL_RESPONSES,
+                  delta:
+                    now.value !== null && before?.value != null
+                      ? signed(now.value - before.value, now.digits)
+                      : null,
+                  better:
+                    now.value !== null && before?.value != null ? now.value >= before.value : null,
+                };
+              })}
+            />
+          ) : null}
 
           <BenchmarkCard
             rows={benchmark.rows.map((row) => ({

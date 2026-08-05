@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { resolveCampaignBySlug } from "@/collect/public";
 import { resolveDestination } from "@/collect/routing";
 import { SubmissionForm, type SubmissionLabels } from "@/components/collect/submission-form";
-import { Logo } from "@/components/brand/logo";
+import { PublicMark } from "@/components/brand/public-mark";
+import { resolveBrand } from "@/agency/branding";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/config";
 import { publicBaseUrl } from "@/lib/urls";
@@ -54,6 +55,7 @@ export default async function CollectPage({ params, searchParams }: PageProps) {
   const locale = localeOf(campaign.locale);
   const t = await getTranslations({ locale, namespace: "collect" });
   const route = resolveDestination(campaign, publicBaseUrl());
+  const brand = await resolveBrand(campaign.organizationId);
 
   const shell = (children: React.ReactNode) => (
     <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-10">
@@ -65,8 +67,9 @@ export default async function CollectPage({ params, searchParams }: PageProps) {
       {children}
 
       <p className="mt-8 text-center text-copy text-muted-foreground">{t("kvkkNotice")}</p>
+      {/* Whose page this is (P4-T5). An agency's client shows the agency. */}
       <div className="mt-4 flex justify-center opacity-60">
-        <Logo className="text-muted-foreground" markClassName="size-4" />
+        <PublicMark brand={brand} />
       </div>
     </main>
   );

@@ -1,7 +1,7 @@
 import { AlarmClock, CheckCheck, ThumbsDown, UserRound, X } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { Chip, ChipGroup } from "@/components/inbox/chip";
+import { Chip, ChipGroup } from "@/components/ds/chip";
 import { Segmented } from "@/components/ds/segmented";
 import {
   ASSIGNEE_ME,

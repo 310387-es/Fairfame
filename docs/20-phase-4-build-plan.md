@@ -50,6 +50,36 @@ Tenant + contact isolation; **İYS/consent gate on every outbound** (no send wit
 
 ---
 
+## Amendments (recorded while building, 5 Aug 2026)
+
+**Broadcasts are priced at Growth, and that is a reading rather than a
+decision.** P4-T6 above says "messaging + surveys + CRM (Growth/Pro), campaigns,
+white-label + agency console (Agency tier)" — the parentheticals attach to the
+first and last groups, leaving campaigns between them without one. They are
+grouped with Growth, because they are plainly not inside the Agency
+parenthetical. A broadcast is the *scale* feature, though, which is a fair
+argument for Pro. **Open, deliberately deferred by the owner.** Moving it is one
+`false` in `src/lib/plans.ts`; `tests/lib/phase4-entitlements.test.ts` asserts
+the current value and says why, so changing it means editing an assertion that
+explains itself.
+
+**"Bulk multi-location management" (P4-T5) is a read, not a write.** The agency
+console shows a roster, every client's locations in one table, and a switcher.
+A screen that *wrote* across tenants could not go through `withTenant()`, and a
+query that is not tenant-scoped is the one shape this architecture has refused
+since Phase 0. Managing a client's locations means being in that client's
+account — one click away rather than zero.
+
+**One outbound path is still ungated, and it is a go-live step.** Review-request
+email (`src/collect/requests.ts`, P1b-T1) honours the opt-out but does not pass
+`checkSendAllowed`. Gating it today would stop review requests sending in every
+deployment without an İYS registry, which is all of them; the same send *inside
+a broadcast* is gated. Named rather than hidden in
+`tests/lib/outbound-consent.test.ts`, and written up as a step in
+`docs/13-go-live.md` § İYS.
+
+---
+
 ## Reminders (same standards)
 
 Build missing queries **alongside the feature — never stub**. Tokens/charts discipline. Full **TR/EN**. **WCAG 2.1 AA.** **Mobile-first.** WhatsApp is dominant in Türkiye — the messaging UX should feel native to it.

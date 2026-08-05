@@ -153,6 +153,66 @@ export const campaignDestinationEnum = pgEnum("campaign_destination", ["firstpar
  * either lands or does not. Collapsing them would make a transport failure
  * look like a withdrawn approval.
  */
+// -- Broadcasts (P4-T4) ------------------------------------------------------
+
+export const broadcastKindEnum = pgEnum("broadcast_kind", ["review_request", "survey", "message"]);
+
+export const broadcastStatusEnum = pgEnum("broadcast_status", [
+  "draft",
+  "scheduled",
+  "sending",
+  "sent",
+  "cancelled",
+]);
+
+/**
+ * `refused` is its own state, distinct from `failed`. One means the compliance
+ * gate said no before anything was attempted; the other means a platform
+ * accepted the request and then could not deliver. Collapsing them would hide
+ * the only one an operator can act on.
+ */
+export const broadcastRecipientStatusEnum = pgEnum("broadcast_recipient_status", [
+  "pending",
+  "sent",
+  "refused",
+  "failed",
+]);
+
+// -- Two-way messaging (P4-T3) ----------------------------------------------
+
+export const messageChannelEnum = pgEnum("message_channel", ["whatsapp", "sms"]);
+
+export const messageDirectionEnum = pgEnum("message_direction", ["inbound", "outbound"]);
+
+/**
+ * The union of both directions' lifecycles. `received` is the only inbound
+ * state — there is nothing to track after a message arrives — while an outbound
+ * one walks queued → sent → delivered → read, or lands on failed.
+ */
+export const messageStatusEnum = pgEnum("message_status", [
+  "received",
+  "queued",
+  "sent",
+  "delivered",
+  "read",
+  "failed",
+]);
+
+// -- Surveys (P4-T2) ---------------------------------------------------------
+
+export const surveyTypeEnum = pgEnum("survey_type", ["nps", "csat"]);
+
+export const surveyStatusEnum = pgEnum("survey_status", ["draft", "active", "archived"]);
+
+/** The `review_request_status` funnel, plus the state specific to a survey. */
+export const surveyResponseStatusEnum = pgEnum("survey_response_status", [
+  "pending",
+  "sent",
+  "opened",
+  "answered",
+  "failed",
+]);
+
 export const replyStatusEnum = pgEnum("reply_status", ["draft", "approved", "posted", "failed"]);
 
 /**
@@ -308,6 +368,24 @@ export const organizations = pgTable("organizations", {
   currency: text("currency").notNull().default("TRY"),
   /** Our own org configuration. */
   settings: jsonb("settings").notNull().default({}),
+  /**
+   * The rest of a brand: primary colour, sender name, whether Revira's own mark
+   * appears (P4-T5). The logo itself is `logo` above, BetterAuth's column.
+   *
+   * On the organization rather than on the agency link, because an ordinary
+   * business branding its own public pages is not a white-label feature — it is
+   * just having a logo. What `white_label` gates is an *agency's* brand being
+   * applied to somebody else's pages.
+   */
+  branding: jsonb("branding").notNull().default({}),
+  /**
+   * The domain this organization's public pages are served from.
+   *
+   * **Storing it is not serving it.** DNS and a certificate are infrastructure
+   * this application cannot provision, so until go-live this is what the URL
+   * builders read and nothing more — see `src/agency/branding.ts`.
+   */
+  customDomain: text("custom_domain").unique(),
   /** BetterAuth's organization metadata — it stores stringified JSON here, so
    *  this is deliberately text and kept separate from `settings`. */
   metadata: text("metadata"),
@@ -725,6 +803,92 @@ export const contacts = pgTable(
   ],
 );
 
+// ---------------------------------------------------------------------------
+// Light CRM (P4-T1)
+// ---------------------------------------------------------------------------
+
+/**
+ * A label a business puts on a person.
+ *
+ * **One table, where reviews needed two.** `review_tags` points at `tags`, a
+ * curated vocabulary row, and the indirection earns its keep there: `tags`
+ * carries a running `review_count` so the themes list need not aggregate on
+ * every render, and `merged_into_id` so two themes can be folded together.
+ * Contact labels have neither, so a vocabulary table here would exist only to
+ * hold a string this table already holds.
+ *
+ * What the vocabulary bought is kept without the table. `slug` is the
+ * normalised form — src/contacts/tags.ts reuses the Turkish-aware slugifier
+ * from src/seo/slug.ts — and it, not `label`, is what uniqueness and every
+ * filter key on, so "VIP" and "vip " are one segment rather than two. `label`
+ * is what somebody typed and is shown as typed; applying a slug the
+ * organization already uses adopts the existing label, which is what keeps a
+ * rename to a single UPDATE.
+ */
+export const contactTags = pgTable(
+  "contact_tags",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    /** Normalised. What filters and segments match on. */
+    slug: text("slug").notNull(),
+    /** As typed, and shown as typed. */
+    label: text("label").notNull(),
+    /** Null once they leave — the label outlives the person. */
+    taggedByUserId: uuid("tagged_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (table) => [
+    unique("contact_tags_contact_slug_key").on(table.contactId, table.slug),
+    index("contact_tags_org_slug_idx").on(table.organizationId, table.slug),
+    index("contact_tags_contact_idx").on(table.contactId),
+    check("contact_tags_slug_not_blank", sql`length(${table.slug}) > 0`),
+  ],
+);
+
+/**
+ * A named contact filter — an audience.
+ *
+ * Stores the **query string**, flat, exactly as `saved_views` does, so the
+ * tolerant parser that reads the URL is also the validator for what was stored
+ * and a filter dropped in a later release degrades to "ignore that key".
+ *
+ * **No owner column, and that is the one real departure from `saved_views`.** A
+ * saved view is a way of looking at a queue, so a private one is coherent. A
+ * segment is an audience: P4-T4 points campaigns at these, and a campaign that
+ * sends real messages to one person's private list is not something an
+ * organization can account for afterwards. So a segment belongs to the
+ * organization, creating one needs admin, and a personal audience has no shape
+ * in which it can exist.
+ */
+export const contactSegments = pgTable(
+  "contact_segments",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Query-string pairs. Validated on read by src/contacts/filters.ts. */
+    filters: jsonb("filters").notNull().default({}),
+    /** Display order in the chip row. Ties break on name. */
+    position: integer("position").notNull().default(0),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    ...timestamps,
+  },
+  (table) => [
+    unique("contact_segments_org_name_key").on(table.organizationId, table.name),
+    index("contact_segments_org_position_idx").on(table.organizationId, table.position),
+  ],
+);
+
 /**
  * A collection strategy: which channel asks, and where it points.
  *
@@ -811,6 +975,146 @@ export const reviewRequests = pgTable(
     index("review_requests_organization_id_idx").on(table.organizationId),
     index("review_requests_campaign_id_idx").on(table.campaignId),
     index("review_requests_org_created_at_idx").on(table.organizationId, table.createdAt.desc()),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Surveys (P4-T2)
+// ---------------------------------------------------------------------------
+
+/**
+ * An NPS or CSAT survey.
+ *
+ * Shaped like `campaigns` on purpose: a definition that fixes everything
+ * *before* anybody answers.
+ *
+ * **The no-review-gating rule lives in the shape rather than in a check.** A
+ * survey has no review destination of its own — it names a collection
+ * *campaign*, and where that points is decided by `src/collect/routing.ts`,
+ * which takes a campaign and nothing else and has never been able to see a
+ * rating. So a survey inherits the guarantee instead of re-deriving it, and
+ * making the invitation depend on the score would mean giving that function a
+ * parameter three unrelated call sites depend on it not having.
+ */
+export const surveys = pgTable(
+  "surveys",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    locationId: uuid("location_id")
+      .notNull()
+      .references(() => locations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /**
+     * NPS (0–10) or CSAT (1–5). The scale is *not* stored: one that disagreed
+     * with the type would make every historical score unreadable, and
+     * `src/surveys/scoring.ts` is the single owner of what each type means.
+     */
+    type: surveyTypeEnum("type").notNull(),
+    status: surveyStatusEnum("status").notNull().default("draft"),
+    /** Language of the hosted page and the invitation. */
+    locale: text("locale"),
+    /** Public short code. Globally unique: it is a URL, not a tenant column. */
+    slug: text("slug").notNull().unique(),
+    /** The question, if the business wrote its own. Null uses the template. */
+    question: text("question"),
+    /**
+     * Whether a detractor is offered a private "tell us more" box after
+     * answering. **The only thing a score is allowed to decide.**
+     */
+    followUpEnabled: boolean("follow_up_enabled").notNull().default(true),
+    followUpPrompt: text("follow_up_prompt"),
+    /**
+     * Where a public review is invited after answering — for everybody, at
+     * every score, or for nobody. Null means the survey never mentions reviews.
+     */
+    reviewCampaignId: uuid("review_campaign_id").references(() => campaigns.id, {
+      onDelete: "set null",
+    }),
+    /** Per-survey copy overrides for the invitation: subject, heading, body. */
+    message: jsonb("message").notNull().default({}),
+    ...timestamps,
+  },
+  (table) => [
+    index("surveys_organization_id_idx").on(table.organizationId),
+    index("surveys_location_id_idx").on(table.locationId),
+  ],
+);
+
+/**
+ * One person's participation in one survey, from ask to answer.
+ *
+ * One table rather than "sends" plus "answers", for the reason `review_requests`
+ * is one table: "we asked 200 and 40 answered" is the first question anybody
+ * has, and across two tables it needs a join plus a decision about which side is
+ * authoritative. A walk-in answer — a QR scan with no invitation behind it — is
+ * a row created at answer time with `sent_at` null, exactly as
+ * `recordWalkInRequest` does for reviews.
+ */
+export const surveyResponses = pgTable(
+  "survey_responses",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    surveyId: uuid("survey_id")
+      .notNull()
+      .references(() => surveys.id, { onDelete: "cascade" }),
+    locationId: uuid("location_id")
+      .notNull()
+      .references(() => locations.id, { onDelete: "cascade" }),
+    /** Null for a walk-in: nobody was asked, and nobody gave us an address. */
+    contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+    channel: campaignChannelEnum("channel").notNull(),
+    status: surveyResponseStatusEnum("status").notNull().default("pending"),
+    /** The secret in the link, CSPRNG-generated and unique across tenants. */
+    token: text("token").notNull().unique(),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    /** First touch only — a second visit does not move the funnel backwards. */
+    openedAt: timestamp("opened_at", { withTimezone: true }),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    /**
+     * The raw answer, on the type's own scale. Stored raw rather than
+     * normalised: a 7 means different things on the two scales, and converting
+     * at write time would destroy the only number the customer actually gave.
+     */
+    score: integer("score"),
+    /** What they wrote alongside the score — what the survey asked for. */
+    comment: text("comment"),
+    /**
+     * The **private** follow-up a detractor is offered after answering.
+     *
+     * Kept apart from `comment` because it was given under a different promise:
+     * it answers "what went wrong, and may we put it right", not "what do you
+     * think of us". It is never a candidate for public display anywhere.
+     */
+    followUpComment: text("follow_up_comment"),
+    externalId: text("external_id"),
+    failureReason: text("failure_reason"),
+    meta: jsonb("meta").notNull().default({}),
+    ...timestamps,
+  },
+  (table) => [
+    index("survey_responses_organization_id_idx").on(table.organizationId),
+    index("survey_responses_survey_answered_idx").on(table.surveyId, table.answeredAt.desc()),
+    index("survey_responses_org_answered_idx")
+      .on(table.organizationId, table.answeredAt.desc())
+      .where(sql`answered_at is not null`),
+    index("survey_responses_contact_idx").on(table.contactId),
+    check(
+      "survey_responses_score_range",
+      sql`${table.score} is null or ${table.score} between 0 and 10`,
+    ),
+    // A row claiming to be answered must carry an answer, and vice versa —
+    // otherwise an interrupted write leaves an "answered" row with no score,
+    // silently dragging every average down by counting a non-answer.
+    check(
+      "survey_responses_answered_has_score",
+      sql`(${table.answeredAt} is null) = (${table.score} is null)`,
+    ),
   ],
 );
 
@@ -1020,6 +1324,240 @@ export const whatsappConversations = pgTable(
     index("whatsapp_conversations_org_inbound_idx").on(
       table.organizationId,
       table.lastInboundAt.desc(),
+    ),
+  ],
+);
+
+/**
+ * One outbound send, of one thing, to one audience, now or later (P4-T4).
+ *
+ * **Named `broadcasts`, not `campaigns`, and that is a deliberate deviation
+ * from `docs/20`'s wording.** The product has used "campaign" since P1b-T1 for
+ * a *collection strategy* — a location, a destination, a hosted page and a QR
+ * code, labelled "Campaign name" on `/requests`. Two different things one
+ * screen apart, both called a campaign, is worse than a table whose name does
+ * not match a sentence in a build plan. A broadcast *references* a campaign for
+ * its review-request kind; it does not replace it.
+ */
+export const broadcasts = pgTable(
+  "broadcasts",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    kind: broadcastKindEnum("kind").notNull(),
+    channel: campaignChannelEnum("channel").notNull(),
+    /** `set null`: deleting a segment must not delete what was sent to it. */
+    segmentId: uuid("segment_id").references(() => contactSegments.id, { onDelete: "set null" }),
+    /**
+     * **The audience as it was, not as it is.**
+     *
+     * A segment is a live query, so re-resolving it a month later answers a
+     * different question. The filter is copied here when the broadcast is
+     * queued; `broadcast_recipients` holds the list it resolved to, which is
+     * the answer that actually matters.
+     */
+    audience: jsonb("audience").notNull().default({}),
+    campaignId: uuid("campaign_id").references(() => campaigns.id, { onDelete: "set null" }),
+    surveyId: uuid("survey_id").references(() => surveys.id, { onDelete: "set null" }),
+    templateName: text("template_name"),
+    templateValues: jsonb("template_values").notNull().default([]),
+    /** Null means "send when told". A past time is sent by the next sweep. */
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    status: broadcastStatusEnum("status").notNull().default("draft"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    /** The whole send failing — e.g. the plan's credit is spent. */
+    failureReason: text("failure_reason"),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    ...timestamps,
+  },
+  (table) => [
+    index("broadcasts_organization_id_idx").on(table.organizationId, table.createdAt.desc()),
+    // The due queue. Partial, because almost every row is draft or sent
+    // forever and the sweep only ever asks about the handful that are waiting.
+    index("broadcasts_due_idx")
+      .on(table.scheduledAt)
+      .where(sql`status = 'scheduled'`),
+    check(
+      "broadcasts_review_request_needs_campaign",
+      sql`${table.kind} <> 'review_request' or ${table.campaignId} is not null`,
+    ),
+    check(
+      "broadcasts_survey_needs_survey",
+      sql`${table.kind} <> 'survey' or ${table.surveyId} is not null`,
+    ),
+    check(
+      "broadcasts_message_needs_template",
+      sql`${table.kind} <> 'message' or ${table.templateName} is not null`,
+    ),
+  ],
+);
+
+/**
+ * Who a broadcast went to, and what happened (P4-T4).
+ *
+ * **The audience snapshot.** A segment is a live query; this is the list it
+ * resolved to at send time, which is the only version of "who did this go to"
+ * that stays true when somebody edits the segment afterwards.
+ *
+ * Delivery and conversion are **pointers, not copies**. `review_requests`,
+ * `survey_responses` and `messages` already track their own funnels, and
+ * duplicating any of that here would create two numbers able to disagree. This
+ * table says which row a recipient produced; the funnel says what became of it.
+ */
+export const broadcastRecipients = pgTable(
+  "broadcast_recipients",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    broadcastId: uuid("broadcast_id")
+      .notNull()
+      .references(() => broadcasts.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    status: broadcastRecipientStatusEnum("status").notNull().default("pending"),
+    /** The gate's own reason, verbatim. Stored rather than summarised. */
+    refusalReason: text("refusal_reason"),
+    reviewRequestId: uuid("review_request_id").references(() => reviewRequests.id, {
+      onDelete: "set null",
+    }),
+    surveyResponseId: uuid("survey_response_id").references(() => surveyResponses.id, {
+      onDelete: "set null",
+    }),
+    messageId: uuid("message_id").references(() => messages.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (table) => [
+    // One person, one place in a send. Also what makes a re-run idempotent.
+    unique("broadcast_recipients_broadcast_contact_key").on(table.broadcastId, table.contactId),
+    index("broadcast_recipients_broadcast_idx").on(table.broadcastId, table.status),
+    index("broadcast_recipients_contact_idx").on(table.contactId),
+  ],
+);
+
+/**
+ * Which client organizations an agency looks after (P4-T5).
+ *
+ * **The link grants nothing.** Access is `memberships`, exactly as it has been
+ * since Phase 0; this records a relationship, and the console lists a client
+ * only when both hold. The moment a relationship table could widen
+ * `app.current_org()` the product would have two answers to "may this person
+ * read this row", and RLS would no longer be the one that matters.
+ *
+ * `organization_id` is the **agency**, so the standard tenant policy applies
+ * unchanged: the row belongs to the agency and the agency alone may see it.
+ */
+export const agencyClients = pgTable(
+  "agency_clients",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    clientOrganizationId: uuid("client_organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /** What the agency calls them internally. Null shows their own name. */
+    label: text("label"),
+    ...timestamps,
+  },
+  (table) => [
+    unique("agency_clients_pair_key").on(table.organizationId, table.clientOrganizationId),
+    index("agency_clients_organization_id_idx").on(table.organizationId),
+    index("agency_clients_client_idx").on(table.clientOrganizationId),
+    // An agency is not its own client: the console would list itself inside
+    // itself and the branding resolver would recurse.
+    check("agency_clients_not_self", sql`${table.organizationId} <> ${table.clientOrganizationId}`),
+  ],
+);
+
+/**
+ * One message, in either direction (P4-T3).
+ *
+ * **The table `src/contacts/timeline.ts` has been apologising for since T1.**
+ * Until this existed the only record of a conversation was
+ * `whatsapp_conversations`, which holds two timestamps because that is all
+ * Meta's 24-hour window needs — so the timeline rendered at most two message
+ * events and they *moved* rather than accumulated.
+ *
+ * `whatsapp_conversations` is not replaced. It records a **WhatsApp rule** that
+ * SMS does not have and that the compliance gate reads on every send; folding
+ * it in here would make the gate derive a legal fact by scanning rows.
+ *
+ * **There is deliberately no `conversations` table.** A conversation is the
+ * messages with one contact, in order. An entity holding a participant list
+ * would duplicate `contacts` and be able to disagree with it; the inbox is a
+ * `DISTINCT ON (contact_id)` over this.
+ */
+export const messages = pgTable(
+  "messages",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /**
+     * Not nullable. A message from a number we hold no contact for is **not
+     * stored** — see `resolveContact` in messaging/whatsapp-inbound.ts —
+     * because recording it would create a person nobody consented to give us.
+     */
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    channel: messageChannelEnum("channel").notNull(),
+    direction: messageDirectionEnum("direction").notNull(),
+    status: messageStatusEnum("status").notNull(),
+    body: text("body"),
+    /** The approved template this was sent as, if it was one. */
+    templateName: text("template_name"),
+    /** A WhatsApp `wamid`, an SMS gateway reference. Receipts key on it. */
+    externalId: text("external_id"),
+    /** Who pressed send. Null for inbound and for anything sent automatically. */
+    sentByUserId: uuid("sent_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    /**
+     * **The compliance record, and the reason it is stored rather than derived.**
+     *
+     * Every outbound message left under exactly one basis: `commercial`,
+     * resting on a registered İYS permission, or `service`, a reply inside the
+     * 24-hour window the customer opened. That is the question a regulator
+     * asks, and recomputing it a year later would answer with today's window
+     * state rather than the one that applied. Null for inbound.
+     */
+    intent: text("intent"),
+    failureReason: text("failure_reason"),
+    meta: jsonb("meta").notNull().default({}),
+    ...timestamps,
+  },
+  (table) => [
+    index("messages_org_contact_created_idx").on(
+      table.organizationId,
+      table.contactId,
+      table.createdAt.desc(),
+    ),
+    index("messages_org_created_idx").on(table.organizationId, table.createdAt.desc()),
+    /**
+     * Webhook dedup. **Meta may deliver the same webhook more than once** — they
+     * say so — and without this a redelivery puts the customer's message in the
+     * thread twice, which is indistinguishable from them repeating themself.
+     */
+    uniqueIndex("messages_org_channel_external_key")
+      .on(table.organizationId, table.channel, table.externalId)
+      .where(sql`external_id is not null`),
+    check(
+      "messages_intent_matches_direction",
+      sql`${table.direction} = 'outbound' or ${table.intent} is null`,
+    ),
+    check(
+      "messages_status_matches_direction",
+      sql`(${table.direction} = 'inbound') = (${table.status} = 'received')`,
     ),
   ],
 );
@@ -1855,9 +2393,17 @@ export const TENANT_TABLES = [
   "widgets",
   "tags",
   "contacts",
+  "contact_tags",
+  "contact_segments",
   "campaigns",
   "review_requests",
+  "surveys",
+  "survey_responses",
   "whatsapp_conversations",
+  "messages",
+  "broadcasts",
+  "broadcast_recipients",
+  "agency_clients",
   "digests",
   "digest_actions",
   "digest_deliveries",
@@ -1869,4 +2415,10 @@ export const TENANT_TABLES = [
   "audit_logs",
   "consent_records",
   "invitations",
+  // Phase 3. These three carry RLS in migrations 0034 and 0035 but were never
+  // added here — exactly the drift the note above warns about, found while
+  // adding the Phase 4 tables.
+  "report_schedules",
+  "report_deliveries",
+  "competitors",
 ] as const;
