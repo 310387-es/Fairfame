@@ -137,6 +137,18 @@ export type DigestDeliverJob = {
   periodStart?: string;
 };
 
+/**
+ * Mails every scheduled PDF report whose period has closed (P3-T5).
+ *
+ * A sweep rather than a job enqueued at a due time, for the same reason the İYS
+ * one is: a deadline is not an event. Nothing happens at midnight on Sunday —
+ * something has to come looking. Idempotency lives in `report_deliveries`, so
+ * running this hourly, or twice, or late, all send exactly one report.
+ */
+export type ReportSweepJob = {
+  kind: "report_sweep";
+};
+
 export type ReviewJob =
   | ScanJob
   | SyncJob
@@ -148,7 +160,8 @@ export type ReviewJob =
   | IysSweepJob
   | DigestJob
   | DigestSweepJob
-  | DigestDeliverJob;
+  | DigestDeliverJob
+  | ReportSweepJob;
 
 /**
  * BullMQ requires `maxRetriesPerRequest: null`: its blocking commands park on
@@ -296,6 +309,9 @@ export const ANALYZE_SWEEP_SCHEDULER_ID = "analyze-sweep";
 export const NOTIFY_SWEEP_SCHEDULER_ID = "notify-sweep";
 export const SLA_SWEEP_SCHEDULER_ID = "sla-sweep";
 export const IYS_SWEEP_SCHEDULER_ID = "iys-sweep";
+
+/** Stable scheduler id, so re-running the worker does not stack schedulers. */
+export const REPORT_SWEEP_SCHEDULER_ID = "report-sweep";
 export const DIGEST_SWEEP_SCHEDULER_ID = "digest-sweep";
 
 /**
@@ -380,6 +396,28 @@ export async function scheduleIysSweep(queue: Queue<ReviewJob>, everyMs = 900_00
     IYS_SWEEP_SCHEDULER_ID,
     { every: everyMs },
     { name: "iys_sweep", data: { kind: "iys_sweep" } },
+  );
+}
+
+/**
+ * Installs the repeating scheduled-report sweep (P3-T5).
+ *
+ * Hourly, for the same reason the digest sweep is hourly rather than weekly. A
+ * report is due once a week or once a month, so a cron pinned to that boundary
+ * is a single point of failure with a seven-day retry interval — miss it
+ * because the worker happened to be restarting and that period's report never
+ * exists. An hourly check is idempotent: `report_deliveries` is keyed by
+ * (schedule, period), so a redundant run costs one indexed query and sends
+ * nothing, and a run that is a day late still sends the right period once.
+ */
+export async function scheduleReportSweep(
+  queue: Queue<ReviewJob>,
+  everyMs = 3_600_000,
+): Promise<void> {
+  await queue.upsertJobScheduler(
+    REPORT_SWEEP_SCHEDULER_ID,
+    { every: everyMs },
+    { name: "report_sweep", data: { kind: "report_sweep" } },
   );
 }
 

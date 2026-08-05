@@ -141,6 +141,17 @@ const envSchema = z.object({
    * idempotent and costs one query.
    */
   DIGEST_SWEEP_INTERVAL_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(3_600_000),
+  /** Scheduled PDF reports (P3-T5). Hourly; the ledger makes a missed hour harmless. */
+  REPORT_SWEEP_INTERVAL_MS: z.coerce.number().int().min(1_000).max(86_400_000).default(3_600_000),
+  /**
+   * Where competitor figures come from (P3-T6).
+   *
+   * `none` refuses and is the default, so a deployment that has not chosen a
+   * source shows no benchmark rather than a plausible one. `fixtures` invents
+   * deterministic numbers for development, and every surface that renders them
+   * says so. A real adapter arrives with the connectors at go-live.
+   */
+  COMPETITOR_SOURCE: z.enum(["none", "fixtures"]).default("none"),
 
   /**
    * Public origin for the links we hand to customers — review-request short

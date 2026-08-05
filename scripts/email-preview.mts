@@ -1,0 +1,370 @@
+/**
+ * Sends one of every outbound email to the dev inbox, so the copy and the
+ * layout can be read rather than imagined.
+ *
+ *   pnpm email:preview            both languages
+ *   pnpm email:preview --locale tr
+ *
+ * Exists because an email is the one surface with no way to look at it. A page
+ * is a URL away; a template only renders when the event behind it happens, so
+ * reviewing the digest meant waiting a week and reviewing an SLA rollup meant
+ * letting deadlines lapse. The result was predictable: a rollup shipped with
+ * blank fields and a link to `/inbox?review=undefined`, and nobody saw it
+ * because nobody could.
+ *
+ * Everything below is rendered by the **real** template functions with
+ * plausible data — no hand-written HTML — so what lands in the inbox is what
+ * the product sends. Nothing is written to the database and no real recipient
+ * is involved.
+ *
+ * **When you add a template, add it here.** This file is the inventory of what
+ * the product can put in someone's inbox, and one that quietly stops listing a
+ * template is worse than no list at all.
+ */
+import { createSmtpTransport, type EmailTransport } from "../src/messaging/email.ts";
+import {
+  renderDigestEmail,
+  renderReportEmail,
+  renderReviewAlertEmail,
+  renderReviewRequestEmail,
+  renderRollupEmail,
+  type RenderedEmail,
+} from "../src/messaging/templates.ts";
+import { reportCopy } from "../src/reports/copy.ts";
+import { renderReportPdf } from "../src/reports/document.ts";
+import { completedPeriod } from "../src/reports/period.ts";
+import { isLocale, LOCALES, type Locale } from "../src/i18n/config.ts";
+import { getEnv } from "../src/lib/env.ts";
+
+const RECIPIENT = "preview@revira.local";
+const SETTINGS_URL = "http://localhost:3000/settings#notifications";
+const BUSINESS = "Kadıköy Kahve";
+const LOCATION = "Kadıköy Şubesi";
+/** Fixed, so a preview run is the same document every time. */
+const PREVIEW_NOW = new Date("2026-08-05T09:00:00Z");
+
+/**
+ * A sample can carry an attachment, because one of them does — the scheduled
+ * report is a covering note *and* a PDF, and previewing only the note would
+ * miss the half that is actually rendered by a library.
+ */
+type Sample = {
+  label: string;
+  render: (locale: Locale) => RenderedEmail;
+  attach?: (locale: Locale) => Promise<{ filename: string; contentType: string; content: Buffer }>;
+};
+
+/**
+ * Turkish sample content throughout, in both language runs.
+ *
+ * Deliberate: the *chrome* is translated but a review is quoted verbatim in
+ * whatever language the customer wrote it, so an English-speaking manager
+ * reading a Turkish review is the normal case rather than an edge one. Seeing
+ * that mix is most of the point of looking at these at all.
+ */
+const SAMPLES: Sample[] = [
+  {
+    label: "1 · Review request (to a customer)",
+    render: (locale) =>
+      renderReviewRequestEmail({
+        locale,
+        contactName: "Ayşe Kaya",
+        businessName: BUSINESS,
+        locationName: LOCATION,
+        link: "http://localhost:3000/r/abc123def456ghi789jklm",
+        unsubscribeUrl: "http://localhost:3000/u/abc123def456ghi789jklm",
+      }),
+  },
+  {
+    label: "2 · New review — ordinary",
+    render: (locale) =>
+      renderReviewAlertEmail({
+        locale,
+        recipientName: "Mehmet",
+        businessName: BUSINESS,
+        locationName: LOCATION,
+        source: "google",
+        rating: 5,
+        authorName: "Ayşe K.",
+        excerpt: "Kahvesi harikaydı, personel çok ilgiliydi. Kesinlikle tekrar geleceğim.",
+        urgent: false,
+        reason: "arrived",
+        link: "http://localhost:3000/inbox?review=demo-1",
+        settingsUrl: SETTINGS_URL,
+      }),
+  },
+  {
+    label: "3 · New review — urgent (negative)",
+    render: (locale) =>
+      renderReviewAlertEmail({
+        locale,
+        recipientName: "Mehmet",
+        businessName: BUSINESS,
+        locationName: LOCATION,
+        source: "google",
+        rating: 1,
+        authorName: "Anonim",
+        excerpt: "Servis çok yavaştı, yarım saat bekledik ve kimse ilgilenmedi.",
+        urgent: true,
+        reason: "arrived",
+        link: "http://localhost:3000/inbox?review=demo-2",
+        settingsUrl: SETTINGS_URL,
+      }),
+  },
+  {
+    // Worth opening next to #2: same review, same stars, same quote. Only the
+    // subject and the first line differ, and that difference is the whole
+    // point — this one did not "just come in".
+    label: "4 · Review assigned to you",
+    render: (locale) =>
+      renderReviewAlertEmail({
+        locale,
+        recipientName: "Mehmet",
+        businessName: BUSINESS,
+        locationName: LOCATION,
+        source: "instagram",
+        rating: 4,
+        authorName: "burcu.travels",
+        excerpt: "Manzarası çok güzel, tatlıları da denemeye değer.",
+        urgent: false,
+        reason: "assigned",
+        link: "http://localhost:3000/inbox?review=demo-3",
+        settingsUrl: SETTINGS_URL,
+      }),
+  },
+  {
+    label: "5 · Rollup — overdue backlog (SLA)",
+    render: (locale) =>
+      renderRollupEmail({
+        locale,
+        recipientName: "Mehmet",
+        businessName: BUSINESS,
+        locationName: LOCATION,
+        count: 23,
+        kind: "sla",
+        link: "http://localhost:3000/inbox?overdue=1",
+        settingsUrl: SETTINGS_URL,
+      }),
+  },
+  {
+    label: "6 · Rollup — bulk assignment",
+    render: (locale) =>
+      renderRollupEmail({
+        locale,
+        recipientName: "Mehmet",
+        businessName: BUSINESS,
+        locationName: LOCATION,
+        count: 12,
+        kind: "assignment",
+        link: "http://localhost:3000/inbox?assignee=me",
+        settingsUrl: SETTINGS_URL,
+      }),
+  },
+  {
+    label: "7 · Weekly Action Digest",
+    render: (locale) =>
+      renderDigestEmail({
+        locale,
+        recipientName: "Mehmet",
+        businessName: BUSINESS,
+        locationName: LOCATION,
+        periodStart: new Date("2026-07-27T00:00:00Z"),
+        // Exclusive, so the copy prints through the 2nd. Not an off-by-one.
+        periodEnd: new Date("2026-08-03T00:00:00Z"),
+        pulseScore: 4.3,
+        pulseDelta: 0.4,
+        reviewCount: 31,
+        headline: "Servis hızı bu hafta tek başına en çok şikâyet edilen konu.",
+        summary:
+          "Puan ortalaması yükseldi ama olumsuz yorumların çoğu aynı şeyi söylüyor: yoğun " +
+          "saatlerde bekleme süresi. Kahve ve personel övgü almaya devam ediyor.",
+        actions: [
+          { position: 1, text: "Hafta içi 12:00–14:00 arasında bir kişi daha görevlendirin." },
+          { position: 2, text: "Bekleyen 4 olumsuz yoruma bugün yanıt verin." },
+          { position: 3, text: "Otopark yönlendirmesini kapı girişine ekleyin." },
+        ],
+        themes: [
+          { label: "Servis hızı", count: 11, positive: 2, negative: 9 },
+          { label: "Kahve kalitesi", count: 9, positive: 9, negative: 0 },
+          { label: "Otopark", count: 5, positive: 1, negative: 4 },
+        ],
+        heldCount: 6,
+        link: "http://localhost:3000/digest/demo",
+        settingsUrl: SETTINGS_URL,
+      }),
+  },
+  {
+    /**
+     * The one sample with an attachment, and the reason the preview grew the
+     * ability to carry one. The covering note is a template like any other; the
+     * PDF beside it is rendered by a library, embeds its own fonts, and is the
+     * half most likely to be wrong in a way only looking at it reveals — the
+     * built-in font turns "Kadıköy Şubesi" into "Kad1köy ^ubesi".
+     */
+    label: "8 · Scheduled report (PDF attached)",
+    render: (locale) => {
+      const copy = reportCopy(locale);
+      const period = completedPeriod("weekly", PREVIEW_NOW);
+
+      return renderReportEmail({
+        locale,
+        recipientName: "Mehmet",
+        scopeName: `${BUSINESS} — ${LOCATION}`,
+        period: copy.periodLabel(period.start, period.end),
+        cadence: "weekly",
+        reviewCount: 31,
+        averageRating: locale === "tr" ? "4,3" : "4.3",
+        repliedShare: locale === "tr" ? "%82" : "82%",
+        link: "http://localhost:3000/insights",
+        settingsUrl: "http://localhost:3000/insights",
+        attachmentName: copy.filename(`${BUSINESS} ${LOCATION}`, period.start),
+      });
+    },
+    attach: async (locale) => {
+      const copy = reportCopy(locale);
+      const period = completedPeriod("weekly", PREVIEW_NOW);
+      const number = (value: number, digits: number) =>
+        new Intl.NumberFormat(locale, {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits,
+        }).format(value);
+      // Formatted the way the pipeline formats it, so the preview cannot show a
+      // shape the product does not produce — Turkish writes %82, not 82%.
+      const percent = (value: number) =>
+        new Intl.NumberFormat(locale, { style: "percent" }).format(value);
+
+      const content = await renderReportPdf({
+        title: `${BUSINESS} — ${LOCATION}`,
+        subtitle: `${copy.periodLabel(period.start, period.end)} · ${copy.cadence.weekly}`,
+        metrics: [
+          { label: copy.column.volume, value: number(31, 0), delta: "+7", direction: "up" },
+          { label: copy.column.rating, value: number(4.3, 1), delta: "+0,4", direction: "up" },
+          { label: copy.column.sentiment, value: number(0.38, 2), delta: null, direction: null },
+          {
+            label: copy.column.replied,
+            value: percent(0.82),
+            delta: `−${percent(0.03)}`,
+            direction: "down",
+          },
+        ],
+        tables: [
+          {
+            title: copy.byLocation,
+            columns: [
+              copy.column.location,
+              copy.column.rating,
+              copy.column.sentiment,
+              copy.column.volume,
+              copy.column.replied,
+            ],
+            rows: [
+              {
+                key: "kadikoy",
+                label: LOCATION,
+                cells: [number(4.3, 1), number(0.38, 2), number(31, 0), percent(0.82)],
+              },
+              {
+                key: "sisli",
+                label: "Şişli Şubesi",
+                cells: [null, null, number(0, 0), null],
+              },
+            ],
+            empty: copy.empty,
+          },
+          {
+            title: copy.themes,
+            columns: [copy.column.theme, copy.column.mentions, copy.column.change],
+            rows: [
+              { key: "servis", label: "servis hızı", cells: [number(11, 0), "+120%"] },
+              { key: "kahve", label: "kahve kalitesi", cells: [number(9, 0), "+12%"] },
+              { key: "otopark", label: "otopark", cells: [number(5, 0), copy.themeNew] },
+            ],
+            empty: copy.empty,
+          },
+        ],
+        footer: copy.footer(PREVIEW_NOW),
+        pageLabel: copy.pageLabel,
+      });
+
+      return {
+        filename: copy.filename(`${BUSINESS} ${LOCATION}`, period.start),
+        contentType: "application/pdf",
+        content,
+      };
+    },
+  },
+];
+
+/** `--locale tr` narrows the run; absent means both. */
+function requestedLocales(): readonly Locale[] {
+  const index = process.argv.indexOf("--locale");
+  if (index === -1) return LOCALES;
+
+  const value = process.argv[index + 1];
+  if (!isLocale(value)) {
+    console.error(`--locale must be one of: ${LOCALES.join(", ")}`);
+    process.exit(1);
+  }
+  return [value];
+}
+
+/**
+ * Refuses to run against anything but a local mail catcher.
+ *
+ * This sends fourteen messages to a made-up address. Against a real SMTP relay
+ * that is fourteen bounces and a reputation hit, and the failure mode of a
+ * preview tool pointed at production is exactly the kind nobody expects until
+ * it happens.
+ */
+function assertSafeTransport(): void {
+  const env = getEnv();
+
+  if (env.EMAIL_TRANSPORT !== "smtp") {
+    console.error(
+      `EMAIL_TRANSPORT is "${env.EMAIL_TRANSPORT}". Set it to "smtp" so the messages reach Mailpit.`,
+    );
+    process.exit(1);
+  }
+
+  const host = new URL(env.SMTP_URL).hostname;
+  if (host !== "localhost" && host !== "127.0.0.1" && host !== "mail") {
+    console.error(`Refusing to send previews through a non-local SMTP host: ${host}`);
+    process.exit(1);
+  }
+}
+
+assertSafeTransport();
+
+const locales = requestedLocales();
+const transport: EmailTransport = createSmtpTransport();
+let sent = 0;
+let failed = 0;
+
+for (const sample of SAMPLES) {
+  for (const locale of locales) {
+    const message = sample.render(locale);
+
+    const attachments = sample.attach ? [await sample.attach(locale)] : undefined;
+
+    const outcome = await transport.send({
+      to: RECIPIENT,
+      // The label rides in the subject so the inbox reads as an ordered
+      // checklist rather than a pile of similar-looking alerts.
+      subject: `[${locale.toUpperCase()}] ${sample.label} — ${message.subject}`,
+      text: message.text,
+      html: message.html,
+      ...(attachments ? { attachments } : {}),
+    });
+
+    if (outcome.ok) {
+      sent += 1;
+      console.log(`sent    [${locale}] ${sample.label}`);
+    } else {
+      failed += 1;
+      console.error(`FAILED  [${locale}] ${sample.label}: ${outcome.reason}`);
+    }
+  }
+}
+
+console.log(`\n${sent} sent${failed > 0 ? `, ${failed} failed` : ""}. Open http://localhost:8025`);
+process.exitCode = failed > 0 ? 1 : 0;

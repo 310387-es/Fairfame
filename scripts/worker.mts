@@ -4,7 +4,7 @@
  *   pnpm worker
  *
  * Runs the review worker and installs the repeating schedules — the connection
- * scan and the analysis, notification, SLA and digest sweeps. Deliberately
+ * scan and the analysis, notification, SLA, digest and scheduled-report sweeps. Deliberately
  * a separate process from the web app: a slow or crashing sync must never take
  * request handling down with it.
  */
@@ -20,6 +20,7 @@ import {
   scheduleNotifySweep,
   scheduleScan,
   scheduleIysSweep,
+  scheduleReportSweep,
   scheduleSlaSweep,
 } from "../src/jobs/queue.ts";
 import { createReviewWorker } from "../src/jobs/workers/sync-reviews.ts";
@@ -32,6 +33,7 @@ const NOTIFY_SWEEP_INTERVAL_MS = getEnv().NOTIFY_SWEEP_INTERVAL_MS;
 const SLA_SWEEP_INTERVAL_MS = getEnv().SLA_SWEEP_INTERVAL_MS;
 const IYS_SWEEP_INTERVAL_MS = getEnv().IYS_SWEEP_INTERVAL_MS;
 const DIGEST_SWEEP_INTERVAL_MS = getEnv().DIGEST_SWEEP_INTERVAL_MS;
+const REPORT_SWEEP_INTERVAL_MS = getEnv().REPORT_SWEEP_INTERVAL_MS;
 
 const queueConnection = createRedisConnection();
 const workerConnection = createRedisConnection();
@@ -48,6 +50,7 @@ await scheduleAnalyzeSweep(queue, ANALYZE_SWEEP_INTERVAL_MS);
 await scheduleNotifySweep(queue, NOTIFY_SWEEP_INTERVAL_MS);
 await scheduleSlaSweep(queue, SLA_SWEEP_INTERVAL_MS);
 await scheduleIysSweep(queue, IYS_SWEEP_INTERVAL_MS);
+await scheduleReportSweep(queue, REPORT_SWEEP_INTERVAL_MS);
 await scheduleDigestSweep(queue, DIGEST_SWEEP_INTERVAL_MS);
 
 log.info(

@@ -266,6 +266,7 @@ export async function analyzeBatch(options: BatchOptions): Promise<BatchResult> 
         sentiment: analysis.sentiment,
         sentimentScore: analysis.sentimentScore,
         topics: analysis.topics,
+        staff: analysis.staff,
         language: analysis.language,
         embedding: embeddingsByReview.get(reviewId) ?? null,
         contentHash: contentHash(text),

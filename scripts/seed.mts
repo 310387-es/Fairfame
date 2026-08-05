@@ -103,6 +103,33 @@ try {
   }
   console.log(`Seeded ${DEMO_LOCATIONS.length} demo locations.`);
 
+  // --- Demo widget -------------------------------------------------------
+  //
+  // A published widget for the demo org, so the public endpoints have something
+  // to answer with in a fresh checkout (P3-T0). It shows nothing until reviews
+  // are ingested *and* approved for display, which is the correct empty state
+  // rather than a placeholder: the approval gate is the whole point.
+  //
+  // The key is fixed rather than generated. It is dev-only data in a dev-only
+  // database, and a stable key is what lets a demo page, a README snippet and
+  // the browser suite all point at the same widget across re-seeds. Real keys
+  // are CSPRNG-generated — see src/widgets/keys.ts.
+  const DEMO_WIDGET_KEY = "demwdgetkey7q2xr8mnp4vsz";
+
+  await db
+    .insert(schema.widgets)
+    .values({
+      organizationId: org.id,
+      name: "Müşteri yorumları",
+      publicKey: DEMO_WIDGET_KEY,
+      published: true,
+    })
+    .onConflictDoUpdate({
+      target: schema.widgets.publicKey,
+      set: { organizationId: org.id, published: true, updatedAt: new Date() },
+    });
+  console.log(`Seeded demo widget → /embed/w/${DEMO_WIDGET_KEY}`);
+
   // --- Demo subscription -------------------------------------------------
   // Mirrors what BetterAuth's afterCreateOrganization hook does for real
   // signups, so the demo org resolves entitlements like any other.

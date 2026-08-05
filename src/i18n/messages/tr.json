@@ -19,7 +19,9 @@
     "openMenu": "Menüyü aç",
     "closeMenu": "Menüyü kapat",
     "menu": "Menü",
-    "digest": "Özet"
+    "digest": "Özet",
+    "widgets": "Vitrin",
+    "insights": "İçgörüler"
   },
   "shell": {
     "locationSwitcher": "Aktif şube",
@@ -216,6 +218,99 @@
       "sources": "Kaynaklar"
     }
   },
+  "insights": {
+    "title": "İçgörüler",
+    "subtitle": "İyileşiyor musunuz, nerede ve neyin etkisiyle.",
+    "summary": "{locations} şubede {reviews} yorum",
+    "pendingAnalysis": "{count} tanesi henüz analiz edilmedi",
+    "export": "Dışa aktar",
+    "exportKind": {
+      "pdf": "Bu sayfa PDF olarak",
+      "everything": "Tümü (CSV)",
+      "themes": "Temalar (CSV)",
+      "locations": "Şubeler (CSV)",
+      "sources": "Kaynaklar (CSV)",
+      "staff": "Anılan isimler (CSV)"
+    },
+    "trend": {
+      "rating": "Puan",
+      "sentiment": "Duygu",
+      "volume": "Yorum"
+    },
+    "trendCaption": "Döneme göre {measure} ve kaç yorumdan hesaplandığı.",
+    "column": {
+      "period": "Dönem",
+      "rating": "Puan",
+      "sentiment": "Duygu",
+      "volume": "Yorum",
+      "replied": "Yanıtlanan",
+      "location": "Şube",
+      "source": "Kaynak",
+      "theme": "Tema",
+      "mentions": "Bahsetme",
+      "change": "Değişim"
+    },
+    "noValue": "—",
+    "points": "puan",
+    "byLocation": "Şubeye göre",
+    "byLocationEmpty": "Bu dönemde hiçbir şubeye yorum gelmedi.",
+    "bySource": "Kaynağa göre",
+    "bySourceEmpty": "Bu dönemde hiçbir kaynaktan yorum gelmedi.",
+    "unknownLocation": "Bilinmeyen şube",
+    "themes": "Ne değişti",
+    "themesEmpty": "Henüz tema yok — yorumlar analiz edilince görünür.",
+    "themeNew": "yeni",
+    "mostlyPositive": "{count} olumlu",
+    "mostlyNegative": "{count} olumsuz",
+    "mixed": "karışık",
+    "ratingShort": "{rating}★",
+    "staff": "Müşterilerin andığı isimler",
+    "staffNote": "Müşterilerin isim vererek yazdıkları. Bahsetme sayısı ve o yorumların puanları — performans notu değildir, performans değerlendirmesine dayanak da olamaz.",
+    "staffEmpty": "Bu dönemin yorumlarında kimsenin adı geçmedi.",
+    "staffNotAnalysed": "{count} yorum, isimler çıkarılmaya başlanmadan önce analiz edildiği için burada sayılmıyor.",
+    "empty": {
+      "title": "Karşılaştıracak bir şey yok",
+      "body": "Bu dönemde yorum gelmedi. Daha uzun bir aralık deneyin ya da toplamaya başlamak için bir kaynak bağlayın."
+    },
+    "report": {
+      "title": "E-posta raporu",
+      "body": "Bu sayıların PDF hâli, belirlediğiniz sıklıkta kendi adresinize gönderilir. Başka kimseye gitmez.",
+      "on": "açık",
+      "off": "kapalı",
+      "cadenceLabel": "Sıklık",
+      "weekly": "Her hafta",
+      "monthly": "Her ay",
+      "scopeLabel": "Kapsam",
+      "allBranches": "Görebildiğim tüm şubeler",
+      "start": "Bana e-postayla gönder",
+      "save": "Kaydet",
+      "saving": "Kaydediliyor…",
+      "saved": "Kaydedildi",
+      "stop": "Göndermeyi durdur",
+      "locked": "Planlı raporlar bu pakete dahil değil. Bu sayıların uygulamayı açmadan size ulaşması için paketinizi yükseltin."
+    },
+    "benchmark": {
+      "title": "Rakiplere karşı",
+      "unverified": "Buradaki rakip verileri örnek verilerdir, gerçek kayıtlar değil. Bir rakibin herkese açık puanını okuyan bağlayıcı go-live ile geliyor; o zamana kadar bu tablo karşılaştırmanın nasıl görüneceğini gösterir, nasıl gittiğinizi değil.",
+      "basis": "Bir kayıt, tüm zamanların puanını gösterir; bu yüzden sizin tarafınız da tüm zamanlardır. Yukarıdaki tarih aralığı bu tabloya uygulanmaz.",
+      "who": "İşletme",
+      "you": "Siz",
+      "gap": "Fark",
+      "empty": "Henüz rakip eklenmedi. Karşılaştırma için bir tane ekleyin.",
+      "nameLabel": "Rakip",
+      "namePlaceholder": "Karşıdaki kafe",
+      "refLabel": "Kaydı",
+      "refPlaceholder": "Google yer kimliği veya bağlantısı",
+      "add": "Ekle",
+      "adding": "Ekleniyor…",
+      "remove": "{name} kaydını kaldır",
+      "locked": "Rakip karşılaştırması bu pakete dahil değil."
+    },
+    "locked": {
+      "title": "İçgörüler bu pakete dahil değil",
+      "body": "Ana sayfa aktif şubenizin bugün nasıl gittiğini gösterir. İçgörüler ise şubeleri ve kaynakları zaman içinde karşılaştırır, neyin değiştiğini gösterir — açmak için paketinizi yükseltin."
+    }
+  },
   "digest": {
     "archiveTitle": "Haftalık planınız",
     "archiveSubtitle": "{location} için neler oldu ve ne yapmalısınız.",
@@ -377,7 +472,28 @@
     "limitReached": "Paketiniz {limit} şube içeriyor. Daha fazlası için yükseltin.",
     "viewInbox": "Gelen kutusunda gör",
     "lastSynced": "Son eşitleme {when}",
-    "neverSynced": "Henüz eşitlenmedi"
+    "neverSynced": "Henüz eşitlenmedi",
+    "publicPageLabel": "Herkese açık yorum sayfası",
+    "publicPageHint": "Göstermek üzere onayladığınız yorumları listeleyen, bizim alan adımızdaki sayfa. Arama motorları dizine ekleyebilir.",
+    "publicPagePublish": "Sayfayı yayımla",
+    "publicPageUnpublish": "Yayından kaldır",
+    "publicPageLive": "Yayında",
+    "publicPageDraft": "Yayımlanmadı",
+    "publicPageOpen": "Sayfayı aç",
+    "publicPageCopy": "Bağlantıyı kopyala",
+    "publicPageCopied": "Kopyalandı",
+    "publicPageNothingApproved": "Henüz gösterime onaylanmış yorum yok; Vitrin bölümünden yorum onaylayana kadar sayfa boş görünecek."
+  },
+  "publicPage": {
+    "metaTitle": "{business} — {location} yorumları",
+    "metaDescription": "Müşteriler {business} hakkında kendi sözleriyle ne diyor?",
+    "starLabel": "5 üzerinden {rating}",
+    "ratingCount": "{count} puan",
+    "aggregateBasis": "Bu şubenin aldığı puanlı yorumların tümünün ortalaması — aşağıda gösterilmeyenler dahil.",
+    "noRatings": "Henüz puan yok.",
+    "empty": "Burada henüz yayımlanmış yorum yok.",
+    "viewOriginal": "Yorumu kaynağında okuyun",
+    "poweredBy": "Yorumlar Revira ile"
   },
   "sources": {
     "liveSync": "Canlı eşitleme",
@@ -591,7 +707,11 @@
     "slaBreachHint": "Bu yoruma kimse yanıt vermedi ve yanıt süresi doldu.",
     "slaRollupTitle": "{count, plural, =1 {1 yorumun süresi geçti} other {# yorumun süresi geçti}}",
     "slaRollupBody": "Bu yorumlara kimse yanıt vermedi ve yanıt süreleri doldu.",
-    "slaRollupHint": "Aynı anda çok fazla süre dolduğu için özet olarak gösteriliyor."
+    "slaRollupHint": "Aynı anda çok fazla süre dolduğu için özet olarak gösteriliyor.",
+    "assigned": "Size atandı",
+    "assignedHint": "Bir ekip arkadaşınız bu yorumu ilgilenmeniz için size verdi.",
+    "assignmentRollupTitle": "{count} yorum size atandı",
+    "assignmentRollupBody": "Bir ekip arkadaşınız size bir grup yorum verdi. Sıranızı açıp ilerleyin."
   },
   "replies": {
     "writeReply": "Kendin yaz",
@@ -654,5 +774,104 @@
     "cancel": "Vazgeç",
     "edit": "{name} şablonunu düzenle",
     "delete": "{name} şablonunu sil"
+  },
+  "widget": {
+    "starLabel": "5 üzerinden {rating}",
+    "empty": "Burada gösterilecek yorum henüz yok.",
+    "badgeCount": "{count} yorum",
+    "badgeNoRatings": "Henüz puan yok",
+    "badgeLink": "Tüm yorumları gör",
+    "viewOriginal": "Yorumu kaynağında okuyun",
+    "poweredBy": "Yorumlar Revira ile"
+  },
+  "widgets": {
+    "title": "Vitrin",
+    "subtitle": "Yorumlarınızı kendi sitenizde gösterin.",
+    "listTitle": "Bileşenleriniz",
+    "limitMeta": "{limit} hakkın {used} tanesi kullanıldı",
+    "empty": "Henüz bileşen yok. Aşağıdan bir tane oluşturun; siz yayına almadan taslak kalır.",
+    "lockedTitle": "Bileşenler bu pakete dahil değil",
+    "lockedBody": "Yorumlarınızı kendi sitenizde göstermek için paketinizi yükseltin.",
+    "createTitle": "Yeni bileşen",
+    "create": "Oluştur",
+    "creating": "Oluşturuluyor…",
+    "atLimit": "Paketinizdeki tüm bileşen haklarını kullandınız. Yenisi için birini silin ya da paketi yükseltin.",
+    "nameLabel": "Ad",
+    "namePlaceholder": "Ana sayfa yorumları",
+    "locationLabel": "Şube",
+    "allLocations": "Tüm şubeler",
+    "live": "Yayında",
+    "draft": "Taslak",
+    "edit": "Düzenle",
+    "view": "Görüntüle",
+    "builderSubtitle": "Ayarlayın, görün, sonra yayına alın.",
+    "settingsTitle": "Ayarlar",
+    "layoutLabel": "Yerleşim",
+    "layout": {
+      "grid": "Izgara",
+      "list": "Liste",
+      "carousel": "Kaydırmalı",
+      "badge": "Puan rozeti"
+    },
+    "badgeNote": "Rozet tek bir sayı gösterir: bu şubedeki ve bu kaynaklardaki puanlı yorumların tümünün ortalaması — göstermek üzere onaylamış olun ya da olmayın. Hangi yorumları alıntıladığınızı siz seçersiniz; puan müşterilerinizindir. Tek tek yorum seçen ayarlar burada geçerli değildir.",
+    "themeLabel": "Tema",
+    "themeHint": "Bu panele değil, bileşenin duracağı sayfaya uysun.",
+    "theme": {
+      "light": "Açık",
+      "dark": "Koyu"
+    },
+    "localeLabel": "Dil",
+    "localeHint": "Sizin çalıştığınız dil değil, ziyaretçilerinizin okuduğu dil.",
+    "localeAuto": "Şubeye göre",
+    "locale": {
+      "tr": "Türkçe",
+      "en": "İngilizce"
+    },
+    "minRatingLabel": "En düşük puan",
+    "minRatingHint": "Yalnızca bu bileşenin ne alıntıladığını sınırlar. Puan rozeti yine tüm yorumları sayar.",
+    "minRatingAny": "Tüm puanlar",
+    "minRatingOption": "{rating} yıldız ve üzeri",
+    "countLabel": "Kaç tane gösterilsin",
+    "sourcesLabel": "Kaynaklar",
+    "sourcesHint": "Hiçbirini işaretlemezseniz tüm kaynaklar dahil edilir.",
+    "showLabel": "Görünsün",
+    "showAuthor": "Yorumcunun adı",
+    "showSource": "Geldiği kaynak",
+    "showDate": "Tarih",
+    "requireText": "Yalnızca yazı içeren yorumlar",
+    "requireTextHint": "Yazısız bir puan bir sayıdır, referans değil.",
+    "includeSocial": "Yorum ve bahsetmeleri de ekle",
+    "includeSocialHint": "Doğrudan mesajlar hiçbir zaman gösterilmez — hiç herkese açık olmadılar.",
+    "save": "Kaydet",
+    "saving": "Kaydediliyor…",
+    "saved": "Kaydedildi",
+    "publish": "Yayına al",
+    "unpublish": "Yayından kaldır",
+    "publishedNote": "Bu bileşen yayında. Gömme kodunu bilen herkes yükleyebilir.",
+    "draftNote": "Bu bileşen taslak. Siz yayına alana kadar gömme kodu hiçbir şey döndürmez.",
+    "previewTitle": "Önizleme",
+    "previewUnsaved": "kaydedilmemiş değişiklikler",
+    "embedTitle": "Gömme kodu",
+    "snippet": {
+      "script": "Script",
+      "iframe": "Düz iframe"
+    },
+    "snippetHint": {
+      "script": "Yorumların görünmesini istediğiniz yere yapıştırın. Yüksekliğini kendi ayarlar.",
+      "iframe": "JavaScript gerekmez. Yüksekliği siz belirlersiniz."
+    },
+    "snippetDraft": "Bu bileşen hâlâ taslak; siz yayına alana kadar aşağıdaki kod hiçbir şey göstermez.",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı",
+    "approvalTitle": "Neleri alıntılayabilir",
+    "approvalMeta": "{matching} yorumun {approved} tanesi onaylı",
+    "approvalNote": "Bir yorumu onaylamak onu yalnızca burada değil, tüm bileşen, rozet ve herkese açık sayfalarınızda gösterir. Onaylamadığınız hiçbir yorum hiçbir yerde görünmez.",
+    "approvalEmpty": "Bu ayarlara uyan yorum henüz yok.",
+    "approveAll": "{count} yorumun tümünü onayla",
+    "approveOne": "{author} adlı kişinin yorumunu göster",
+    "anonymousAuthor": "Anonim",
+    "starLabel": "5 üzerinden {rating}",
+    "showMore": "{count} tane daha göster",
+    "backToList": "Tüm bileşenler"
   }
 }

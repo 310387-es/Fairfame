@@ -29,6 +29,30 @@ export const FEATURE_KEYS = [
   "social_sources",
   "competitor_watch",
   "widgets",
+  // Scheduled PDF/email reports (P3-T5). Pro and above, per the feature matrix
+  // in `docs/05` — per-location reporting is what that tier is sold on.
+  "scheduled_reports",
+  /**
+   * The Insights workspace (P3-T7).
+   *
+   * `docs/05` lists "trends dashboard" from Growth, and this is that dashboard.
+   * Starter still gets Home, which answers "what needs doing today" for one
+   * branch — the thing a one-location business actually opens daily. Insights
+   * answers "what is happening to us across branches", which is the question
+   * that starts mattering at the tier where there are branches.
+   */
+  "analytics",
+  /**
+   * Hosted public review pages (P3-T7).
+   *
+   * **Its own key, deliberately set to match today's behaviour rather than to
+   * change it.** `docs/05` prices widgets and the hosted page as one line
+   * ("Widgets / showcase"), so it is on for every tier — but P3-T7's whole
+   * point is that a packaging change must be a config edit, and while the two
+   * shared a key it could not be. Moving the page to Growth+ is now one `false`
+   * here and nothing else. That is a pricing decision, not a technical one.
+   */
+  "seo_pages",
   "api_access",
   "white_label",
   "benchmarking",
@@ -108,6 +132,10 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         social_sources: false,
         competitor_watch: false,
         widgets: true, // 1 widget; see the max_widgets note below
+        scheduled_reports: false,
+        // Home, not Insights. See the key's note.
+        analytics: false,
+        seo_pages: true,
         api_access: false,
         white_label: false,
         benchmarking: false,
@@ -148,6 +176,9 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         social_sources: true,
         competitor_watch: false,
         widgets: true,
+        scheduled_reports: false,
+        analytics: true,
+        seo_pages: true,
         api_access: false,
         white_label: false,
         benchmarking: false,
@@ -181,6 +212,9 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         social_sources: true,
         competitor_watch: true,
         widgets: true,
+        scheduled_reports: true,
+        analytics: true,
+        seo_pages: true,
         api_access: true,
         white_label: false,
         benchmarking: true,
@@ -214,6 +248,9 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         social_sources: true,
         competitor_watch: true,
         widgets: true,
+        scheduled_reports: true,
+        analytics: true,
+        seo_pages: true,
         api_access: true,
         white_label: true,
         benchmarking: true,

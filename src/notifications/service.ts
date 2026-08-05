@@ -133,7 +133,8 @@ async function pendingReviews(
     .limit(limit);
 }
 
-function excerpt(text: string | null): string | null {
+/** Exported for the assignment alert, which carries the same review payload. */
+export function excerpt(text: string | null): string | null {
   if (!text) return null;
   const trimmed = text.trim();
   return trimmed.length <= EXCERPT_CHARS ? trimmed : `${trimmed.slice(0, EXCERPT_CHARS - 1)}…`;

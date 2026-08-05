@@ -5,6 +5,7 @@ import { schema } from "../db/client.ts";
 import type { ReviewStatus } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import { refreshPriority } from "./workflow.ts";
+import { notifyAssignment } from "../notifications/assignment.ts";
 
 /**
  * Moving work through the inbox (P2-T4).
@@ -186,6 +187,15 @@ export async function assignReview(
       locationId: review.locationId,
     },
   );
+
+  // Tell the person who just inherited it. In the same transaction as the write,
+  // so an assignment that rolls back takes its alert with it.
+  await notifyAssignment(tx, {
+    organizationId: actor.organizationId,
+    actorUserId: actor.userId,
+    assigneeUserId: input.assigneeUserId,
+    reviewIds: [review.id],
+  });
 
   return { changed: true };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Bell, Check, Clock, Loader2 } from "lucide-react";
+import { AlertTriangle, Bell, Check, Clock, Loader2, UserPlus } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -33,6 +33,19 @@ import { cn } from "@/lib/utils";
  * user's record of what they have dealt with, and a feed that silently empties
  * itself because you glanced at it is a feed you stop trusting.
  */
+/**
+ * Does this entry describe a pile rather than one review?
+ *
+ * A type predicate, not an inline comparison, because there are now two rollup
+ * kinds and every place that narrows the payload has to agree about all of
+ * them. Missing one is how a card renders `undefined` where a rating should be.
+ */
+function isRollupItem(
+  item: FeedItem,
+): item is Extract<FeedItem, { type: "sla_rollup" | "assignment_rollup" }> {
+  return item.type === "sla_rollup" || item.type === "assignment_rollup";
+}
+
 export function NotificationBell({ unread, urgent }: { unread: number; urgent: boolean }) {
   const t = useTranslations("notifications");
   const tNav = useTranslations("nav");
@@ -121,8 +134,10 @@ export function NotificationBell({ unread, urgent }: { unread: number; urgent: b
     // `?review=` alone. It picks the page on the server, marks the row, and
     // drives the scroll — a fragment would add nothing and does not survive a
     // client-side push anyway.
-    // A rollup names no review — the destination is the pile it is about.
+    // A rollup names no review — the destination is the pile it is about, and
+    // which pile depends on why it was rolled up.
     if (item.type === "sla_rollup") router.push("/inbox?overdue=1");
+    else if (item.type === "assignment_rollup") router.push("/inbox?assignee=me");
     else if (item.reviewId) router.push(`/inbox?review=${item.reviewId}`);
   }
 
@@ -269,6 +284,20 @@ export function NotificationBell({ unread, urgent }: { unread: number; urgent: b
                               </span>
                             ) : null}
 
+                            {/* Why this arrived. Without it an assignment is
+                                indistinguishable from the review's own arrival
+                                alert, which is the same review and the same
+                                words a few minutes earlier. */}
+                            {item.type === "review_assigned" ? (
+                              <span
+                                title={t("assignedHint")}
+                                className="inline-flex shrink-0 items-center gap-1 rounded-sm bg-state-accent-bg px-1 py-px text-[10px] font-semibold text-state-accent-text"
+                              >
+                                <UserPlus className="size-2.5" aria-hidden />
+                                {t("assigned")}
+                              </span>
+                            ) : null}
+
                             {item.type === "sla_breach" ? (
                               <span
                                 title={t("slaBreachHint")}
@@ -279,7 +308,7 @@ export function NotificationBell({ unread, urgent }: { unread: number; urgent: b
                               </span>
                             ) : null}
 
-                            {item.type === "sla_rollup" ? null : item.payload.rating !== null ? (
+                            {isRollupItem(item) ? null : item.payload.rating !== null ? (
                               <Stars
                                 rating={item.payload.rating}
                                 srLabel={t("ratingLabel", { rating: item.payload.rating })}
@@ -294,7 +323,9 @@ export function NotificationBell({ unread, urgent }: { unread: number; urgent: b
                             >
                               {item.type === "sla_rollup"
                                 ? t("slaRollupTitle", { count: item.payload.count })
-                                : (item.payload.authorName ?? t("anonymous"))}
+                                : item.type === "assignment_rollup"
+                                  ? t("assignmentRollupTitle", { count: item.payload.count })
+                                  : (item.payload.authorName ?? t("anonymous"))}
                             </span>
                             <span className="ml-auto shrink-0 text-meta text-faint">
                               {format.relativeTime(item.createdAt, new Date())}
@@ -304,11 +335,13 @@ export function NotificationBell({ unread, urgent }: { unread: number; urgent: b
                           <span className="mt-1 line-clamp-2 block text-copy text-ink-600">
                             {item.type === "sla_rollup"
                               ? t("slaRollupBody")
-                              : (item.payload.excerpt ?? t("noText"))}
+                              : item.type === "assignment_rollup"
+                                ? t("assignmentRollupBody")
+                                : (item.payload.excerpt ?? t("noText"))}
                           </span>
 
                           <span className="mt-1 block truncate text-meta text-faint">
-                            {item.type === "sla_rollup"
+                            {isRollupItem(item)
                               ? item.payload.locationName
                               : `${item.payload.locationName} · ${item.payload.source}`}
                           </span>

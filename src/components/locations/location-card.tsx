@@ -5,6 +5,7 @@ import { useFormatter, useNow, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { GoogleMapping } from "@/components/connections/google-mapping";
+import { PublicPageControl } from "@/components/locations/public-page-control";
 import { SourceBadges } from "@/components/connections/source-badges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,14 +59,22 @@ export type LocationRow = {
   reviewCount: number;
   sources: ConnectedSource[];
   connectable: ConnectableSource[];
+  /** The hosted review page (P3-T3). Null slug until it is first published. */
+  publicPage: { slug: string | null; published: boolean };
 };
 
 export function LocationCard({
   location,
   canManage,
+  publicOrigin,
+  approvedCount,
 }: {
   location: LocationRow;
   canManage: boolean;
+  /** The origin a visitor hits, which is not necessarily the dashboard's. */
+  publicOrigin: string;
+  /** Approved-for-display reviews in this organization; drives one warning. */
+  approvedCount: number;
 }) {
   const t = useTranslations("locations");
   const ts = useTranslations("sources");
@@ -220,6 +229,15 @@ export function LocationCard({
             ))}
           </div>
         ) : null}
+
+        <PublicPageControl
+          locationId={location.id}
+          slug={location.publicPage.slug}
+          published={location.publicPage.published}
+          origin={publicOrigin}
+          approvedCount={approvedCount}
+          canManage={canManage}
+        />
       </CardContent>
     </Card>
   );

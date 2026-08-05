@@ -86,6 +86,72 @@ test.describe("the inbox on a phone", () => {
   });
 });
 
+test.describe("the Phase 3 screens on a phone", () => {
+  /**
+   * The two screens Phase 3 added that carry *tables*, which is the shape most
+   * likely to push a page sideways at 390px. `docs/19` asks for mobile-first
+   * and `docs/18` records that layout is one of the two things a unit test
+   * structurally cannot reach — jsdom has no layout engine.
+   *
+   * The assertion is deliberately about the **document**, not the tables. A
+   * comparison table that scrolls inside its own container is the design; a
+   * comparison table that drags the whole page sideways is the bug, and on a
+   * phone that means the customer's thumb moves the layout instead of the list.
+   */
+  test("Insights fits, with its tables scrolling inside themselves", async ({ page }) => {
+    await page.goto("/insights");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    // The document must not move. That is the whole bug on a phone.
+    expect(await scrollsSideways(page)).toBe(false);
+
+    /**
+     * A comparison table is *deliberately* wider than 390px — four measures
+     * plus a branch name will not fit, and squeezing them would give four
+     * unreadable columns instead of a scrollable five. So the assertion is not
+     * the shared `overflowing()` ("nothing is wider than the viewport") but a
+     * stricter and more accurate one: anything that overflows must be held by
+     * an ancestor that scrolls it.
+     */
+    const loose = await page.evaluate(() => {
+      const scrolls = (el: Element) => {
+        const overflow = getComputedStyle(el).overflowX;
+        return overflow === "auto" || overflow === "scroll";
+      };
+
+      return [...document.querySelectorAll("main *")]
+        .filter((el) => el.getBoundingClientRect().right > window.innerWidth + 1)
+        .filter((el) => {
+          for (let node = el.parentElement; node; node = node.parentElement) {
+            if (scrolls(node)) return false;
+          }
+          return true;
+        })
+        .map((el) => `${el.tagName.toLowerCase()}.${el.className}`.slice(0, 60));
+    });
+
+    expect(loose, "these hang off the side with nothing scrolling them").toEqual([]);
+
+    // And the tables really are scrollable rather than merely squeezed — a
+    // four-measure row cannot fit 390px, so the container has to take it.
+    const scrollable = await page.evaluate(() =>
+      [...document.querySelectorAll("table")].some(
+        (table) =>
+          (table.parentElement?.scrollWidth ?? 0) > (table.parentElement?.clientWidth ?? 0),
+      ),
+    );
+    expect(scrollable, "a comparison table should scroll inside its own container").toBe(true);
+  });
+
+  test("the widget builder fits, preview and all", async ({ page }) => {
+    await page.goto("/widgets");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    expect(await overflowing(page)).toEqual([]);
+    expect(await scrollsSideways(page)).toBe(false);
+  });
+});
+
 test.describe("the public review page on a phone", () => {
   // Unauthenticated: this is what a customer actually opens, from a QR code on
   // a table, on a phone. If anything in the product has to survive a small

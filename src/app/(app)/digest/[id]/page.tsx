@@ -1,6 +1,4 @@
-import { ArrowLeft } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireActor } from "@/auth/session";
 import { DigestView } from "@/components/digest/digest-view";
@@ -47,15 +45,7 @@ export default async function DigestDetailPage({ params }: { params: Promise<{ i
     <>
       <PageHeader
         title={t("detailTitle", { period })}
-        action={
-          <Link
-            href="/digest"
-            className="flex items-center gap-1.5 rounded-sm text-copy text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-          >
-            <ArrowLeft className="size-4" aria-hidden />
-            {t("backToArchive")}
-          </Link>
-        }
+        back={{ href: "/digest", label: t("backToArchive") }}
       />
 
       {digest.status === "ready" ? (

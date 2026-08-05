@@ -195,10 +195,6 @@ export type LimitCheck = {
 /**
  * Resource limits are measured by counting live rows; everything else is
  * measured from `usage_counters` for the current period.
- *
- * `max_widgets` is intentionally absent: widgets do not exist until a later
- * phase, so it falls through to the counter path and reads zero. When the
- * widgets table lands, add it here.
  */
 const RESOURCE_COUNTERS: Partial<
   Record<MetricKey, (tx: TenantDatabase, organizationId: string) => Promise<number>>
@@ -215,6 +211,21 @@ const RESOURCE_COUNTERS: Partial<
       .select({ value: count() })
       .from(schema.memberships)
       .where(eq(schema.memberships.organizationId, organizationId));
+    return row?.value ?? 0;
+  },
+  /**
+   * Every widget counts, published or not (P3-T0).
+   *
+   * Counting only the published ones would make the Starter limit of one mean
+   * "one at a time", so a business could keep a drawer of nine and rotate them
+   * — and the limit would be enforced against a number that changes when nobody
+   * created anything. A widget is a configured resource; owning it is the cost.
+   */
+  max_widgets: async (tx, organizationId) => {
+    const [row] = await tx
+      .select({ value: count() })
+      .from(schema.widgets)
+      .where(eq(schema.widgets.organizationId, organizationId));
     return row?.value ?? 0;
   },
 };

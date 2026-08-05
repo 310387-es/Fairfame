@@ -192,6 +192,9 @@ export const digestDeliveryStatusEnum = pgEnum("digest_delivery_status", ["sent"
 
 export const notificationScopeEnum = pgEnum("notification_scope", ["all", "negative_only", "off"]);
 
+/** How often a scheduled PDF report goes out (P3-T5). */
+export const reportCadenceEnum = pgEnum("report_cadence", ["weekly", "monthly"]);
+
 /** Send now, or hold for the digest. */
 export const notificationDeliveryEnum = pgEnum("notification_delivery", ["instant", "digest"]);
 
@@ -207,6 +210,15 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "new_review",
   "sla_breach",
   "sla_rollup",
+  /**
+   * Work handed to a person (P2-T4 follow-up).
+   *
+   * A pair, like the SLA one above and for the same reason: one alert per item
+   * while the number is small enough to act on, one rollup once bulk assignment
+   * has moved fifty of them at once.
+   */
+  "review_assigned",
+  "assignment_rollup",
 ]);
 
 /** Urgency drives ordering and the email subject, not a separate channel. */
@@ -361,6 +373,24 @@ export const locations = pgTable(
      * order, in src/inbox/workflow.ts, rather than a default repeated per query.
      */
     slaHours: integer("sla_hours"),
+    /**
+     * The address of this location's hosted public review page (P3-T3).
+     *
+     * Globally unique, because it is a URL: there is no tenant in scope when
+     * one arrives, so the slug is how the tenant is found — the same reasoning
+     * as `widgets.public_key` and `campaigns.slug`. Unlike those it is readable
+     * rather than random, because this page is meant to be found and read.
+     *
+     * Assigned once, on first publish, and never regenerated. An indexed URL
+     * that moved whenever somebody tidied up a location's name would throw away
+     * whatever ranking it had earned.
+     */
+    publicSlug: text("public_slug").unique(),
+    /**
+     * Whether that page is live. Off by default, and separate from the slug so
+     * that unpublishing keeps the address for whenever it goes back up.
+     */
+    publicPagePublished: boolean("public_page_published").notNull().default(false),
     ...timestamps,
   },
   (table) => [
@@ -547,6 +577,32 @@ export const reviews = pgTable(
      */
     slaDueAt: timestamp("sla_due_at", { withTimezone: true }),
 
+    // -- Public display (P3-T0) ----------------------------------------------
+
+    /**
+     * When the business cleared this review for its own website, and who did.
+     *
+     * The gate on every public surface — widgets, the rating badge, the SEO
+     * page. Null means not approved, and that is where every row starts: a
+     * backfill to "approved" would record a decision nobody made, on the one
+     * flag whose whole job is to record that somebody made it.
+     *
+     * A timestamp rather than a boolean because the question asked later is
+     * always "when, and by whom" — a boolean answers neither, and a published
+     * quote that nobody can account for is the problem this column exists to
+     * prevent.
+     *
+     * Note this is *not* rating-gating: it decides what a business puts in its
+     * own marketing, long after the review is written and published wherever it
+     * came from. Rating-gating is steering *who gets asked* and *where they are
+     * sent* based on how they feel — that happens in src/collect/routing.ts,
+     * before any rating exists, and remains structurally impossible.
+     */
+    displayApprovedAt: timestamp("display_approved_at", { withTimezone: true }),
+    displayApprovedByUserId: uuid("display_approved_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
     ...timestamps,
   },
   (table) => [
@@ -602,6 +658,25 @@ export const reviews = pgTable(
     check(
       "reviews_rating_only_on_reviews",
       sql`${table.itemType} = 'review' or ${table.rating} is null`,
+    ),
+    // The public widget read. Partial: approved rows are the small minority,
+    // and the public query never asks for the others.
+    index("reviews_org_display_approved_idx")
+      .on(table.organizationId, table.locationId, table.postedAt.desc())
+      .where(sql`display_approved_at is not null`),
+    /**
+     * A direct message can never be published — settled in the database, not in
+     * whichever query happens to be reading.
+     *
+     * A DM is private correspondence between one person and the business. It
+     * was never public anywhere, it carries no `url` for that same reason, and
+     * whoever sent it had no way to know it might end up on a marketing page.
+     * Every other item type is already public where it came from, or was
+     * submitted to a form that says where it goes.
+     */
+    check(
+      "reviews_dm_never_published",
+      sql`${table.itemType} <> 'dm' or ${table.displayApprovedAt} is null`,
     ),
   ],
 );
@@ -780,6 +855,18 @@ export const reviewInsights = pgTable(
     sentimentScore: real("sentiment_score").notNull(),
     /** Normalized theme tags, in the review's own language. */
     topics: text("topics")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    /**
+     * People the customer named, as they wrote them (P3-T4).
+     *
+     * Personal data about employees — see migration 0033 for what follows from
+     * that. Empty for anything analysed before `analyze_review@2`, which is not
+     * the same as "nobody was mentioned"; the Insights page distinguishes the
+     * two rather than reporting an un-analysed corpus as a quiet one.
+     */
+    staff: text("staff")
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
@@ -1037,6 +1124,112 @@ export const digestActions = pgTable(
 );
 
 /**
+ * A competitor a business has named (P3-T6).
+ *
+ * Real configuration — the business typed it — which is why it is stored, while
+ * the *numbers* about that competitor are not. See migration 0035: the only
+ * source that can produce them today is a fixture, and invented rows written
+ * into a customer's database outlive the flag that produced them.
+ */
+export const competitors = pgTable(
+  "competitors",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /** Null benchmarks the organization as a whole. */
+    locationId: uuid("location_id").references(() => locations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Free-form like `reviews.source`: the set grows with each connector. */
+    provider: text("provider").notNull().default("google"),
+    /** A place id, a handle, a URL. Opaque here; only the adapter parses it. */
+    externalRef: text("external_ref").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    ...timestamps,
+  },
+  (table) => [
+    index("competitors_organization_id_idx").on(table.organizationId),
+    unique("competitors_org_provider_ref_key").on(
+      table.organizationId,
+      table.locationId,
+      table.provider,
+      table.externalRef,
+    ),
+  ],
+);
+
+/**
+ * A standing request for a PDF report (P3-T5).
+ *
+ * Belongs to a **person**, not to an organization, like a notification
+ * preference: "email me this every Monday" is a personal arrangement, and a
+ * shared one would need recipient management the product cannot offer until
+ * invitations exist. `locationId` null means every branch that person may see,
+ * resolved at send time rather than frozen here — scope can change, and a
+ * report that kept mailing a branch somebody lost access to would be a leak.
+ */
+export const reportSchedules = pgTable(
+  "report_schedules",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Null spans every location the recipient is scoped to. */
+    locationId: uuid("location_id").references(() => locations.id, { onDelete: "cascade" }),
+    cadence: reportCadenceEnum("cadence").notNull().default("weekly"),
+    enabled: boolean("enabled").notNull().default(true),
+    ...timestamps,
+  },
+  (table) => [
+    index("report_schedules_organization_id_idx").on(table.organizationId),
+    unique("report_schedules_org_user_location_key").on(
+      table.organizationId,
+      table.userId,
+      table.locationId,
+    ),
+  ],
+);
+
+/**
+ * What was actually sent, keyed by the period it covered (P3-T5).
+ *
+ * The same ledger shape as `digest_deliveries` and for the same reason: the
+ * sweep runs often and is allowed to re-run, so "already sent" has to be a row
+ * rather than an assumption about how often a job fired. Keying on the period
+ * rather than a timestamp is what makes a late run still correct — a sweep
+ * that first fires on Wednesday sends Monday's report exactly once.
+ */
+export const reportDeliveries = pgTable(
+  "report_deliveries",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    scheduleId: uuid("schedule_id")
+      .notNull()
+      .references(() => reportSchedules.id, { onDelete: "cascade" }),
+    /** The window's start, UTC, normalised to the cadence's boundary. */
+    periodStart: timestamp("period_start", { withTimezone: true }).notNull(),
+    status: digestDeliveryStatusEnum("status").notNull(),
+    /** The transport's reason, kept for the failed rows a human has to explain. */
+    error: text("error"),
+    /** Null on a failed row: nothing left. */
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index("report_deliveries_organization_id_idx").on(table.organizationId),
+    unique("report_deliveries_schedule_period_key").on(table.scheduleId, table.periodStart),
+  ],
+);
+
+/**
  * One record per (digest, recipient, channel) — who has already been sent what.
  *
  * The digest sweep runs hourly and is deliberately allowed to re-run, so
@@ -1236,6 +1429,62 @@ export const savedViews = pgTable(
       .on(table.organizationId, table.ownerUserId, table.name)
       .nullsNotDistinct(),
     index("saved_views_org_owner_idx").on(table.organizationId, table.ownerUserId, table.position),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Public showcase (P3-T0)
+// ---------------------------------------------------------------------------
+
+/**
+ * An embeddable display of an organization's approved reviews.
+ *
+ * Shape from `docs/03` §Data model (id, org_id, public_key, filters, style),
+ * plus the `published` flag `docs/19` asks for.
+ *
+ * This is the one tenant table whose primary lookup happens with no tenant in
+ * scope: a stranger's browser arrives holding only `public_key`, and that key
+ * is how the organization is discovered. `src/widgets/public.ts` is the only
+ * place that lookup lives — everything after it runs under RLS like anything
+ * else, and no caller ever supplies an organization id.
+ */
+export const widgets = pgTable(
+  "widgets",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /**
+     * Null means every location in the organization. A chain that wants one
+     * widget per branch makes one per branch; a single-site business should not
+     * have to name its only location to get a widget.
+     */
+    locationId: uuid("location_id").references(() => locations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /**
+     * The lookup key, and the only thing the public endpoint is handed.
+     *
+     * Globally unique because there is no tenant in scope when it is read. Not
+     * a secret — it sits in the customer's page source — but CSPRNG-generated
+     * and long, so the namespace cannot be walked: guessing keys must not be a
+     * way to enumerate other businesses. See `src/widgets/keys.ts`.
+     */
+    publicKey: text("public_key").notNull(),
+    /** Which reviews qualify. Validated by Zod both ways — src/widgets/config.ts. */
+    filters: jsonb("filters").notNull().default({}),
+    /** How it looks: layout, theme, locale, accent. Same validation. */
+    style: jsonb("style").notNull().default({}),
+    /**
+     * Off by default. Creating a widget in the builder must not be the same
+     * action as putting it on the internet.
+     */
+    published: boolean("published").notNull().default(false),
+    ...timestamps,
+  },
+  (table) => [
+    unique("widgets_public_key_key").on(table.publicKey),
+    index("widgets_organization_id_idx").on(table.organizationId),
   ],
 );
 
@@ -1565,6 +1814,7 @@ export type ReviewStatus = (typeof reviewStatusEnum.enumValues)[number];
 export type MemberLocation = typeof memberLocations.$inferSelect;
 export type ReplyTemplate = typeof replyTemplates.$inferSelect;
 export type SavedView = typeof savedViews.$inferSelect;
+export type Widget = typeof widgets.$inferSelect;
 export type ReviewInsight = typeof reviewInsights.$inferSelect;
 export type NewReviewInsight = typeof reviewInsights.$inferInsert;
 export type Sentiment = (typeof sentimentEnum.enumValues)[number];
@@ -1602,6 +1852,7 @@ export const TENANT_TABLES = [
   "member_locations",
   "reply_templates",
   "saved_views",
+  "widgets",
   "tags",
   "contacts",
   "campaigns",

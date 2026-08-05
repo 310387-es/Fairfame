@@ -25,6 +25,14 @@ export type InsightInput = {
   sentiment: Sentiment;
   sentimentScore: number;
   topics: string[];
+  /**
+   * Names the reviewer wrote (P3-T4). Empty when nobody was named.
+   *
+   * Optional at this boundary, like `embedding`, and for the same reason: a
+   * caller that does not extract names must not be able to erase names that
+   * are already there. Omitting it on a re-analysis keeps what was stored.
+   */
+  staff?: string[];
   language: string | null;
   /** Null when the embedding pass has not run yet. */
   embedding?: number[] | null;
@@ -64,6 +72,7 @@ export async function upsertInsight(
       sentiment: input.sentiment,
       sentimentScore: input.sentimentScore,
       topics: input.topics,
+      staff: input.staff ?? [],
       language: input.language,
       embedding: input.embedding ?? null,
       contentHash: input.contentHash ?? null,
@@ -77,6 +86,8 @@ export async function upsertInsight(
         sentiment: input.sentiment,
         sentimentScore: input.sentimentScore,
         topics: input.topics,
+        // Coalesced, not overwritten — same reasoning as `embedding` below.
+        ...(input.staff ? { staff: input.staff } : { staff: sql`${schema.reviewInsights.staff}` }),
         language: input.language,
         // coalesce, not overwrite: see the note above.
         ...(input.embedding

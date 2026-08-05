@@ -29,6 +29,13 @@ export type EmailMessage = {
   replyTo?: string;
   /** RFC 8058 one-click opt-out, so mail clients can surface unsubscribe. */
   listUnsubscribeUrl?: string;
+  /**
+   * Files to attach (P3-T5). Deliberately narrow: a filename, a content type
+   * and bytes we produced. There is no path variant and there must not be one —
+   * a transport that can read a path is a transport that can be asked to attach
+   * `/etc/passwd` by anything upstream that builds a message.
+   */
+  attachments?: { filename: string; contentType: string; content: Buffer }[];
 };
 
 export type EmailResult =
@@ -54,7 +61,18 @@ export function createLogTransport(): EmailTransport {
     name: "log",
     async send(message: EmailMessage): Promise<EmailResult> {
       log.info(
-        { to: message.to, subject: message.subject, body: message.text },
+        {
+          to: message.to,
+          subject: message.subject,
+          body: message.text,
+          // Named and sized, never logged: a PDF in a log line is megabytes of
+          // base64 nobody will read and a copy of a customer's data in a place
+          // it was not meant to live.
+          attachments: message.attachments?.map((attachment) => ({
+            filename: attachment.filename,
+            bytes: attachment.content.length,
+          })),
+        },
         "Email not sent (log transport)",
       );
       return { ok: true, messageId: null };
@@ -95,6 +113,15 @@ export function createSmtpTransport(url = getEnv().SMTP_URL, from = getEnv().EMA
           html: message.html,
           replyTo: message.replyTo,
           headers: headersFor(message),
+          ...(message.attachments
+            ? {
+                attachments: message.attachments.map((attachment) => ({
+                  filename: attachment.filename,
+                  contentType: attachment.contentType,
+                  content: attachment.content,
+                })),
+              }
+            : {}),
         });
 
         return { ok: true, messageId: info.messageId ?? null };

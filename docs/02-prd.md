@@ -80,7 +80,9 @@ Add every connectable source into a unified inbox (live\-sync where allowed, mon
 
 ### Phase 3 — Showcase \+ Analyze
 
-Embeddable review widgets/badges, auto\-generated SEO review pages with schema.org markup, deeper analytics (theme trends, per\-location/staff performance, competitor benchmarking), scheduled report exports (PDF/email).
+Embeddable review widgets/badges, auto\-generated SEO review pages with `LocalBusiness` schema.org markup (**not** review or rating markup — see below), deeper analytics (theme trends, per\-location/staff performance, competitor benchmarking), scheduled report exports (PDF/email).
+
+> **Corrected 5 Aug 2026 — no star snippets.** Earlier drafts of this document and of `docs/01` implied review rich snippets. Google's review\-snippet policy makes a business's own reviews on its own site ineligible for the star feature, and separately forbids aggregating other sites' ratings — which is what we ingest. The hosted page therefore carries `LocalBusiness` markup only, and the widget and badge carry none. Rationale and source: the P3\-T3 amendment in `docs/19`. **Do not promise stars in search results anywhere in sales material.**
 
 ### Phase 4 — Engage
 

@@ -13,14 +13,21 @@ import { RANGES, type Range } from "@/dashboard/range";
  * Built on the shared `Segmented`, which is where the reasoning for links over
  * client state lives.
  */
-export async function RangeToggle({ active }: { active: Range }) {
+export async function RangeToggle({
+  active,
+  basePath = "/home",
+}: {
+  active: Range;
+  /** Which page the links point back at — Home and Insights share this control. */
+  basePath?: string;
+}) {
   const t = await getTranslations("home");
 
   return (
     <Segmented
       label={t("rangeLabel")}
       items={RANGES.map((range) => ({
-        href: `/home?range=${range}`,
+        href: `${basePath}?range=${range}`,
         // The long form names the window for a screen reader; the short form is
         // what fits in a 40px pill.
         label: t(`range.${range}.long`),

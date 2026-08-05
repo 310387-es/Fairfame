@@ -157,6 +157,15 @@ export type ReviewAlertEmailInput = {
   authorName: string | null;
   excerpt: string | null;
   urgent: boolean;
+  /**
+   * Why this landed: the review just arrived, or a teammate handed it over.
+   *
+   * The body is identical — same review, same quote, same stars — but the first
+   * line is not, and getting it wrong is worse than it sounds: "a new review
+   * just came in" about a review that arrived last Tuesday and was assigned to
+   * you this morning is simply false.
+   */
+  reason?: "arrived" | "assigned";
   /** Deep link into the Inbox. */
   link: string;
   /** Where to change what arrives. Not an unsubscribe — this is not marketing. */
@@ -165,8 +174,10 @@ export type ReviewAlertEmailInput = {
 
 type AlertCopy = {
   subject: (input: ReviewAlertEmailInput) => string;
+  assignedSubject: (input: ReviewAlertEmailInput) => string;
   greeting: (name: string | null) => string;
   lead: (input: ReviewAlertEmailInput) => string;
+  assignedLead: (input: ReviewAlertEmailInput) => string;
   urgentLead: (input: ReviewAlertEmailInput) => string;
   byline: (author: string | null, source: string) => string;
   cta: string;
@@ -181,8 +192,11 @@ const ALERT_COPY: Record<Locale, AlertCopy> = {
       urgent
         ? `Dikkat: ${locationName} için ${rating ? `${rating} yıldızlı ` : ""}olumsuz yorum`
         : `${locationName} için yeni yorum${rating ? ` (${rating} yıldız)` : ""}`,
+    assignedSubject: ({ locationName }) => `${locationName} için bir yorum size atandı`,
     greeting: (name) => (name ? `Merhaba ${name},` : "Merhaba,"),
     lead: ({ locationName }) => `${locationName} için yeni bir yorum geldi.`,
+    assignedLead: ({ locationName }) =>
+      `Bir ekip arkadaşınız ${locationName} şubesindeki bu yorumu size atadı.`,
     urgentLead: ({ locationName }) =>
       `${locationName} için olumsuz bir yorum geldi. Hızlı bir yanıt genellikle en çok burada işe yarar.`,
     byline: (author, source) => `${author ?? "Anonim"} · ${source}`,
@@ -196,8 +210,10 @@ const ALERT_COPY: Record<Locale, AlertCopy> = {
       urgent
         ? `Heads up: negative review${rating ? ` (${rating}★)` : ""} for ${locationName}`
         : `New review for ${locationName}${rating ? ` (${rating}★)` : ""}`,
+    assignedSubject: ({ locationName }) => `A review at ${locationName} was assigned to you`,
     greeting: (name) => (name ? `Hi ${name},` : "Hi,"),
     lead: ({ locationName }) => `A new review just came in for ${locationName}.`,
+    assignedLead: ({ locationName }) => `A teammate assigned you this review at ${locationName}.`,
     urgentLead: ({ locationName }) =>
       `A negative review just came in for ${locationName}. A quick reply usually matters most here.`,
     byline: (author, source) => `${author ?? "Anonymous"} · ${source}`,
@@ -211,7 +227,14 @@ const ALERT_COPY: Record<Locale, AlertCopy> = {
 export function renderReviewAlertEmail(input: ReviewAlertEmailInput): RenderedEmail {
   const copy = ALERT_COPY[input.locale];
   const greeting = copy.greeting(input.recipientName);
-  const lead = input.urgent ? copy.urgentLead(input) : copy.lead(input);
+  const assigned = input.reason === "assigned";
+  // An assignment says so even when the review is a bad one: "this is yours" is
+  // the more useful first line, and the urgency still shows in the styling.
+  const lead = assigned
+    ? copy.assignedLead(input)
+    : input.urgent
+      ? copy.urgentLead(input)
+      : copy.lead(input);
   const byline = copy.byline(input.authorName, input.source);
   const body = input.excerpt ?? copy.noText;
   const stars =
@@ -244,6 +267,121 @@ export function renderReviewAlertEmail(input: ReviewAlertEmailInput): RenderedEm
         <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">${escapeHtml([stars, byline].filter(Boolean).join("  "))}</p>
         <p style="margin:0;font-size:15px;line-height:1.6;">${escapeHtml(body)}</p>
       </div>
+      <p style="margin:0 0 24px;">
+        <a href="${escapeHtml(input.link)}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;">${escapeHtml(copy.cta)}</a>
+      </p>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.footer)}</p>
+      <p style="margin:0;font-size:12px;color:#6b7280;">
+        <a href="${escapeHtml(input.settingsUrl)}" style="color:#6b7280;">${escapeHtml(copy.settings)}</a>
+      </p>
+    </div>
+  </body>
+</html>`;
+
+  return { subject: assigned ? copy.assignedSubject(input) : copy.subject(input), text, html };
+}
+
+// ---------------------------------------------------------------------------
+// Rollup alerts — an email about a pile rather than a review
+// ---------------------------------------------------------------------------
+
+/**
+ * The alert that says "you are behind", not "look at this review".
+ *
+ * It exists because the review-alert template above could not honestly render
+ * one and was doing it anyway: a rollup payload carries a count and a location
+ * and nothing else, so every field came out blank and the button linked to
+ * `/inbox?review=undefined`. The sender now refuses that shape — and this is
+ * what it refuses *into*, so someone who asked to be emailed about a backlog is
+ * told about the backlog rather than being quietly dropped.
+ *
+ * Deliberately a different shape from the review alert, not a variant of it.
+ * There is no quote to show, no stars, no author; what matters is a number and
+ * a way into the queue it describes. Bending the other template around an
+ * absent review is exactly how the broken version happened.
+ */
+export type RollupEmailInput = {
+  locale: Locale;
+  recipientName: string | null;
+  businessName: string;
+  locationName: string;
+  count: number;
+  /** Which pile: a lapsed-deadline backlog, or work just handed over. */
+  kind: "sla" | "assignment";
+  /** Into the filtered inbox that holds them — never a single review. */
+  link: string;
+  settingsUrl: string;
+};
+
+type RollupCopy = {
+  subject: (input: RollupEmailInput) => string;
+  greeting: (name: string | null) => string;
+  lead: (input: RollupEmailInput) => string;
+  cta: string;
+  footer: string;
+  settings: string;
+};
+
+const ROLLUP_COPY: Record<Locale, RollupCopy> = {
+  tr: {
+    subject: ({ locationName, count, kind }) =>
+      kind === "sla"
+        ? `${locationName}: süresi geçen ${count} yorum`
+        : `Size ${count} yorum atandı`,
+    greeting: (name) => (name ? `Merhaba ${name},` : "Merhaba,"),
+    lead: ({ locationName, count, kind }) =>
+      kind === "sla"
+        ? `${locationName} şubesinde yanıt süresi dolan ${count} yorum var. Tek tek bildirim yerine tek bir özet gönderiyoruz.`
+        : `Bir ekip arkadaşınız ${locationName} şubesinden ${count} yorumu size atadı.`,
+    cta: "Sıraya git",
+    footer: "Bu bildirimi ekip üyesi olduğunuz için aldınız.",
+    settings: "Bildirim tercihlerinizi değiştirin",
+  },
+  en: {
+    subject: ({ locationName, count, kind }) =>
+      kind === "sla"
+        ? `${locationName}: ${count} reviews past their deadline`
+        : `${count} reviews assigned to you`,
+    greeting: (name) => (name ? `Hi ${name},` : "Hi,"),
+    lead: ({ locationName, count, kind }) =>
+      kind === "sla"
+        ? `${count} reviews at ${locationName} are past the time you gave yourselves to reply. This is one summary instead of ${count} separate alerts.`
+        : `A teammate assigned you ${count} reviews at ${locationName}.`,
+    cta: "Open the queue",
+    footer: "You received this because you are a member of this team.",
+    settings: "Change your notification preferences",
+  },
+};
+
+export function renderRollupEmail(input: RollupEmailInput): RenderedEmail {
+  const copy = ROLLUP_COPY[input.locale];
+  const greeting = copy.greeting(input.recipientName);
+  const lead = copy.lead(input);
+
+  const text = [
+    greeting,
+    "",
+    lead,
+    "",
+    input.link,
+    "",
+    "—",
+    copy.footer,
+    `${copy.settings}: ${input.settingsUrl}`,
+  ].join("\n");
+
+  // A lapsed promise is the one that warrants the alarm colour; a handoff is
+  // ordinary work and is styled as such.
+  const accent = input.kind === "sla" ? "#b91c1c" : "#111827";
+
+  const html = `<!doctype html>
+<html lang="${input.locale}">
+  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+    <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
+      <p style="margin:0 0 16px;font-size:16px;">${escapeHtml(greeting)}</p>
+      <p style="margin:0 0 8px;font-size:32px;font-weight:600;color:${accent};">${input.count}</p>
+      <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">${escapeHtml(lead)}</p>
       <p style="margin:0 0 24px;">
         <a href="${escapeHtml(input.link)}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;">${escapeHtml(copy.cta)}</a>
       </p>
@@ -536,4 +674,154 @@ ${
 </html>`;
 
   return { subject: copy.subject(withPeriod), text, html };
+}
+
+// ---------------------------------------------------------------------------
+// Scheduled report (P3-T5)
+// ---------------------------------------------------------------------------
+
+export type ReportEmailInput = {
+  locale: Locale;
+  recipientName: string | null;
+  /** "Kadıköy Kahve — Kadıköy Şubesi", or the organization for an org-wide one. */
+  scopeName: string;
+  /** "1–7 August 2026", already formatted in the recipient's locale. */
+  period: string;
+  cadence: "weekly" | "monthly";
+  /** Headline figures, preformatted. Null where there was nothing to measure. */
+  reviewCount: number;
+  averageRating: string | null;
+  repliedShare: string | null;
+  /** Where to read the same numbers in the app. */
+  link: string;
+  settingsUrl: string;
+  /** What the PDF is called, so the body and the attachment agree. */
+  attachmentName: string;
+};
+
+type ReportCopy = {
+  subject: (input: ReportEmailInput) => string;
+  greeting: (name: string | null) => string;
+  lead: (input: ReportEmailInput) => string;
+  quiet: (input: ReportEmailInput) => string;
+  attached: (filename: string) => string;
+  figures: string;
+  reviews: (count: number) => string;
+  rating: (value: string) => string;
+  replied: (value: string) => string;
+  none: string;
+  cta: string;
+  footer: string;
+  settings: string;
+};
+
+/**
+ * The email is a covering note, not a second report.
+ *
+ * Everything worth reading is in the PDF, so the body says what arrived, what
+ * period it covers, and the two or three numbers that decide whether the
+ * recipient opens the attachment at all. A mail client that hides attachments —
+ * or a recipient reading on a phone — still gets something true.
+ */
+const REPORT_COPY: Record<Locale, ReportCopy> = {
+  tr: {
+    subject: ({ scopeName, period }) => `${scopeName} raporu · ${period}`,
+    greeting: (name) => (name ? `Merhaba ${name},` : "Merhaba,"),
+    lead: ({ scopeName, period, cadence }) =>
+      `${scopeName} için ${cadence === "weekly" ? "haftalık" : "aylık"} rapor hazır. ` +
+      `${period} dönemini kapsıyor.`,
+    quiet: ({ period }) =>
+      `${period} döneminde hiç yorum gelmedi. Rapor yine de ekte — sessizlik de bir bilgidir.`,
+    attached: (filename) => `PDF ekte: ${filename}`,
+    figures: "Özet",
+    reviews: (count) => `${count} yorum`,
+    rating: (value) => `Ortalama puan ${value} / 5`,
+    replied: (value) => `Yanıtlanan ${value}`,
+    none: "—",
+    cta: "İçgörüleri aç",
+    footer: "Bu e-postayı, bu raporu düzenli almayı seçtiğiniz için aldınız.",
+    settings: "Rapor planınızı değiştirin",
+  },
+  en: {
+    subject: ({ scopeName, period }) => `${scopeName} report · ${period}`,
+    greeting: (name) => (name ? `Hi ${name},` : "Hi,"),
+    lead: ({ scopeName, period, cadence }) =>
+      `Your ${cadence} report for ${scopeName} is ready. It covers ${period}.`,
+    quiet: ({ period }) =>
+      `No reviews came in during ${period}. The report is attached anyway — a quiet period is ` +
+      `information too.`,
+    attached: (filename) => `PDF attached: ${filename}`,
+    figures: "At a glance",
+    reviews: (count) => `${count} reviews`,
+    rating: (value) => `Average rating ${value} / 5`,
+    replied: (value) => `Replied ${value}`,
+    none: "—",
+    cta: "Open Insights",
+    footer: "You received this because you asked for this report on a schedule.",
+    settings: "Change your report schedule",
+  },
+};
+
+export function renderReportEmail(input: ReportEmailInput): RenderedEmail {
+  const copy = REPORT_COPY[input.locale];
+  const greeting = copy.greeting(input.recipientName);
+  const quiet = input.reviewCount === 0;
+  const lead = quiet ? copy.quiet(input) : copy.lead(input);
+
+  const figures = [
+    copy.reviews(input.reviewCount),
+    input.averageRating ? copy.rating(input.averageRating) : null,
+    input.repliedShare ? copy.replied(input.repliedShare) : null,
+  ].filter((line): line is string => line !== null);
+
+  const text = [
+    greeting,
+    "",
+    lead,
+    "",
+    copy.attached(input.attachmentName),
+    ...(quiet ? [] : ["", copy.figures, ...figures.map((line) => `· ${line}`)]),
+    "",
+    input.link,
+    "",
+    "—",
+    copy.footer,
+    `${copy.settings}: ${input.settingsUrl}`,
+  ].join("\n");
+
+  const html = `<!doctype html>
+<html lang="${input.locale}">
+  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+    <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
+      <p style="margin:0 0 16px;font-size:16px;">${escapeHtml(greeting)}</p>
+      <p style="margin:0 0 20px;font-size:16px;line-height:1.6;">${escapeHtml(lead)}</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">${escapeHtml(copy.attached(input.attachmentName))}</p>
+${
+  quiet
+    ? ""
+    : `
+      <div style="background:#f6f7f9;border-radius:8px;padding:14px 16px;margin:0 0 24px;">
+        <p style="margin:0 0 8px;font-size:14px;font-weight:600;">${escapeHtml(copy.figures)}</p>
+        ${figures
+          .map(
+            (line) =>
+              `<p style="margin:0 0 4px;font-size:14px;color:#374151;">${escapeHtml(line)}</p>`,
+          )
+          .join("\n        ")}
+      </div>`
+}
+      <p style="margin:0 0 28px;">
+        <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#3d5af1;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;">${escapeHtml(copy.cta)}</a>
+      </p>
+
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px;">
+      <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(copy.footer)}</p>
+      <p style="margin:0;font-size:12px;color:#6b7280;">
+        <a href="${escapeHtml(input.settingsUrl)}" style="color:#6b7280;">${escapeHtml(copy.settings)}</a>
+      </p>
+    </div>
+  </body>
+</html>`;
+
+  return { subject: copy.subject(input), text, html };
 }

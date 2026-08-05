@@ -27,6 +27,8 @@ export const reviewAnalysisResultSchema = z.object({
   sentimentScore: z.number().min(-1).max(1),
   topics: z.array(z.string().min(1).max(60)).min(1).max(5),
   language: z.string().min(2).max(10),
+  /** Names the reviewer wrote, as written. Empty is the common case. */
+  staff: z.array(z.string().min(1).max(60)).max(5),
 });
 
 export type ReviewAnalysis = z.infer<typeof reviewAnalysisResultSchema>;
@@ -37,6 +39,10 @@ const wireSchema = z.object({
   sentiment_score: z.number(),
   topics: z.array(z.string()),
   language: z.string(),
+  // Optional on the wire, not in our own shape: a provider that ignores a
+  // newly-added property should degrade to "no names", not fail the analysis
+  // of a review whose sentiment and themes came back perfectly well.
+  staff: z.array(z.string()).optional(),
 });
 
 export type AnalyzeArgs = {
@@ -109,6 +115,7 @@ export async function analyzeReview(args: AnalyzeArgs): Promise<AnalyzeOutcome> 
       sentimentScore: Math.max(-1, Math.min(1, result.data.sentiment_score)),
       topics: normalizeTopics(result.data.topics),
       language: normalizeLanguage(result.data.language),
+      staff: normalizeStaff(result.data.staff ?? []),
     },
     costUsd,
     listCostUsd,
@@ -202,6 +209,34 @@ function normalizeTopics(topics: string[]): string[] {
   // A review always has at least one theme; "other" beats an empty array for
   // the grouping queries in T3.
   return seen.size > 0 ? [...seen] : ["other"];
+}
+
+/**
+ * Names, trimmed and de-duplicated — but **not** lower-cased.
+ *
+ * The opposite of `normalizeTopics`, and deliberately so. A topic is a grouping
+ * key and nobody reads it as a word; a name is a person, and rendering "ayşe"
+ * back to the colleague she works with is a small daily insult. Duplicates are
+ * folded case-insensitively so "Ayşe" and "ayşe" are one person, with the first
+ * spelling kept.
+ *
+ * Bounded at five because a review naming six people is a model that has
+ * started listing nouns, and one that long is not evidence about anyone.
+ */
+function normalizeStaff(staff: string[]): string[] {
+  const byKey = new Map<string, string>();
+
+  for (const name of staff) {
+    const cleaned = name.trim().replace(/\s+/g, " ").slice(0, 60);
+    if (cleaned.length === 0) continue;
+    // Turkish casing, so "İLKER" and "ilker" fold together rather than being
+    // told apart by a dotted capital.
+    const key = cleaned.toLocaleLowerCase("tr");
+    if (!byKey.has(key)) byKey.set(key, cleaned);
+    if (byKey.size === 5) break;
+  }
+
+  return [...byKey.values()];
 }
 
 /** "tr-TR" → "tr"; anything we do not serve is recorded as-is, lower-cased. */

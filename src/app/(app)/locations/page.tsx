@@ -1,4 +1,4 @@
-import { count, eq, sql } from "drizzle-orm";
+import { and, count, eq, isNotNull, sql } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
 import { requireActor } from "@/auth/session";
 import { roleAtLeast } from "@/auth/permissions";
@@ -16,6 +16,8 @@ import { FIRST_PARTY_PROVIDER } from "@/connectors/firstparty";
 import { schema } from "@/db/client";
 import { withinLimit } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
+import { publicBaseUrl } from "@/lib/urls";
+import { listPublicPages } from "@/seo/store";
 
 /**
  * Locations: add one, connect sources to it, see what has been ingested.
@@ -28,45 +30,63 @@ import { withTenant } from "@/lib/tenancy";
 export default async function LocationsPage() {
   const [t, actor] = await Promise.all([getTranslations("locations"), requireActor()]);
 
-  const { locations, connections, reviewCounts, limit } = await withTenant(
-    { organizationId: actor.organizationId, userId: actor.userId },
-    async (tx) => ({
-      locations: await tx
-        .select({
-          id: schema.locations.id,
-          name: schema.locations.name,
-          address: schema.locations.address,
-          category: schema.locations.category,
-        })
-        .from(schema.locations)
-        .where(eq(schema.locations.organizationId, actor.organizationId))
-        .orderBy(sql`lower(${schema.locations.name})`),
+  const { locations, connections, reviewCounts, publicPages, approvedCount, limit } =
+    await withTenant(
+      { organizationId: actor.organizationId, userId: actor.userId },
+      async (tx) => ({
+        locations: await tx
+          .select({
+            id: schema.locations.id,
+            name: schema.locations.name,
+            address: schema.locations.address,
+            category: schema.locations.category,
+          })
+          .from(schema.locations)
+          .where(eq(schema.locations.organizationId, actor.organizationId))
+          .orderBy(sql`lower(${schema.locations.name})`),
 
-      // Separate queries rather than one join: joining connections and reviews
-      // to locations at once multiplies rows and turns both counts into fiction.
-      connections: await tx
-        .select({
-          id: schema.connections.id,
-          locationId: schema.connections.locationId,
-          provider: schema.connections.provider,
-          status: schema.connections.status,
-          lastSyncedAt: schema.connections.lastSyncedAt,
-          nextSyncAt: schema.connections.nextSyncAt,
-          failureCount: schema.connections.failureCount,
-          lastError: schema.connections.lastError,
-        })
-        .from(schema.connections)
-        .where(eq(schema.connections.organizationId, actor.organizationId)),
+        // Separate queries rather than one join: joining connections and reviews
+        // to locations at once multiplies rows and turns both counts into fiction.
+        connections: await tx
+          .select({
+            id: schema.connections.id,
+            locationId: schema.connections.locationId,
+            provider: schema.connections.provider,
+            status: schema.connections.status,
+            lastSyncedAt: schema.connections.lastSyncedAt,
+            nextSyncAt: schema.connections.nextSyncAt,
+            failureCount: schema.connections.failureCount,
+            lastError: schema.connections.lastError,
+          })
+          .from(schema.connections)
+          .where(eq(schema.connections.organizationId, actor.organizationId)),
 
-      reviewCounts: await tx
-        .select({ locationId: schema.reviews.locationId, total: count(schema.reviews.id) })
-        .from(schema.reviews)
-        .where(eq(schema.reviews.organizationId, actor.organizationId))
-        .groupBy(schema.reviews.locationId),
+        reviewCounts: await tx
+          .select({ locationId: schema.reviews.locationId, total: count(schema.reviews.id) })
+          .from(schema.reviews)
+          .where(eq(schema.reviews.organizationId, actor.organizationId))
+          .groupBy(schema.reviews.locationId),
 
-      limit: await withinLimit({ organizationId: actor.organizationId, tx }, "max_locations"),
-    }),
-  );
+        // The hosted review pages, and how many reviews this organization has
+        // approved for display anywhere. The second is a single count for the
+        // whole organization rather than per location, because approval is a
+        // property of the *review* — the warning it drives is "you have approved
+        // nothing at all", which is the only version of it that can be true.
+        publicPages: await listPublicPages(tx, actor.organizationId),
+        approvedCount: await tx
+          .select({ value: count() })
+          .from(schema.reviews)
+          .where(
+            and(
+              eq(schema.reviews.organizationId, actor.organizationId),
+              isNotNull(schema.reviews.displayApprovedAt),
+            ),
+          )
+          .then(([row]) => row?.value ?? 0),
+
+        limit: await withinLimit({ organizationId: actor.organizationId, tx }, "max_locations"),
+      }),
+    );
 
   const countByLocation = new Map(reviewCounts.map((row) => [row.locationId, row.total]));
 
@@ -120,6 +140,7 @@ export default async function LocationsPage() {
       reviewCount: countByLocation.get(location.id) ?? 0,
       sources,
       connectable: connectableCatalogue.filter((source) => !connected.has(source.provider)),
+      publicPage: publicPages.get(location.id) ?? { slug: null, published: false },
     };
   });
 
@@ -158,7 +179,14 @@ export default async function LocationsPage() {
         <ul className="grid gap-3 sm:grid-cols-2">
           {rows.map((location) => (
             <li key={location.id}>
-              <LocationCard location={location} canManage={canManage} />
+              <LocationCard
+                location={location}
+                canManage={canManage}
+                // The origin a customer's visitors reach, which is not
+                // necessarily the one an admin is signed in to — src/lib/urls.ts.
+                publicOrigin={publicBaseUrl()}
+                approvedCount={approvedCount}
+              />
             </li>
           ))}
         </ul>

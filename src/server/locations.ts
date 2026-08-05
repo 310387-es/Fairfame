@@ -1,11 +1,12 @@
 "use server";
 
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { withAuthenticatedTenant } from "@/auth/session";
 import { connectSource, syncConnectionWithin, toConnection } from "@/connectors/sync";
 import { schema } from "@/db/client";
-import { requireWithinLimit } from "@/lib/entitlements";
+import { requireFeature, requireWithinLimit } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
 import { writeActiveLocationCookie } from "@/lib/active-location";
 import { toActionResult, type ActionResult } from "@/server/action-result";
@@ -13,6 +14,7 @@ import { FIRST_PARTY_PROVIDER } from "@/connectors/firstparty";
 import { getProvider, resolveMode } from "@/connectors/providers";
 import { requestAnalysis, requestNotifications } from "@/jobs/client";
 import { connectSourceSchema, parseCreateLocation, syncNowSchema } from "@/server/location-input";
+import { setPublicPage } from "@/seo/store";
 
 /**
  * Location and source-connection mutations.
@@ -206,6 +208,62 @@ export async function syncNowAction(input: { connectionId: string }): Promise<Ac
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "syncNow failed");
+    return toActionResult(error);
+  }
+}
+
+/**
+ * Publish or unpublish a location's hosted review page (P3-T3).
+ *
+ * `admin`, and gated on `seo_pages` — its own key since P3-T7, set to match
+ * `widgets` today because `docs/05` prices them as one line ("Widgets /
+ * showcase"). The separate key exists so that pricing them apart is a config
+ * edit rather than a code change, which is the whole point of T7.
+ *
+ * The weight of this action is worth naming: it is the moment a business's
+ * reviews go onto an indexable page on our domain under their name. That is why
+ * it is audit-logged with the resulting URL rather than a bare boolean — "who
+ * put this on the internet, and what was the address" is the question anyone
+ * asking about it later will actually have.
+ */
+export async function setPublicPageAction(input: {
+  locationId: string;
+  published: boolean;
+}): Promise<ActionResult<{ slug?: string }>> {
+  const parsed = z.object({ locationId: z.uuid(), published: z.boolean() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+
+  try {
+    const state = await withAuthenticatedTenant(
+      async (tx, actor) => {
+        const org = { organizationId: actor.organizationId, tx };
+        await requireFeature(org, "seo_pages");
+
+        const result = await setPublicPage(
+          tx,
+          actor.organizationId,
+          parsed.data.locationId,
+          parsed.data.published,
+        );
+        if (!result) throw new Error("That location does not exist.");
+
+        await tx.insert(schema.auditLogs).values({
+          organizationId: actor.organizationId,
+          actorUserId: actor.userId,
+          action: parsed.data.published ? "location.page_published" : "location.page_unpublished",
+          entity: `location:${parsed.data.locationId}`,
+          meta: { slug: result.slug },
+        });
+
+        return result;
+      },
+      { minimumRole: "admin" },
+    );
+
+    revalidatePath("/locations");
+    return { ok: true, slug: state.slug ?? undefined };
+  } catch (error) {
+    log.warn({ err: error }, "setPublicPage failed");
     return toActionResult(error);
   }
 }

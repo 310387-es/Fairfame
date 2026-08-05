@@ -6,6 +6,7 @@ import { createStubProvider } from "@/ai/providers/stub";
 import { LlmError, type LlmProvider } from "@/ai/types";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { withTenant } from "@/lib/tenancy";
+import { ANALYZE_PROMPT_ID } from "@/prompts";
 import { analyzeReviewPrompt } from "@/prompts/index";
 
 /**
@@ -76,7 +77,11 @@ describe("audit trail", () => {
 
     const [row] = await auditRows(org);
     expect(row?.action).toBe("ai.analyze");
-    expect(row?.entity).toBe("prompt:analyze_review@1");
+    // Against the constant, not a literal version. What this asserts is that
+    // the audit row names *which* prompt produced the analysis — a deliberate
+    // version bump (staff extraction took it to @2) should not read as a
+    // regression in the audit trail.
+    expect(row?.entity).toBe(`prompt:${ANALYZE_PROMPT_ID}`);
 
     const meta = row?.meta as Record<string, unknown>;
     expect(meta.provider).toBe("stub");

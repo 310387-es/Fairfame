@@ -65,6 +65,14 @@ export function buildPrompt(args: {
 // ---------------------------------------------------------------------------
 
 /**
+ * The current analysis prompt's identity, exported because two things outside
+ * the prompt need it: the batch runner records it on every insight, and the
+ * Insights page uses it to tell "nobody was named" apart from "analysed before
+ * names were extracted at all".
+ */
+export const ANALYZE_PROMPT_ID = "analyze_review@2";
+
+/**
  * The shape T3 will persist into `review_insights`. Declared here because the
  * schema *is* part of the prompt — it is what constrains the response.
  */
@@ -82,8 +90,14 @@ export const reviewAnalysisSchema = {
       items: { type: "string" },
     },
     language: { type: "string", description: "BCP-47 language tag of the review, e.g. tr or en." },
+    staff: {
+      type: "array",
+      description:
+        "Names of the business's own staff the reviewer named, exactly as written. Empty when none are named.",
+      items: { type: "string" },
+    },
   },
-  required: ["sentiment", "sentiment_score", "topics", "language"],
+  required: ["sentiment", "sentiment_score", "topics", "language", "staff"],
 } as const satisfies Record<string, unknown>;
 
 const ANALYZE_SYSTEM = [
@@ -91,6 +105,12 @@ const ANALYZE_SYSTEM = [
   "Work in the review's own language: a Turkish review yields Turkish topic tags, an English review English ones.",
   "Turkish and English must be treated with equal care; do not translate before classifying.",
   "Judge only what the text says. Do not infer facts that are not present, and do not speculate about the business.",
+  // Naming a person is the one output here that is personal data about somebody
+  // who did not write the review, so the instruction is narrow on purpose:
+  // copy a name the customer actually wrote, or return none. Guessing that "the
+  // barista" is a particular employee, or inventing a plausible name, would
+  // attach a stranger's complaint to a real person.
+  "For staff, list only names the reviewer explicitly wrote, copied exactly as they appear. Never guess a name, never resolve a role like 'the manager' to a name, and never include the reviewer's own name.",
   "Answer with JSON matching the schema and nothing else.",
 ].join(" ");
 
@@ -108,12 +128,15 @@ export function analyzeReviewPrompt(args: { text: string; rating: number | null 
       : `The reviewer gave ${args.rating} out of 5 stars.`;
 
   return buildPrompt({
-    id: "analyze_review@1",
+    // Bumped from @1 when staff extraction was added. The id is recorded on
+    // every insight, which is how the Insights page can tell a review nobody
+    // was named in from one analysed before the field existed.
+    id: ANALYZE_PROMPT_ID,
     system: ANALYZE_SYSTEM,
     instruction: [
       "Classify the customer review below.",
       ratingLine,
-      "Return its overall sentiment, a sentiment score, one to five topic tags naming what the review is actually about (service, waiting time, price, cleanliness, staff, and so on), and the language it is written in.",
+      "Return its overall sentiment, a sentiment score, one to five topic tags naming what the review is actually about (service, waiting time, price, cleanliness, staff, and so on), the language it is written in, and any staff the reviewer named.",
     ].join(" "),
     untrustedText: args.text,
     // Generous enough for five tags in Turkish, far too small for prose.

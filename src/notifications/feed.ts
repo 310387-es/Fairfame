@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
+import type { AssignmentRollupPayload } from "./assignment.ts";
 import type { ReviewNotificationPayload, SlaRollupPayload } from "./service.ts";
 
 /**
@@ -28,10 +29,22 @@ export type FeedItem = {
   locationId: string | null;
   readAt: Date | null;
   createdAt: Date;
-} & (
-  | { type: "new_review" | "sla_breach"; payload: ReviewNotificationPayload }
-  | { type: "sla_rollup"; payload: SlaRollupPayload }
-);
+} &
+  // `review_assigned` sits with the other two because it *is* about one review
+  // and carries the same payload — what differs is why it arrived, which the
+  // type already says.
+  (
+    | { type: "new_review" | "sla_breach" | "review_assigned"; payload: ReviewNotificationPayload }
+    | { type: "sla_rollup"; payload: SlaRollupPayload }
+    | { type: "assignment_rollup"; payload: AssignmentRollupPayload }
+  );
+
+/** The two entries that describe a pile rather than a review. */
+export const ROLLUP_TYPES = ["sla_rollup", "assignment_rollup"] as const;
+
+function isRollup(type: string): type is (typeof ROLLUP_TYPES)[number] {
+  return (ROLLUP_TYPES as readonly string[]).includes(type);
+}
 
 export type FeedOptions = {
   limit?: number;
@@ -106,8 +119,8 @@ export async function listFeed(
     ...row,
     // The column is untyped jsonb; the row's `type` is what says which shape is
     // in it, and the two were written together by the same service.
-    ...(row.type === "sla_rollup"
-      ? { type: "sla_rollup" as const, payload: row.payload as SlaRollupPayload }
+    ...(isRollup(row.type)
+      ? { type: row.type, payload: row.payload as SlaRollupPayload & AssignmentRollupPayload }
       : { type: row.type, payload: row.payload as ReviewNotificationPayload }),
   }));
 }

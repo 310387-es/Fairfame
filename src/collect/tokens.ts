@@ -1,9 +1,10 @@
-import { randomBytes } from "node:crypto";
+import { looksLikeCode, randomCode } from "../lib/codes.ts";
 
 /**
- * Codes that end up in public URLs.
+ * Codes that end up in public collection URLs.
  *
- * Two different jobs, so two different generators:
+ * Two different jobs, so two different lengths over the shared generator in
+ * `src/lib/codes.ts`:
  *
  * - A campaign **slug** is printed on a poster and read aloud ("revira.app
  *   slash c slash kadikoy-h7m2qp"). It is public by design and guards nothing,
@@ -11,41 +12,7 @@ import { randomBytes } from "node:crypto";
  * - A request **token** identifies one person's ask. Anyone holding it can mark
  *   that request opened and attach a submission to it, so it is a secret:
  *   generated with a CSPRNG, long enough that guessing is hopeless.
- *
- * The alphabet omits i, l, o, 0 and 1 — transcription errors from a printed
- * page are a real failure mode for a QR fallback link.
  */
-
-const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
-
-/** 2^5 = 32 > 31, so a 5-bit sample sometimes lands out of range and is redrawn. */
-const BITS_MASK = 0b11111;
-
-/**
- * Uniform random string over ALPHABET.
- *
- * Rejection sampling rather than `byte % 31`: the modulo would make the first
- * two letters of the alphabet measurably likelier, which is exactly the kind of
- * quiet bias that erodes a token's entropy.
- */
-export function randomCode(length: number): string {
-  if (length <= 0) throw new Error("randomCode length must be positive.");
-
-  let out = "";
-  while (out.length < length) {
-    // Over-draw: on average ~3% of samples are rejected, so one round is
-    // almost always enough.
-    for (const byte of randomBytes((length - out.length) * 2)) {
-      const index = byte & BITS_MASK;
-      if (index < ALPHABET.length) {
-        out += ALPHABET[index];
-        if (out.length === length) break;
-      }
-    }
-  }
-
-  return out;
-}
 
 /** Turkish letters have no ASCII equivalent in `normalize()`; map them by hand. */
 const TURKISH_MAP: Record<string, string> = {
@@ -99,7 +66,7 @@ export function generateRequestToken(): string {
 
 /** Cheap shape check before a database round trip on a public route. */
 export function looksLikeToken(value: string): boolean {
-  return new RegExp(`^[${ALPHABET}]{${REQUEST_TOKEN_LENGTH}}$`).test(value);
+  return looksLikeCode(value, REQUEST_TOKEN_LENGTH);
 }
 
 export function looksLikeSlug(value: string): boolean {

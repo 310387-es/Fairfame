@@ -8,6 +8,7 @@ import type { TenantDatabase } from "../lib/tenancy.ts";
 import { renderTemplate } from "../replies/template-vars.ts";
 import { TriageError, type TriageActor } from "./triage.ts";
 import { refreshPriority } from "./workflow.ts";
+import { notifyAssignment } from "../notifications/assignment.ts";
 
 /**
  * Acting on many reviews at once (P2-T6).
@@ -208,6 +209,15 @@ export async function bulkAssign(
     ids,
     { to: input.assigneeUserId },
   );
+
+  // One action, so one alert — or one rollup, past the threshold. Handing
+  // somebody fifty reviews should not ring fifty times.
+  await notifyAssignment(tx, {
+    organizationId: actor.organizationId,
+    actorUserId: actor.userId,
+    assigneeUserId: input.assigneeUserId,
+    reviewIds: ids,
+  });
 
   return { changed: ids, skipped };
 }

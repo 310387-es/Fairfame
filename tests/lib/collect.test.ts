@@ -19,10 +19,10 @@ import {
   generateCampaignSlug,
   looksLikeSlug,
   looksLikeToken,
-  randomCode,
   REQUEST_TOKEN_LENGTH,
   slugifyName,
 } from "@/collect/tokens";
+import { randomCode } from "@/lib/codes";
 import { createCaptureTransport, createLogTransport } from "@/messaging/email";
 import { renderReviewRequestEmail } from "@/messaging/templates";
 import { buildCampaignUrl, buildRequestUrl, buildUnsubscribeUrl } from "@/lib/urls";

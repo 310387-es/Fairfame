@@ -1,6 +1,16 @@
 "use client";
 
-import { CalendarRange, Home, Inbox, MapPin, Send, Settings, Users } from "lucide-react";
+import {
+  CalendarRange,
+  Home,
+  Inbox,
+  LayoutGrid,
+  LineChart,
+  MapPin,
+  Send,
+  Settings,
+  Users,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -33,12 +43,20 @@ const GROUPS = [
       // opened every day — but still in this group, because the digest is what
       // the daily work is meant to add up to.
       { href: "/digest", key: "digest", Icon: CalendarRange },
+      // Insights sits in Daily rather than Growth: "are we improving" is a
+      // question about the work already being done, not a channel for more of
+      // it — and it is read beside Home and the Digest, not beside Requests.
+      { href: "/insights", key: "insights", Icon: LineChart },
     ],
   },
   {
     label: "groupGrowth",
     items: [
       { href: "/requests", key: "requests", Icon: Send },
+      // Showcase sits in Growth rather than Account: a widget is how reviews
+      // are turned into something that brings people in, which is the same job
+      // review requests do from the other end.
+      { href: "/widgets", key: "widgets", Icon: LayoutGrid },
       { href: "/locations", key: "locations", Icon: MapPin },
     ],
   },

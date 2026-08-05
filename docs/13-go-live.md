@@ -203,6 +203,49 @@ holidays a year. Put this in a calendar.
 
 ---
 
+## Competitor benchmarking (P3-T6)
+
+**Status: framework only. `COMPETITOR_SOURCE=none` in production, which refuses.**
+
+The benchmark compares a business's own lifetime rating and review count against
+the same two figures from a competitor's public listing. Everything except the
+last part is built: the `competitors` table, the comparison, the entitlement
+(`benchmarking`, Pro and above), and the card on `/insights`.
+
+What is missing is the adapter that reads somebody else's listing.
+
+### Prerequisites
+
+- A Google Business Profile / Places credential that permits reading a listing
+  the business does **not** own. This is a different permission from the one the
+  Google connector uses to read and reply to your own reviews, and it is the
+  reason this cannot be finished before go-live. Check the Places API terms for
+  caching and display limits before storing anything.
+- A decision about caching. A live adapter should not hit a provider on every
+  page render; that is when a `competitor_snapshots` table earns its place —
+  and every row in it will have come from somewhere, which is why it does not
+  exist yet.
+
+### Steps
+
+1. Implement `CompetitorSource` in `src/competitors/source.ts` with
+   `isReal: true`, returning the listing's rating and review count.
+2. Wire it into `getCompetitorSource()` in `src/competitors/benchmark.ts`
+   alongside the existing branch.
+3. Set `COMPETITOR_SOURCE` to the new adapter's name.
+4. **Verify the notice disappears.** The card's warning is driven by
+   `Benchmark.unverified`, which is `!source.isReal` — if the banner is still
+   there, the adapter is still lying about itself.
+
+### What will not work, ever
+
+**Competitor sentiment.** It needs their review *text*, and no platform hands
+that over for somebody else's business. The benchmark compares rating and
+volume, and says so on the page. Do not add a sentiment column that would be
+null forever.
+
+---
+
 ## What is verified without any credentials
 
 These run today and gate every commit:

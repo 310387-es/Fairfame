@@ -19,7 +19,9 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "menu": "Menu",
-    "digest": "Digest"
+    "digest": "Digest",
+    "widgets": "Showcase",
+    "insights": "Insights"
   },
   "shell": {
     "locationSwitcher": "Active location",
@@ -216,6 +218,99 @@
       "sources": "Sources"
     }
   },
+  "insights": {
+    "title": "Insights",
+    "subtitle": "Are you improving, where, and driven by what.",
+    "summary": "{reviews, plural, one {# review} other {# reviews}} across {locations, plural, one {# branch} other {# branches}}",
+    "pendingAnalysis": "{count} not analysed yet",
+    "export": "Export",
+    "exportKind": {
+      "pdf": "This page as a PDF",
+      "everything": "Everything (CSV)",
+      "themes": "Themes (CSV)",
+      "locations": "Branches (CSV)",
+      "sources": "Sources (CSV)",
+      "staff": "Names mentioned (CSV)"
+    },
+    "trend": {
+      "rating": "Rating",
+      "sentiment": "Sentiment",
+      "volume": "Reviews"
+    },
+    "trendCaption": "{measure} per period, and how many reviews it was drawn from.",
+    "column": {
+      "period": "Period",
+      "rating": "Rating",
+      "sentiment": "Sentiment",
+      "volume": "Reviews",
+      "replied": "Replied",
+      "location": "Branch",
+      "source": "Source",
+      "theme": "Theme",
+      "mentions": "Mentions",
+      "change": "Change"
+    },
+    "noValue": "—",
+    "points": "pts",
+    "byLocation": "By branch",
+    "byLocationEmpty": "Nothing arrived at any branch in this period.",
+    "bySource": "By source",
+    "bySourceEmpty": "No source sent anything in this period.",
+    "unknownLocation": "Unknown branch",
+    "themes": "What changed",
+    "themesEmpty": "No themes yet — they appear once reviews are analysed.",
+    "themeNew": "new",
+    "mostlyPositive": "{count} positive",
+    "mostlyNegative": "{count} negative",
+    "mixed": "mixed",
+    "ratingShort": "{rating}★",
+    "staff": "Names customers mentioned",
+    "staffNote": "What customers wrote about people they named. Mentions and the ratings of those reviews — not a performance score, and not a basis for one.",
+    "staffEmpty": "Nobody was named in this period's reviews.",
+    "staffNotAnalysed": "{count} reviews were analysed before names were extracted, so they are not counted here.",
+    "empty": {
+      "title": "Nothing to compare yet",
+      "body": "No reviews arrived in this period. Try a longer range, or connect a source to start collecting."
+    },
+    "report": {
+      "title": "Emailed report",
+      "body": "A PDF of these numbers, sent to your own address on a schedule. Nobody else receives it.",
+      "on": "on",
+      "off": "off",
+      "cadenceLabel": "How often",
+      "weekly": "Every week",
+      "monthly": "Every month",
+      "scopeLabel": "Covering",
+      "allBranches": "Every branch I can see",
+      "start": "Email it to me",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "stop": "Stop sending",
+      "locked": "Scheduled reports are not part of this plan. Upgrade to have these numbers arrive without opening the app."
+    },
+    "benchmark": {
+      "title": "Against competitors",
+      "unverified": "These competitor figures are sample data, not real listings. The connector that reads a competitor's public rating arrives at go-live — until then this shows how the comparison will look, not how you are doing.",
+      "basis": "A listing shows an all-time rating, so your side is all-time too. The date range above does not apply to this table.",
+      "who": "Business",
+      "you": "You",
+      "gap": "Difference",
+      "empty": "No competitors named yet. Add one to see how you compare.",
+      "nameLabel": "Competitor",
+      "namePlaceholder": "The café across the street",
+      "refLabel": "Their listing",
+      "refPlaceholder": "Google place ID or URL",
+      "add": "Add",
+      "adding": "Adding…",
+      "remove": "Remove {name}",
+      "locked": "Competitor benchmarking is not part of this plan."
+    },
+    "locked": {
+      "title": "Insights is not part of this plan",
+      "body": "Home shows how your active branch is doing today. Insights compares branches and sources over time, and shows what changed — upgrade to open it."
+    }
+  },
   "digest": {
     "archiveTitle": "Your weekly plan",
     "archiveSubtitle": "What happened at {location}, and what to do about it.",
@@ -377,7 +472,28 @@
     "limitReached": "Your plan includes {limit} locations. Upgrade to add more.",
     "viewInbox": "View in Inbox",
     "lastSynced": "Last synced {when}",
-    "neverSynced": "Not synced yet"
+    "neverSynced": "Not synced yet",
+    "publicPageLabel": "Public review page",
+    "publicPageHint": "A page on our domain listing the reviews you have approved for display. Search engines are allowed to index it.",
+    "publicPagePublish": "Publish page",
+    "publicPageUnpublish": "Unpublish",
+    "publicPageLive": "Live",
+    "publicPageDraft": "Not published",
+    "publicPageOpen": "Open page",
+    "publicPageCopy": "Copy link",
+    "publicPageCopied": "Copied",
+    "publicPageNothingApproved": "Nothing is approved for display yet, so the page will be empty until you approve some reviews in Showcase."
+  },
+  "publicPage": {
+    "metaTitle": "{business} — {location} reviews",
+    "metaDescription": "What customers say about {business}, in their own words.",
+    "starLabel": "{rating} out of 5",
+    "ratingCount": "{count, plural, one {# rating} other {# ratings}}",
+    "aggregateBasis": "Averaged over every rated review this branch has received, including the ones not shown below.",
+    "noRatings": "No ratings yet.",
+    "empty": "No reviews have been published here yet.",
+    "viewOriginal": "Read it on the original site",
+    "poweredBy": "Reviews by Revira"
   },
   "sources": {
     "liveSync": "Live sync",
@@ -591,7 +707,11 @@
     "slaBreachHint": "Nobody has answered this and the response deadline has passed.",
     "slaRollupTitle": "{count, plural, =1 {1 review is overdue} other {# reviews are overdue}}",
     "slaRollupBody": "Nobody has answered these and their response deadlines have passed.",
-    "slaRollupHint": "A summary, because too many lapsed at once to list separately."
+    "slaRollupHint": "A summary, because too many lapsed at once to list separately.",
+    "assigned": "Assigned to you",
+    "assignedHint": "A teammate gave you this review to handle.",
+    "assignmentRollupTitle": "{count} reviews assigned to you",
+    "assignmentRollupBody": "A teammate handed you a batch. Open your queue to work through it."
   },
   "replies": {
     "writeReply": "Write a reply",
@@ -654,5 +774,104 @@
     "cancel": "Cancel",
     "edit": "Edit {name}",
     "delete": "Delete {name}"
+  },
+  "widget": {
+    "starLabel": "{rating} out of 5",
+    "empty": "No reviews to show here yet.",
+    "badgeCount": "{count, plural, one {# review} other {# reviews}}",
+    "badgeNoRatings": "No ratings yet",
+    "badgeLink": "See all reviews",
+    "viewOriginal": "Read it on the original site",
+    "poweredBy": "Reviews by Revira"
+  },
+  "widgets": {
+    "title": "Showcase",
+    "subtitle": "Put your reviews on your own website.",
+    "listTitle": "Your widgets",
+    "limitMeta": "{used} of {limit} used",
+    "empty": "No widgets yet. Make one below and it stays a draft until you publish it.",
+    "lockedTitle": "Widgets are not part of this plan",
+    "lockedBody": "Upgrade to display your reviews on your own site.",
+    "createTitle": "New widget",
+    "create": "Create",
+    "creating": "Creating…",
+    "atLimit": "You have used every widget your plan includes. Delete one, or upgrade, to add another.",
+    "nameLabel": "Name",
+    "namePlaceholder": "Homepage testimonials",
+    "locationLabel": "Branch",
+    "allLocations": "All branches",
+    "live": "Live",
+    "draft": "Draft",
+    "edit": "Edit",
+    "view": "View",
+    "builderSubtitle": "Configure it, see it, then publish.",
+    "settingsTitle": "Settings",
+    "layoutLabel": "Layout",
+    "layout": {
+      "grid": "Grid",
+      "list": "List",
+      "carousel": "Carousel",
+      "badge": "Rating badge"
+    },
+    "badgeNote": "A badge shows one number: the average of every rated review in this branch and these sources, whether or not you have approved it for display. You choose which reviews you quote; the score is your customers'. The settings that pick individual reviews do not apply here.",
+    "themeLabel": "Theme",
+    "themeHint": "Match the page it sits on, not this dashboard.",
+    "theme": {
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "localeLabel": "Language",
+    "localeHint": "The language your visitors read, not the one you work in.",
+    "localeAuto": "Follow the branch",
+    "locale": {
+      "tr": "Turkish",
+      "en": "English"
+    },
+    "minRatingLabel": "Minimum rating",
+    "minRatingHint": "Filters what this widget quotes. The rating badge still counts every review.",
+    "minRatingAny": "Any rating",
+    "minRatingOption": "{rating} stars and up",
+    "countLabel": "How many to show",
+    "sourcesLabel": "Sources",
+    "sourcesHint": "Leave all unticked to include every source.",
+    "showLabel": "Show",
+    "showAuthor": "Reviewer name",
+    "showSource": "Where it came from",
+    "showDate": "Date",
+    "requireText": "Only reviews with something written",
+    "requireTextHint": "A rating with no words is a number, not a testimonial.",
+    "includeSocial": "Include comments and mentions",
+    "includeSocialHint": "Direct messages are never shown — they were never public.",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "publishedNote": "This widget is live. Anyone with the embed code can load it.",
+    "draftNote": "This widget is a draft. The embed code returns nothing until you publish it.",
+    "previewTitle": "Preview",
+    "previewUnsaved": "unsaved changes",
+    "embedTitle": "Embed code",
+    "snippet": {
+      "script": "Script",
+      "iframe": "Plain iframe"
+    },
+    "snippetHint": {
+      "script": "Paste this where the reviews should appear. It sizes itself to its content.",
+      "iframe": "No JavaScript needed. You choose the height."
+    },
+    "snippetDraft": "This widget is still a draft, so the code below will show nothing until you publish it.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "approvalTitle": "What it can quote",
+    "approvalMeta": "{approved} of {matching} approved",
+    "approvalNote": "Approving a review shows it on every widget, badge and public page you have — not just this one. Nothing appears anywhere until you approve it.",
+    "approvalEmpty": "No reviews match these settings yet.",
+    "approveAll": "Approve all {count}",
+    "approveOne": "Show the review from {author}",
+    "anonymousAuthor": "Anonymous",
+    "starLabel": "{rating} out of 5",
+    "showMore": "Show {count} more",
+    "backToList": "All widgets"
   }
 }

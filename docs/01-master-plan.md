@@ -108,7 +108,7 @@ The full product, so we can see the whole picture even though we build it increm
 1. **Collect** — Automated review requests (email/SMS/QR/kiosk/link), smart timing, follow\-ups, and compliant routing to the right destination (Google, Trustpilot, or first\-party).
 2. **Monitor** — A unified inbox aggregating every connectable source into one normalized stream, with real\-time alerts on new/negative reviews.
 3. **Respond** — AI\-drafted, on\-brand replies with human approval; reply directly to Google (and other reply\-capable sources) from our UI; templates, tone controls, SLAs.
-4. **Showcase** — Embeddable widgets, badges, and auto\-generated review pages to display reviews on the customer's website for conversion \+ SEO (with schema.org rich snippets).
+4. **Showcase** — Embeddable widgets, badges, and auto\-generated review pages to display reviews on the customer's website for conversion \+ SEO (with `LocalBusiness` schema.org markup; **star rich snippets are not achievable for a business's own reviews on its own site** — see `docs/19` P3\-T3).
 5. **Analyze** — Sentiment over time, theme/topic extraction, location and staff performance, competitor benchmarking, and exportable reports.
 6. **Engage** *(the expansion → customer\-engagement platform)* — Two\-way messaging, NPS/CSAT surveys, contact profiles, campaigns, and light CRM. This is where "review tool" becomes "platform."
 
@@ -135,7 +135,7 @@ Unified inbox across every connectable source (Google, Trustpilot, app stores, f
 
 ### Phase 3 — Showcase \+ Analyze *(value \+ stickiness)*
 
-Embeddable widgets/badges, auto\-generated SEO review pages with schema markup, sentiment/theme analytics, location/staff performance, competitor benchmarking, and scheduled reports.
+Embeddable widgets/badges, auto\-generated SEO review pages with `LocalBusiness` schema markup, sentiment/theme analytics, location/staff performance, competitor benchmarking, and scheduled reports.
 **Done when:** a customer displays reviews on their site and gets a monthly insights report that changes what they do.
 
 ### Phase 4 — Engage \+ Agency/White\-label *(become a platform)*

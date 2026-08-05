@@ -2,11 +2,16 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/config.ts";
 import { getEmailTransport, type EmailTransport } from "../messaging/email.ts";
-import { renderReviewAlertEmail } from "../messaging/templates.ts";
+import {
+  renderReviewAlertEmail,
+  renderRollupEmail,
+  type RenderedEmail,
+} from "../messaging/templates.ts";
 import { childLogger } from "../lib/logger.ts";
 import { withTenant } from "../lib/tenancy.ts";
 import { dashboardUrl } from "../lib/urls.ts";
-import type { ReviewNotificationPayload } from "./service.ts";
+import type { notificationTypeEnum } from "../db/schema.ts";
+import type { ReviewNotificationPayload, SlaRollupPayload } from "./service.ts";
 
 /**
  * Sending notification emails (P1a-T5).
@@ -33,6 +38,71 @@ function localeOf(value: string | null): Locale {
   return (LOCALES as readonly string[]).includes(value ?? "") ? (value as Locale) : DEFAULT_LOCALE;
 }
 
+/** What the sender needs from a pending row to render it. */
+type PendingRow = {
+  id: string;
+  type: (typeof notificationTypeEnum.enumValues)[number];
+  urgency: "normal" | "urgent";
+  payload: unknown;
+  name: string | null;
+  locale: string | null;
+  organizationName: string;
+};
+
+/**
+ * Row → email, or null when nothing can render it.
+ *
+ * The routing is on the row's `type`, which is the column that says which shape
+ * the jsonb holds — not on duck-typing the payload. Both are then *checked*,
+ * because the type is a claim and the payload is what will actually be
+ * interpolated; a mismatch means something wrote a row this sender has not been
+ * taught about, and the honest answer to that is to send nothing.
+ *
+ * The recipient's language throughout, not the reviewer's: this is read by a
+ * team member who may not speak the language the review was written in.
+ */
+function renderFor(row: PendingRow): RenderedEmail | null {
+  const locale = localeOf(row.locale);
+  const settingsUrl = dashboardUrl("/settings#notifications");
+
+  if (row.type === "sla_rollup" || row.type === "assignment_rollup") {
+    const payload = row.payload as Partial<SlaRollupPayload>;
+    if (typeof payload?.count !== "number" || typeof payload.locationName !== "string") return null;
+
+    return renderRollupEmail({
+      locale,
+      recipientName: row.name,
+      businessName: row.organizationName,
+      locationName: payload.locationName,
+      count: payload.count,
+      kind: row.type === "sla_rollup" ? "sla" : "assignment",
+      // A pile, so a filtered queue — never a single review.
+      link: dashboardUrl(row.type === "sla_rollup" ? "/inbox?overdue=1" : "/inbox?assignee=me"),
+      settingsUrl,
+    });
+  }
+
+  const payload = row.payload as Partial<ReviewNotificationPayload>;
+  if (typeof payload?.reviewId !== "string" || typeof payload.locationName !== "string") {
+    return null;
+  }
+
+  return renderReviewAlertEmail({
+    locale,
+    recipientName: row.name,
+    businessName: row.organizationName,
+    locationName: payload.locationName,
+    source: payload.source ?? "",
+    rating: payload.rating ?? null,
+    authorName: payload.authorName ?? null,
+    excerpt: payload.excerpt ?? null,
+    urgent: row.urgency === "urgent",
+    reason: row.type === "review_assigned" ? "assigned" : "arrived",
+    link: dashboardUrl(`/inbox?review=${payload.reviewId}`),
+    settingsUrl,
+  });
+}
+
 /**
  * Sends every pending notification email for an organization.
  *
@@ -57,6 +127,7 @@ export async function sendPendingEmails(options: {
       .select({
         id: schema.notifications.id,
         userId: schema.notifications.userId,
+        type: schema.notifications.type,
         urgency: schema.notifications.urgency,
         payload: schema.notifications.payload,
         email: schema.users.email,
@@ -86,26 +157,32 @@ export async function sendPendingEmails(options: {
 
   const sentIds: string[] = [];
   const failedIds: string[] = [];
+  /** Rows with no template for their payload — see the guard in the loop. */
+  const skippedIds: string[] = [];
 
   for (const row of pending) {
-    const payload = row.payload as ReviewNotificationPayload;
+    const message = renderFor(row);
 
-    const message = renderReviewAlertEmail({
-      // The *recipient's* language, not the reviewer's and not the browser's:
-      // this email is read by a team member who may not speak the language the
-      // review was written in.
-      locale: localeOf(row.locale),
-      recipientName: row.name,
-      businessName: row.organizationName,
-      locationName: payload.locationName,
-      source: payload.source,
-      rating: payload.rating,
-      authorName: payload.authorName,
-      excerpt: payload.excerpt,
-      urgent: row.urgency === "urgent",
-      link: dashboardUrl(`/inbox?review=${payload.reviewId}`),
-      settingsUrl: dashboardUrl("/settings#notifications"),
-    });
+    /**
+     * A payload no template can honestly render is skipped, not mailed.
+     *
+     * The two shapes are routed below, so this only fires for a row written by
+     * something that has not taught this sender about itself. Skipping rather
+     * than guessing is the lesson from the bug that prompted the split: the
+     * review template used to be applied to *every* payload, so a rollup — a
+     * count and a location, nothing else — went out with blank stars, a blank
+     * quote and a button pointing at `/inbox?review=undefined`. A broken email
+     * from a reputation tool is the kind a customer forwards to support.
+     *
+     * `skipped` rather than `failed`: nothing was attempted, and a retry would
+     * reach the same conclusion. The in-app entry is correct either way and
+     * stands as the record.
+     */
+    if (!message) {
+      log.warn({ notificationId: row.id, type: row.type }, "No email template for this payload");
+      skippedIds.push(row.id);
+      continue;
+    }
 
     const outcome = await transport.send({
       to: row.email,
@@ -138,6 +215,14 @@ export async function sendPendingEmails(options: {
         .update(schema.notifications)
         .set({ emailStatus: "failed", updatedAt: now })
         .where(inArray(schema.notifications.id, failedIds));
+    }
+
+    // Not `failed`: nothing was attempted and a retry would refuse it again.
+    if (skippedIds.length > 0) {
+      await tx
+        .update(schema.notifications)
+        .set({ emailStatus: "skipped", updatedAt: now })
+        .where(inArray(schema.notifications.id, skippedIds));
     }
   });
 
