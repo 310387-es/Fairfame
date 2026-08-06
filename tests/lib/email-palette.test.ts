@@ -18,6 +18,21 @@ import { AA_TEXT, contrast } from "./contrast-math";
  * in `globals.css`, which is what this does.
  *
  * Mirrors `report-contrast.test.ts`, which does the same job for the PDF.
+ *
+ * **Deliberately scoped to the emails.** The other two hand-hex surfaces —
+ * `src/widgets/theme.ts` and `src/reports/document.ts` — are *not* held to
+ * "must equal a token", and that is a decision rather than an omission. Both
+ * render where we cannot check the result: a widget on a stranger's site at
+ * whatever size their CSS leaves it, a PDF at whatever a printer produces, with
+ * no zoom. Their muted ink is 6.1:1 where the app's is 4.68:1, on purpose.
+ * Pinning them to the app's tokens would *lower* the contrast of the two
+ * surfaces least able to afford it.
+ *
+ * They are guarded by contrast *floors* instead — `report-contrast.test.ts` and
+ * `widget-theme.test.ts`, which re-derive every ratio they claim. That is the
+ * property that matters there. An email is different: it renders in a client we
+ * do not control but at a size we do, on our own layout, so matching the brand
+ * exactly is both achievable and the point.
  */
 
 const CSS = readFileSync("src/app/globals.css", "utf8");

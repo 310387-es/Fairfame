@@ -19,8 +19,18 @@ import { REPORT_FONT, registerReportFonts } from "./fonts.ts";
  * second place for it to be wrong.
  *
  * Colours are literal hex for the same reason `src/widgets/theme.ts` is: a PDF
- * has no stylesheet, no tokens and no `globals.css`. These are the same brand
- * values, restated in the only form that survives the trip.
+ * has no stylesheet, no tokens and no `globals.css`.
+ *
+ * This said "these are the same brand values, restated" — and two of the five
+ * are (`INK`, `ACCENT`). The other three are the *print* palette the widget
+ * uses, which is a shade stronger than the app's on purpose: `INK_MUTED` is
+ * 6.1:1 where `--ink-400` is 4.68:1, because a PDF is read at whatever size a
+ * printer produces and there is no zoom. Restating a claim of exact fidelity
+ * that was never true is how somebody later "corrects" these to the app's
+ * tokens and quietly lowers the contrast of a document sent to a customer.
+ *
+ * `tests/lib/report-contrast.test.ts` asserts the floors these have to clear,
+ * which is the property that actually matters — not which token they equal.
  */
 
 const INK = "#10193a";
