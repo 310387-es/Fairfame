@@ -2,8 +2,9 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { RATING_WEIGHT, SENTIMENT_WEIGHT } from "@/digest/metrics";
 import { Eyebrow } from "@/components/ds/eyebrow";
 import { Delta, Metric } from "@/components/ds/metric";
-import { Sparkline } from "@/components/dashboard/sparkline";
+import { TrendSparkline } from "@/components/dashboard/sparkline";
 import { isImprovement, type Kpi } from "@/dashboard/metrics";
+import { cn } from "@/lib/utils";
 
 /**
  * One headline number, its change, and the shape of how it got there.
@@ -97,7 +98,11 @@ export async function KpiCard({ kpi }: { kpi: Kpi }) {
       */}
       <Eyebrow className="mb-2">{t(`${kpi.key}.label`)}</Eyebrow>
 
-      <div className="flex items-end gap-2">
+      {/* `flex-wrap` so a delta that cannot fit beside the number drops under
+          it whole, rather than the delta itself breaking mid-unit — see the
+          `whitespace-nowrap` on `Delta`. Turkish is what forces this: "yüzde
+          puan" where English says "pp". */}
+      <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
         {/* Only the rating is tinted. It is the one number here that is itself a
             judgement on the amber scale; colouring the other three would say
             everything is significant, which says nothing. */}
@@ -147,13 +152,29 @@ export async function KpiCard({ kpi }: { kpi: Kpi }) {
         <p className="mt-2 text-meta text-faint">{t("noComparison")}</p>
       ) : null}
 
-      <Sparkline
+      <TrendSparkline
         points={kpi.spark}
-        // `--destructive`, not `--sentiment-negative`: a falling KPI is a
-        // number going the wrong way, not a customer feeling bad. Keeping
-        // the sentiment tokens for sentiment is the whole point of naming
-        // them separately.
-        className={better === false ? "mt-2.5 text-destructive" : "mt-2.5 text-primary"}
+        /*
+          The same three-way encoding as the `Delta` directly above it.
+
+          It was `better === false ? destructive : primary`, which disagreed
+          with the pill six pixels away on two counts. An *improving* KPI got
+          indigo where the pill got green, so a rise and a flat line were drawn
+          identically — and indigo means "interactive, or chosen" everywhere else
+          in this system (docs/21 §2), which is not something a decorative line
+          should be claiming. Four tiles came out as three red alarms and one
+          stray blue link.
+
+          `--destructive`, not `--sentiment-negative`: a falling KPI is a number
+          going the wrong way, not a customer feeling bad. Keeping the sentiment
+          tokens for sentiment is the whole point of naming them separately.
+        */
+        className={cn(
+          "mt-2.5",
+          better === true && "text-positive-ink",
+          better === false && "text-destructive",
+          better === null && "text-graphic-faint",
+        )}
       />
 
       {/*

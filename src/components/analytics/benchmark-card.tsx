@@ -1,6 +1,6 @@
 "use client";
 
-import { Swords, Trash2, TriangleAlert } from "lucide-react";
+import { Info, Swords, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { SectionCard } from "@/components/ds/section-card";
@@ -85,9 +85,28 @@ export function BenchmarkCard({
   return (
     <SectionCard title={t("benchmark.title")} icon={Swords}>
       <div className="flex flex-col gap-4 pb-(--card-py)">
+        {/*
+          A caveat, not an alarm.
+
+          This was a full-width red block with a warning triangle — the same
+          treatment a failed payment gets — for the **expected** state of every
+          deployment before go-live: `COMPETITOR_SOURCE` defaults to `none` and
+          `fixtures` is what a developer sees. Red says "something has gone
+          wrong and you should act"; nothing has gone wrong here, and there is
+          nothing the reader can do about it, so the only thing the colour
+          achieved was to make a working screen look broken.
+
+          Quiet and neutral instead, with an `Info` mark. The words are
+          unchanged and still say plainly that the numbers are samples — the
+          honesty was never in the redness. `role="note"` so it is announced as
+          an aside rather than left as an unlabelled paragraph.
+        */}
         {unverified ? (
-          <p className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-copy text-destructive">
-            <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <p
+            role="note"
+            className="flex items-start gap-2 rounded-md border border-line bg-surface-sunken px-3 py-2.5 text-copy text-ink-600"
+          >
+            <Info className="mt-0.5 size-4 shrink-0 text-graphic-faint" aria-hidden />
             <span>{t("benchmark.unverified")}</span>
           </p>
         ) : null}

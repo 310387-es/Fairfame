@@ -62,6 +62,52 @@ export function TrendChart({
   tickLabels?: Record<string, string>;
   tooltipLabel: string;
 }) {
+  /**
+   * The y-axis gutter, derived from the labels rather than pinned to a number.
+   *
+   * It was `width={42}`, sized by hand for `-1,0` — the old signed sentiment
+   * scale. W3.3 replaced that scale with positive share, whose top tick is
+   * `100%`: 40px of Geist Mono at 10px, plus Recharts' 5px `tickMargin`, is
+   * 45px in a 42px gutter. Recharts right-aligns the tick text against the axis
+   * line, so the overflow goes *left*, past the SVG's own viewport — and an SVG
+   * clips its own overflow however permissive the HTML around it is. The label
+   * rendered as **`00%`**: not a formatting bug, a clipped `1`.
+   *
+   * Nothing failed. The DOM text is correct, the tests pass, and the only
+   * evidence is six pixels of a digit missing on a screen — which is why this
+   * is derived now. A hand-tuned constant is only ever right for the labels it
+   * was measured against, and the labels changed once already.
+   *
+   * 6.2px per glyph is Geist Mono's advance at 10px (0.6em plus the tracking),
+   * measured rather than assumed; +10 covers `tickMargin` and a pixel of slack.
+   * Floored at 42 so no existing chart's gutter narrows.
+   */
+  const longestTick = tickLabels
+    ? Math.max(...Object.values(tickLabels).map((label) => label.length))
+    : 4;
+  const axisWidth = Math.max(42, Math.ceil(longestTick * 6.2) + 10);
+
+  /**
+   * Tick styling, applied to the `<text>` and not to the axis around it.
+   *
+   * Both axes carried `className="fill-graphic-faint font-mono text-[10px]"`,
+   * and it never reached the labels: Recharts puts a `className` on the axis
+   * *layer*, then renders each tick through its own `<Text>` which sets its own
+   * classes. `fill` is an inherited SVG property so the grey arrived and the
+   * styling looked applied — but `font-size` and `font-family` were the browser
+   * defaults, so every tick on this page was rendering at **16px in Geist
+   * sans** rather than 10px in Geist Mono.
+   *
+   * That is what clipped `100%` down to `00%`: 16px text needs about 40px for
+   * four glyphs, and the y-axis gutter is 42 with a 5px tick margin, so it
+   * overflowed to the left of the SVG's own viewport — which an SVG clips
+   * regardless of the overflow rules on the HTML around it.
+   *
+   * `tick` is the prop Recharts spreads onto the text element, so this is the
+   * only place the styling can actually land.
+   */
+  const tickStyle = { className: "fill-graphic-faint font-mono text-[10px]" };
+
   return (
     // The card's data table carries the same series for screen readers.
     <div aria-hidden className="[&_*]:outline-none [&_.recharts-line-curve]:stroke-chart-1">
@@ -79,18 +125,19 @@ export function TrendChart({
             axisLine={false}
             // `--graphic-faint`, not a text token: axis ticks are non-text
             // graphics and sit one step below the AA text floor by design.
-            className="fill-graphic-faint font-mono text-[10px]"
+            tick={tickStyle}
             interval="preserveStartEnd"
             minTickGap={24}
           />
 
           <YAxis
-            // Wide enough for "-1,0" plus its minus sign. At 34 the sentiment
-            // axis clipped every label to ".0" — measured in the browser.
-            width={42}
+            // Derived from the labels — see `axisWidth` above. Two separate
+            // clippings have now been fixed by widening this by hand; the
+            // second one ("100%" → "00%") is what made it a computation.
+            width={axisWidth}
             tickLine={false}
             axisLine={false}
-            className="fill-graphic-faint font-mono text-[10px]"
+            tick={tickStyle}
             domain={domain ?? ["auto", "auto"]}
             {...(ticks ? { ticks } : {})}
             // Defined here, closing over a plain object that did cross the

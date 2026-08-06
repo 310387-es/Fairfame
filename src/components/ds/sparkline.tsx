@@ -1,7 +1,22 @@
 import { cn } from "@/lib/utils";
 
 /**
- * A volume sparkline: thirty numbers, no axes, no tooltip (W4.2).
+ * A **count** over time: thirty numbers, no axes, no tooltip (W4.2).
+ *
+ * **There are two sparklines in this product and they are not interchangeable.**
+ * This one baselines at **zero**; `dashboard/sparkline.tsx`'s `TrendSparkline`
+ * baselines at the series **minimum**. Both are correct for what they draw, and
+ * the choice is decided by the quantity, not by taste:
+ *
+ *   - A **count** (reviews per day) must start at zero, or 4,5,4,5 draws the
+ *     same dramatic zigzag as 0,50,0,50 and the height of a line stops meaning
+ *     anything across cards.
+ *   - A **bounded measure** (a 1–5 rating, a percentage) must not. Zero-based,
+ *     every rating a real business has ever had is a flat line pinned near the
+ *     top, which is a chart that has thrown away its only information.
+ *
+ * They were both called `Sparkline`, in two folders, so which one you got
+ * depended on what your editor autocompleted. The names say the baseline now.
  *
  * Hand-rolled SVG rather than Recharts, which the analytics charts use. Two
  * reasons, and the first is the one that matters: Recharts is client-only, so
@@ -20,7 +35,7 @@ import { cn } from "@/lib/utils";
  * a line has to mean the same thing on every card.
  */
 
-export function Sparkline({
+export function VolumeSparkline({
   values,
   className,
   width = 96,

@@ -30,6 +30,7 @@ Planning and design documentation for **Revira** *(provisional name)* — a revi
 | 18 | [Accessibility & Mobile Verification](./18-accessibility-verification.md) | Evidence for the WCAG AA and 390px requirements: what was automated, what was checked by hand, and with which screen readers. |
 | 19 | [Phase 3 Build Plan](./19-phase-3-build-plan.md) | ✅ Done — widgets, rating badge, SEO review pages, the Insights workspace, scheduled PDF reports, competitor benchmarking. |
 | 20 | [Phase 4 Build Plan](./20-phase-4-build-plan.md) | ⏳ Planned — contacts/CRM, surveys, two-way messaging, campaigns, agency white-label. Not started. |
+| 21 | [Visual Language](./21-visual-language.md) | ✅ In force — refines [15](./15-design-system.md) after judging the running app on real data at 1440px and 390px, EN and TR. Re-spaced type scale, elevation, the selection surface, and a prioritised list of what to elevate. **Read with 15; where they disagree, 21 wins.** |
 | — | [Home — Live Dashboard](./home-live-dashboard.md) | Implementation handoff for the Home redesign: tokens, layout, the ten widgets, data notes. |
 
 Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude Code.

@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { CreateSheet } from "@/components/ds/create-sheet";
-import { IconTile } from "@/components/ds/icon-tile";
+import { EmptyState } from "@/components/ds/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card } from "@/components/ui/card";
 
@@ -103,19 +103,32 @@ export function ResourcePage({
       {tabs}
 
       {isEmpty ? (
-        <Card className="items-center gap-3 px-(--card-px) py-10 text-center">
-          <IconTile icon={icon} tone="muted" />
+        /*
+          Through `EmptyState` rather than laying one out here.
 
-          <div className="flex max-w-[46ch] flex-col gap-1">
-            <p className="text-title">{empty.line}</p>
-            {empty.hint ? <p className="text-body text-pretty text-ink-400">{empty.hint}</p> : null}
-          </div>
+          The markup this replaces was correct and was also the third layout in
+          the product for "there is nothing here yet": `/conversations` had a
+          left-aligned title-and-paragraph, `/reviews` a centred grey sentence,
+          this a centred icon tile. Same product, same week, three answers —
+          which is what tells a customer the screens were built by different
+          people rather than designed.
 
-          {blocked ? (
-            <p className="max-w-[46ch] text-body text-pretty text-ink-400">{blocked}</p>
-          ) : (
-            control
-          )}
+          `blocked` still takes the action's place: a reason where the button
+          would be, because a disabled button explains nothing.
+        */
+        <Card>
+          <EmptyState
+            icon={icon}
+            title={empty.line}
+            {...(empty.hint ? { body: empty.hint } : {})}
+            action={
+              blocked ? (
+                <p className="max-w-[46ch] text-body text-pretty text-ink-400">{blocked}</p>
+              ) : (
+                control
+              )
+            }
+          />
         </Card>
       ) : (
         <>

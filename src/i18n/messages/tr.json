@@ -482,7 +482,10 @@
     "shareCopied": "Kopyalandı",
     "thinWeekBodyThin": "Bu hafta {reviews, plural, =1 {yalnızca 1 yorum} other {yalnızca # yorum}} geldi. Bu, bir eğilimi kötü bir günden ayırmak için az; bu yüzden tahmin yürütmedik.",
     "thinWeekBodyPending": "{reviews, plural, =1 {1 yorum} other {# yorum}} geldi ve {analysed, plural, =0 {henüz hiçbiri çözümlenmedi} other {şimdiye kadar yalnızca # tanesi çözümlendi}}. Tahmine dayalı bir plan yazmak yerine, bekleyenleri gösteriyoruz.",
-    "starLabel": "5 üzerinden {rating}"
+    "starLabel": "5 üzerinden {rating}",
+    "latestEyebrow": "Son plan",
+    "openLatest": "Planı aç",
+    "outOf": "{max} üzerinden"
   },
   "inbox": {
     "title": "Yorumlar",
@@ -511,6 +514,7 @@
     "previous": "Önceki",
     "next": "Sonraki",
     "range": "{total} yorumdan {from}–{to} arası",
+    "filterMore": "Daha fazla filtre",
     "filterQuick": "Hızlı",
     "filterPinned": "Sabitlenen",
     "filterFromDigest": "Özetinizden",

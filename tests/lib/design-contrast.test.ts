@@ -12,10 +12,17 @@ import { AA_NON_TEXT, AA_TEXT, contrast, ratio } from "./contrast-math";
  * the page, so it can be checked exactly, here, on every run.
  *
  * It is worth checking because `globals.css` states its own ratios in prose:
- * "4.54:1 on white — the lightest text allowed", "3.06:1 — NON-TEXT only",
- * "an ink that clears 4.5:1 *on that wash*". Comments like those are true on
- * the day they are written and silently stop being true the first time somebody
- * nudges a hex by one digit. This turns them into assertions.
+ * "5.06:1 on white", "3.06:1 — NON-TEXT only", "an ink that clears 4.5:1 *on
+ * that wash*". Comments like those are true on the day they are written and
+ * silently stop being true the first time somebody nudges a hex by one digit.
+ * This turns them into assertions.
+ *
+ * This header used to quote "4.54:1 on white — the lightest text allowed",
+ * which was wrong twice over by 6 Aug 2026: `--text-faint` is 5.06:1 on white,
+ * and on white the lightest *legal* ink is `--ink-400` at 4.68:1, not
+ * `--text-faint` at all. Both `docs/15` and this comment had drifted from the
+ * hexes underneath them — the very thing the file was written to prevent,
+ * happening in the file's own prose, because nobody asserts a comment.
  *
  * Scope: the hex tokens. The shadcn base layer is `oklch()` and is not part of
  * the brand palette a designer edits — converting it would add a colour-space
@@ -60,6 +67,25 @@ const LIGHTEST_LEGAL_TEXT: { surface: string; lightest: string; darkerToo: strin
   { surface: "canvas", lightest: "ink-350", darkerToo: ["ink-500", "ink-600", "ink-800"] },
   { surface: "surface-sunken", lightest: "ink-350", darkerToo: ["ink-500", "ink-600", "ink-800"] },
   { surface: "surface-segmented", lightest: "ink-500", darkerToo: ["ink-600", "ink-800"] },
+  /*
+    The two surfaces a list row can be sitting on.
+
+    Added with the row rebuild, and they belong in this table for the reason the
+    table exists: a selected review carries `--ink-350` for its timestamp and
+    for the snippet of a row already answered, and those are the pixels somebody
+    is looking straight at.
+
+    `--surface-selected` originally aliased `--indigo-050` and measured 4.49:1
+    against `--ink-350` — under AA by a hundredth, invisible to the eye, and
+    caught only by putting it in here. It has its own hex now; see the comment
+    in globals.css for why `--indigo-050` could not simply move.
+  */
+  {
+    surface: "surface-selected",
+    lightest: "ink-350",
+    darkerToo: ["ink-500", "ink-600", "ink-800"],
+  },
+  { surface: "surface-hover", lightest: "ink-350", darkerToo: ["ink-500", "ink-600", "ink-800"] },
 ];
 
 describe.each(LIGHTEST_LEGAL_TEXT)("text on --$surface", ({ surface, lightest, darkerToo }) => {
@@ -86,6 +112,24 @@ describe("the boundaries of that table", () => {
     expect(ratio(token("ink-350"), token("surface"))).toBe(5.06);
     expect(ratio(token("ink-350"), token("canvas"))).toBe(4.73);
     expect(contrast(token("ink-350"), token("surface-segmented"))).toBeLessThan(AA_TEXT);
+  });
+
+  it("keeps the selected row's margin over AA, which is thin on purpose", () => {
+    /*
+      4.57:1 against a 4.5 floor. Recorded as an exact number rather than a
+      `toBeGreaterThan`, because the margin is seven hundredths and the whole
+      point is that nobody can nudge this surface a shade darker without the
+      suite saying so — which is exactly what happened when it aliased
+      `--indigo-050` and sat at 4.49.
+    */
+    expect(ratio(token("ink-350"), token("surface-selected"))).toBe(4.57);
+  });
+
+  it("keeps selection and hover distinguishable from each other", () => {
+    // Not a WCAG rule — a design one, asserted here because this is where the
+    // colour maths already lives. They were the same grey at two opacities,
+    // which made a selected row invisible under the pointer.
+    expect(token("surface-selected")).not.toBe(token("surface-hover"));
   });
 
   it("labels the segmented control's inactive segments legibly", () => {

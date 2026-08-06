@@ -4,9 +4,11 @@ import Link from "next/link";
 import { resolveLocationScope } from "@/auth/scope";
 import { requireActor } from "@/auth/session";
 import { Composer, type ComposerTemplate } from "@/components/conversations/composer";
+import { EmptyState } from "@/components/ds/empty-state";
 import { SectionCard } from "@/components/ds/section-card";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { TEMPLATES } from "@/connectors/whatsapp/templates";
 import { getLocale } from "next-intl/server";
 import { isLocale, DEFAULT_LOCALE, type Locale } from "@/i18n/config";
@@ -128,9 +130,20 @@ export default async function MessagesPage({ searchParams }: PageProps) {
     return (
       <>
         <PageHeader title={t("title")} subtitle={t("subtitle")} />
-        <SectionCard title={t("empty.title")} icon={MessageSquare}>
-          <p className="pb-(--card-py) text-body text-ink-400">{t("empty.body")}</p>
-        </SectionCard>
+        {/*
+          A `SectionCard` with a paragraph in it was the odd one out: a
+          left-aligned title-and-body where every other "nothing here yet" in
+          the product is centred under an icon. A section card announces a
+          *section*, and there is no section here — there is an absence.
+
+          No action, deliberately. A conversation begins when a customer writes
+          or when you message a contact, and neither is something this screen
+          can start; the sentence says so, and inventing a button that led
+          somewhere adjacent would be worse than none.
+        */}
+        <Card>
+          <EmptyState icon={MessageSquare} title={t("empty.title")} body={t("empty.body")} />
+        </Card>
       </>
     );
   }

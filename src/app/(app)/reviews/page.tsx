@@ -1,17 +1,19 @@
+import { Inbox, MapPin, MousePointerClick, SearchX } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { roleAtLeast } from "@/auth/permissions";
 import { assignableMembers } from "@/auth/scope";
 import { requireActor } from "@/auth/session";
-import { InboxFilterBar } from "@/components/reviews/filter-bar";
+import { InboxFilterBar, InboxSortBar } from "@/components/reviews/filter-bar";
 import { ReviewList, type InboxReview } from "@/components/reviews/review-list";
 import { ReviewRows, type ReviewRow } from "@/components/reviews/review-rows";
 import { ViewsRail } from "@/components/reviews/views-rail";
 import { ScrollToReview } from "@/components/reviews/scroll-to-review";
+import { EmptyState } from "@/components/ds/empty-state";
 import { Pager } from "@/components/ds/pager";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { describeProvider } from "@/connectors/capability-view";
 import { SavedViews } from "@/components/reviews/saved-views";
 import { LiveRefresh } from "@/components/reviews/live-refresh";
@@ -305,14 +307,15 @@ export default async function InboxPage({
 
       {!activeLocation ? (
         <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
-            <p className="max-w-sm text-body text-pretty text-muted-foreground">
-              {locations.length === 0 ? t("empty") : t("noLocationSelected")}
-            </p>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/locations">{t("emptyAction")}</Link>
-            </Button>
-          </CardContent>
+          <EmptyState
+            icon={MapPin}
+            title={locations.length === 0 ? t("empty") : t("noLocationSelected")}
+            action={
+              <Button asChild variant="outline" size="sm">
+                <Link href="/locations">{t("emptyAction")}</Link>
+              </Button>
+            }
+          />
         </Card>
       ) : (
         <>
@@ -344,30 +347,55 @@ export default async function InboxPage({
             />
           ) : null}
 
-          <p className="text-body text-muted-foreground">
-            {/*
-              Two different truths, said differently: a filtered list and the
-              whole thing. The count is now exact in both cases — the pager
-              below carries "which slice of it you are looking at", so this line
-              no longer has to hedge about truncation.
-            */}
-            {filtered && facets
-              ? t("filtered", { shown: matching, total: facets.total })
-              : t("count", { count: matching })}
-          </p>
+          {/*
+            The result count and the order, on one line above the list.
+
+            The sort control used to be a fourth row inside the filter card,
+            under three rows of chips. It is not a filter — it says how the list
+            is arranged — and it belongs beside the number it arranges. Putting
+            them together also gives the count something to be next to: it was a
+            single grey sentence floating in its own band of whitespace.
+          */}
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <p className="text-body text-muted-foreground">
+              {/*
+                Two different truths, said differently: a filtered list and the
+                whole thing. The count is now exact in both cases — the pager
+                below carries "which slice of it you are looking at", so this
+                line no longer has to hedge about truncation.
+              */}
+              {filtered && facets
+                ? t("filtered", { shown: matching, total: facets.total })
+                : t("count", { count: matching })}
+            </p>
+            <InboxSortBar filters={filters} />
+          </div>
 
           {items.length === 0 ? (
+            /*
+              Two different nothings, and the tone says which.
+
+              `filtered` — there are sixty-five reviews and this filter excluded
+              all of them; the way out is to clear it. `blank` — there is
+              genuinely nothing yet, which is a first-run moment and gets the
+              brand-coloured tile and a route to connecting a source.
+
+              The distinction was already in the copy and the link; it was not in
+              the styling, so both read as the same dead end.
+            */
             <Card>
-              <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
-                <p className="max-w-sm text-body text-pretty text-muted-foreground">
-                  {filtered ? t("noMatches") : t("empty")}
-                </p>
-                <Button asChild variant="outline" size="sm">
-                  <Link href={filtered ? "/reviews" : "/locations"}>
-                    {filtered ? t("clearFilters") : t("emptyAction")}
-                  </Link>
-                </Button>
-              </CardContent>
+              <EmptyState
+                tone={filtered ? "filtered" : "blank"}
+                icon={filtered ? SearchX : Inbox}
+                title={filtered ? t("noMatches") : t("empty")}
+                action={
+                  <Button asChild variant={filtered ? "outline" : "default"} size="sm">
+                    <Link href={filtered ? "/reviews" : "/locations"}>
+                      {filtered ? t("clearFilters") : t("emptyAction")}
+                    </Link>
+                  </Button>
+                }
+              />
             </Card>
           ) : (
             <SelectionProvider>
@@ -383,7 +411,20 @@ export default async function InboxPage({
                 controls, one composer — a parallel "detail" component is how
                 the two drift until a control exists in one place only.
               */}
-              <div className="grid gap-(--grid-gap) lg:grid-cols-[11.5rem_minmax(0,19rem)_minmax(0,1fr)] lg:items-start">
+              {/*
+                The list column was 19rem, which is where the one-line, cut
+                mid-word snippet came from: thirty characters is all that fits,
+                so the row could only ever prove a review existed. 23rem plus
+                the two-line clamp in `ReviewRows` is roughly a hundred
+                characters — a preview somebody can actually triage from, and
+                still comfortably narrower than the pane where the work happens.
+
+                The width comes out of the detail pane, not the rail: 10.5rem
+                was tried and clipped "Assigned to me" to "Assigned to …" in
+                English, which is worse in Turkish ("Bana atanan") and worse
+                again for the one entry naming a person.
+              */}
+              <div className="grid gap-(--grid-gap) lg:grid-cols-[11.5rem_minmax(0,23rem)_minmax(0,1fr)] lg:items-start">
                 {/* The five questions this screen answers, standing still
                     (W4.1). Hidden on a phone, where the filter bar above is
                     already the way in and a third column has nowhere to go. */}
@@ -450,7 +491,22 @@ export default async function InboxPage({
                           // they need admin. The server enforces the same rule; this only
                           // decides whether to render a control that would be refused.
                           canApprove: roleAtLeast(actor.role, "admin"),
-                          highlightId: wantedReview,
+                          /*
+                            No highlight ring here, and this is a change.
+
+                            `?review=` used to mean one thing — "a notification
+                            or a digest sent you to this review" — and the ring
+                            was how it was found in a long scrolling list. W4.1
+                            made the same parameter carry *ordinary selection*,
+                            so the emphatic 2px indigo outline now fired on
+                            every single click: a heavy ring around the detail
+                            pane that reads as a validation error, restating
+                            something the selected row already says.
+
+                            The pane is the highlight. There is exactly one
+                            review in it, and it arrived because you chose it.
+                          */
+                          highlightId: null,
                           assignees: assignees.map((member) => ({
                             userId: member.userId,
                             name: member.name,
@@ -464,12 +520,14 @@ export default async function InboxPage({
                     </>
                   ) : (
                     // Desktop only — on a phone the queue itself is showing.
+                    //
+                    // `resting`, not `blank`: there are sixty-five reviews two
+                    // hundred pixels to the left. This pane is waiting for a
+                    // choice, and dressing it as a first-run empty screen —
+                    // which a bordered box with centred grey text does — told
+                    // people the opposite of what was true.
                     <Card>
-                      <CardContent className="py-14 text-center">
-                        <p className="mx-auto max-w-sm text-body text-pretty text-muted-foreground">
-                          {t("pickOne")}
-                        </p>
-                      </CardContent>
+                      <EmptyState tone="resting" icon={MousePointerClick} title={t("pickOne")} />
                     </Card>
                   )}
                 </div>

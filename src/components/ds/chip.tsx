@@ -82,7 +82,36 @@ export function chipClassName(active: boolean): string {
  * On a phone the label stacks above its chips instead, because six rems of
  * gutter is a sixth of the screen spent on a word nobody needs to re-read.
  */
-export function ChipGroup({ label, children }: { label: string; children: React.ReactNode }) {
+export function ChipGroup({
+  label,
+  layout = "stack",
+  children,
+}: {
+  label: string;
+  /**
+   * `stack` — the label owns a fixed left column and the chips wrap beside it.
+   * Right when the groups are long and read as a form: the contacts filters,
+   * the review taxonomy behind "More filters".
+   *
+   * `inline` — label and chips sit on one line and the whole group is an item
+   * in a wrapping toolbar. Right when the groups are *short*: three groups of
+   * two or three chips each, stacked, left about half the width of a 1100px
+   * card empty and cost three rows of height on the busiest screen in the
+   * product. Side by side they are one row and the card stops looking like a
+   * form somebody abandoned.
+   */
+  layout?: "stack" | "inline";
+  children: React.ReactNode;
+}) {
+  if (layout === "inline") {
+    return (
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <span className="text-eyebrow text-faint uppercase">{label}</span>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="grid items-start gap-1.5 sm:grid-cols-[6rem_1fr]">
       {/* Micro-caps, like every other label on a data surface. */}
