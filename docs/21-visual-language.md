@@ -8,6 +8,10 @@ can be read in either order.
 Judged against the running app on real data (65 Turkish reviews, 32 analysed), at 1440px and
 390px, EN and TR. Every rule below is a response to something that was actually on screen.
 
+§0b names where each pattern came from, including the ones deliberately **not** taken from
+the category — that section is the argument for the product's visual posture, not a
+bibliography.
+
 ---
 
 ## 0. What was wrong, precisely
@@ -64,6 +68,77 @@ None of that is a taste problem. All of it is a *hierarchy* problem, which is wh
 as "built by engineers": every element was rendered correctly and nothing was ranked.
 
 ---
+
+## 0b. Benchmark — what was borrowed, and from where
+
+Every rule in this file came from somewhere. Naming the source is not credit-giving; it is
+so the next person can go and look at the thing rather than argue with me about it. The
+column that matters is the last one: several of these were looked at and **rejected**, and
+the reasons are the more useful half.
+
+### Queues and lists — Linear, Front, Superhuman
+
+| Pattern | Where | Revira | Verdict |
+| --- | --- | --- | --- |
+| **Two-pane list + reading pane**, selection held in the URL | Front, Superhuman | `/reviews` (W4.1 already had this) | Kept |
+| **Selection = tinted row + a solid bar in the gutter**, distinct from hover | All three, independently | `--surface-selected` + 3px indigo bar | **Adopted.** The convergence is the argument: three keyboard-driven inboxes landed on the same answer because a wash alone dies under a pointer |
+| **Two-line rows where line 2 is the content**, not metadata | Front, Superhuman, Gmail | `ReviewRows` `line-clamp-2` | **Adopted.** This is why the column went 19rem → 23rem; one line at 19rem is ~30 characters |
+| **`j`/`k` navigation, `e` to resolve** | Linear, Superhuman | Already present | Kept |
+| **Filters as one composing toolbar row**, long tail behind a control | Linear's issue filters | The `<details>` disclosure | **Adopted in spirit, not in mechanism.** Linear uses a popover; this is a `<details>` because the bar is server-rendered links and works with scripts off. A popover would make it the one thing on the page that does not |
+| Command palette as primary navigation (⌘K) | Linear, Notion | Already present (`search-palette`) | Kept |
+
+### Numbers and dashboards — Stripe, Vercel
+
+| Pattern | Where | Revira | Verdict |
+| --- | --- | --- | --- |
+| **Small-caps label above a large number**, label losing decisively | Stripe's dashboard | `Eyebrow` + `Metric` — the intent was already here and the `cn()` bug was silently defeating it (§0a) | Kept, and finally working |
+| **Tabular numerals in any column that refreshes** | Stripe | `tabular-nums` throughout | Kept |
+| **Near-monochrome plus one accent**; status as dot + word | Vercel | §2's colour discipline; the priority dot on a review row | **Adopted.** Vercel is the discipline this file is arguing for: if you cannot say which question a colour answers, it should be ink |
+| Geist as the typeface | Vercel ships it | Already the product's font | Noted — worth knowing the type scale here is being applied to the family Vercel designed for exactly this density |
+| **Sparklines with no axis are decoration** | Stripe uses them sparingly, always beside the number they describe | `VolumeSparkline` / `TrendSparkline` | Partly. The four on Home still carry no readable information — priority 6 fixed their *colour* contradiction, not the question of whether they earn the space |
+
+### Pricing — Stripe, Vercel, Linear
+
+| Pattern | Where | Revira | Verdict |
+| --- | --- | --- | --- |
+| **Price at display size**, plan name demoted to a label | All three | `plan-section.tsx`, price at `text-metric` | **Adopted** |
+| **The current plan is visually held**, not just badged | Stripe's billing settings | Indigo border + ring | **Adopted** |
+| **One emphasised action**; downgrades are quiet | All three | Indigo for upgrades, outline for downgrades, derived from catalogue order | **Adopted** |
+| A "Most popular" flag on a middle tier | Common across SaaS pricing | — | **Rejected.** It is a marketing claim, and inventing one is a pricing decision rather than a design one. The current plan is the only tier this screen has a truthful reason to emphasise |
+
+### Empty and resting states — Notion, Linear
+
+| Pattern | Where | Revira | Verdict |
+| --- | --- | --- | --- |
+| **Icon, one sentence, one action** — never a paragraph | Notion | `EmptyState` `blank` | **Adopted** |
+| **A waiting pane is not an empty pane** | Superhuman's reading pane before selection | `EmptyState` `resting` | **Adopted.** This is the distinction that was missing: `/reviews` dressed "pick one of sixty-five" as a first-run screen |
+| Illustrated empty states | Intercom, most of the category | — | **Rejected**, and it was asked for. `docs/15` §7: "the product's imagery is its data". An `IconTile` says the same thing and does not commit us to commissioning artwork for every future screen |
+
+### The category — Birdeye, Podium, Trustpilot, Yotpo
+
+This is where benchmarking is most useful, because the competitors' shared instinct is one
+Revira should deliberately not follow.
+
+| Pattern | Where | Verdict |
+| --- | --- | --- |
+| **Dashboard-first: gauge clusters, donut breakdowns, dense KPI grids** | Birdeye and Podium both lead with reporting density | **Rejected, and it is the product's main visual argument.** That layout answers "how are we doing"; Revira's differentiator is the Action Digest, which answers "what should I do on Monday". A wall of gauges is the *posture* of a reporting tool, and adopting it would flatten the one thing that is not commodity. It is also why `/weekly-plan` now leads with the plan rather than a list of dates |
+| Review cards with **amber stars, source attribution, and a date** | Trustpilot, and the category convention | **Adopted** — this is settled convention and deviating would only cost recognition. It is also the argument for `Stars` being amber by default rather than inheriting ink |
+| **Widget-first social proof layouts** | Yotpo | Already built (P3-T0/T1), and the widget's separate palette is the right call for the same reason theirs is: it renders on somebody else's site |
+| Star-rating *inputs* drawn large and unfilled until touched | Trustpilot, Google | Already how `/c/{slug}` works | Kept |
+
+### What none of them solved for us
+
+Two constraints these references cannot help with, which is why several rules in this file
+have no row above:
+
+- **Turkish.** Every product named here is designed English-first. TR runs ~30% longer, and
+  the two layout bugs this pass found — the meter column and the delta breaking mid-unit —
+  are invisible in every one of them. §8 exists because the benchmark set has nothing to say
+  here.
+- **Surfaces we cannot look at.** An email, a PDF, a widget on a stranger's page. Linear does
+  not have a weekly PDF; Stripe's emails are a different discipline from its dashboard. Four
+  of the bugs in this pass lived on exactly these surfaces, and the guard is tests
+  (`email-palette`, `report-metrics`, `report-contrast`, `widget-theme`) rather than taste.
 
 ## 1. Type
 
