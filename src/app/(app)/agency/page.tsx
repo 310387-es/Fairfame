@@ -3,6 +3,8 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { roleAtLeast } from "@/auth/permissions";
 import { requireActor } from "@/auth/session";
 import { ClientRoster, type ClientCard } from "@/components/agency/client-roster";
+import { EmptyState } from "@/components/ds/empty-state";
+import { Card } from "@/components/ui/card";
 import { SectionCard } from "@/components/ds/section-card";
 import { PageHeader } from "@/components/shell/page-header";
 import { listClientLocations, listClients } from "@/agency/clients";
@@ -83,12 +85,24 @@ export default async function ClientsPage() {
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       {clients.length === 0 ? (
-        <SectionCard title={t("empty.title")} icon={Building2}>
-          <div className="flex flex-col gap-3 pb-(--card-py)">
-            <p className="text-body text-ink-400">{t("empty.body")}</p>
-            <ClientRoster clients={[]} canManage={canManage} />
-          </div>
-        </SectionCard>
+        /*
+          `EmptyState`, not a `SectionCard` — the sixth treatment of "there is
+          nothing here yet", and the one the earlier rollout missed because this
+          screen was never opened while doing it.
+
+          A section card announces a *section*; there is no section here, there
+          is an absence. `ClientRoster` is passed as the action because on an
+          empty roster it renders exactly one control — "Link a client" — which
+          is the single next step this state exists to offer.
+        */
+        <Card>
+          <EmptyState
+            icon={Building2}
+            title={t("empty.title")}
+            body={t("empty.body")}
+            action={<ClientRoster clients={[]} canManage={canManage} />}
+          />
+        </Card>
       ) : (
         <SectionCard title={t("roster")} icon={Building2} flush>
           <div className="px-(--card-px) pb-(--card-py)">
