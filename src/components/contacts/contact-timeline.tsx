@@ -148,7 +148,7 @@ export async function ContactTimeline({ events }: { events: TimelineEvent[] }) {
                     <p className="line-clamp-3 text-body text-pretty text-ink-400">{event.text}</p>
                   ) : null}
                   <Link
-                    href={`/inbox?review=${event.reviewId}`}
+                    href={`/reviews?review=${event.reviewId}`}
                     className="w-fit rounded-sm text-meta font-semibold text-primary transition-colors hover:text-indigo-700 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                   >
                     {t("openInInbox")}

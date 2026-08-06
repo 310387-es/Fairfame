@@ -1,8 +1,8 @@
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
-import { assignReview } from "@/inbox/triage";
-import { bulkAssign } from "@/inbox/bulk";
+import { assignReview } from "@/reviews/triage";
+import { bulkAssign } from "@/reviews/bulk";
 import { withTenant } from "@/lib/tenancy";
 import { createCaptureTransport } from "@/messaging/email";
 import { ASSIGNMENT_ROLLUP_THRESHOLD } from "@/notifications/assignment";
@@ -316,7 +316,7 @@ describe("what actually leaves the building", () => {
   it("sends a rollup that names the count and links to a queue", async () => {
     // The end of the bug this whole path was rewritten for: rollups used to be
     // rendered through the review-alert template, which produced a blank email
-    // linking to `/inbox?review=undefined`. Asserted against the real sender,
+    // linking to `/reviews?review=undefined`. Asserted against the real sender,
     // not the template in isolation, because the defect was in the routing.
     const big = await makeFixture(ASSIGNMENT_ROLLUP_THRESHOLD + 2);
 
@@ -334,7 +334,7 @@ describe("what actually leaves the building", () => {
     const [message] = transport.sent;
 
     expect(message?.subject).toContain(String(big.reviewIds.length));
-    expect(message?.text).toContain("/inbox?assignee=me");
+    expect(message?.text).toContain("/reviews?assignee=me");
     expect(message?.html).not.toContain("review=undefined");
     expect(message?.html).not.toContain("undefined");
   });

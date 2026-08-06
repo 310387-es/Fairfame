@@ -4,8 +4,8 @@ import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { loadFacts } from "@/dashboard/facts";
 import { rangeWindow } from "@/dashboard/range";
 import { needsAttention } from "@/dashboard/attention";
-import { inboxFacets, listInbox } from "@/inbox/queries";
-import { refreshPriority } from "@/inbox/workflow";
+import { inboxFacets, listInbox } from "@/reviews/queries";
+import { refreshPriority } from "@/reviews/workflow";
 import { withTenant } from "@/lib/tenancy";
 import { notifySlaBreaches } from "@/notifications/service";
 import { subscribeToPlanWith } from "./plan-fixture";
@@ -191,7 +191,7 @@ describe("Home", () => {
   it("does not put it in the needs-attention queue", async () => {
     const window = rangeWindow("30d", new Date());
     const rows = await read((tx) =>
-      needsAttention(tx, fixture.orgId, fixture.locationId, window, { limit: 10 }),
+      needsAttention(tx, fixture.orgId, [fixture.locationId], window, { limit: 10 }),
     );
 
     expect(rows.map((row) => row.reviewId)).toEqual([untouched]);
@@ -199,7 +199,7 @@ describe("Home", () => {
 
   it("counts it in the response rate", async () => {
     const window = rangeWindow("30d", new Date());
-    const facts = await read((tx) => loadFacts(tx, fixture.orgId, fixture.locationId, window));
+    const facts = await read((tx) => loadFacts(tx, fixture.orgId, [fixture.locationId], window));
 
     const replied = facts.current.filter((fact) => fact.repliedAt !== null);
 

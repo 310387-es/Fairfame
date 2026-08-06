@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
  * card on a phone and a grid from `sm` up, and the whole row is one link.
  *
  * Every string arrives already formatted. Functions cannot cross the RSC
- * boundary, and a client component re-deriving a locale is how `/insights`
+ * boundary, and a client component re-deriving a locale is how `/analytics`
  * ended up formatting the same number two ways (P3-T4).
  */
 

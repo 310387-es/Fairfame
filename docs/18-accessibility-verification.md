@@ -40,7 +40,7 @@ It also established that the palette's rule is a **table, not a token** — the 
 
 ```js
 const f = document.createElement("iframe");
-f.src = "/inbox?sentiment=negative";
+f.src = "/reviews?sentiment=negative";
 f.style.cssText = "position:fixed;top:0;left:0;width:390px;height:840px;z-index:99999";
 document.body.appendChild(f);
 // then, against f.contentDocument:
@@ -49,7 +49,7 @@ document.body.appendChild(f);
 //   [...querySelectorAll("*")].filter(el => el.getBoundingClientRect().right > clientWidth + 1)
 ```
 
-**Result at a 386px viewport (`/inbox?sentiment=negative`):**
+**Result at a 386px viewport (`/reviews?sentiment=negative`):**
 
 | check | result |
 | --- | --- |
@@ -68,7 +68,7 @@ document.body.appendChild(f);
 
 ## 3. Keyboard and assistive technology
 
-**Method.** A `focusin` listener recorded every focus stop and whether it had a visible ring; `Tab` was then pressed 52 times from the top of `/inbox`.
+**Method.** A `focusin` listener recorded every focus stop and whether it had a visible ring; `Tab` was then pressed 52 times from the top of `/reviews`.
 
 | criterion | result |
 | --- | --- |

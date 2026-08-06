@@ -1,5 +1,5 @@
 import type { Sentiment } from "../db/schema.ts";
-import { computePulse } from "../digest/metrics.ts";
+import { computePulse, rawPulse } from "../digest/metrics.ts";
 import type { DashboardFacts, ReviewFact } from "./facts.ts";
 import {
   chartBuckets,
@@ -53,9 +53,21 @@ function inWindow(facts: readonly ReviewFact[], window: Window): ReviewFact[] {
   return facts.filter((fact) => fact.at >= window.start && fact.at < window.end);
 }
 
-/** 0-100, blended from stars and sentiment — the digest's own definition. */
-function reputation(facts: readonly ReviewFact[]): number | null {
-  return computePulse(facts);
+/**
+ * 0-100, blended from stars and sentiment — the digest's own definition.
+ *
+ * Smoothed toward the ninety-day baseline (W3.3), which is what makes the
+ * number usable on a real small business: a café with eight reviews in the
+ * selected week would otherwise show swings of fifteen points driven entirely
+ * by who happened to write, and a metric that moves like that teaches people
+ * to ignore it.
+ *
+ * The baseline itself is computed **raw** — it is the long run, and smoothing
+ * it toward itself would be circular.
+ */
+function reputationWith(baseline: readonly ReviewFact[]) {
+  const prior = rawPulse(baseline);
+  return (facts: readonly ReviewFact[]): number | null => computePulse(facts, { prior });
 }
 
 /**
@@ -141,7 +153,14 @@ export function computeKpis(facts: DashboardFacts, window: RangeWindow): Dashboa
   const { current, previous } = facts;
 
   return {
-    reputation: kpi("reputation", "score", current, previous, buckets, reputation),
+    reputation: kpi(
+      "reputation",
+      "score",
+      current,
+      previous,
+      buckets,
+      reputationWith(facts.baseline),
+    ),
     rating: kpi("rating", "rating", current, previous, buckets, averageRating),
     volume: kpi("volume", "count", current, previous, buckets, volume),
     responseRate: kpi("responseRate", "percent", current, previous, buckets, responseRate),
@@ -402,4 +421,126 @@ export function computeResponseTimes(facts: DashboardFacts): ResponseTimes {
     replied: current.length,
     total: facts.current.length,
   };
+}
+
+/**
+ * The response-time distribution (W4.3).
+ *
+ * **Why a median was not enough.** "24 sa" answers "how long do people
+ * typically wait" and nothing else. The question a manager actually has is
+ * *where the tail is*: a business with a 4-hour median and a fifth of its
+ * reviews sitting for a week has a real problem that the median hides by
+ * construction, because the median is exactly the number a tail cannot move.
+ *
+ * The buckets are the shape of the promise, not equal spans. Under an hour is
+ * "we were watching"; under a day is the commitment most businesses make and
+ * the one `withinDayShare` already reports; under three days is late but
+ * recoverable; beyond that the customer has moved on. Equal-width buckets would
+ * be arithmetically tidier and would tell nobody anything.
+ *
+ * **The unanswered are in it.** They are the whole point — a queue that never
+ * got a reply is the worst response time there is, and a distribution drawn
+ * only over *answered* reviews is the same flattery as measuring satisfaction
+ * among people who did not leave. They sit in their own terminal bucket rather
+ * than being given a fictional wait.
+ */
+export const RESPONSE_BUCKETS = ["under_hour", "under_day", "under_three_days", "slower"] as const;
+
+export type ResponseBucketKey = (typeof RESPONSE_BUCKETS)[number] | "unanswered";
+
+export type ResponseBucket = {
+  key: ResponseBucketKey;
+  count: number;
+  /** 0–100 of everything in the window, answered or not. */
+  share: number;
+};
+
+export function computeResponseDistribution(facts: DashboardFacts): ResponseBucket[] {
+  const counts = new Map<ResponseBucketKey, number>();
+  const add = (key: ResponseBucketKey) => counts.set(key, (counts.get(key) ?? 0) + 1);
+
+  for (const fact of facts.current) {
+    if (fact.repliedAt === null) {
+      add("unanswered");
+      continue;
+    }
+
+    // Clamped for the same clock-skew reason `computeResponseTimes` clamps.
+    const hours = Math.max(0, (fact.repliedAt.getTime() - fact.at.getTime()) / HOUR_MS);
+
+    if (hours < 1) add("under_hour");
+    else if (hours <= 24) add("under_day");
+    else if (hours <= 72) add("under_three_days");
+    else add("slower");
+  }
+
+  const total = facts.current.length;
+
+  return [...RESPONSE_BUCKETS, "unanswered" as const].map((key) => ({
+    key,
+    count: counts.get(key) ?? 0,
+    // Absence renders as an empty bar rather than being dropped: a distribution
+    // missing its empty buckets reads as a different shape entirely.
+    share: total === 0 ? 0 : round(((counts.get(key) ?? 0) / total) * 100, 1),
+  }));
+}
+
+/**
+ * One row per branch, for the comparison strip (W4.3).
+ *
+ * **Same facts, same arithmetic.** Every measure here is the function the
+ * headline KPI already uses, applied to a filtered slice — so a chain's rating
+ * and the rating of its only branch cannot disagree, and neither can they drift
+ * when somebody changes how a rating is averaged. That is the entire reason
+ * `locationId` is carried on `ReviewFact` rather than fetched per branch.
+ *
+ * **Absence is null.** A branch with nothing in the window did not score nought
+ * stars and did not answer 0% of nothing; a delta needs both sides. Zero is
+ * reserved for `volume` and `unanswered`, where it is a real count.
+ *
+ * The rows are returned in the caller's branch order and sorted on screen —
+ * sorting here would fix an order the reader is meant to choose.
+ */
+export type BranchRow = {
+  locationId: string;
+  rating: number | null;
+  ratingDelta: number | null;
+  volume: number;
+  volumeDelta: number | null;
+  unanswered: number;
+  medianResponseHours: number | null;
+};
+
+export function computeBranches(facts: DashboardFacts, locationIds: string[]): BranchRow[] {
+  const at = (items: readonly ReviewFact[], locationId: string) =>
+    items.filter((fact) => fact.locationId === locationId);
+
+  return locationIds.map((locationId) => {
+    const current = at(facts.current, locationId);
+    const previous = at(facts.previous, locationId);
+
+    const rating = averageRating(current);
+    const previousRating = averageRating(previous);
+
+    const waits = current
+      .filter((fact) => fact.repliedAt !== null)
+      .map((fact) =>
+        Math.max(0, ((fact.repliedAt as Date).getTime() - fact.at.getTime()) / HOUR_MS),
+      );
+
+    return {
+      locationId,
+      rating,
+      ratingDelta: difference(rating, previousRating, 1),
+      volume: current.length,
+      // Percent, matching the volume KPI's own delta — and null from zero, for
+      // the reason `percentChange` withholds it: 0 → 5 is not "500% up".
+      volumeDelta: percentChange(current.length, previous.length),
+      unanswered: current.filter((fact) => fact.repliedAt === null).length,
+      medianResponseHours: (() => {
+        const value = median(waits);
+        return value === null ? null : Math.round(value * 10) / 10;
+      })(),
+    };
+  });
 }

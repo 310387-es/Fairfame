@@ -4,30 +4,29 @@
     "tagline": "Yorum ve müşteri sesi yönetimi"
   },
   "nav": {
-    "home": "Ana sayfa",
-    "inbox": "Gelen kutusu",
-    "requests": "Yorum talepleri",
+    "home": "Panel",
+    "inbox": "Yorumlar",
+    "requests": "Yorum toplayın",
     "locations": "Şubeler",
     "team": "Ekip",
     "settings": "Ayarlar",
     "signOut": "Çıkış yap",
     "notifications": "Bildirimler",
     "unreadBadge": "{count} okunmamış",
-    "groupDaily": "Günlük",
-    "groupGrowth": "Büyüme",
-    "groupAccount": "Hesap",
     "openMenu": "Menüyü aç",
     "closeMenu": "Menüyü kapat",
     "menu": "Menü",
-    "digest": "Özet",
-    "widgets": "Vitrin",
-    "insights": "İçgörüler",
+    "digest": "Haftalık plan",
+    "widgets": "Site bileşenleri",
+    "insights": "Analiz",
     "contacts": "Kişiler",
-    "surveys": "Anketler",
-    "messages": "Mesajlar",
-    "broadcasts": "Gönderimler",
-    "clients": "Müşteriler",
-    "organizations": "İşletmeler"
+    "messages": "Görüşmeler",
+    "clients": "Ajans",
+    "organizations": "İşletmeler",
+    "channels": "Kanallar",
+    "groupWork": "İş",
+    "groupGrow": "Büyüme",
+    "groupSetup": "Kurulum"
   },
   "shell": {
     "locationSwitcher": "Aktif şube",
@@ -56,7 +55,8 @@
     "overviewSubtitle": "{location} — canlı",
     "kpi": {
       "reputation": {
-        "label": "İtibar puanı"
+        "label": "İtibar puanı",
+        "hint": "%{rating} yıldız puanı ve %{sentiment} müşterilerin yazdıklarından harmanlanır; son 90 güne göre yumuşatılır."
       },
       "rating": {
         "label": "Ortalama puan"
@@ -73,7 +73,9 @@
       "noComparison": "önceki dönem yok",
       "up": "arttı",
       "down": "azaldı",
-      "flat": "değişmedi"
+      "flat": "değişmedi",
+      "percentagePoints": "{value} yüzde puan",
+      "outOf": "{max} üzerinden"
     },
     "insight": {
       "waiting": "{count, plural, =1 {1 yorum yanıt bekliyor} other {# yorum yanıt bekliyor}}.",
@@ -119,7 +121,13 @@
         "mention": "Bahsetme",
         "dm": "Mesaj",
         "review": "Değerlendirme"
-      }
+      },
+      "draftWithAi": "Yapay zekâ ile taslak",
+      "drafting": "Yazılıyor…",
+      "drafted": "Taslak hazır — göndermeden önce okuyun.",
+      "draftLabel": "Yapay zekâ taslağı",
+      "editAndSend": "Düzenle ve gönder",
+      "open": "Aç"
     },
     "range": {
       "7d": {
@@ -201,7 +209,15 @@
       "slower": "{change} daha yavaş",
       "noComparison": "önceki dönem yok",
       "replied": "{count, plural, =1 {1 yanıt gönderildi} other {# yanıt gönderildi}}",
-      "empty": "Bu dönemde yanıtlanan bir şey yok."
+      "empty": "Bu dönemde yanıtlanan bir şey yok.",
+      "bucket": {
+        "under_hour": "1 saatten az",
+        "under_day": "24 saatten az",
+        "under_three_days": "1–3 gün",
+        "slower": "3 günden fazla",
+        "unanswered": "Yanıtsız"
+      },
+      "bucketSr": "{bucket}: {count} yorum, {share}"
     },
     "activity": {
       "title": "Son hareketler",
@@ -224,10 +240,22 @@
       "themes": "Temalar",
       "ratings": "Puanlar",
       "sources": "Kaynaklar"
+    },
+    "overviewSubtitleAll": "{count, plural, one {# şube} other {# şubenin tamamı}} — canlı",
+    "branches": {
+      "title": "Şubelere göre",
+      "meta": "{count} şube · bu dönem",
+      "branch": "Şube",
+      "rating": "Puan",
+      "volume": "Yorum",
+      "unanswered": "Bekleyen",
+      "response": "Ortanca yanıt",
+      "noRating": "Puan yok",
+      "ratingSr": "5 üzerinden {rating}"
     }
   },
   "insights": {
-    "title": "İçgörüler",
+    "title": "Analiz",
     "subtitle": "İyileşiyor musunuz, nerede ve neyin etkisiyle.",
     "summary": "{locations} şubede {reviews} yorum",
     "pendingAnalysis": "{count} tanesi henüz analiz edilmedi",
@@ -242,7 +270,7 @@
     },
     "trend": {
       "rating": "Puan",
-      "sentiment": "Duygu",
+      "sentiment": "Olumlu payı",
       "volume": "Yorum"
     },
     "trendCaption": "Döneme göre {measure} ve kaç yorumdan hesaplandığı.",
@@ -259,7 +287,6 @@
       "change": "Değişim"
     },
     "noValue": "—",
-    "points": "puan",
     "byLocation": "Şubeye göre",
     "byLocationEmpty": "Bu dönemde hiçbir şubeye yorum gelmedi.",
     "bySource": "Kaynağa göre",
@@ -295,7 +322,8 @@
       "saving": "Kaydediliyor…",
       "saved": "Kaydedildi",
       "stop": "Göndermeyi durdur",
-      "locked": "Planlı raporlar bu pakete dahil değil. Bu sayıların uygulamayı açmadan size ulaşması için paketinizi yükseltin."
+      "locked": "Planlı raporlar bu pakete dahil değil. Bu sayıların uygulamayı açmadan size ulaşması için paketinizi yükseltin.",
+      "action": "Planla"
     },
     "benchmark": {
       "title": "Rakiplere karşı",
@@ -322,7 +350,49 @@
     "surveysNote": "Doğrudan sorulduğunda söyledikleri",
     "surveysThin": "{min} yanıttan az",
     "surveyNps": "NPS",
-    "surveyCsat": "CSAT"
+    "surveyCsat": "CSAT",
+    "percentagePoints": "yüzde puan",
+    "heatmap": {
+      "title": "Zaman içinde temalar",
+      "meta": "Renk duyguyu, koyuluk hacmi gösterir",
+      "caption": "Döneme ve temaya göre bahsetme sayısı, duyguya göre renklendirilmiş.",
+      "theme": "Tema",
+      "total": "Toplam",
+      "empty": "Bu dönem için henüz tema çıkarılmadı.",
+      "noMentions": "Bahsedilmedi",
+      "cell": "{theme}: {mentions} bahsetme, {mood}",
+      "cellEmpty": "{theme}: bahsedilmedi",
+      "mood": {
+        "positive": "çoğunlukla olumlu",
+        "neutral": "karışık",
+        "negative": "çoğunlukla olumsuz",
+        "unknown": "analiz edilmedi"
+      }
+    },
+    "histogram": {
+      "title": "Puanlar nasıl dağılıyor",
+      "meta": "{count} puanlı yorum",
+      "empty": "Bu dönemde puanlanan yorum yok.",
+      "stars": "{count} yıldız",
+      "rating": "Puan",
+      "reviews": "Yorum",
+      "bar": "{count} yıldız: {reviews} yorum, {share}"
+    },
+    "percentiles": {
+      "title": "Müşteriler ne kadar bekliyor",
+      "meta": "{answered} yanıtlandı",
+      "empty": "Bu dönemde hiçbir yorum yanıtlanmadı.",
+      "p50": "Yarısı şu sürede",
+      "p75": "Dörtte üçü şu sürede",
+      "p90": "Onda dokuzu şu sürede",
+      "percentile": "Oran",
+      "wait": "Süre",
+      "noData": "—",
+      "minutes": "{count} dk",
+      "hours": "{count} sa",
+      "days": "{count} gün",
+      "unanswered": "{count} tanesi hâlâ yanıtsız — yukarıya dahil değil."
+    }
   },
   "digest": {
     "archiveTitle": "Haftalık planınız",
@@ -332,9 +402,9 @@
     "thinWeek": "Plan çıkarmak için yeterli değil",
     "thinWeekLink": "Gelenleri görün",
     "reviewCount": "{count, plural, =0 {yorum yok} =1 {1 yorum} other {# yorum}}",
-    "pulse": "İtibar nabzı",
-    "pulseHint": "Yıldız puanları ve müşterilerin yazdıklarının birleşimi.",
-    "noPulse": "—",
+    "pulse": "İtibar puanı",
+    "pulseHint": "%{rating} yıldız puanı ve %{sentiment} müşterilerin yazdıklarından harmanlanır.",
+    "noPulse": "Yeterli veri yok",
     "deltaUp": "geçen haftaya göre {value} yukarıda",
     "deltaDown": "geçen haftaya göre {value} aşağıda",
     "deltaFlat": "geçen haftayla aynı",
@@ -368,6 +438,23 @@
     "loopTitle": "Geçen haftadan bu yana",
     "loopSummary": "{total} eylemin {done} tanesini tamamladınız.",
     "loopStillOpen": "Hâlâ açık:",
+    "recordTitle": "Takibiniz",
+    "recordOver": "{digests, plural, one {Son özet} other {Son # özet}}",
+    "recordHeadline": "{total} eylemin {done} tanesi tamamlandı",
+    "recordFraction": "{done}/{total}",
+    "recordDone": "Tamamlandı",
+    "recordSr": "Önerilen {total} eylemin {done} tanesi tamamlandı.",
+    "recordDismissed": "{count, plural, one {# eylem} other {# eylem}} uygun bulunmadı ve sayıma dahil edilmedi.",
+    "recordByLever": "Neler tamamlanıyor",
+    "recordLeverSr": "{lever}: {total} eylemin {done} tanesi tamamlandı.",
+    "lever": {
+      "staffing": "Personel",
+      "hours": "Çalışma saatleri",
+      "menu_item": "Menü",
+      "reply_backlog": "Yanıtlama",
+      "signage": "Yönlendirme",
+      "process": "Süreç"
+    },
     "lastGenerated": "{when} hazırlandı",
     "noLocation": "Bir şube ekleyin; ilk haftalık özetiniz hafta tamamlandıktan sonra gelecek.",
     "noLocationAction": "Şubelere git",
@@ -383,18 +470,22 @@
     "detailPending": "Bu haftanın özeti hâlâ hazırlanıyor. Birkaç dakika sonra tekrar bakın.",
     "detailFailed": "Bu özet hazırlanamadı. Saatlik tarama otomatik olarak yeniden deniyor, kısa süre içinde görünebilir.",
     "archiveListTitle": "Geçmiş haftalar",
-    "archiveListMeta": "İtibar nabzı ve bir önceki haftaya göre değişim",
+    "archiveListMeta": "İtibar puanı ve bir önceki haftaya göre değişim",
     "up": "arttı",
     "down": "azaldı",
     "flat": "değişmedi",
     "points": "{value} puan",
     "openWeek": "{period} özetini aç",
     "briefingLabel": "Bu hafta",
+    "exportPdf": "PDF indir",
+    "shareCopy": "Metin olarak kopyala",
+    "shareCopied": "Kopyalandı",
     "thinWeekBodyThin": "Bu hafta {reviews, plural, =1 {yalnızca 1 yorum} other {yalnızca # yorum}} geldi. Bu, bir eğilimi kötü bir günden ayırmak için az; bu yüzden tahmin yürütmedik.",
-    "thinWeekBodyPending": "{reviews, plural, =1 {1 yorum} other {# yorum}} geldi ve {analysed, plural, =0 {henüz hiçbiri çözümlenmedi} other {şimdiye kadar yalnızca # tanesi çözümlendi}}. Tahmine dayalı bir plan yazmak yerine, bekleyenleri gösteriyoruz."
+    "thinWeekBodyPending": "{reviews, plural, =1 {1 yorum} other {# yorum}} geldi ve {analysed, plural, =0 {henüz hiçbiri çözümlenmedi} other {şimdiye kadar yalnızca # tanesi çözümlendi}}. Tahmine dayalı bir plan yazmak yerine, bekleyenleri gösteriyoruz.",
+    "starLabel": "5 üzerinden {rating}"
   },
   "inbox": {
-    "title": "Gelen kutusu",
+    "title": "Yorumlar",
     "subtitle": "Bağlı tüm kaynaklardan gelen yorumlar tek yerde.",
     "empty": "Henüz yorum yok. Başlamak için bir şubeye kaynak bağlayın.",
     "emptyAction": "Şubelere git",
@@ -406,7 +497,6 @@
     "ownerReplied": "Yanıtladınız",
     "filterSource": "Kaynak",
     "filterSentiment": "Duygu",
-    "filterTheme": "Tema",
     "filterReply": "Yanıt",
     "filterUnanswered": "Yanıt bekliyor",
     "filterAnswered": "Yanıtlandı",
@@ -422,6 +512,8 @@
     "next": "Sonraki",
     "range": "{total} yorumdan {from}–{to} arası",
     "filterQuick": "Hızlı",
+    "filterPinned": "Sabitlenen",
+    "filterFromDigest": "Özetinizden",
     "filterStatus": "Durum",
     "filterAssignedToMe": "Bana atanan",
     "filterOverdue": "Süresi geçen",
@@ -432,7 +524,7 @@
     "sort": "Sıralama",
     "sortRecent": "En yeni",
     "sortPriority": "Öncelik",
-    "savedViews": "Görünümler",
+    "savedViews": "Kayıtlı",
     "viewShared": "Paylaşılan",
     "saveView": "Görünümü kaydet",
     "saveViewName": "Ad",
@@ -459,7 +551,23 @@
     "bulkClear": "Temizle",
     "bulkDone": "{count, plural, =0 {Hiçbir şey değişmedi} =1 {1 yorum güncellendi} other {# yorum güncellendi}}",
     "bulkDraftNote": "Taslak oluşturmak yanıtları incelemeye hazırlar. Biri onaylamadan hiçbir şey gönderilmez.",
-    "bulkUntag": "Kaldır"
+    "bulkUntag": "Kaldır",
+    "filterCanonical": "Temalar",
+    "filterTag": "Etiketler",
+    "themesPending": "Yeni temalarla incelenen: {total} yorumun {done} tanesi. Temaya göre süzmek için yeniden inceleyin.",
+    "pickOne": "Okumak ve yanıtlamak için listeden bir yorum seçin.",
+    "backToList": "Tüm yorumlar",
+    "starsLabel": "5 üzerinden {rating} yıldız",
+    "anonymous": "Anonim",
+    "overdue": "Süresi geçen",
+    "viewsLabel": "Kuyruklar",
+    "view": {
+      "all": "Tümü",
+      "unanswered": "Yanıt bekliyor",
+      "negative": "Olumsuz",
+      "mine": "Bana atanan",
+      "overdue": "Süresi geçen"
+    }
   },
   "locations": {
     "title": "Şubeler",
@@ -476,7 +584,6 @@
     "addDescription": "Yorum topladığınız bir şube, mekan veya mağaza.",
     "namePlaceholder": "örn. Kadıköy şubesi",
     "addressPlaceholder": "Sokak, ilçe, şehir",
-    "categoryPlaceholder": "örn. restoran",
     "adding": "Ekleniyor…",
     "connecting": "Bağlanıyor…",
     "syncNow": "Şimdi eşitle",
@@ -498,7 +605,34 @@
     "publicPageOpen": "Sayfayı aç",
     "publicPageCopy": "Bağlantıyı kopyala",
     "publicPageCopied": "Kopyalandı",
-    "publicPageNothingApproved": "Henüz gösterime onaylanmış yorum yok; Vitrin bölümünden yorum onaylayana kadar sayfa boş görünecek."
+    "publicPageNothingApproved": "Henüz gösterime onaylanmış yorum yok; Vitrin bölümünden yorum onaylayana kadar sayfa boş görünecek.",
+    "vertical": {
+      "restaurant": "Restoran",
+      "cafe": "Kafe",
+      "hotel": "Otel",
+      "retail": "Mağaza",
+      "clinic": "Klinik",
+      "services": "Hizmet",
+      "other": "Diğer"
+    },
+    "categoryUnset": "Belirtilmedi",
+    "col": {
+      "expand": "Genişlet",
+      "branch": "Şube",
+      "sources": "Kaynaklar",
+      "reviews": "Yorum · 30 gün",
+      "rating": "Puan",
+      "unanswered": "Yanıt bekleyen",
+      "publicPage": "Herkese açık sayfa"
+    },
+    "expandRow": "{name} ayrıntılarını göster",
+    "collapseRow": "{name} ayrıntılarını gizle",
+    "noSources": "Yok",
+    "noRating": "Puan yok",
+    "published": "Yayında",
+    "notPublished": "Yayında değil",
+    "topThemes": "Öne çıkan temalar",
+    "ratingSr": "5 üzerinden {rating}"
   },
   "publicPage": {
     "metaTitle": "{business} — {location} yorumları",
@@ -533,7 +667,7 @@
     "noGoogleLocations": "Bu Google hesabında eşitleyebileceğimiz bir konum yok."
   },
   "requests": {
-    "title": "Yorum talepleri",
+    "title": "Yorum toplayın",
     "subtitle": "Müşterilerinizden yorum isteyin, sonucunu takip edin.",
     "usage": "Bu ay {limit} talebin {used} tanesi kullanıldı",
     "usageUnlimited": "Bu ay {used} talep gönderildi",
@@ -580,7 +714,7 @@
     "recipientsHint": "Her satıra bir tane veya virgülle ayırın. Tek seferde en fazla {max} kişi.",
     "send": "Talepleri gönder",
     "sending": "Gönderiliyor…",
-    "sendResult": "{sent} gönderildi · {failed} başarısız · {skipped} atlandı (çıkmış)",
+    "sendResult": "{sent} gönderildi · {failed} başarısız · {skipped} izin yok",
     "invalidAddresses": "Gönderilmedi — bu adresler geçerli değil: {list}",
     "linkOnlyHint": "Bağlantı kampanyasında gönderim yapılmaz. QR kodu yazdırın ya da bağlantıyı paylaşın.",
     "recentTitle": "Son talepler",
@@ -597,7 +731,54 @@
       "opened": "Açıldı",
       "submitted": "Yorum bırakıldı",
       "failed": "Başarısız"
-    }
+    },
+    "pickerLabel": "Kişi seçin",
+    "pickerPlaceholder": "İsim, e-posta veya telefonla arayın",
+    "pickerSearch": "Ara",
+    "pickerAdd": "Ekle",
+    "pickerAdded": "Eklendi",
+    "pickerRemove": "Çıkar",
+    "pickerUnnamed": "İsimsiz kişi",
+    "pickerNoResults": "Eşleşen kimse yok. Çıkmış olabilirler veya bu kanal için adresleri olmayabilir.",
+    "pickerContactsOnly": "Bu kanalda yalnızca Kişiler'de kayıtlı olanlara mesaj gönderebilirsiniz — izin kişiye bağlı olarak kaydedilir.",
+    "importCsv": "CSV içe aktar",
+    "sendSkippedNoAddress": "{count} kişinin bu kanal için adresi yok",
+    "funnel": {
+      "title": "Toplama nasıl gidiyor",
+      "meta": "Son {days} gün",
+      "empty": "Henüz istek gönderilmedi ve kod ya da bağlantıdan yorum gelmedi.",
+      "byChannel": "Kanala göre",
+      "ofSent": "istenen kişilerin",
+      "walkIn": "{count} yorum kod veya bağlantı üzerinden geldi.",
+      "walkInNote": "Bunlar için kimseye istek gönderilmedi; huni dışındalar.",
+      "stage": {
+        "sent": "İstendi",
+        "opened": "Sayfayı açtı",
+        "submitted": "Yorum bıraktı"
+      },
+      "ofPrevious": {
+        "opened": "istenen kişilerin",
+        "submitted": "sayfayı açanların"
+      },
+      "channel": {
+        "email": "E-posta",
+        "sms": "SMS",
+        "whatsapp": "WhatsApp"
+      },
+      "channelSr": "{channel}: {sent} kişiye istek, {submitted} yorum, {rate}",
+      "column": {
+        "stage": "Adım",
+        "count": "Sayı"
+      }
+    },
+    "poster": {
+      "headline": "Nasıldık?",
+      "subhead": "Kodu okutun, otuz saniyede anlatın. Sandığınızdan çok işimize yarıyor.",
+      "urlLabel": "Ya da şu adrese gidin",
+      "foldLabel": "buradan katlayın"
+    },
+    "posterLabel": "Poster",
+    "tableTent": "Masa kartı"
   },
   "contacts": {
     "title": "Kişiler",
@@ -715,7 +896,13 @@
     "conversation": "Yazışma",
     "openConversation": "Mesajlar",
     "conversationHint": "Yanıtlamak ya da onaylı bir şablon göndermek için yazışmayı açın.",
-    "conversationNoPhone": "Bu kişinin telefon numarası yok, dolayısıyla mesaj gönderilemez."
+    "conversationNoPhone": "Bu kişinin telefon numarası yok, dolayısıyla mesaj gönderilemez.",
+    "sendRequest": "Yorum isteyin",
+    "sendCampaign": "Kampanya",
+    "sending": "Gönderiliyor…",
+    "sendNoCampaign": "Gönderim yapılacak aktif kampanya yok. Önce Yorum talepleri'nde bir tane oluşturun.",
+    "sendOutcome": "{sent} gönderildi · {failed} başarısız · {skipped} atlandı",
+    "privateFollowUp": "Özel geri bildirim"
   },
   "surveys": {
     "title": "Anketler",
@@ -819,7 +1006,7 @@
     "errorRateLimited": "Çok fazla deneme. Lütfen biraz sonra tekrar deneyin."
   },
   "messages": {
-    "title": "Mesajlar",
+    "title": "Görüşmeler",
     "subtitle": "Müşterilerle WhatsApp ve SMS üzerinden yazışmalar.",
     "locked": {
       "title": "Mesajlaşma paketinizde yok",
@@ -872,14 +1059,14 @@
     "subtitle": "Tek bir şeyi tek bir kitleye gönderin — şimdi ya da seçtiğiniz bir saatte.",
     "locked": {
       "title": "Gönderimler paketinizde yok",
-      "body": "Bir segmente zamanlanmış gönderim Büyüme paketinden itibaren geliyor."
+      "body": "Bir segmente zamanlanmış gönderimler Growth ve üstünde bulunur."
     },
     "empty": {
       "title": "Henüz gönderim yok",
-      "body": "Bir gönderim; bir segmentteki herkese yorum isteği, anket veya mesaj gönderir."
+      "body": "Bir gönderim; bir segmentteki herkese yorum talebi, anket veya mesaj gönderir."
     },
     "newBroadcast": "Yeni gönderim",
-    "noSegments": "Önce Kişiler ekranında bir segment kaydedin — gönderimin bir kitleye ihtiyacı var.",
+    "noSegments": "Önce Kişiler'de bir segment kaydedin — gönderimin bir hedef kitlesi olmalı.",
     "name": "Ad",
     "namePlaceholder": "Ağustos yorum daveti",
     "what": "Ne gönderilecek",
@@ -947,7 +1134,7 @@
     "channelLink": "Bağlantı"
   },
   "clients": {
-    "title": "Müşteriler",
+    "title": "Ajans",
     "subtitle": "Yönettiğiniz işletmeler ve her birinin durumu.",
     "roster": "Müşteri işletmeleri",
     "empty": {
@@ -1054,7 +1241,15 @@
   "settings": {
     "title": "Ayarlar",
     "subtitle": "Organizasyon tercihleri ve faturalandırma.",
-    "language": "Dil",
+    "language": {
+      "title": "Dil",
+      "subtitle": "Tarayıcıya değil, size kaydedilir — telefonunuzda da aynı dili görürsünüz.",
+      "label": "Arayüz dili",
+      "option": {
+        "tr": "Türkçe",
+        "en": "English"
+      }
+    },
     "organization": "Organizasyon",
     "notifications": {
       "title": "Bildirim tercihleri",
@@ -1180,14 +1375,14 @@
   },
   "sample": {
     "metaTitle": "Örnek haftalık plan — Revira",
-    "metaDescription": "Revira'nın her hafta bir işletme sahibine gönderdiği şeyi görün: itibar nabzı, neyin değiştiği ve yapılacak üç iş.",
+    "metaDescription": "Revira'nın her hafta bir işletme sahibine gönderdiği şeyi görün: itibar puanı, neyin değiştiği ve bu hafta yapılacak üç iş.",
     "eyebrow": "Örnek",
     "title": "Her pazartesi kutunuza düşecek olan şey bu",
     "intro": "Gerçek bir haftalık plan — şablondan değil, yorumlardan hazırlandı. Aşağıdaki kafe hayalî; süreç ise sizin yorumlarınızın geçeceği süreç.",
     "demoNotice": "Demo verisi. {business} gerçek bir işletme değil ve bu yorumlar bu sayfa için yazıldı.",
     "periodLabel": "Son {days} gün",
     "reviewCount": "{count, plural, =1 {1 yorum} other {# yorum}}",
-    "pulse": "İtibar nabzı",
+    "pulse": "İtibar puanı",
     "deltaUp": "önceki döneme göre {value} yukarıda",
     "deltaDown": "önceki döneme göre {value} aşağıda",
     "deltaFlat": "önceki dönemle aynı",
@@ -1227,7 +1422,7 @@
     "poweredBy": "Yorumlar Revira ile"
   },
   "widgets": {
-    "title": "Vitrin",
+    "title": "Site bileşenleri",
     "subtitle": "Yorumlarınızı kendi sitenizde gösterin.",
     "listTitle": "Bileşenleriniz",
     "limitMeta": "{limit} hakkın {used} tanesi kullanıldı",
@@ -1343,6 +1538,135 @@
       "agency1": "Sınırsız şube",
       "agency2": "Beyaz etiket ve müşteri konsolu",
       "agency3": "API erişimi"
+    }
+  },
+  "channels": {
+    "title": "Kanallar",
+    "subtitle": "Müşteriye mesaj gönderdiğiniz yerler. Yorumların geldiği kaynaklardan ayrıdır.",
+    "connect": "Bağla",
+    "disconnect": "Bağlantıyı kes",
+    "connected": "{label} bağlandı",
+    "disconnected": "{label} bağlantısı kesildi",
+    "ready": "Gönderime hazır.",
+    "mode": {
+      "live": "Canlı",
+      "mock": "Taklit",
+      "off": "Kapalı"
+    },
+    "blockerLabel": {
+      "not_connected": "Bağlı değil",
+      "connection_error": "Hata",
+      "no_consent_registry": "İYS bağlı değil",
+      "not_live": "Canlı değil"
+    },
+    "blocker": {
+      "not_connected": "Gönderim için yapılandırılmış bir şey yok. {envVar} ayarlayın veya bir hesap bağlayın.",
+      "connection_error": "Bu kimlik bilgileriyle yapılan son deneme başarısız oldu. Yeniden bağlayıp tekrar deneyin.",
+      "no_consent_registry": "Kayıtlı bir izin sistemi (İYS) bağlı değil; bu kanal ne kadar iyi yapılandırılmış olursa olsun hiçbir ticari mesaj çıkamaz.",
+      "not_live": "Bu kanal mesajları kabul eder ama kimseye ulaşmaz. Buradan gönderilen hiçbir mesaj bugüne kadar bir telefona ulaşmadı."
+    },
+    "goLive": {
+      "whatsapp": "WhatsApp Business hesabı, onaylı bir mesaj şablonu ve İYS kaydı gerekir.",
+      "sms": "Bir SMS sağlayıcısı (BSP) gerekir; Türkiye'de bu aynı zamanda İYS entegrasyonudur."
+    }
+  },
+  "compliance": {
+    "title": "Gönderim ve uyumluluk",
+    "intro": "Bir mesaj müşteriye ulaşmadan önce, izninin İYS'de — ulusal izin kayıt sisteminde — kayıtlı olması gerekir. Eksik olanları burada görebilirsiniz.",
+    "iysTitle": "İYS — ulusal izin kayıt sistemi",
+    "iysReady": "Bağlı",
+    "iysMissing": "Bağlı değil",
+    "iysReadyBody": "İzinler sisteme bildiriliyor; izin vermiş kişilere ticari ileti gönderilebilir.",
+    "iysMissingBody": "Bağlı bir izin sistemi yok; bu yüzden kanal ne kadar iyi kurulmuş olursa olsun her ticari ileti reddedilir. Formunuzda alınan izin, henüz kayıtlı bir izin değildir.",
+    "mode": {
+      "live": "Canlı",
+      "mock": "Yalnızca test",
+      "off": "Kapalı"
+    },
+    "channelState": {
+      "whatsapp": {
+        "live": "Bağlı ve gönderim yapıyor.",
+        "mock": "Test için kurulu. Mesajlar kabul edilir ama kimseye ulaşmaz — henüz bağlı bir WhatsApp Business hesabı yok.",
+        "off": "Kapalı. WhatsApp üzerinden hiçbir şey gönderilemez."
+      },
+      "sms": {
+        "live": "Bağlı ve gönderim yapıyor.",
+        "mock": "Test için kurulu. Mesajlar kabul edilir ama kimseye ulaşmaz.",
+        "off": "Kurulu bir SMS sağlayıcısı yok; SMS ile hiçbir şey gönderilemez."
+      }
+    },
+    "footer": "Bu kontrolleri atlayarak gönderim yapmanın bir yolu yok; bu bilinçli bir tercih: cezaya konu olan, kayıtlı izni olmadan gönderilen iletidir."
+  },
+  "tabs": {
+    "label": "Bölüm",
+    "contacts": "Kişiler",
+    "broadcasts": "Gönderimler",
+    "requests": "Yorum talepleri",
+    "surveys": "Anketler",
+    "locations": "Şubeler",
+    "connections": "Bağlantılar"
+  },
+  "themes": {
+    "staff": "Personel",
+    "service": "Servis",
+    "wait_time": "Bekleme süresi",
+    "price": "Fiyat",
+    "cleanliness": "Temizlik",
+    "ambience": "Ortam",
+    "location_access": "Ulaşım",
+    "booking": "Rezervasyon",
+    "food_quality": "Yemek",
+    "menu_variety": "Menü",
+    "portion_size": "Porsiyon",
+    "room_comfort": "Oda",
+    "product_quality": "Ürünler",
+    "stock_availability": "Stok",
+    "treatment_outcome": "Tedavi"
+  },
+  "connections": {
+    "title": "Bağlantılar",
+    "subtitle": "Yorumlarınızın geldiği yerler ve her birinin çalışıp çalışmadığı.",
+    "coverageTitle": "Kaynak kapsamı",
+    "coverageCount": "{total} kaynaktan {connected} tanesi bağlı",
+    "coverageAttention": "{count} tanesi ilgi bekliyor",
+    "coverageSr": "Bağlanabilir {total} kaynaktan {connected} tanesi bağlı, {attention} tanesi ilgi bekliyor.",
+    "connectedHeading": "Bağlı",
+    "availableHeading": "Bağlanabilir",
+    "roadmapHeading": "Henüz bağlanmıyor",
+    "roadmapIntro": "Bunları henüz okumuyoruz. İşletmeniz için hangisinin önemli olduğunu söyleyin, listede yukarı çıksın.",
+    "roadmapNote": {
+      "delivery": "Türkiye teslimat platformu",
+      "reviews": "Yorum sitesi",
+      "social": "Sosyal ağ"
+    },
+    "request": "İsteyin",
+    "requested": "İstendi",
+    "requestRecorded": "Not aldık — {label} hazır olduğunda haber vereceğiz.",
+    "health": {
+      "healthy": "Çalışıyor",
+      "setup": "Kurulumu tamamlayın",
+      "reconnect": "Yeniden bağlanın",
+      "limited": "Hız sınırı",
+      "failing": "Hata veriyor",
+      "stale": "Eşitlenmiyor"
+    },
+    "demoData": "Demo verisi",
+    "lastSynced": "Son eşitleme {when}",
+    "neverSynced": "Henüz eşitlenmedi",
+    "volumeLabel": "Yorum · son {days} gün",
+    "feedsBranches": "{count, plural, one {# şube} other {# şube}}",
+    "manageOnLocations": "Şubeler'de yönetin →",
+    "willUseDemoData": "Bu kurulum yayına geçene kadar örnek veriyle bağlanır.",
+    "willAuthorize": "Giriş yapıp erişim vermeniz için yönlendirileceksiniz.",
+    "needsLocationFirst": "Kaynak bağlamadan önce bir şube ekleyin.",
+    "chooseBranch": "Şube",
+    "connect": "Bağla",
+    "connectDemo": "Bağla (demo)",
+    "connected": "{label} bağlandı.",
+    "goLive": {
+      "google": "Doğrulanmış bir işletme ve onaylanmış bir Business Profile API erişim başvurusu gerekir.",
+      "instagram": "Meta işletme doğrulaması ve listelenen izinler için uygulama incelemesi gerekir.",
+      "whatsapp": "WhatsApp Business hesabı, onaylı bir mesaj şablonu ve İYS kaydı gerekir."
     }
   }
 }

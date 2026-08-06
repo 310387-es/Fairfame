@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { withAuthenticatedTenant } from "@/auth/session";
-import { parseInboxFilters } from "@/inbox/filters";
-import { createSavedView, deleteSavedView, savedViewNameSchema } from "@/inbox/views";
+import { parseInboxFilters } from "@/reviews/filters";
+import { createSavedView, deleteSavedView, savedViewNameSchema } from "@/reviews/views";
 import { childLogger } from "@/lib/logger";
 import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
@@ -52,7 +52,7 @@ export async function createSavedViewAction(input: {
       });
     });
 
-    revalidatePath("/inbox");
+    revalidatePath("/reviews");
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "createSavedView failed");
@@ -79,7 +79,7 @@ export async function deleteSavedViewAction(input: { id: string }): Promise<Acti
     // that a member cannot remove a shared view, and the message says so.
     if (!removed) return { ok: false, error: "That view could not be removed." };
 
-    revalidatePath("/inbox");
+    revalidatePath("/reviews");
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "deleteSavedView failed");

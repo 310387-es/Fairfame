@@ -51,7 +51,7 @@ export async function setReportScheduleAction(input: {
       { minimumRole: "member" },
     );
 
-    revalidatePath("/insights");
+    revalidatePath("/analytics");
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "setReportSchedule failed");

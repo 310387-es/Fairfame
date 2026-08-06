@@ -6,5 +6,5 @@ import { getSession } from "@/auth/session";
  * the app shell, everyone else to sign-in.
  */
 export default async function RootPage() {
-  redirect((await getSession()) ? "/home" : "/sign-in");
+  redirect((await getSession()) ? "/dashboard" : "/sign-in");
 }

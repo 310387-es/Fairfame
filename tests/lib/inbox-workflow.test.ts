@@ -5,7 +5,7 @@ import {
   readOrgSlaHours,
   resolveSlaHours,
   slaDueAt,
-} from "@/inbox/workflow";
+} from "@/reviews/workflow";
 
 /**
  * Triage derivation (P2-T1).

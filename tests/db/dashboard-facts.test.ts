@@ -116,7 +116,7 @@ function daysBefore(days: number): Date {
 
 function read(fixture: Fixture, locationId?: string) {
   return withTenant({ organizationId: fixture.orgId }, (tx) =>
-    loadFacts(tx, fixture.orgId, locationId ?? fixture.locationId, WINDOW),
+    loadFacts(tx, fixture.orgId, [locationId ?? fixture.locationId], WINDOW),
   );
 }
 
@@ -151,7 +151,7 @@ describe("scoping", () => {
     // empty rather than merely filtered — this is the isolation guarantee, and
     // a dashboard is exactly where a leak would go unnoticed.
     const facts = await withTenant({ organizationId: mine.orgId }, (tx) =>
-      loadFacts(tx, mine.orgId, theirs.locationId, WINDOW),
+      loadFacts(tx, mine.orgId, [theirs.locationId], WINDOW),
     );
 
     expect(facts.current).toEqual([]);
@@ -298,7 +298,7 @@ describe("the attention queue", () => {
     });
 
     const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
-      needsAttention(tx, fixture.orgId, fixture.locationId, WINDOW, { now: NOW }),
+      needsAttention(tx, fixture.orgId, [fixture.locationId], WINDOW, { now: NOW }),
     );
 
     expect(rows).toHaveLength(1);
@@ -310,7 +310,7 @@ describe("the attention queue", () => {
     await addReview(fixture, { rating: 1, sentiment: "negative", replies: [{ status: "draft" }] });
 
     const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
-      needsAttention(tx, fixture.orgId, fixture.locationId, WINDOW, { now: NOW }),
+      needsAttention(tx, fixture.orgId, [fixture.locationId], WINDOW, { now: NOW }),
     );
 
     expect(rows).toEqual([]);
@@ -321,7 +321,7 @@ describe("the attention queue", () => {
     await addReview(fixture, { rating: 5, sentiment: "positive" });
 
     const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
-      needsAttention(tx, fixture.orgId, fixture.locationId, WINDOW, { now: NOW }),
+      needsAttention(tx, fixture.orgId, [fixture.locationId], WINDOW, { now: NOW }),
     );
 
     expect(rows).toEqual([]);
@@ -334,7 +334,7 @@ describe("the attention queue", () => {
 
     // The queue carries review *text* — the most sensitive thing on the page.
     const rows = await withTenant({ organizationId: mine.orgId }, (tx) =>
-      needsAttention(tx, mine.orgId, theirs.locationId, WINDOW, { now: NOW }),
+      needsAttention(tx, mine.orgId, [theirs.locationId], WINDOW, { now: NOW }),
     );
 
     expect(rows).toEqual([]);
@@ -351,7 +351,7 @@ describe("the activity feed", () => {
     expect(reviewId).toBeTruthy();
 
     const items = await withTenant({ organizationId: fixture.orgId }, (tx) =>
-      recentActivity(tx, fixture.orgId, fixture.locationId, WINDOW),
+      recentActivity(tx, fixture.orgId, [fixture.locationId], WINDOW),
     );
 
     // One arrival and one reply, in time order — not one list per kind.
@@ -365,7 +365,7 @@ describe("the activity feed", () => {
     await addReview(fixture, { postedAt: new Date("2026-01-05T09:00:00Z") });
 
     const items = await withTenant({ organizationId: fixture.orgId }, (tx) =>
-      recentActivity(tx, fixture.orgId, fixture.locationId, WINDOW),
+      recentActivity(tx, fixture.orgId, [fixture.locationId], WINDOW),
     );
 
     expect(items).toHaveLength(1);
@@ -376,7 +376,7 @@ describe("the activity feed", () => {
     await addReview(fixture, { replies: [{ status: "draft" }] });
 
     const items = await withTenant({ organizationId: fixture.orgId }, (tx) =>
-      recentActivity(tx, fixture.orgId, fixture.locationId, WINDOW),
+      recentActivity(tx, fixture.orgId, [fixture.locationId], WINDOW),
     );
 
     expect(items.filter((item) => item.kind === "reply")).toEqual([]);
@@ -388,7 +388,7 @@ describe("the activity feed", () => {
     await addReview(theirs, { rating: 5 });
 
     const items = await withTenant({ organizationId: mine.orgId }, (tx) =>
-      recentActivity(tx, mine.orgId, theirs.locationId, WINDOW),
+      recentActivity(tx, mine.orgId, [theirs.locationId], WINDOW),
     );
 
     expect(items).toEqual([]);
@@ -401,7 +401,7 @@ describe("telling the two empties apart", () => {
 
     expect(
       await withTenant({ organizationId: fixture.orgId }, (tx) =>
-        hasAnyReviews(tx, fixture.orgId, fixture.locationId),
+        hasAnyReviews(tx, fixture.orgId, [fixture.locationId]),
       ),
     ).toBe(false);
   });
@@ -416,7 +416,7 @@ describe("telling the two empties apart", () => {
 
     expect(
       await withTenant({ organizationId: fixture.orgId }, (tx) =>
-        hasAnyReviews(tx, fixture.orgId, fixture.locationId),
+        hasAnyReviews(tx, fixture.orgId, [fixture.locationId]),
       ),
     ).toBe(true);
   });
@@ -428,7 +428,7 @@ describe("telling the two empties apart", () => {
 
     expect(
       await withTenant({ organizationId: mine.orgId }, (tx) =>
-        hasAnyReviews(tx, mine.orgId, theirs.locationId),
+        hasAnyReviews(tx, mine.orgId, [theirs.locationId]),
       ),
     ).toBe(false);
   });

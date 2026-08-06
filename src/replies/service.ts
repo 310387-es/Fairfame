@@ -3,7 +3,7 @@ import { draftReply } from "../ai/analyze.ts";
 import { schema } from "../db/client.ts";
 import { getConnector } from "../connectors/registry.ts";
 import { toConnection } from "../connectors/sync.ts";
-import { recordFirstResponse } from "../inbox/triage.ts";
+import { recordFirstResponse } from "../reviews/triage.ts";
 import { can, recordUsage, withinLimit } from "../lib/entitlements.ts";
 import { childLogger } from "../lib/logger.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";

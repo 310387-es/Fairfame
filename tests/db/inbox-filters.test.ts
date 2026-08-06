@@ -2,7 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import type { ReviewStatus } from "@/db/schema";
-import { EMPTY_INBOX_FILTERS, type InboxFilterState } from "@/inbox/filters";
+import { EMPTY_INBOX_FILTERS, type InboxFilterState } from "@/reviews/filters";
 import {
   countInbox,
   decodeCursor,
@@ -11,7 +11,7 @@ import {
   locateReview,
   toInboxFilters,
   type InboxFilters,
-} from "@/inbox/queries";
+} from "@/reviews/queries";
 import { withTenant } from "@/lib/tenancy";
 
 /**
@@ -599,7 +599,7 @@ describe("sorting by priority", () => {
     await addReview(fixture, { rating: 1, sentiment: "negative", agoMinutes: 500 });
 
     await withTenant({ organizationId: fixture.orgId }, async (tx) => {
-      const { refreshPriority } = await import("@/inbox/workflow");
+      const { refreshPriority } = await import("@/reviews/workflow");
       const rows = await tx.select({ id: schema.reviews.id }).from(schema.reviews);
       await refreshPriority(
         tx,

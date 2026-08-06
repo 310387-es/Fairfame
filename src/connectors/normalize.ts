@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
-import { refreshPriority, slaDueAt, slaHoursByLocation } from "../inbox/workflow.ts";
+import { refreshPriority, slaDueAt, slaHoursByLocation } from "../reviews/workflow.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import type { CanonicalReview } from "./types.ts";
 

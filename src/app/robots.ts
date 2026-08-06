@@ -24,9 +24,21 @@ import { publicBaseUrl } from "@/lib/urls";
  *   - The application itself. Every route under it redirects to sign-in, so a
  *     crawler gets nothing; saying so saves the round trips.
  *
- * `/reviews/` is not listed as an `allow` because it does not need to be —
- * anything not disallowed is allowed, and an explicit entry would read as if it
- * were doing something.
+ * **`/reviews` is the one entry that needs a `$`, and getting it wrong would
+ * silently delete the SEO feature** (W3.1). Two different things now live under
+ * that word: the authenticated review inbox at `/reviews`, and the public,
+ * indexable location pages at `/reviews/{slug}` — the only surface in the
+ * product that is *meant* to be crawled. Robots rules match by **prefix**, so a
+ * plain `Disallow: /reviews` blocks both, and the way you would find out is a
+ * quiet disappearance from search results months later.
+ *
+ * `$` anchors the rule to the end of the URL, so it matches `/reviews` and
+ * nothing beneath it. It is a Google extension rather than the original 1994
+ * standard, and honoured by Google, Bing and Yandex. A crawler that does not
+ * understand it reads `$` literally, matches nothing, and is free to fetch
+ * `/reviews` — where it is redirected to sign-in and gets nothing anyway. That
+ * is the right direction to fail in: the alternative loses the pages the
+ * business earned.
  */
 export default function robots(): MetadataRoute.Robots {
   const base = publicBaseUrl();
@@ -40,12 +52,13 @@ export default function robots(): MetadataRoute.Robots {
         "/c/",
         "/r/",
         "/u/",
-        "/home",
-        "/inbox",
-        "/digest",
+        "/dashboard",
+        // Exactly `/reviews`, never `/reviews/{slug}` — see above.
+        "/reviews$",
+        "/weekly-plan",
         "/widgets",
         "/locations",
-        "/requests",
+        "/get-reviews",
         "/team",
         "/settings",
         "/sign-in",

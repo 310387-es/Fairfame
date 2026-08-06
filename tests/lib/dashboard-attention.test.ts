@@ -32,6 +32,8 @@ function row(overrides: Partial<AttentionRow>): AttentionRow {
     authorName: null,
     at: hoursAgo(2),
     sentiment: null,
+    themes: [],
+    locationId: "branch-1",
     url: null,
     urgency: 0,
     ...overrides,
@@ -126,6 +128,7 @@ function fact(overrides: Partial<ReviewFact>): ReviewFact {
   return {
     reviewId: `fact-${factCounter}`,
     at: hoursAgo(4),
+    locationId: "branch-1",
     source: "google",
     itemType: "review",
     rating: null,
@@ -138,7 +141,9 @@ function fact(overrides: Partial<ReviewFact>): ReviewFact {
 }
 
 function facts(current: ReviewFact[], previous: ReviewFact[] = []): DashboardFacts {
-  return { current, previous };
+  // The ninety-day baseline the reputation score is smoothed toward (W3.3).
+  // Both windows together is what a fixture has; a real load reaches further.
+  return { current, previous, baseline: [...current, ...previous] };
 }
 
 describe("the insight strip", () => {

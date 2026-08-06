@@ -103,7 +103,7 @@ export function SearchPalette() {
         ...results.reviews.map((review) => ({
           kind: "review" as const,
           id: review.id,
-          href: `/inbox?review=${review.id}`,
+          href: `/reviews?review=${review.id}`,
           label: review.text?.replace(/\s+/g, " ").trim() || t("searchNoText"),
           meta: [review.authorName, review.source].filter(Boolean).join(" · "),
           rating: review.rating,
@@ -111,7 +111,7 @@ export function SearchPalette() {
         ...results.themes.map((theme) => ({
           kind: "theme" as const,
           id: theme.slug,
-          href: `/inbox?theme=${encodeURIComponent(theme.slug)}`,
+          href: `/reviews?theme=${encodeURIComponent(theme.slug)}`,
           label: theme.slug,
           meta: t("searchThemeCount", { count: theme.count }),
           rating: null,
@@ -249,7 +249,7 @@ export function SearchPalette() {
                 type="button"
                 onClick={() => {
                   setOpen(false);
-                  router.push(`/inbox?q=${encodeURIComponent(query.trim())}`);
+                  router.push(`/reviews?q=${encodeURIComponent(query.trim())}`);
                 }}
                 className="mt-1 w-full rounded-sm px-2.5 py-2 text-left text-meta font-semibold text-primary hover:bg-surface-sunken"
               >

@@ -48,7 +48,7 @@ test.use({ viewport: PHONE });
 
 test.describe("the inbox on a phone", () => {
   test("fits the viewport, with nothing hanging off the side", async ({ page }) => {
-    await page.goto("/inbox");
+    await page.goto("/reviews");
     await expect(page.getByRole("heading").first()).toBeVisible();
 
     expect(await overflowing(page)).toEqual([]);
@@ -58,7 +58,7 @@ test.describe("the inbox on a phone", () => {
   test("swaps the numbered pager for a load-more control", async ({ page }) => {
     // The two paging models from P2-T2, and the whole reason both exist: page
     // numbers to jump around on a desktop, a single forward step on a phone.
-    await page.goto("/inbox");
+    await page.goto("/reviews");
     await expect(page.getByRole("heading").first()).toBeVisible();
 
     const pager = page.getByRole("navigation", { name: /sayfalama|pagination/i });
@@ -70,7 +70,7 @@ test.describe("the inbox on a phone", () => {
     // clipped the Turkish "GÖRÜNÜMLER" outright. It stacks below `sm` now, so
     // the assertion is that each label renders at its full width — a clipped
     // one is narrower than the text inside it.
-    await page.goto("/inbox");
+    await page.goto("/reviews");
 
     const labels = page.locator("span.uppercase").filter({ hasText: /\S/ });
     const count = await labels.count();
@@ -99,7 +99,7 @@ test.describe("the Phase 3 screens on a phone", () => {
    * phone that means the customer's thumb moves the layout instead of the list.
    */
   test("Insights fits, with its tables scrolling inside themselves", async ({ page }) => {
-    await page.goto("/insights");
+    await page.goto("/analytics");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     // The document must not move. That is the whole bug on a phone.
@@ -143,6 +143,44 @@ test.describe("the Phase 3 screens on a phone", () => {
     expect(scrollable, "a comparison table should scroll inside its own container").toBe(true);
   });
 
+  /**
+   * Connections and Branches (W4.2), which are the same two shapes as Insights:
+   * a card grid that must reflow, and a table that must scroll inside itself.
+   *
+   * The Branches table is deliberately `min-w-[52rem]` — seven columns will not
+   * fit a phone and squeezing them would give seven unreadable ones. So the
+   * assertion is the strict version again: the *document* must not move, and
+   * anything hanging off the side must have a scrolling ancestor.
+   */
+  test("Connections and Branches fit, with the table scrolling inside itself", async ({ page }) => {
+    await page.goto("/connections");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    expect(await overflowing(page)).toEqual([]);
+
+    await page.goto("/locations");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    expect(await scrollsSideways(page)).toBe(false);
+
+    const loose = await page.evaluate(() => {
+      const scrolls = (el: Element) => {
+        const overflow = getComputedStyle(el).overflowX;
+        return overflow === "auto" || overflow === "scroll";
+      };
+
+      return [...document.querySelectorAll("main *")]
+        .filter((el) => el.getBoundingClientRect().right > window.innerWidth + 1)
+        .filter((el) => {
+          for (let node = el.parentElement; node; node = node.parentElement) {
+            if (scrolls(node)) return false;
+          }
+          return true;
+        })
+        .map((el) => `${el.tagName.toLowerCase()}.${el.className}`.slice(0, 60));
+    });
+
+    expect(loose, "these hang off the side with nothing scrolling them").toEqual([]);
+  });
+
   test("the widget builder fits, preview and all", async ({ page }) => {
     await page.goto("/widgets");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -173,6 +211,28 @@ function campaignSlug(): string {
   return run.campaignSlug;
 }
 
+test.describe("the digest on a phone", () => {
+  /**
+   * The archive (D3), which had no mobile coverage at all despite the digest
+   * being the product's hero — a strip of week cards, each carrying a date
+   * range, a pulse and a delta on one line, which is exactly the shape that
+   * runs off the side once Turkish makes every label a third longer.
+   *
+   * The *detail* page is not reachable here on purpose: this account has no
+   * generated digest, and composing one would mean a live model call inside a
+   * layout test. Its two new pieces — `SectionCard` and `Meter` — are both
+   * swept at this viewport on `/analytics`, which is where they carry their
+   * widest content.
+   */
+  test("the archive fits, with nothing hanging off the side", async ({ page }) => {
+    await page.goto("/weekly-plan");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    expect(await overflowing(page)).toEqual([]);
+    expect(await scrollsSideways(page)).toBe(false);
+  });
+});
+
 test.describe("surveys on a phone", () => {
   /**
    * The builder (P4-T2), which carries the widest control Phase 4 adds: a
@@ -197,7 +257,7 @@ test.describe("broadcasts on a phone", () => {
    * list, and is where a grid that forgot its breakpoint would show.
    */
   test("fits the viewport, with nothing hanging off the side", async ({ page }) => {
-    await page.goto("/broadcasts");
+    await page.goto("/campaigns");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     expect(await overflowing(page)).toEqual([]);
@@ -213,7 +273,7 @@ test.describe("messages on a phone", () => {
    * where a two-column grid that forgot its breakpoint would show.
    */
   test("fits the viewport, with nothing hanging off the side", async ({ page }) => {
-    await page.goto("/messages");
+    await page.goto("/conversations");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     expect(await overflowing(page)).toEqual([]);
@@ -269,7 +329,7 @@ test.describe("the agency console on a phone", () => {
    * itself is exercised in `tests/db/agency.test.ts` and by hand.
    */
   test("fits the viewport, with nothing hanging off the side", async ({ page }) => {
-    await page.goto("/clients");
+    await page.goto("/agency");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     expect(await overflowing(page)).toEqual([]);
@@ -280,7 +340,7 @@ test.describe("the agency console on a phone", () => {
 /**
  * The two screens the audit measured as overflowing (P1-12, folded into Wave 1).
  *
- * `/requests` came in at 595px on a 390px phone and `/locations` at 401px, and
+ * `/get-reviews` came in at 595px on a 390px phone and `/locations` at 401px, and
  * neither was in this suite — which is precisely why nobody noticed. The cause
  * on both is the same: a **public link printed verbatim**. A campaign's URL and
  * a location's hosted-page URL are long, unbroken, and carry no spaces for a
@@ -292,19 +352,40 @@ test.describe("the agency console on a phone", () => {
  */
 test.describe("the two screens that were overflowing", () => {
   test("requests fits, including the campaign's public link", async ({ page }) => {
-    await page.goto("/requests");
+    await page.goto("/get-reviews");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     expect(await overflowing(page)).toEqual([]);
     expect(await scrollsSideways(page)).toBe(false);
   });
 
-  test("locations fits, including the hosted page's URL", async ({ page }) => {
+  /**
+   * Branches is a table now (W4.2), so the page-level check moved to the
+   * Connections test above — a seven-column table is *deliberately* wider than
+   * 390px and the strict `overflowing()` no longer applies to it.
+   *
+   * What is still worth asserting here is the thing this test was named for:
+   * the hosted page's URL, which is long, and which now lives in the row's
+   * detail panel. A URL somebody cannot read or select is no more use than one
+   * that breaks the layout.
+   */
+  test("the hosted page's URL is readable inside a branch's detail", async ({ page }) => {
     await page.goto("/locations");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-    expect(await overflowing(page)).toEqual([]);
-    expect(await scrollsSideways(page)).toBe(false);
+    await page
+      .getByRole("button", { name: /ayrıntılarını göster|show details for/i })
+      .first()
+      .click();
+
+    const clipped = await page.evaluate(() =>
+      [...document.querySelectorAll("main p, main code, main span, main a")]
+        .filter((el) => /\/reviews\//.test(el.textContent?.trim() ?? ""))
+        .filter((el) => el.scrollWidth > el.clientWidth + 1)
+        .map((el) => el.textContent?.trim().slice(0, 60) ?? ""),
+    );
+
+    expect(clipped).toEqual([]);
   });
 
   /**
@@ -315,7 +396,7 @@ test.describe("the two screens that were overflowing", () => {
    * cannot read or select is no more use than one that breaks the layout.
    */
   test("a long URL wraps instead of being clipped or cut off", async ({ page }) => {
-    await page.goto("/requests");
+    await page.goto("/get-reviews");
 
     const clipped = await page.evaluate(() =>
       [...document.querySelectorAll("p, code, span, div")]

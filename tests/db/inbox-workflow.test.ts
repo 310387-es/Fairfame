@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { upsertReviews } from "@/connectors/normalize";
 import type { CanonicalReview } from "@/connectors/types";
 import { closeDatabasePools, getAdminDb, getAppDb, schema } from "@/db/client";
-import { computePriority, DEFAULT_SLA_HOURS, refreshPriority } from "@/inbox/workflow";
+import { computePriority, DEFAULT_SLA_HOURS, refreshPriority } from "@/reviews/workflow";
 import { withTenant } from "@/lib/tenancy";
 
 /**

@@ -292,7 +292,7 @@ export function renderReviewAlertEmail(input: ReviewAlertEmailInput): RenderedEm
  * It exists because the review-alert template above could not honestly render
  * one and was doing it anyway: a rollup payload carries a count and a location
  * and nothing else, so every field came out blank and the button linked to
- * `/inbox?review=undefined`. The sender now refuses that shape — and this is
+ * `/reviews?review=undefined`. The sender now refuses that shape — and this is
  * what it refuses *into*, so someone who asked to be emailed about a backlog is
  * told about the backlog rather than being quietly dropped.
  *
@@ -434,8 +434,34 @@ export type DigestEmailInput = {
   reviewCount: number;
   headline: string;
   summary: string;
-  actions: { position: number; text: string }[];
+  /**
+   * The three recommendations, each carrying what it rests on (W2.1).
+   *
+   * The email used to render these as three bare sentences in an `<ol>` while
+   * the screen showed a customer's own words and a link to the exact reviews —
+   * so the surface most owners actually read was the one that asked to be taken
+   * on trust. `quote` and `link` are optional because a digest composed before
+   * W1.6 stored no citations, and a sentence without its evidence is still
+   * worth sending.
+   */
+  actions: {
+    position: number;
+    text: string;
+    quote: { text: string; rating: number | null } | null;
+    /** The Inbox, pinned to exactly the reviews cited. */
+    link: string | null;
+    reviewCount: number;
+  }[];
   themes: { label: string; count: number; positive: number; negative: number }[];
+  /**
+   * How last week's three ended up, or null before there is a last week.
+   *
+   * From the stored payload rather than a live count, and that is the right
+   * source *here* specifically: an email is frozen the moment it is sent, so a
+   * number read at send time stays true to what it claimed. The screen's
+   * equivalent card reads live, because it can.
+   */
+  priorOutcome: { done: number; total: number } | null;
   /**
    * New-review emails this person asked us to hold for the digest. Stated
    * rather than silently folded in: they chose a calmer inbox, not a quieter
@@ -460,6 +486,11 @@ type DigestCopy = {
   deltaFlat: string;
   reviewCount: (count: number) => string;
   actionsTitle: string;
+  /** The link under each action — "See the 3 reviews behind this". */
+  evidence: (count: number) => string;
+  /** Follow-through on the previous briefing, above the new one. */
+  priorOutcome: (done: number, total: number) => string;
+  pulseLabel: string;
   themesTitle: string;
   themeLine: (label: string, count: number, positive: number, negative: number) => string;
   held: (count: number) => string;
@@ -484,6 +515,10 @@ const DIGEST_COPY: Record<Locale, DigestCopy> = {
     deltaFlat: "geçen haftayla aynı",
     reviewCount: (count) => `${count} yorum`,
     actionsTitle: "Bu hafta yapılacak üç şey",
+    evidence: (count) => (count === 1 ? "Dayandığı yorumu gör" : `Dayandığı ${count} yorumu gör`),
+    priorOutcome: (done, total) =>
+      `Geçen haftanın ${total} eyleminin ${done} tanesini tamamladınız.`,
+    pulseLabel: "İtibar nabzı",
     themesTitle: "Öne çıkan konular",
     themeLine: (label, count, positive, negative) =>
       `${label} — ${count} yorum (${positive} olumlu, ${negative} olumsuz)`,
@@ -510,6 +545,10 @@ const DIGEST_COPY: Record<Locale, DigestCopy> = {
     deltaFlat: "level with last week",
     reviewCount: (count) => (count === 1 ? "1 review" : `${count} reviews`),
     actionsTitle: "Three things to do this week",
+    evidence: (count) =>
+      count === 1 ? "See the review behind this" : `See the ${count} reviews behind this`,
+    priorOutcome: (done, total) => `You completed ${done} of last week's ${total} actions.`,
+    pulseLabel: "Reputation pulse",
     themesTitle: "What customers talked about",
     themeLine: (label, count, positive, negative) =>
       `${label} — ${count} ${count === 1 ? "review" : "reviews"} (${positive} positive, ${negative} negative)`,
@@ -552,6 +591,63 @@ function formatDelta(copy: DigestCopy, delta: number | null, locale: Locale): st
   return rounded > 0 ? copy.deltaUp(value) : copy.deltaDown(value);
 }
 
+/**
+ * One recommendation, with what it rests on.
+ *
+ * A table rather than a div, because Outlook's word-processor rendering engine
+ * ignores most box model CSS on a `<div>` but honours a table cell — the
+ * numbered column beside the text is the kind of layout that silently collapses
+ * into a stack everywhere it is not a table.
+ *
+ * The quote is set apart with a left border and italics, the same treatment it
+ * gets on screen, and it is **the customer's words verbatim** — which is
+ * untrusted input arriving in somebody's mail client, so it is escaped like
+ * everything else here.
+ */
+function renderActionCard(action: DigestEmailInput["actions"][number], copy: DigestCopy): string {
+  const evidence = action.link
+    ? `<p style="margin:8px 0 0;font-size:13px;line-height:1.5;">
+              <a href="${escapeHtml(action.link)}" style="color:#4f46e5;text-decoration:none;">${escapeHtml(copy.evidence(action.reviewCount))} →</a>
+            </p>`
+    : "";
+
+  const quote = action.quote
+    ? // The rule is `#cbd5e1`, not the `#e5e7eb` used elsewhere: this one sits
+      // on the card's own `#f9fafb` rather than on white, and against that it
+      // was invisible — the quote read as an unattributed second sentence.
+      `<p style="margin:10px 0 0;padding:0 0 0 12px;border-left:3px solid #cbd5e1;font-size:14px;line-height:1.55;color:#4b5563;font-style:italic;">
+              ${escapeHtml(stars(action.quote.rating))}${escapeHtml(`“${action.quote.text}”`)}
+            </p>`
+    : "";
+
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 12px;background:#f9fafb;border-radius:10px;">
+        <tr>
+          <td width="34" valign="top" style="padding:16px 0 16px 16px;">
+            <div style="width:24px;height:24px;border-radius:12px;background:#eef2ff;color:#4f46e5;font-size:13px;font-weight:700;line-height:24px;text-align:center;">${action.position}</div>
+          </td>
+          <td valign="top" style="padding:16px 16px 16px 10px;">
+            <p style="margin:0;font-size:15px;line-height:1.5;font-weight:600;color:#111827;">${escapeHtml(action.text)}</p>
+            ${quote}
+            ${evidence}
+          </td>
+        </tr>
+      </table>`;
+}
+
+/**
+ * A rating as filled and empty stars, with a trailing space.
+ *
+ * `★★☆☆☆` rather than "2/5" because it is read at a glance next to a quote, and
+ * because it is the one piece of the on-screen card an email can reproduce
+ * exactly. Empty for an unrated review — a DM or a comment has no stars, and
+ * five hollow ones would read as zero rather than as absent.
+ */
+function stars(rating: number | null): string {
+  if (rating === null) return "";
+  const filled = Math.max(0, Math.min(5, Math.round(rating)));
+  return `${"★".repeat(filled)}${"☆".repeat(5 - filled)} `;
+}
+
 export function renderDigestEmail(input: DigestEmailInput): RenderedEmail {
   const copy = DIGEST_COPY[input.locale];
   const period = formatPeriod(input);
@@ -576,6 +672,45 @@ export function renderDigestEmail(input: DigestEmailInput): RenderedEmail {
 
   const themes = input.themes.slice(0, 3);
 
+  /**
+   * The pulse as a figure, not a sentence.
+   *
+   * It was a 14px grey line reading "Reputation pulse: 86/100 (+5.2 on last
+   * week)" — a number the screen gives a dial to, buried in the one paragraph a
+   * reader skips. An email cannot draw a dial, but it can make the number the
+   * size of a number. The delta keeps its colour from its direction, and the
+   * review count sits under it as the sample the score is drawn from.
+   */
+  const deltaText = formatDelta(copy, input.pulseDelta, input.locale);
+  const deltaColour =
+    input.pulseDelta === null || Math.round(input.pulseDelta * 10) === 0
+      ? "#6b7280"
+      : input.pulseDelta > 0
+        ? "#047857"
+        : "#b91c1c";
+
+  const pulseBlock =
+    input.pulseScore === null
+      ? `<div style="background:#f6f7f9;border-radius:10px;padding:14px 16px;margin:0 0 24px;">
+        <p style="margin:0;font-size:14px;color:#6b7280;">${escapeHtml(copy.pulseNone)}</p>
+      </div>`
+      : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;background:#f6f7f9;border-radius:10px;">
+        <tr>
+          <td valign="middle" style="padding:16px;">
+            <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;">${escapeHtml(copy.pulseLabel)}</p>
+            <p style="margin:2px 0 0;font-size:15px;color:#6b7280;">${escapeHtml(copy.reviewCount(input.reviewCount))}</p>
+          </td>
+          <td valign="middle" align="right" style="padding:16px;">
+            <p style="margin:0;font-size:30px;line-height:1.1;font-weight:700;color:#111827;">${escapeHtml(
+              new Intl.NumberFormat(input.locale, { maximumFractionDigits: 0 }).format(
+                input.pulseScore,
+              ),
+            )}<span style="font-size:15px;font-weight:400;color:#6b7280;">/100</span></p>
+            ${deltaText ? `<p style="margin:2px 0 0;font-size:13px;color:${deltaColour};">${escapeHtml(deltaText)}</p>` : ""}
+          </td>
+        </tr>
+      </table>`;
+
   const text = [
     greeting,
     "",
@@ -589,7 +724,15 @@ export function renderDigestEmail(input: DigestEmailInput): RenderedEmail {
       ? [
           "",
           copy.actionsTitle,
-          ...input.actions.map((action) => `${action.position}. ${action.text}`),
+          // The plain-text part carries the evidence too. It is what a screen
+          // reader in text mode gets, and what survives a client that refuses
+          // HTML — dropping the quote there would make the accessible version
+          // the one that asks to be taken on trust.
+          ...input.actions.flatMap((action) => [
+            `${action.position}. ${action.text}`,
+            ...(action.quote ? [`   "${action.quote.text}"`] : []),
+            ...(action.link ? [`   ${copy.evidence(action.reviewCount)}: ${action.link}`] : []),
+          ]),
         ]
       : []),
     ...(themes.length > 0
@@ -601,6 +744,9 @@ export function renderDigestEmail(input: DigestEmailInput): RenderedEmail {
               `· ${copy.themeLine(theme.label, theme.count, theme.positive, theme.negative)}`,
           ),
         ]
+      : []),
+    ...(input.priorOutcome
+      ? ["", copy.priorOutcome(input.priorOutcome.done, input.priorOutcome.total)]
       : []),
     ...(input.heldCount > 0 ? ["", copy.held(input.heldCount)] : []),
     "",
@@ -625,21 +771,21 @@ export function renderDigestEmail(input: DigestEmailInput): RenderedEmail {
       <p style="margin:0 0 24px;font-size:15px;line-height:1.6;">${escapeHtml(input.summary)}</p>`
       }
 
-      <div style="background:#f6f7f9;border-radius:8px;padding:14px 16px;margin:0 0 24px;">
-        <p style="margin:0;font-size:14px;color:#374151;">${escapeHtml(pulseLine)}</p>
-        <p style="margin:4px 0 0;font-size:13px;color:#6b7280;">${escapeHtml(copy.reviewCount(input.reviewCount))}</p>
-      </div>
+      ${pulseBlock}
 ${
   input.actions.length > 0
     ? `
-      <p style="margin:0 0 10px;font-size:15px;font-weight:600;">${escapeHtml(copy.actionsTitle)}</p>
-      <ol style="margin:0 0 24px;padding-left:20px;font-size:15px;line-height:1.6;">
-        ${input.actions
-          .map((action) => `<li style="margin:0 0 8px;">${escapeHtml(action.text)}</li>`)
-          .join("\n        ")}
-      </ol>`
+      <p style="margin:0 0 12px;font-size:15px;font-weight:600;">${escapeHtml(copy.actionsTitle)}</p>
+      ${input.actions.map((action) => renderActionCard(action, copy)).join("\n      ")}`
     : ""
 }${
+    input.priorOutcome
+      ? `
+      <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#6b7280;">${escapeHtml(
+        copy.priorOutcome(input.priorOutcome.done, input.priorOutcome.total),
+      )}</p>`
+      : ""
+  }${
     themes.length > 0
       ? `
       <p style="margin:0 0 10px;font-size:15px;font-weight:600;">${escapeHtml(copy.themesTitle)}</p>

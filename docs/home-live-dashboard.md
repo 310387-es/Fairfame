@@ -1,8 +1,8 @@
 # Home — Live Dashboard · Implementation Handoff
 
-*Revira · redesign of `src/app/(app)/home/page.tsx` · companion to `docs/08-design-brief.md` and `docs/06-ux-roles-and-flows.md`*
+*Revira · redesign of `src/app/(app)/dashboard/page.tsx` · companion to `docs/08-design-brief.md` and `docs/06-ux-roles-and-flows.md`*
 
-> **Decision (Omer, Aug 2026):** Home becomes a **live dashboard**, not a weekly-digest page. The weekly **Action Digest moves to email + WhatsApp** (and a `/digest` archive). Competitors all run live dashboards or live inboxes; the digest-as-email is the retention loop the market already trained users to open. Our edge on Home is a **live AI insight strip** plus an **action-first review queue** — nobody else does the AI layer live.
+> **Decision (Omer, Aug 2026):** Home becomes a **live dashboard**, not a weekly-digest page. The weekly **Action Digest moves to email + WhatsApp** (and a `/weekly-plan` archive). Competitors all run live dashboards or live inboxes; the digest-as-email is the retention loop the market already trained users to open. Our edge on Home is a **live AI insight strip** plus an **action-first review queue** — nobody else does the AI layer live.
 >
 > **Visual reference:** `docs/assets/home-live-dashboard.html` (open in a browser). Build to match its layout, hierarchy, and use of colour — it is the source of truth for the look.
 
@@ -11,7 +11,7 @@
 ## 1. What changes
 
 - `home/page.tsx` no longer renders `<DigestView>`. It renders the live Overview below.
-- `DigestView`, `PulseTile`, `ActionCard` are **reused**, not deleted — they move to: (a) the **weekly digest email** template, and (b) a **`/digest` archive** page (list of past weekly digests). The AI strip's "View weekly digest" links there.
+- `DigestView`, `PulseTile`, `ActionCard` are **reused**, not deleted — they move to: (a) the **weekly digest email** template, and (b) a **`/weekly-plan` archive** page (list of past weekly digests). The AI strip's "View weekly digest" links there.
 - Home is **live and scoped to the active location** (the location switcher already exists) and to a **date range** (7d / 30d / 90d) that scopes every widget.
 
 ---
@@ -80,17 +80,17 @@ All queries run inside `withTenant(...)`, scoped to `organizationId` + active `l
 | # | Widget | Shows | Data | Interaction |
 |---|--------|-------|------|-------------|
 | 1 | **KPI ×4** | Reputation Score · Avg Rating · New Reviews · Response Rate — value + delta vs previous period + 7-point sparkline | aggregates over range | — |
-| 2 | **AI insight strip** | One generated line: # urgent/unanswered + top emerging theme + a risk/reassurance clause | latest insight (cheap, cached; NOT the full digest run) | *Reply now* → `/inbox?filter=urgent`; *View weekly digest* → `/digest` |
+| 2 | **AI insight strip** | One generated line: # urgent/unanswered + top emerging theme + a risk/reassurance clause | latest insight (cheap, cached; NOT the full digest run) | *Reply now* → `/reviews?filter=urgent`; *View weekly digest* → `/weekly-plan` |
 | 3 | **Reputation over time** | Avg-rating line + review-volume bars over range | daily/weekly buckets | hover tooltip; follows range toggle |
-| 4 | **Needs attention** | Top 3–5 open reviews ranked by urgency = negative ∧ unanswered ∧ recency | reviews + insights | AI-reply → composer; row → review; header → `/inbox` |
+| 4 | **Needs attention** | Top 3–5 open reviews ranked by urgency = negative ∧ unanswered ∧ recency | reviews + insights | AI-reply → composer; row → review; header → `/reviews` |
 | 5 | **Sentiment** | Positive/neutral/negative donut + % | insights over range | — |
-| 6 | **Reviews by source** | Per source: count + avg rating + bar | reviews grouped by source | row → `/inbox?source=` |
-| 7 | **Top themes** | Ranked themes, count + dominant-sentiment colour | theme aggregates | theme → `/inbox?theme=` |
+| 6 | **Reviews by source** | Per source: count + avg rating + bar | reviews grouped by source | row → `/reviews?source=` |
+| 7 | **Top themes** | Ranked themes, count + dominant-sentiment colour | theme aggregates | theme → `/reviews?theme=` |
 | 8 | **Rating distribution** | 5★→1★ counts | reviews grouped by rating | — |
 | 9 | **Response time** | Median reply time + % replied < 24h + trend | replies vs reviews | — |
 | 10 | **Recent activity** | Live feed: new review / reply posted / request sent / new comment | recent events (audit + reviews) | item → its detail |
 
-**Empty state:** location with no connected source / no reviews → a friendly card prompting *Connect a source* (`/locations`) or *Send review requests* (`/requests`). Reuse the existing empty-state pattern in `home/page.tsx`.
+**Empty state:** location with no connected source / no reviews → a friendly card prompting *Connect a source* (`/locations`) or *Send review requests* (`/get-reviews`). Reuse the existing empty-state pattern in `home/page.tsx`.
 
 **Loading:** stream the page; each card renders its own skeleton (`Suspense` boundaries) so the shell + KPIs paint immediately.
 
@@ -98,7 +98,7 @@ All queries run inside `withTenant(...)`, scoped to `organizationId` + active `l
 
 ---
 
-## 5. Components to build (in `src/components/home/`)
+## 5. Components to build (in `src/components/dashboard/`)
 
 Reuse the existing `ui/*` kit (Card, Badge, Button) and shell. New:
 
@@ -119,7 +119,7 @@ Charts use the `--chart-*` / `--sentiment-*` tokens (never hard-coded hex). Ever
 
 ## 6. Digest → email / archive (separate follow-up, not this task)
 
-Note for sequencing (do **not** build in this task unless asked): the weekly digest generation stays; its *surface* changes to (a) an email (and WhatsApp in 1b) built from the same payload with the existing `DigestView`/`PulseTile`/`ActionCard`, and (b) a `/digest` archive page listing past weeks. This handoff only covers the live Home.
+Note for sequencing (do **not** build in this task unless asked): the weekly digest generation stays; its *surface* changes to (a) an email (and WhatsApp in 1b) built from the same payload with the existing `DigestView`/`PulseTile`/`ActionCard`, and (b) a `/weekly-plan` archive page listing past weeks. This handoff only covers the live Home.
 
 ---
 

@@ -1,14 +1,13 @@
 "use client";
 
-import { Archive, Check, Copy, Download, ExternalLink, Send } from "lucide-react";
+import { Archive, Check, Copy, Download, ExternalLink, Printer, Send } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { RecipientPicker } from "@/components/requests/recipient-picker";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { MAX_RECIPIENTS_PER_SEND } from "@/collect/input";
 import { useAction } from "@/components/ui/use-action";
 import { archiveCampaignAction, sendRequestsAction } from "@/server/campaigns";
 
@@ -139,6 +138,29 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
                   {t("downloadQr")}
                 </a>
               </Button>
+
+              {/*
+                The poster and the table tent (W4.5).
+
+                Plain links with `download`, like the QR image beside them: the
+                browser knows how to save a response with a
+                `Content-Disposition`, and the alternative is holding a PDF in
+                memory and minting an object URL for no gain. Two links rather
+                than a menu — there are two, and a dropdown to choose between
+                two things is a click spent on nothing.
+              */}
+              <Button asChild size="sm" variant="ghost">
+                <a href={`/get-reviews/poster?campaign=${campaign.id}&layout=poster`} download>
+                  <Printer className="size-4" aria-hidden />
+                  {t("posterLabel")}
+                </a>
+              </Button>
+              <Button asChild size="sm" variant="ghost">
+                <a href={`/get-reviews/poster?campaign=${campaign.id}&layout=tent`} download>
+                  <Printer className="size-4" aria-hidden />
+                  {t("tableTent")}
+                </a>
+              </Button>
               <Button asChild size="sm" variant="ghost">
                 <a href={campaign.url} target="_blank" rel="noreferrer">
                   <ExternalLink className="size-4" aria-hidden />
@@ -149,7 +171,13 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
           </div>
         </div>
 
-        {campaign.channel === "email" && canManage && !archived ? (
+        {/*
+          A send box for every channel that has something to send (W2.2). It was
+          `channel === "email"`, which meant a WhatsApp campaign could be created
+          and then had no way to send anything — the screen offered a thing the
+          product could not do.
+        */}
+        {campaign.channel !== "link" && canManage && !archived ? (
           <form
             ref={formRef}
             action={(formData) => {
@@ -166,6 +194,9 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
                       failed: result.failed,
                       skipped: result.skipped,
                     }) +
+                      (result.skippedNoAddress > 0
+                        ? ` · ${t("sendSkippedNoAddress", { count: result.skippedNoAddress })}`
+                        : "") +
                       (result.invalid.length > 0
                         ? ` — ${t("invalidAddresses", { list: result.invalid.join(", ") })}`
                         : ""),
@@ -176,16 +207,11 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
             className="space-y-2 border-t pt-4"
           >
             <input type="hidden" name="campaignId" value={campaign.id} />
-            <Label htmlFor={`recipients-${campaign.id}`}>{t("recipients")}</Label>
-            <Textarea
-              id={`recipients-${campaign.id}`}
-              name="recipients"
-              required
-              placeholder={t("recipientsPlaceholder")}
+            <RecipientPicker
+              campaignId={campaign.id}
+              channel={campaign.channel as "email" | "whatsapp" | "sms"}
+              disabled={pending}
             />
-            <p className="text-copy text-muted-foreground">
-              {t("recipientsHint", { max: MAX_RECIPIENTS_PER_SEND })}
-            </p>
 
             {summary ? <p className="text-body text-muted-foreground">{summary}</p> : null}
 

@@ -12,9 +12,9 @@ import {
   bulkUntag,
   MAX_BULK_ITEMS,
   MAX_BULK_AI_DRAFTS,
-} from "@/inbox/bulk";
-import { listInbox } from "@/inbox/queries";
-import { TriageError, type TriageActor } from "@/inbox/triage";
+} from "@/reviews/bulk";
+import { listInbox } from "@/reviews/queries";
+import { TriageError, type TriageActor } from "@/reviews/triage";
 import { withTenant } from "@/lib/tenancy";
 import { subscribeToPlanWith } from "./plan-fixture";
 import { saveReplyTemplate } from "@/replies/templates";

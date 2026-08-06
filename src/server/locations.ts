@@ -8,7 +8,6 @@ import { connectSource, syncConnectionWithin, toConnection } from "@/connectors/
 import { schema } from "@/db/client";
 import { requireFeature, requireWithinLimit } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
-import { writeActiveLocationCookie } from "@/lib/active-location";
 import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 import { FIRST_PARTY_PROVIDER } from "@/connectors/firstparty";
 import { getProvider, resolveMode } from "@/connectors/providers";
@@ -34,7 +33,7 @@ export async function createLocationAction(formData: FormData): Promise<ActionRe
   }
 
   try {
-    const locationId = await withAuthenticatedTenant(
+    await withAuthenticatedTenant(
       async (tx, actor) => {
         // Plan limits are checked against live rows inside the same tenant
         // transaction, so two concurrent creates cannot both slip past.
@@ -59,14 +58,23 @@ export async function createLocationAction(formData: FormData): Promise<ActionRe
           entity: `location:${row.id}`,
           meta: { name: parsed.data.name },
         });
-
-        return row.id;
       },
       { minimumRole: "admin" },
     );
 
-    // Make the location the user just created the one they are looking at.
-    await writeActiveLocationCookie(locationId);
+    /**
+     * The new branch does **not** become the one you are looking at (W4.3).
+     *
+     * It used to, and `docs/remediation-plan.md` calls it out by name. The
+     * failure is quiet and happens at the worst moment: somebody with a running
+     * business adds their second branch, and every screen they were working in
+     * — Home, the queue, the weekly plan — silently switches to the empty one
+     * they just created. Nothing looks broken. The numbers are simply gone, and
+     * the obvious reading is that the product lost them.
+     *
+     * Adding a thing to a list is not the same act as going to look at it. The
+     * switcher is one click away and it is the reader's call.
+     */
     revalidatePath("/", "layout");
     return { ok: true };
   } catch (error) {

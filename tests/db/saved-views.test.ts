@@ -1,14 +1,14 @@
 import { inArray } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
-import { EMPTY_INBOX_FILTERS, type InboxFilterState } from "@/inbox/filters";
+import { EMPTY_INBOX_FILTERS, type InboxFilterState } from "@/reviews/filters";
 import {
   createSavedView,
   deleteSavedView,
   listSavedViews,
   MAX_SAVED_VIEWS_PER_OWNER,
   SavedViewError,
-} from "@/inbox/views";
+} from "@/reviews/views";
 import { withTenant } from "@/lib/tenancy";
 import { subscribeToPlanWith } from "./plan-fixture";
 
@@ -110,7 +110,7 @@ describe("saving and returning to a view", () => {
       }),
     );
 
-    expect(view.href).toBe("/inbox?sentiment=negative&overdue=1");
+    expect(view.href).toBe("/reviews?sentiment=negative&overdue=1");
   });
 
   it("does not remember which page you were on", async () => {
@@ -209,7 +209,7 @@ describe("saving and returning to a view", () => {
     );
 
     expect(views).toHaveLength(1);
-    expect(views[0]?.href).toBe("/inbox");
+    expect(views[0]?.href).toBe("/reviews");
   });
 });
 

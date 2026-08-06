@@ -52,9 +52,27 @@ async function tabThrough(page: Page, steps: number) {
 
 test.describe("moving through the inbox with a keyboard", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/inbox");
+    await page.goto("/reviews");
     await expect(page.getByRole("heading").first()).toBeVisible();
   });
+
+  /**
+   * Select a review, because the triage controls moved (W4.1).
+   *
+   * They used to be on every card in the list; the screen is two panes now and
+   * they belong to the *selected* review. That is the intended design — a
+   * status select repeated forty times down a scrolling list was most of what
+   * made the list unscannable — so these tests select first rather than
+   * assuming the controls are on screen unprompted.
+   *
+   * `j` rather than a click: it is the shortcut the rebuild added, so using it
+   * here means the selection path itself is exercised by the keyboard suite.
+   */
+  async function selectFirstReview(page: Page) {
+    await page.locator("body").click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press("j");
+    await expect(page.getByRole("combobox", { name: /durum|status/i }).first()).toBeVisible();
+  }
 
   test("every focus stop has a name and a visible ring", async ({ page }) => {
     const stops = await tabThrough(page, 40);
@@ -69,6 +87,8 @@ test.describe("moving through the inbox with a keyboard", () => {
   });
 
   test("reaches the triage controls on a review card", async ({ page }) => {
+    await selectFirstReview(page);
+
     const stops = await tabThrough(page, 60);
     const names = stops.map((stop) => stop.name);
 
@@ -79,6 +99,8 @@ test.describe("moving through the inbox with a keyboard", () => {
   });
 
   test("opens a select, and Escape gives focus back without changing it", async ({ page }) => {
+    await selectFirstReview(page);
+
     const status = page.getByRole("combobox", { name: /durum|status/i }).first();
     // Wait for it to actually show its value first: reading the label before
     // hydration returns an empty string, and "unchanged" would then compare ""

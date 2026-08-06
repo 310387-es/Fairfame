@@ -84,7 +84,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           trial footer would otherwise be pushed out of reach. */}
       <aside className="sticky top-0 hidden h-screen w-(--rail-width) shrink-0 flex-col overflow-y-auto bg-rail text-on-ink md:flex">
         <Link
-          href="/home"
+          href="/dashboard"
           className="flex h-(--topbar-height) shrink-0 items-center gap-2.5 px-[18px] text-base font-semibold tracking-[-0.01em]"
         >
           <Logo className="text-white" markClassName="size-[26px]" />

@@ -47,6 +47,7 @@ export function ResourcePage({
   isEmpty,
   empty,
   create,
+  tabs,
   children,
 }: {
   title: string;
@@ -64,6 +65,15 @@ export function ResourcePage({
    * button for either is worse than showing neither.
    */
   create: CreateAffordance | { blocked: string } | null;
+  /**
+   * The section's tab strip, when this screen is one tab of a pair (W4.2).
+   *
+   * Rendered between the header and the body — above the empty state as well
+   * as above a list, because the other tab is exactly where somebody with an
+   * empty screen may need to go, and hiding the way out of an empty page is
+   * how a screen becomes a dead end.
+   */
+  tabs?: ReactNode;
   children: ReactNode;
 }) {
   const affordance = create && "label" in create ? create : null;
@@ -89,6 +99,8 @@ export function ResourcePage({
         {...(subtitle ? { subtitle } : {})}
         {...(!isEmpty && control ? { action: control } : {})}
       />
+
+      {tabs}
 
       {isEmpty ? (
         <Card className="items-center gap-3 px-(--card-px) py-10 text-center">

@@ -3,6 +3,7 @@ import { schema } from "../db/client.ts";
 import { childLogger } from "../lib/logger.ts";
 import { withTenant, type TenantDatabase } from "../lib/tenancy.ts";
 import { upsertReviews } from "./normalize.ts";
+import { errorKindOf } from "../connections/health.ts";
 import { rateLimitFor } from "./providers.ts";
 import { getConnector } from "./registry.ts";
 import {
@@ -242,6 +243,7 @@ export async function syncConnectionWithin(
       // bottom rather than from wherever the last incident left off.
       failureCount: 0,
       lastError: null,
+      lastErrorKind: null,
       updatedAt: now,
     })
     .where(eq(schema.connections.id, connection.id));
@@ -348,6 +350,10 @@ async function markConnectionError(
           failureCount,
           nextSyncAt: new Date(now.getTime() + computeBackoffMs(failureCount, policy)),
           lastError: (error instanceof Error ? error.message : String(error)).slice(0, 500),
+          // The message is the provider's prose; the *kind* is the part a
+          // health badge can be derived from, and it is the part `instanceof`
+          // knows and a text column forgets (W4.2).
+          lastErrorKind: errorKindOf(error),
           updatedAt: now,
         })
         .where(eq(schema.connections.id, connectionId));

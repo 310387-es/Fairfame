@@ -23,7 +23,7 @@ Planning and design documentation for **Revira** *(provisional name)* — a revi
 | 11 | [Phase 1b Build Plan](./11-phase-1b-build-plan.md) | ✅ Built — real connectors against documented APIs + fixtures; credentials and live verification at go-live. |
 | 12 | [AI Guardrail Validation](./12-ai-guardrail-validation.md) | What has actually been tested about the AI layer: threat model, structural defences, adversarial results, known gaps. |
 | 13 | [Go-Live](./13-go-live.md) | Per-platform prerequisites and verification steps for when the company exists — plus what `pnpm golive` checks and what it deliberately does not. |
-| 14 | [Digest Surfaces](./14-digest-surfaces.md) | Where the weekly digest goes now Home is a live dashboard: email (D1), a `/digest` archive (D2), the copy move (D3), WhatsApp (D4) — and the weekly-vs-daily cadence decision. |
+| 14 | [Digest Surfaces](./14-digest-surfaces.md) | Where the weekly digest goes now Home is a live dashboard: email (D1), a `/weekly-plan` archive (D2), the copy move (D3), WhatsApp (D4) — and the weekly-vs-daily cadence decision. |
 | 15 | [Design System](./15-design-system.md) | Tokens, type, components and layout rules. **Read before any UI work** — one theme, no dark mode, no literal hex. |
 | 16 | [Code Hygiene](./16-code-hygiene.md) | What `pnpm knip` and `pnpm check:i18n` gate, and the standing exceptions — including what is unshipped rather than dead. |
 | 17 | [Phase 2 Build Plan](./17-phase-2-build-plan.md) | ✅ Done — unified inbox, triage, assignment and SLA, saved views, bulk actions, team scope. |
@@ -46,7 +46,8 @@ Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude
 - **Phase 1b — real connectors:** ✅ code-complete. T1 first-party collection is live-tested; T0 infrastructure, T5 compliance and T6 the contract/go-live suite are done. **T2 Google, T3 WhatsApp and T4 Instagram are fixture-tested only** — credentials, platform approvals (Google Business Profile, Meta verification + app review, İYS) and live verification are gated on company formation. See [`13-go-live.md`](./13-go-live.md).
 - **Phase 2 — unified inbox & team workflow:** ✅ done, on the mock connector.
 - **Phase 3 — showcase & analyze:** ✅ done, on the mock connector. Live competitor data is gated on go-live.
-- **Phase 4 — engage:** ⏳ planned, not started. Outbound messaging is gated on credentials the way 1b is.
+- **Phase 4 — engage:** ✅ done, on mock/fixtures. Outbound messaging is gated on credentials the way 1b is.
+- **Founder audit remediation:** `remediation-plan.md`. Wave 1 (the first mile) ✅, Wave 2 (the Action Digest, WhatsApp) ✅, Wave 3 W3.1 (IA + naming) ✅ — W3.2 (canonical themes) and W3.3 (metric integrity) not started. Waves 4–5 not started.
 
 ## Stack (locked)
 

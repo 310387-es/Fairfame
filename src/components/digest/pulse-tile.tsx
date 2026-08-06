@@ -1,6 +1,7 @@
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/card";
+import { RATING_WEIGHT, SENTIMENT_WEIGHT } from "@/digest/metrics";
 import { cn } from "@/lib/utils";
 
 /**
@@ -114,9 +115,26 @@ export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
           {/* `text-metric` alone — it is already the headline-number role at
               28px, and the `text-[2rem]` that used to override it was exactly
               the hand-typed font size docs/15 opens by forbidding. */}
-          <span className={cn("text-metric", band?.text ?? "text-muted-foreground")}>
-            {score === null ? t("noPulse") : Math.round(score)}
-          </span>
+          {/*
+            The number, or the reason there is not one (W3.3).
+
+            `noPulse` used to be an em-dash, and a dash in a dial is a rendering
+            failure to everyone who has not read `MIN_REVIEWS_FOR_PULSE` —
+            somebody with three reviews concluded the gauge was broken rather
+            than that three reviews are not a reputation. It is a sentence now,
+            and at `text-copy` rather than `text-metric`: twenty-eight-point
+            type is for a two-digit number, and "Yeterli veri yok" set at that
+            size does not fit inside a 120px circle.
+          */}
+          {score === null ? (
+            <span className="max-w-[6.5rem] text-center text-copy text-pretty text-muted-foreground">
+              {t("noPulse")}
+            </span>
+          ) : (
+            <span className={cn("text-metric", band?.text ?? "text-muted-foreground")}>
+              {Math.round(score)}
+            </span>
+          )}
           <span className="text-copy text-muted-foreground">
             {t("reviewCount", { count: reviewCount })}
           </span>
@@ -132,7 +150,14 @@ export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
       </div>
 
       <p className="max-w-[16rem] text-center text-meta leading-relaxed text-pretty text-faint">
-        {t("pulseHint")}
+        {/* The same sentence the dashboard's tooltip carries, with the weights
+            taken from the maths rather than typed in (W3.3). This surface has
+            room to show it outright, which is better than a tooltip: a phone
+            has no hover. */}
+        {t("pulseHint", {
+          rating: Math.round(RATING_WEIGHT * 100),
+          sentiment: Math.round(SENTIMENT_WEIGHT * 100),
+        })}
       </p>
     </Card>
   );

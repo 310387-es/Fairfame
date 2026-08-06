@@ -86,6 +86,16 @@ async function runPublishFlow(page: Page) {
   // --- Publish the page --------------------------------------------------
   await page.goto("/locations");
 
+  /**
+   * Branches is a table now (W4.2), so a branch's controls live one row down.
+   * The publish button is in the row's detail panel rather than on a card, and
+   * the expander is how you get there.
+   */
+  await page
+    .getByRole("button", { name: /ayrıntılarını göster|show details for/i })
+    .first()
+    .click();
+
   const publish = page.getByRole("button", { name: PUBLISH_PAGE }).first();
   await expect(publish).toBeVisible();
   await publish.click();

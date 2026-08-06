@@ -7,7 +7,7 @@ import { boundOutput, looksAsciiFolded } from "../ai/guardrails.ts";
 import { schema } from "../db/client.ts";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/config.ts";
 import { can, recordUsage, withinLimit } from "../lib/entitlements.ts";
-import { liveReplyJoin } from "../inbox/answered.ts";
+import { liveReplyJoin } from "../reviews/answered.ts";
 import { childLogger } from "../lib/logger.ts";
 import { withTenant, type TenantDatabase } from "../lib/tenancy.ts";
 import {
@@ -26,6 +26,7 @@ import {
   clusterThemes,
   computeChanges,
   computePulse,
+  rawPulse,
   openNegatives,
   priorWindow,
   topReview,
@@ -314,13 +315,27 @@ function localeOf(value: string | null | undefined): Locale {
   return (LOCALES as readonly string[]).includes(value ?? "") ? (value as Locale) : DEFAULT_LOCALE;
 }
 
-/** Representative quotes per theme, bounded so one long review cannot dominate. */
+/**
+ * Representative quotes per theme, bounded so one long review cannot dominate.
+ *
+ * **`claimed` is what stops two themes quoting the same words** (W2.1). A real
+ * review carries several topics, so overlapping clusters is correct — but
+ * choosing each theme's quotes independently meant the same worst review won
+ * under every theme it belonged to, and a generated digest showed `fiyat` and
+ * `bekleme süresi` side by side quoting an identical pair. That reads as a
+ * broken page, and worse, it put a queue complaint under a heading about price.
+ *
+ * A review is therefore quoted under the first theme that takes it, and themes
+ * arrive most-important-first. **The fallback matters more than the rule**: a
+ * theme whose reviews are all spoken for still gets its worst one rather than
+ * nothing, because a theme with no quote is a theme the model cannot ground an
+ * action in, and losing the evidence is a bigger failure than repeating it.
+ */
 function quotesFor(
   theme: ThemeCluster,
   byId: Map<string, WindowReview>,
+  claimed: Set<string>,
 ): { reviewId: string; text: string; rating: number | null }[] {
-  const quotes: { reviewId: string; text: string; rating: number | null }[] = [];
-
   // Negatives first: the owner needs the complaint verbatim more than the
   // praise, and a theme's worst review is the one an action has to answer.
   const ordered = [...theme.reviewIds]
@@ -328,16 +343,33 @@ function quotesFor(
     .filter((review): review is WindowReview => review !== undefined && review.text !== null)
     .sort((left, right) => (left.sentimentScore ?? 0) - (right.sentimentScore ?? 0));
 
+  // Also deduplicated by *text*, not only by id. Two customers can write the
+  // same sentence — and in a seeded or low-traffic account they often do — and
+  // a card quoting one sentence twice reads as a bug whether or not two people
+  // really said it. Repeating it adds no evidence either way.
+  const seenText = new Set<string>();
+  const chosen: WindowReview[] = [];
+
   for (const review of ordered) {
-    if (quotes.length >= QUOTES_PER_THEME) break;
-    quotes.push({
-      reviewId: review.id,
-      text: boundOutput(review.text ?? "", MAX_QUOTE_CHARS),
-      rating: review.rating,
-    });
+    if (chosen.length >= QUOTES_PER_THEME) break;
+    if (claimed.has(review.id)) continue;
+
+    const key = (review.text ?? "").trim().toLocaleLowerCase("tr");
+    if (seenText.has(key)) continue;
+
+    seenText.add(key);
+    chosen.push(review);
   }
 
-  return quotes;
+  const quotes = chosen.length > 0 ? chosen : ordered.slice(0, 1);
+
+  for (const review of quotes) claimed.add(review.id);
+
+  return quotes.map((review) => ({
+    reviewId: review.id,
+    text: boundOutput(review.text ?? "", MAX_QUOTE_CHARS),
+    rating: review.rating,
+  }));
 }
 
 /**
@@ -504,7 +536,7 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
         .update(schema.digests)
         .set({
           status: "ready",
-          pulseScore: computePulse(reviews),
+          pulseScore: computePulse(reviews, { prior: rawPulse(reviews) }),
           pulseDelta: null,
           reviewCount: reviews.length,
           payload: {
@@ -526,13 +558,24 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
       digestId,
       status: "ready",
       reason: "not_enough_analysed",
-      pulse: computePulse(reviews),
+      pulse: computePulse(reviews, { prior: rawPulse(reviews) }),
       reviewCount: reviews.length,
       actions: 0,
     };
   }
-  const pulse = computePulse(reviews);
-  const priorPulse = prior?.pulseScore ?? computePulse(priorReviews);
+  /**
+   * Smoothed toward the two windows together (W3.3).
+   *
+   * A week is a small sample for a small business — the raw blend on eight
+   * reviews swings fifteen points on who happened to write — so the weekly
+   * number is pulled toward the longer run. `priorReviews` is the preceding
+   * window, so the two together are the closest thing this function already
+   * holds to a baseline; the dashboard, which loads its own facts, smooths
+   * toward a full ninety days.
+   */
+  const baseline = rawPulse([...reviews, ...priorReviews]);
+  const pulse = computePulse(reviews, { prior: baseline });
+  const priorPulse = prior?.pulseScore ?? computePulse(priorReviews, { prior: baseline });
 
   const changes = computeChanges({
     pulse,
@@ -543,6 +586,12 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
     priorThemes,
   });
 
+  // Shared across the map, so a review quoted under one theme is not quoted
+  // again under the next. Themes arrive most-important-first, which is what
+  // makes "the first theme that takes it" the right claim rather than an
+  // arbitrary one.
+  const claimedQuotes = new Set<string>();
+
   const themePayload = themes.map((theme) => ({
     label: theme.label,
     slugs: theme.slugs,
@@ -550,7 +599,7 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
     positive: theme.positive,
     negative: theme.negative,
     averageSentiment: theme.averageSentiment,
-    quotes: quotesFor(theme, byId),
+    quotes: quotesFor(theme, byId, claimedQuotes),
   }));
 
   /**
@@ -636,6 +685,25 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
         }
       },
     });
+
+    /**
+     * A cut-off reply is a *budget* failure, not a parse failure.
+     *
+     * `LlmResponse.truncated` has carried this instruction since P1a-T1 —
+     * "the caller must not treat a truncated JSON body as a parse failure" —
+     * and `analyze.ts` honours it. The digest did not, so a response that ran
+     * out of room was recorded as `Unterminated string in JSON at position
+     * 215`: an error that sends whoever reads it looking for a bug in the
+     * parser rather than at the one number that would fix it.
+     *
+     * Not retryable: the same prompt with the same budget truncates again.
+     */
+    if (response.truncated) {
+      throw new LlmError(
+        "The briefing was cut off before it produced complete JSON — raise maxOutputTokens.",
+        { provider: response.provider, retryable: false, code: "truncated" },
+      );
+    }
 
     const composed = composedSchema.parse(JSON.parse(extractJson(response.text)));
 

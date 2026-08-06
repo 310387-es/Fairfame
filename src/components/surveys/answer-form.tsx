@@ -46,7 +46,7 @@ export type AnswerLabels = {
    * One accessible name per point on the scale, in `scalePoints` order.
    *
    * An array, not a `(score) => string`. **Functions cannot cross the RSC
-   * boundary** — P3-T4 shipped exactly that bug on `/insights` — so every
+   * boundary** — P3-T4 shipped exactly that bug on `/analytics` — so every
    * string is formatted on the server, where the locale lives, and arrives as
    * data.
    */

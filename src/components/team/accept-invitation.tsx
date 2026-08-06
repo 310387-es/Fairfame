@@ -26,7 +26,7 @@ export function AcceptInvitation({ invitationId }: { invitationId: string }) {
       onClick={() =>
         run(() => acceptInvitationAction({ invitationId }), {
           onSuccess: () => {
-            router.push("/home");
+            router.push("/dashboard");
             router.refresh();
           },
         })

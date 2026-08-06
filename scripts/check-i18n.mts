@@ -70,7 +70,7 @@ const source = SOURCE_DIRS.flatMap(sourceFiles)
  * ``getTranslations(`home.${section}`)``. Every key beneath one of these is
  * treated as used, because no static check can know which branch runs.
  */
-const dynamicPrefixes = [...source.matchAll(/[`"']([\w.]*?)\.?\$\{/g)]
+const dynamicPrefixes: string[] = [...source.matchAll(/[`"']([\w.]*?)\.?\$\{/g)]
   .map((match) => match[1])
   // A type predicate, because `filter(Boolean)` does not narrow away
   // `undefined` — the compiler caught this, which is the point of running it.
@@ -87,7 +87,7 @@ function isUsed(key: string): boolean {
     if (literals.has(segments.slice(start).join("."))) return true;
   }
 
-  return dynamicPrefixes.some(
+  return [...dynamicPrefixes, ...dynamicNamespaces].some(
     (prefix) => key === prefix || key.startsWith(`${prefix}.`) || prefix.endsWith(segments[0]!),
   );
 }
@@ -116,6 +116,161 @@ for (const [locale, keys] of locales) {
 }
 
 // 2. Dead strings. Reported once against the union rather than per locale.
+/**
+ * The mirror check: a key *used* in code that is defined nowhere (W2.1).
+ *
+ * The two checks above catch a key missing from one locale, and a key defined
+ * in every locale but used nowhere. Neither catches the third case — a `t("x")`
+ * where `x` exists in no locale — and that is the one a customer sees, because
+ * `next-intl` renders the key itself. `digest.starLabel` shipped that way and
+ * the suite stayed green.
+ *
+ * **Namespace-aware, and it has to be.** The first attempt matched a bare
+ * suffix against every key, which reported `digest.starLabel` as fine because
+ * an unrelated `widget.starLabel` existed — precisely the bug it was written to
+ * catch. So each file's `const t = useTranslations("digest")` bindings are read
+ * first, and `t("starLabel")` is then checked against `digest.starLabel` and
+ * nothing else.
+ *
+ * What it still cannot see: a translator whose namespace is computed, or one
+ * passed between functions. Those fall back to being ignored rather than
+ * guessed at — a false alarm in this check would train people to skip it.
+ *
+ * **A namespace called with a non-literal key is treated as wholly dynamic**
+ * (W3.2). `themeLabel` renders a canonical theme with `tThemes(key)`, where
+ * `key` is a variable holding one of fifteen taxonomy keys — none of which
+ * appears as a literal anywhere. Without this the whole `themes.*` catalogue
+ * reported as dead and the only fixes available were to delete real labels or
+ * to write a fifteen-branch switch whose sole purpose was to be seen by a
+ * regex. The template-literal form below (`t(\`lever.${x}\`)`) was already
+ * handled; this is the same idea for the bare-variable form.
+ *
+ * **It only silences the *dead-key* half, and that distinction is load-bearing**
+ * (W4.1). A dynamic call means we cannot know which keys are *reached*, so a
+ * key under that namespace must not be reported as dead. It says nothing about
+ * a key spelled out as a literal — that one is knowable, and skipping it let
+ * `t("anonymous")` and `t("overdue")` ship against a namespace that had
+ * neither, in both locales, with this check passing. Two blank strings on the
+ * busiest screen in the product, found in a browser console rather than here.
+ */
+const BINDING =
+  /(?:const|let)\s+(\w+)\s*=\s*(?:await\s+)?(?:use|get)Translations\(\s*["']([\w.]+)["']/g;
+
+/**
+ * The destructured form, which is how most pages actually bind (W4.1):
+ *
+ *     const [t, format, actor] = await Promise.all([
+ *       getTranslations("inbox"),
+ *       getFormatter(),
+ *       requireActor(),
+ *     ]);
+ *
+ * `BINDING` above cannot see through this, so **every call in such a file was
+ * skipped** — the file contributed no namespaces, and the loop below `continue`s
+ * on an empty map. That is not a small gap: `/reviews` is the busiest screen in
+ * the product and it was never checked, which is how `t("anonymous")` and
+ * `t("overdue")` shipped against a namespace that had neither.
+ *
+ * Matched positionally, and only where the entry really is a `getTranslations`
+ * call — `getFormatter()` and `requireActor()` sit in the same array and must
+ * not be bound to anything.
+ */
+const DESTRUCTURED =
+  /(?:const|let)\s*\[([^\]]+)\]\s*=\s*await\s+Promise\.all\(\s*\[([\s\S]*?)\]\s*\)/g;
+const CALL = /\b(\w+)\(\s*["']([\w][\w.]*)["']\s*[,)]/g;
+/** `tThemes(key)` / `tThemes(key as Foo)` — a call whose key is not a literal. */
+const DYNAMIC_CALL = /\b(\w+)\(\s*(?!["'`])[A-Za-z_$][\w$]*/g;
+
+const undefinedKeys = new Set<string>();
+/** Namespaces reached by a computed key — see the note above. */
+const dynamicNamespaces: string[] = [];
+
+for (const file of SOURCE_DIRS.flatMap(sourceFiles)) {
+  const text = readFileSync(file, "utf8");
+
+  /**
+   * One name may be bound to **several** namespaces in one file (W4.4).
+   *
+   * A `Map<name, namespace>` was silently last-write-wins, and two components
+   * in one file — `const t = getTranslations("insights.histogram")` in the
+   * first, `const t = getTranslations("insights.percentiles")` in the second —
+   * meant every `t(...)` in the file was checked against whichever binding the
+   * regex happened to see last. That produced a false *failure* here, which is
+   * the harmless direction; the dangerous one is a false *pass*, and it is just
+   * as reachable: `t("title")` under the wrong namespace resolves happily when
+   * both namespaces have a `title`.
+   *
+   * A regex cannot see scopes, so the honest answer is a **set**: a key counts
+   * as defined if it exists under any namespace that name is bound to. That is
+   * the conservative direction — it can under-report a genuinely missing key in
+   * a file with two translators, and it can never fail a key that plainly
+   * exists, which is what would teach people to work around the check rather
+   * than trust it.
+   */
+  const namespaces = new Map<string, Set<string>>();
+  const bind = (name: string, namespace: string) => {
+    const bound = namespaces.get(name) ?? new Set<string>();
+    bound.add(namespace);
+    namespaces.set(name, bound);
+  };
+
+  for (const match of text.matchAll(BINDING)) bind(match[1]!, match[2]!);
+
+  for (const [, names, entries] of text.matchAll(DESTRUCTURED)) {
+    const bound = names!.split(",").map((name) => name.trim());
+    // Split on top-level commas only: an entry is `getTranslations("a.b")` or
+    // some other promise, and neither contains a bracketed comma in practice.
+    entries!
+      .split(/,(?![^(]*\))/)
+      .map((entry) => entry.trim())
+      .forEach((entry, index) => {
+        const match = /^(?:use|get)Translations\(\s*["']([\w.]+)["']/.exec(entry);
+        const name = bound[index];
+        if (match && name) bind(name, match[1]!);
+      });
+  }
+  if (namespaces.size === 0) continue;
+
+  // A namespace whose translator is ever called with a computed key: every key
+  // beneath it is reachable, so none of them may be reported as dead. Kept in
+  // its own list, because it must *not* excuse a literal call to a key that
+  // does not exist — see the note above.
+  for (const [, name] of text.matchAll(DYNAMIC_CALL)) {
+    for (const namespace of namespaces.get(name!) ?? []) dynamicNamespaces.push(namespace);
+  }
+
+  for (const [, name, key] of text.matchAll(CALL)) {
+    const bound = namespaces.get(name!);
+    if (!bound || bound.size === 0) continue;
+
+    const candidates = [...bound].map((namespace) => `${namespace}.${key}`);
+    // A dynamic prefix beneath any of them means the branch is unknowable.
+    if (candidates.some((full) => dynamicPrefixes.some((prefix) => full.startsWith(prefix)))) {
+      continue;
+    }
+
+    // Defined under *any* binding is defined: with two candidates we cannot
+    // know which one the call meant, and failing a key that plainly exists
+    // would make the check something people work around rather than trust.
+    // (Dead-key detection is unaffected — `isUsed` reads the file's string
+    // literals directly and never consulted this mapping.)
+    if (candidates.some((full) => union.has(full))) continue;
+
+    undefinedKeys.add(candidates[0]!);
+  }
+}
+
+if (undefinedKeys.size > 0) {
+  console.error(
+    `${undefinedKeys.size} translation key(s) are used in code but defined in no locale:\n` +
+      [...undefinedKeys]
+        .sort()
+        .map((key) => `    ${key}`)
+        .join("\n"),
+  );
+  process.exitCode = 1;
+}
+
 const unused = [...union].filter((key) => !isUsed(key)).sort();
 if (unused.length > 0) {
   problems.push(

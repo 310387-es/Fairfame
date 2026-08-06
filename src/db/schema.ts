@@ -608,12 +608,62 @@ export const connections = pgTable(
     failureCount: integer("failure_count").notNull().default(0),
     /** Why the last sync failed, for the connection card. */
     lastError: text("last_error"),
+    /**
+     * *What kind* of failure it was, which `last_error` cannot say (W4.2).
+     *
+     * The column holds provider prose; the meaning lives in the error's type,
+     * and `instanceof` is lost the moment it is written down. A health badge
+     * derived by matching substrings of somebody else's message would keep
+     * working right up until they reworded it, and then report "Healthy" over a
+     * connection that had been dead for a month.
+     *
+     * A hint, never a branch: `src/connections/health.ts` treats an
+     * unrecognised value exactly as it treats null.
+     */
+    lastErrorKind: text("last_error_kind"),
     ...timestamps,
   },
   (table) => [
     index("connections_organization_id_idx").on(table.organizationId),
     index("connections_location_id_idx").on(table.locationId),
     unique("connections_location_id_provider_key").on(table.locationId, table.provider),
+  ],
+);
+
+/**
+ * "We would use you if you read our Yemeksepeti reviews" — recorded (W4.2).
+ *
+ * The Connections screen lists sources we have **not** built, because a
+ * business needs to know whether we are ever going to read theirs, and an empty
+ * grid answers that with silence. Offering "Request this integration" and then
+ * dropping the press would be worse than not offering it.
+ *
+ * `providerKey` is not a foreign key and not an enum: these keys name things
+ * that are absent from `PROVIDERS` and must stay absent — a descriptor with no
+ * connector behind it is a connect button that throws. See
+ * `src/connectors/roadmap.ts`.
+ */
+export const integrationRequests = pgTable(
+  "integration_requests",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    providerKey: text("provider_key").notNull(),
+    /**
+     * Kept when they leave. The demand signal outlives the employee, and
+     * cascading the delete would quietly deflate the only count this is for.
+     */
+    requestedByUserId: uuid("requested_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    ...timestamps,
+  },
+  (table) => [
+    // A signal, not a petition: pressing it forty times must not make the
+    // number useless for deciding what to build next.
+    unique("integration_requests_org_provider_key").on(table.organizationId, table.providerKey),
   ],
 );
 
@@ -1232,6 +1282,18 @@ export const reviewInsights = pgTable(
       .notNull()
       .default(sql`'{}'::text[]`),
     /**
+     * Canonical themes from `src/reviews/taxonomy.ts` (W3.2).
+     *
+     * The closed vocabulary — what is charted, filtered, compared and
+     * translated. `topics` above stays as the free-text long tail in the
+     * customer's own words; the two are not alternatives.
+     *
+     * Nullable, and null means "analysed before there was a taxonomy" rather
+     * than "no themes". A screen must be able to tell those apart, because a
+     * false negative here is one a manager would act on.
+     */
+    themes: text("themes").array(),
+    /**
      * People the customer named, as they wrote them (P3-T4).
      *
      * Personal data about employees — see migration 0033 for what follows from
@@ -1403,7 +1465,7 @@ export const whatsappConversations = pgTable(
  * **Named `broadcasts`, not `campaigns`, and that is a deliberate deviation
  * from `docs/20`'s wording.** The product has used "campaign" since P1b-T1 for
  * a *collection strategy* — a location, a destination, a hosted page and a QR
- * code, labelled "Campaign name" on `/requests`. Two different things one
+ * code, labelled "Campaign name" on `/get-reviews`. Two different things one
  * screen apart, both called a campaign, is worse than a table whose name does
  * not match a sentence in a build plan. A broadcast *references* a campaign for
  * its review-request kind; it does not replace it.
@@ -1566,6 +1628,45 @@ export const agencyClients = pgTable(
  * would duplicate `contacts` and be able to disagree with it; the inbox is a
  * `DISTINCT ON (contact_id)` over this.
  */
+/**
+ * A messaging channel an organization has connected (W2.2).
+ *
+ * Deliberately **not** a `connections` row. That table is the review-source
+ * table — every row has a `locationId` because a source is polled per branch —
+ * and a WhatsApp Business Account is one account for the whole business. See
+ * migration 0046 for the full argument.
+ *
+ * There is no row for SMS and there should not be: SMS is provisioned by the
+ * *deployment* (`SMS_GATEWAY`), not by a business, so a row here would imply a
+ * connect flow that does not exist. `src/channels/registry.ts` is where that
+ * distinction is written down.
+ */
+export const channelConnections = pgTable(
+  "channel_connections",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    channel: messageChannelEnum("channel").notNull(),
+    status: connectionStatusEnum("status").notNull().default("pending"),
+    /** The provider's own id — a WhatsApp phone number id. Non-secret. */
+    externalId: text("external_id"),
+    /** What the business calls it, for the status card. */
+    displayName: text("display_name"),
+    config: jsonb("config").notNull().default({}),
+    /** Encrypted at the application layer — never plaintext. */
+    encryptedTokens: text("encrypted_tokens"),
+    /** Why the last attempt failed, so a card can say more than "error". */
+    lastError: text("last_error"),
+    connectedAt: timestamp("connected_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    unique("channel_connections_org_channel_key").on(table.organizationId, table.channel),
+  ],
+);
+
 export const messages = pgTable(
   "messages",
   {
@@ -2490,6 +2591,8 @@ export const TENANT_TABLES = [
   "survey_responses",
   "whatsapp_conversations",
   "messages",
+  "channel_connections",
+  "integration_requests",
   "broadcasts",
   "broadcast_recipients",
   "agency_clients",

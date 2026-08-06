@@ -12,6 +12,7 @@ import { getAdminDb } from "../db/client.ts";
 import { getEnv } from "../lib/env.ts";
 import { can, recordUsage, withinLimit, type MetricKey } from "../lib/entitlements.ts";
 import { childLogger } from "../lib/logger.ts";
+import { publicBaseUrl } from "../lib/urls.ts";
 import { withTenant, type TenantDatabase } from "../lib/tenancy.ts";
 import { sendMessage } from "../messaging/outbound.ts";
 import { deliverInvites, prepareInvites } from "../surveys/send.ts";
@@ -30,7 +31,7 @@ import type { TemplateName } from "../connectors/whatsapp/templates.ts";
  *
  * **The compliance gate runs here as well, and that is deliberate.** Surveys
  * and messages gate inside their own transports; review requests, sent directly
- * from `/requests` since P1b-T1, do not. Rather than change Phase 1's behaviour
+ * from `/get-reviews` since P1b-T1, do not. Rather than change Phase 1's behaviour
  * — which would stop review requests sending in every environment without an
  * İYS registry — a broadcast gates **every** recipient of **every** kind before
  * dispatching. So `docs/20`'s "İYS-compliant" holds for the unified send even
@@ -62,9 +63,15 @@ export type BroadcastOutcome = {
  * Metered per *channel*, because that is what actually costs money — an SMS
  * costs an SMS whatever it says. Email surveys are deliberately unmetered
  * (P4-T2's decision: `requests_per_month` is the review-request allowance and
- * spending it on surveys would take away something bought for another purpose),
- * and email review requests are metered inside `prepareRequests`, which has
- * done it since P1b-T1.
+ * spending it on surveys would take away something bought for another purpose).
+ *
+ * **A review request on WhatsApp or SMS is charged twice, to two different
+ * meters, and that is deliberate** (W2.2). `recordDelivery` has charged
+ * `requests_per_month` since P1b-T1 and now does so whatever the channel, while
+ * this adds the channel's own cost. They measure different things: one is "how
+ * many customers may this plan ask", the other is "how many conversations has
+ * it paid for". Charging only the channel meter would let ten thousand WhatsApp
+ * requests slip past the review-request allowance entirely.
  */
 export function meterFor(
   kind: "review_request" | "survey" | "message",
@@ -501,30 +508,90 @@ async function dispatch(
     return results;
   }
 
+  /**
+   * A review request now goes out on whichever channel the broadcast names
+   * (W2.2), and the two are addressed differently.
+   *
+   * **Email** may reach somebody we have never held, so the address is enough.
+   * **WhatsApp and SMS** cannot: consent is recorded against a person, so the
+   * recipient is the contact id and the gate is answerable. The audience is
+   * already a list of contacts either way — this only decides which of their
+   * fields identifies them.
+   */
+  const requestRecipients =
+    broadcast.channel === "email"
+      ? recipients
+      : allowed.map((contact) => ({ contactId: contact.id, name: contact.name }));
+
   const { prepared, context } = await withTenant({ organizationId }, (tx) =>
     prepareRequests(tx, {
       organizationId,
       campaignId: broadcast.campaignId as string,
-      recipients,
+      recipients: requestRecipients,
     }),
   );
 
-  const delivered = prepared.length > 0 ? await deliverRequests(prepared, context) : [];
+  /**
+   * A phone send needs the transaction; an email send must not hold one.
+   *
+   * `sendMessage` reads the consent record and the conversation window and
+   * writes the message log, none of which can be done outside a tenant context
+   * — while holding a transaction across a batch of SMTP round trips pins a
+   * pooled connection. The same split `sendReviewRequests` makes.
+   */
+  const delivered =
+    prepared.length === 0
+      ? []
+      : broadcast.channel === "email"
+        ? await deliverRequests(prepared, context)
+        : await withTenant({ organizationId }, (tx) =>
+            deliverRequests(prepared, context, publicBaseUrl(), { tx, organizationId }),
+          );
+
   await withTenant({ organizationId }, (tx) => recordDelivery(tx, organizationId, delivered, now));
 
-  const byRequest = new Map(
-    prepared.map((entry: PreparedRequest) => [entry.email, entry.requestId]),
+  /**
+   * Correlated by **request id**, not by address.
+   *
+   * The old map was keyed on the email, which quietly assumed every recipient
+   * had one — true while this was email-only and false the moment a WhatsApp
+   * broadcast reaches somebody addressed by phone. `PreparedRequest` carries
+   * the contact id, so the join no longer goes through a string that may not
+   * exist.
+   */
+  const contactOfRequest = new Map(
+    prepared.map((entry: PreparedRequest) => [entry.requestId, entry.contactId]),
   );
 
   const results: DispatchResult[] = [];
 
+  /**
+   * Everybody `prepareRequests` skipped, accounted for (W2.2).
+   *
+   * It skips a recipient with no address for the channel, and one who has
+   * opted out, without creating a request row — correctly, since no row should
+   * imply we meant to write. But that left them out of the broadcast's
+   * arithmetic entirely: not sent, not failed, not refused, simply absent. A
+   * WhatsApp broadcast over a segment collected by email reported an audience
+   * of three and three of nothing, which is the least useful screen possible.
+   */
+  const attempted = new Set(prepared.map((entry: PreparedRequest) => entry.contactId));
+
+  for (const contact of allowed) {
+    if (attempted.has(contact.id)) continue;
+    results.push({
+      contactId: contact.id,
+      ok: false,
+      reason: "No address for this channel, or they have opted out.",
+    });
+  }
+
   for (const result of delivered) {
-    const contactId = byEmail.get(result.email);
+    const contactId = contactOfRequest.get(result.requestId);
     if (!contactId) continue;
 
     if (result.ok) {
-      const requestId = byRequest.get(result.email);
-      results.push({ contactId, ok: true, ...(requestId ? { reviewRequestId: requestId } : {}) });
+      results.push({ contactId, ok: true, reviewRequestId: result.requestId });
     } else {
       results.push({ contactId, ok: false, reason: result.reason });
     }

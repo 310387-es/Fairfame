@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { rangeWindow } from "@/dashboard/range";
-import type { InsightFact } from "@/insights/facts";
+import type { InsightFact } from "@/analytics/facts";
 import {
   compareBy,
+  ratingHistogram,
   ratingTrend,
+  responsePercentiles,
   sentimentMix,
   sentimentTrend,
   staffMentions,
+  themeHeatmap,
   themeTrends,
   trendBuckets,
   volumeTrend,
-} from "@/insights/trends";
+} from "@/analytics/trends";
 
 /**
  * The arithmetic behind the Insights page (P3-T4).
@@ -38,6 +41,9 @@ const fact = (overrides: Partial<InsightFact> = {}): InsightFact => ({
   sentiment: "positive",
   sentimentScore: 0.8,
   topics: ["service"],
+  // Canonical themes are what `themeTrends` counts since W3.2 — `topics` is
+  // the free-text long tail and is no longer what gets charted.
+  themes: ["service"],
   staff: [],
   staffAnalysed: true,
   repliedAt: null,
@@ -152,27 +158,56 @@ describe("the rating trend", () => {
 });
 
 describe("the sentiment trend", () => {
-  it("averages the model's score rather than the share of positives", () => {
+  /**
+   * The line plots the **positive share**, 0–100 — not the mean signed score
+   * it used to (W3.3).
+   *
+   * `docs/remediation-plan.md` asks for signed floats to go everywhere, and it
+   * is right for a reason worth keeping: "−0,24" is a figure on a scale nobody
+   * outside this codebase has seen, and two branches at −0,24 and −0,31 are
+   * indistinguishable to everybody who is not the person who wrote the model
+   * prompt. "Seven in ten wrote something positive" is the same information in
+   * units a reader already owns — and it is the same quantity the split bars
+   * beside it draw, so the line and the bars now agree by construction.
+   */
+  it("plots the share of positives, not the average score", () => {
     const points = sentimentTrend(
-      [fact({ at: daysAgo(1), sentimentScore: 1 }), fact({ at: daysAgo(1), sentimentScore: 0 })],
+      [
+        fact({ at: daysAgo(1), sentiment: "positive" }),
+        fact({ at: daysAgo(1), sentiment: "negative" }),
+        fact({ at: daysAgo(1), sentiment: "negative" }),
+        fact({ at: daysAgo(1), sentiment: "neutral" }),
+      ],
       [],
       window7,
     );
 
-    expect(points.at(-1)!.value).toBe(0.5);
+    expect(points.at(-1)!.value).toBe(25);
   });
 
-  it("ignores reviews that have not been analysed yet", () => {
+  it("keeps un-analysed reviews out of the denominator", () => {
+    /**
+     * Counting them as not-positive would make a backlog of unanalysed text
+     * read as a collapse in mood — a chart that dives because the AI queue is
+     * behind, which is the most alarming possible way to report a queue depth.
+     */
     const points = sentimentTrend(
       [
-        fact({ at: daysAgo(1), sentimentScore: 0.5 }),
+        fact({ at: daysAgo(1), sentiment: "positive" }),
         fact({ at: daysAgo(1), sentiment: null, sentimentScore: null }),
       ],
       [],
       window7,
     );
 
-    expect(points.at(-1)!.value).toBe(0.5);
+    expect(points.at(-1)!.value).toBe(100);
+  });
+
+  it("is null, not zero, for a span with nothing analysed", () => {
+    // Nought per cent positive is a real and terrible result; "nobody has
+    // written anything we have read" is not the same statement.
+    const points = sentimentTrend([fact({ at: daysAgo(1), sentiment: null })], [], window7);
+    expect(points.at(-1)!.value).toBeNull();
   });
 });
 
@@ -189,27 +224,27 @@ describe("the volume trend", () => {
 
 describe("themes over time", () => {
   const current = [
-    fact({ at: daysAgo(1), topics: ["waiting time"], sentiment: "negative" }),
-    fact({ at: daysAgo(2), topics: ["waiting time"], sentiment: "negative" }),
-    fact({ at: daysAgo(3), topics: ["waiting time"], sentiment: "neutral" }),
-    fact({ at: daysAgo(1), topics: ["food"], sentiment: "positive" }),
-    fact({ at: daysAgo(2), topics: ["food"], sentiment: "positive" }),
-    fact({ at: daysAgo(3), topics: ["food"], sentiment: "positive" }),
-    fact({ at: daysAgo(4), topics: ["food"], sentiment: "positive" }),
+    fact({ at: daysAgo(1), themes: ["wait_time"], sentiment: "negative" }),
+    fact({ at: daysAgo(2), themes: ["wait_time"], sentiment: "negative" }),
+    fact({ at: daysAgo(3), themes: ["wait_time"], sentiment: "neutral" }),
+    fact({ at: daysAgo(1), themes: ["food_quality"], sentiment: "positive" }),
+    fact({ at: daysAgo(2), themes: ["food_quality"], sentiment: "positive" }),
+    fact({ at: daysAgo(3), themes: ["food_quality"], sentiment: "positive" }),
+    fact({ at: daysAgo(4), themes: ["food_quality"], sentiment: "positive" }),
   ];
   const previous = [
-    fact({ topics: ["waiting time"] }),
-    ...Array.from({ length: 4 }, () => fact({ topics: ["food"] })),
+    fact({ themes: ["wait_time"] }),
+    ...Array.from({ length: 4 }, () => fact({ themes: ["food_quality"] })),
   ];
 
   it("ranks by what moved, not by what is biggest", () => {
-    // "food" is the larger theme and did not change; "waiting time" tripled.
+    // "food_quality" is the larger theme and did not change; "wait_time" tripled.
     // A page that led with food would be reporting the weather.
     const trends = themeTrends(current, previous, window7);
 
-    expect(trends[0]!.theme).toBe("waiting time");
+    expect(trends[0]!.theme).toBe("wait_time");
     expect(trends[0]!.delta).toBe(200);
-    expect(trends[1]!.theme).toBe("food");
+    expect(trends[1]!.theme).toBe("food_quality");
     expect(trends[1]!.delta).toBe(0);
   });
 
@@ -222,7 +257,11 @@ describe("themes over time", () => {
   it("refuses a percentage against a base of nothing", () => {
     // Everything is up infinitely from zero, which is not a fact about a
     // business. Null, and the UI says "new".
-    const [brandNew] = themeTrends([fact({ at: daysAgo(1), topics: ["parking"] })], [], window7);
+    const [brandNew] = themeTrends(
+      [fact({ at: daysAgo(1), themes: ["location_access"] })],
+      [],
+      window7,
+    );
 
     expect(brandNew!.delta).toBeNull();
     expect(brandNew!.count).toBe(1);
@@ -230,23 +269,27 @@ describe("themes over time", () => {
 
   it("counts a review once per theme however often it says it", () => {
     const trends = themeTrends(
-      [fact({ at: daysAgo(1), topics: ["food", "food", "service"] })],
+      [fact({ at: daysAgo(1), themes: ["food_quality", "food_quality", "service"] })],
       [],
       window7,
     );
 
-    expect(trends.find((trend) => trend.theme === "food")!.count).toBe(1);
+    expect(trends.find((trend) => trend.theme === "food_quality")!.count).toBe(1);
   });
 
   it("falls back to volume when nothing moved, so a flat page still says something", () => {
-    const flat = [fact({ topics: ["a"] }), fact({ topics: ["b"] }), fact({ topics: ["b"] })];
+    const flat = [
+      fact({ themes: ["price"] }),
+      fact({ themes: ["staff"] }),
+      fact({ themes: ["staff"] }),
+    ];
     const trends = themeTrends(
       flat.map((f) => ({ ...f, at: daysAgo(1) })),
       flat,
       window7,
     );
 
-    expect(trends.map((trend) => trend.theme)).toEqual(["b", "a"]);
+    expect(trends.map((trend) => trend.theme)).toEqual(["staff", "price"]);
   });
 });
 
@@ -373,5 +416,168 @@ describe("the sentiment mix", () => {
     ]);
 
     expect(mix).toMatchObject({ positive: 1, negative: 1, neutral: 0, analysed: 2, pending: 1 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// W4.4
+// ---------------------------------------------------------------------------
+
+const window30 = rangeWindow("30d", NOW);
+
+describe("the theme heatmap", () => {
+  it("uses weekly columns on a month, where the trend chart uses days", () => {
+    /**
+     * The bug this fixes, pinned. `trendBuckets` switches to weeks only past
+     * thirty days — right for a line, and it gave the grid thirty columns about
+     * 28px wide with half the headers suppressed to stop them colliding. A grid
+     * wants as many columns as a person can read, not as many as it can get.
+     */
+    expect(trendBuckets(window30)).toHaveLength(30);
+    expect(themeHeatmap([], window30).buckets.length).toBeLessThanOrEqual(5);
+  });
+
+  it("falls back to days below a fortnight, because two columns is not a grid", () => {
+    expect(themeHeatmap([], window7).buckets).toHaveLength(7);
+  });
+
+  it("averages sentiment per theme per bucket", () => {
+    const rows = themeHeatmap(
+      [
+        fact({ at: daysAgo(1), themes: ["service"], sentimentScore: -0.8 }),
+        fact({ at: daysAgo(2), themes: ["service"], sentimentScore: -0.4 }),
+      ],
+      window7,
+    ).rows;
+
+    const cells = rows[0]!.cells.filter((cell) => cell.mentions > 0);
+    expect(rows[0]?.theme).toBe("service");
+    expect(rows[0]?.total).toBe(2);
+    expect(cells.map((cell) => cell.sentiment)).toEqual([-0.4, -0.8]);
+  });
+
+  it("reports an unmentioned bucket as null, never as zero", () => {
+    /**
+     * The load-bearing assertion. Zero is *neutral* on this scale, so a week
+     * nobody mentioned a theme rendered as neutral would fill the grid with
+     * grey claiming customers said something unremarkable — a much more
+     * comfortable statement than "nobody mentioned it".
+     */
+    const { rows } = themeHeatmap([fact({ at: daysAgo(1), themes: ["service"] })], window7);
+    const empty = rows[0]!.cells.filter((cell) => cell.mentions === 0);
+
+    expect(empty.length).toBeGreaterThan(0);
+    for (const cell of empty) expect(cell.sentiment).toBeNull();
+  });
+
+  it("counts an un-analysed mention but leaves it out of the average", () => {
+    // A fact carrying the theme and no sentiment is analysis half-finished;
+    // taking it as neutral would drag the cell toward the middle.
+    const { rows } = themeHeatmap(
+      [
+        fact({ at: daysAgo(1), themes: ["service"], sentimentScore: -1 }),
+        fact({ at: daysAgo(1), themes: ["service"], sentimentScore: null }),
+      ],
+      window7,
+    );
+
+    const cell = rows[0]!.cells.find((entry) => entry.mentions > 0)!;
+    expect(cell.mentions).toBe(2);
+    expect(cell.sentiment).toBe(-1);
+  });
+
+  it("ranks by total, not by movement", () => {
+    // `themeTrends` ranks by what moved because it answers "what changed".
+    // This answers "when", and a grid makes movement visible on its own —
+    // ordering by it would hide the biggest themes behind the noisiest.
+    const { rows } = themeHeatmap(
+      [
+        fact({ at: daysAgo(1), themes: ["price"] }),
+        fact({ at: daysAgo(2), themes: ["service"] }),
+        fact({ at: daysAgo(3), themes: ["service"] }),
+      ],
+      window7,
+    );
+
+    expect(rows.map((row) => row.theme)).toEqual(["service", "price"]);
+  });
+});
+
+describe("the rating histogram", () => {
+  it("returns all five buckets in order, including the empty ones", () => {
+    // A histogram missing its zeroes is a different shape, and the shape is
+    // the whole content.
+    const bars = ratingHistogram([fact({ rating: 5 })]);
+
+    expect(bars.map((bar) => bar.rating)).toEqual([5, 4, 3, 2, 1]);
+    expect(bars.map((bar) => bar.count)).toEqual([1, 0, 0, 0, 0]);
+  });
+
+  it("shares against rated reviews, not against everything", () => {
+    // An Instagram comment has no stars and is not a nought-star review;
+    // counting it in the denominator would understate every bar.
+    const bars = ratingHistogram([
+      fact({ rating: 5 }),
+      fact({ rating: 1 }),
+      fact({ rating: null }),
+    ]);
+
+    expect(bars[0]?.share).toBe(50);
+    expect(bars[4]?.share).toBe(50);
+  });
+
+  it("is all zeroes rather than NaN when nothing was rated", () => {
+    for (const bar of ratingHistogram([fact({ rating: null })])) {
+      expect(bar.count).toBe(0);
+      expect(bar.share).toBe(0);
+    }
+  });
+});
+
+describe("response percentiles", () => {
+  const answered = (hours: number) =>
+    fact({
+      at: new Date("2026-07-20T00:00:00Z"),
+      repliedAt: new Date(Date.parse("2026-07-20T00:00:00Z") + hours * 3_600_000),
+    });
+
+  it("uses nearest-rank rather than interpolating", () => {
+    /**
+     * With ten samples an interpolated p90 invents a duration nobody waited,
+     * and these numbers get quoted at customers. Nearest-rank always returns a
+     * wait somebody actually had.
+     */
+    const times = responsePercentiles([1, 2, 3, 4, 5, 6, 7, 8, 9, 100].map(answered));
+
+    expect(times.p50).toBe(5);
+    expect(times.p90).toBe(9);
+  });
+
+  it("counts the unanswered beside the percentiles rather than inside them", () => {
+    // A percentile over a set containing "never" is not a duration — it is
+    // undefined past whatever share never got a reply.
+    const times = responsePercentiles([answered(2), fact({ repliedAt: null })]);
+
+    expect(times.answered).toBe(1);
+    expect(times.unanswered).toBe(1);
+    expect(times.p90).toBe(2);
+  });
+
+  it("clamps a reply timestamped before its review rather than dropping it", () => {
+    // Clock skew. Dropping it would quietly shrink the denominator.
+    const skewed = fact({
+      at: new Date("2026-07-20T10:00:00Z"),
+      repliedAt: new Date("2026-07-20T09:00:00Z"),
+    });
+
+    expect(responsePercentiles([skewed])).toMatchObject({ p50: 0, answered: 1, unanswered: 0 });
+  });
+
+  it("is null throughout when nothing was answered", () => {
+    const times = responsePercentiles([fact({ repliedAt: null })]);
+
+    expect(times.p50).toBeNull();
+    expect(times.p90).toBeNull();
+    expect(times.unanswered).toBe(1);
   });
 });

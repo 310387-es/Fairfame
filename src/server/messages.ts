@@ -107,7 +107,7 @@ export async function sendMessageAction(input: unknown): Promise<SendMessageResu
       { minimumRole: "member" },
     );
 
-    revalidatePath("/messages");
+    revalidatePath("/conversations");
     revalidatePath(`/contacts/${data.contactId}`);
 
     return outcome.ok

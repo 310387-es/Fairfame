@@ -118,7 +118,7 @@ describe("the alert email", () => {
     authorName: "Mehmet",
     excerpt: "Servis çok yavaştı.",
     urgent: true,
-    link: "https://app.example.com/inbox?review=1",
+    link: "https://app.example.com/reviews?review=1",
     settingsUrl: "https://app.example.com/settings#notifications",
   } as const;
 

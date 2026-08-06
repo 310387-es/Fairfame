@@ -4,13 +4,13 @@ import type { Role } from "../auth/permissions.ts";
 import { getAdminDb, schema } from "../db/client.ts";
 import type { RangeWindow } from "../dashboard/range.ts";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/config.ts";
-import { loadInsightFacts, type InsightFacts } from "../insights/facts.ts";
+import { loadInsightFacts, type InsightFacts } from "../analytics/facts.ts";
 import {
   compareBy,
   themeTrends,
   type Comparison,
   type GroupComparison,
-} from "../insights/trends.ts";
+} from "../analytics/trends.ts";
 import { childLogger } from "../lib/logger.ts";
 import { withTenant, type TenantDatabase } from "../lib/tenancy.ts";
 import { dashboardUrl } from "../lib/urls.ts";
@@ -466,8 +466,8 @@ export async function runScheduledReports(
         reviewCount: composed.reviewCount,
         averageRating: composed.averageRating,
         repliedShare: composed.repliedShare,
-        link: dashboardUrl("/insights"),
-        settingsUrl: dashboardUrl("/insights"),
+        link: dashboardUrl("/analytics"),
+        settingsUrl: dashboardUrl("/analytics"),
         attachmentName: filename,
       });
 

@@ -14,6 +14,7 @@ import {
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { ActionCard } from "@/components/digest/action-card";
+import { CompletionRecordCard } from "@/components/digest/completion-record";
 import { CopyButton } from "@/components/digest/copy-button";
 import { PulseTile } from "@/components/digest/pulse-tile";
 import { Eyebrow } from "@/components/ds/eyebrow";
@@ -22,7 +23,7 @@ import { SectionCard } from "@/components/ds/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatChange } from "@/digest/change-text";
-import type { DigestView as Digest } from "@/digest/queries";
+import type { CompletionRecord, DigestView as Digest } from "@/digest/queries";
 import { cn } from "@/lib/utils";
 
 /**
@@ -55,7 +56,19 @@ function ChangeIcon({ direction }: { direction: number }) {
   );
 }
 
-export async function DigestView({ digest }: { digest: Digest }) {
+export async function DigestView({
+  digest,
+  record,
+}: {
+  digest: Digest;
+  /**
+   * The running completion record (W2.1), or null where the caller has not
+   * read one. Optional rather than required because it is a *live* count and
+   * this component otherwise renders entirely from the stored digest — a
+   * surface that cannot query, such as the email, has nothing to pass.
+   */
+  record?: CompletionRecord | null;
+}) {
   const [t, format] = await Promise.all([getTranslations("digest"), getFormatter()]);
   const payload = digest.payload;
 
@@ -72,6 +85,22 @@ export async function DigestView({ digest }: { digest: Digest }) {
    * sentences and "0 reviews on" under each action — is what this replaces.
    */
   const insufficient = payload.insufficient;
+
+  /**
+   * Every quote in the payload, by review id (W2.1).
+   *
+   * Built once for the whole page rather than per card: the same review can be
+   * cited by two actions, and looking it up twice would be two scans of every
+   * theme. `quotesFor` already ordered these worst-first, so a card showing two
+   * of them shows the two that most deserve answering.
+   */
+  const quoteById = new Map(
+    payload.themes.flatMap((theme) =>
+      theme.quotes.map(
+        (quote) => [quote.reviewId, { text: quote.text, rating: quote.rating }] as const,
+      ),
+    ),
+  );
   const changes = payload.changes.map((change) => ({
     direction: change.direction,
     text: formatChange(change, (key, values) => t(key, values)),
@@ -129,7 +158,7 @@ export async function DigestView({ digest }: { digest: Digest }) {
               {/* Somewhere to go, not just an apology: the reviews are in the
                   Inbox whether or not we managed to say anything about them. */}
               <Link
-                href="/inbox"
+                href="/reviews"
                 className="inline-flex w-fit items-center gap-1.5 rounded-sm text-body font-medium text-on-ink underline underline-offset-2"
               >
                 {t("thinWeekLink")}
@@ -189,6 +218,15 @@ export async function DigestView({ digest }: { digest: Digest }) {
                   status={action.status}
                   themeSlug={evidence.themeSlug}
                   reviewCount={evidence.reviewIds.length}
+                  locationId={digest.locationId}
+                  reviewIds={evidence.reviewIds}
+                  // Two, from the quotes the payload already carries — no
+                  // second read, and guaranteed to be the same text the model
+                  // was shown when it wrote the recommendation above.
+                  quotes={evidence.reviewIds
+                    .map((id) => quoteById.get(id))
+                    .filter((quote): quote is NonNullable<typeof quote> => quote !== undefined)
+                    .slice(0, 2)}
                 />
               );
             })}
@@ -196,8 +234,17 @@ export async function DigestView({ digest }: { digest: Digest }) {
         </section>
       ) : null}
 
-      {/* What moved, and the loop from last week. */}
-      {changes.length > 0 || payload.priorActionsOutcome ? (
+      {/*
+        What moved, the loop from last week, and the running record.
+
+        Two different measurements sit side by side here on purpose, and the
+        difference is worth knowing when reading them: "Since last week" is a
+        *snapshot*, written into the payload when this briefing was composed and
+        true as of that moment forever after. "Your record" is read live and
+        moves the instant somebody ticks a box. On a fresh digest they agree; on
+        a three-month-old one in the archive they will not, and both are right.
+      */}
+      {changes.length > 0 || payload.priorActionsOutcome || record ? (
         <section className="grid gap-(--grid-gap) md:grid-cols-2">
           {changes.length > 0 ? (
             <SectionCard title={t("changesTitle")} icon={ArrowUpDown}>
@@ -238,6 +285,8 @@ export async function DigestView({ digest }: { digest: Digest }) {
               ) : null}
             </SectionCard>
           ) : null}
+
+          {record ? <CompletionRecordCard record={record} /> : null}
         </section>
       ) : null}
 
@@ -313,7 +362,7 @@ export async function DigestView({ digest }: { digest: Digest }) {
                 </p>
 
                 <Button asChild variant="outline" size="sm" className="mt-3 self-start">
-                  <Link href="/inbox">
+                  <Link href="/reviews">
                     {t("openInbox")}
                     <ArrowRight aria-hidden />
                   </Link>

@@ -40,13 +40,6 @@ export const broadcastInputSchema = z
     message: "A message broadcast needs a template.",
     path: ["templateName"],
   })
-  .refine((value) => value.kind !== "review_request" || value.channel === "email", {
-    // The only channel review requests can go out on today (P1b-T1), and the
-    // check belongs here rather than in the worker: a broadcast that cannot
-    // possibly send should not be creatable.
-    message: "Review requests can only be sent by email.",
-    path: ["channel"],
-  })
   .refine((value) => value.kind !== "survey" || value.channel === "email", {
     message: "Surveys can only be sent by email.",
     path: ["channel"],

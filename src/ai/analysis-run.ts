@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
-import { refreshPriority } from "../inbox/workflow.ts";
+import { refreshPriority } from "../reviews/workflow.ts";
 import { getEnv } from "../lib/env.ts";
 import { childLogger } from "../lib/logger.ts";
 import { createPacer } from "../lib/pacer.ts";
@@ -44,6 +44,8 @@ export type AnalysisTarget = {
   id: string;
   text: string | null;
   rating: number | null;
+  /** The location's vertical — narrows the canonical themes offered (W3.2). */
+  category?: string | null;
 };
 
 export type BatchOptions = {
@@ -108,8 +110,17 @@ export async function selectTargets(
 
   if (recompute) {
     return tx
-      .select({ id: schema.reviews.id, text: schema.reviews.text, rating: schema.reviews.rating })
+      .select({
+        id: schema.reviews.id,
+        text: schema.reviews.text,
+        rating: schema.reviews.rating,
+        // The business's vertical, which narrows the canonical themes offered
+        // to the model (W3.2). Joined rather than looked up per review: a batch
+        // of five hundred would otherwise be five hundred extra queries.
+        category: schema.locations.category,
+      })
       .from(schema.reviews)
+      .innerJoin(schema.locations, eq(schema.locations.id, schema.reviews.locationId))
       .where(scope)
       .limit(limit);
   }
@@ -118,8 +129,14 @@ export async function selectTargets(
   // comparison is what makes a re-run after an edited review do the right
   // thing without re-analyzing everything else.
   return tx
-    .select({ id: schema.reviews.id, text: schema.reviews.text, rating: schema.reviews.rating })
+    .select({
+      id: schema.reviews.id,
+      text: schema.reviews.text,
+      rating: schema.reviews.rating,
+      category: schema.locations.category,
+    })
     .from(schema.reviews)
+    .innerJoin(schema.locations, eq(schema.locations.id, schema.reviews.locationId))
     .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
     .where(
       and(
@@ -204,6 +221,7 @@ export async function analyzeBatch(options: BatchOptions): Promise<BatchResult> 
           actorUserId: options.actorUserId ?? null,
           text: target.text,
           rating: target.rating,
+          category: target.category,
           provider,
         });
 
@@ -266,6 +284,7 @@ export async function analyzeBatch(options: BatchOptions): Promise<BatchResult> 
         sentiment: analysis.sentiment,
         sentimentScore: analysis.sentimentScore,
         topics: analysis.topics,
+        themes: analysis.themes,
         staff: analysis.staff,
         language: analysis.language,
         embedding: embeddingsByReview.get(reviewId) ?? null,

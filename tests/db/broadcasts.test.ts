@@ -10,7 +10,7 @@ import { currentPeriod } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
 import { meterFor, runBroadcast, runDueBroadcasts } from "@/broadcasts/pipeline";
 import { resolveAudience } from "@/broadcasts/audience";
-import { listRecipients } from "@/broadcasts/store";
+import { broadcastInputSchema, listRecipients } from "@/broadcasts/store";
 import { subscribeToPlanWith } from "./plan-fixture";
 
 /**
@@ -317,7 +317,7 @@ describe("sends are consent-gated", () => {
 
   it("gates review requests, which the direct send does not", async () => {
     /**
-     * The point of gating in the pipeline. `/requests` has sent review-request
+     * The point of gating in the pipeline. `/get-reviews` has sent review-request
      * email since P1b-T1 without an İYS check; changing that would stop review
      * requests sending in every environment without a registry. A *broadcast*
      * gates every kind, so `docs/20`'s "İYS-compliant" holds for the unified
@@ -328,6 +328,7 @@ describe("sends are consent-gated", () => {
 
     // No gateway installed in this test, so a review-request broadcast is
     // refused — which the equivalent direct send would not be.
+    console.log("OUTCOME", JSON.stringify(outcome));
     expect(outcome.sent).toBe(0);
     expect(outcome.audience).toBeGreaterThan(0);
   });
@@ -618,6 +619,108 @@ describe("delivery and conversion", () => {
       );
       expect(after.filter((row) => row.converted)).toHaveLength(1);
     }
+  });
+});
+
+/**
+ * A review request over WhatsApp (W2.2).
+ *
+ * The constraint this replaces was a schema refinement — "Review requests can
+ * only be sent by email" — which meant such a broadcast could not even be
+ * *saved*. It is gone because `prepareRequests` learned the other channels;
+ * what stops a message now is the audience (has anybody a number?) and then the
+ * gate, per recipient, at send time.
+ */
+describe("a review-request broadcast on WhatsApp", () => {
+  async function queueWhatsApp(): Promise<string> {
+    const [row] = await getAdminDb()
+      .insert(schema.broadcasts)
+      .values({
+        organizationId: alpha.orgId,
+        name: `WhatsApp yorum talebi ${Math.random().toString(36).slice(2, 8)}`,
+        kind: "review_request",
+        channel: "whatsapp",
+        segmentId: alpha.segmentId,
+        audience: contactFiltersToRecord(EMPTY_CONTACT_FILTERS),
+        campaignId: alpha.campaignId,
+        status: "draft",
+        createdByUserId: alpha.admin,
+      })
+      .returning({ id: schema.broadcasts.id });
+
+    return row!.id;
+  }
+
+  it("can be saved at all, which the schema used to forbid", async () => {
+    // The point of the change, stated on its own: describing the send is now
+    // possible, and whether it may *leave* is decided later and per person.
+    expect(
+      broadcastInputSchema.safeParse({
+        name: "WhatsApp talebi",
+        kind: "review_request",
+        channel: "whatsapp",
+        segmentId: alpha.segmentId,
+        campaignId: alpha.campaignId,
+        surveyId: null,
+        templateName: null,
+        templateValues: [],
+        scheduledAt: null,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("abandons with a reason when nobody in the audience has a number", async () => {
+    /**
+     * The commonest real case, and the one worth a sentence rather than a zero:
+     * a segment collected by email, sent on WhatsApp. Abandoning says *why*,
+     * where "0 sent" would leave somebody checking their template.
+     */
+    setIysGateway(createLocalGateway("test"));
+    const broadcastId = await queueWhatsApp();
+
+    const outcome = await runBroadcast(alpha.orgId, broadcastId);
+
+    expect(outcome.audience).toBe(0);
+    expect(outcome.sent).toBe(0);
+    expect(outcome.abandoned).toBeTruthy();
+  });
+
+  it("runs, and is refused per recipient, once somebody has a number", async () => {
+    setIysGateway(createLocalGateway("test"));
+
+    // One contact gains a phone, so the audience is no longer empty and the
+    // send reaches the gate — which is the path this task added.
+    await getAdminDb()
+      .update(schema.contacts)
+      .set({ phone: `9053${Math.floor(Math.random() * 900000 + 100000)}` })
+      .where(eq(schema.contacts.id, alpha.ayse));
+
+    const broadcastId = await queueWhatsApp();
+    const outcome = await runBroadcast(alpha.orgId, broadcastId);
+
+    expect(outcome.audience).toBe(1);
+    // Nothing leaves — there is no WhatsApp client in a test environment — but
+    // the recipient is *accounted for* with a reason rather than vanishing.
+    expect(outcome.sent).toBe(0);
+    expect(outcome.failed + outcome.refused).toBe(1);
+
+    const recipients = await getAdminDb()
+      .select({
+        status: schema.broadcastRecipients.status,
+        reason: schema.broadcastRecipients.refusalReason,
+      })
+      .from(schema.broadcastRecipients)
+      .where(eq(schema.broadcastRecipients.broadcastId, broadcastId));
+
+    expect(recipients).toHaveLength(1);
+    expect(recipients[0]?.status).not.toBe("sent");
+    expect(recipients[0]?.reason ?? "").not.toBe("");
+
+    // Left as it was found, so the fixture's other assertions still hold.
+    await getAdminDb()
+      .update(schema.contacts)
+      .set({ phone: null })
+      .where(eq(schema.contacts.id, alpha.ayse));
   });
 });
 

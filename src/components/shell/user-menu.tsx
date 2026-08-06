@@ -19,7 +19,7 @@ import {
 /**
  * The account menu, and — since P4-T5 — the organization switcher.
  *
- * **It exists because the agency console was one-way.** "Open" on `/clients`
+ * **It exists because the agency console was one-way.** "Open" on `/agency`
  * switched an agency into a client and nothing switched back, so somebody
  * belonging to several organizations could reach a client and be stuck in it.
  * That was invisible while every account had exactly one organization.
@@ -99,7 +99,7 @@ export function UserMenu({
                       // exist on the other organization's plan, and landing on
                       // a locked card after a switch reads as a broken switch.
                       if (result.ok) {
-                        router.push("/home");
+                        router.push("/dashboard");
                         router.refresh();
                       }
                     });

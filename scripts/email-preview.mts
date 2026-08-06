@@ -9,7 +9,7 @@
  * is a URL away; a template only renders when the event behind it happens, so
  * reviewing the digest meant waiting a week and reviewing an SLA rollup meant
  * letting deadlines lapse. The result was predictable: a rollup shipped with
- * blank fields and a link to `/inbox?review=undefined`, and nobody saw it
+ * blank fields and a link to `/reviews?review=undefined`, and nobody saw it
  * because nobody could.
  *
  * Everything below is rendered by the **real** template functions with
@@ -123,7 +123,7 @@ const SAMPLES: Sample[] = [
         excerpt: "Kahvesi harikaydı, personel çok ilgiliydi. Kesinlikle tekrar geleceğim.",
         urgent: false,
         reason: "arrived",
-        link: "http://localhost:3000/inbox?review=demo-1",
+        link: "http://localhost:3000/reviews?review=demo-1",
         settingsUrl: SETTINGS_URL,
       }),
   },
@@ -141,7 +141,7 @@ const SAMPLES: Sample[] = [
         excerpt: "Servis çok yavaştı, yarım saat bekledik ve kimse ilgilenmedi.",
         urgent: true,
         reason: "arrived",
-        link: "http://localhost:3000/inbox?review=demo-2",
+        link: "http://localhost:3000/reviews?review=demo-2",
         settingsUrl: SETTINGS_URL,
       }),
   },
@@ -162,7 +162,7 @@ const SAMPLES: Sample[] = [
         excerpt: "Manzarası çok güzel, tatlıları da denemeye değer.",
         urgent: false,
         reason: "assigned",
-        link: "http://localhost:3000/inbox?review=demo-3",
+        link: "http://localhost:3000/reviews?review=demo-3",
         settingsUrl: SETTINGS_URL,
       }),
   },
@@ -176,7 +176,7 @@ const SAMPLES: Sample[] = [
         locationName: LOCATION,
         count: 23,
         kind: "sla",
-        link: "http://localhost:3000/inbox?overdue=1",
+        link: "http://localhost:3000/reviews?overdue=1",
         settingsUrl: SETTINGS_URL,
       }),
   },
@@ -190,7 +190,7 @@ const SAMPLES: Sample[] = [
         locationName: LOCATION,
         count: 12,
         kind: "assignment",
-        link: "http://localhost:3000/inbox?assignee=me",
+        link: "http://localhost:3000/reviews?assignee=me",
         settingsUrl: SETTINGS_URL,
       }),
   },
@@ -205,25 +205,58 @@ const SAMPLES: Sample[] = [
         periodStart: new Date("2026-07-27T00:00:00Z"),
         // Exclusive, so the copy prints through the 2nd. Not an off-by-one.
         periodEnd: new Date("2026-08-03T00:00:00Z"),
-        pulseScore: 4.3,
-        pulseDelta: 0.4,
+        // The pulse is a 0–100 score, not a star average. This fixture said 4.3
+        // and the template prints "/100", so every preview of the product's
+        // hero email has read "İtibar nabzı: 4/100" — a catastrophe, in the one
+        // place the email is ever looked at (W2.1).
+        pulseScore: 86.2,
+        pulseDelta: 5.2,
         reviewCount: 31,
         headline: "Servis hızı bu hafta tek başına en çok şikâyet edilen konu.",
         summary:
           "Puan ortalaması yükseldi ama olumsuz yorumların çoğu aynı şeyi söylüyor: yoğun " +
           "saatlerde bekleme süresi. Kahve ve personel övgü almaya devam ediyor.",
+        // Each with its evidence, as the pipeline now stores it: a customer's
+        // own words and a link to exactly the reviews behind the sentence.
         actions: [
-          { position: 1, text: "Hafta içi 12:00–14:00 arasında bir kişi daha görevlendirin." },
-          { position: 2, text: "Bekleyen 4 olumsuz yoruma bugün yanıt verin." },
-          { position: 3, text: "Otopark yönlendirmesini kapı girişine ekleyin." },
+          {
+            position: 1,
+            text: "Hafta içi 12:00–14:00 arasında bir kişi daha görevlendirin.",
+            quote: {
+              text: "Öğlen 12'de girdik, siparişi almaları yirmi dakika sürdü. Yemek güzeldi ama bir daha o saatte gelmem.",
+              rating: 2,
+            },
+            reviewCount: 4,
+            link: "http://localhost:3000/reviews?location=demo&reviews=r1,r2,r3,r4",
+          },
+          {
+            position: 2,
+            text: "Bekleyen 4 olumsuz yoruma bugün yanıt verin.",
+            quote: {
+              text: "Şikâyetimi yazdım, kimse dönmedi. En azından bir cevap beklerdim.",
+              rating: 1,
+            },
+            reviewCount: 4,
+            link: "http://localhost:3000/reviews?location=demo&reviews=r5,r6,r7,r8",
+          },
+          {
+            // No citation: a digest composed before W1.6 stored none, and the
+            // sentence is still worth sending. The card must degrade, not vanish.
+            position: 3,
+            text: "Otopark yönlendirmesini kapı girişine ekleyin.",
+            quote: null,
+            reviewCount: 0,
+            link: null,
+          },
         ],
         themes: [
           { label: "Servis hızı", count: 11, positive: 2, negative: 9 },
           { label: "Kahve kalitesi", count: 9, positive: 9, negative: 0 },
           { label: "Otopark", count: 5, positive: 1, negative: 4 },
         ],
+        priorOutcome: { done: 2, total: 3 },
         heldCount: 6,
-        link: "http://localhost:3000/digest/demo",
+        link: "http://localhost:3000/weekly-plan/demo",
         settingsUrl: SETTINGS_URL,
       }),
   },
@@ -249,8 +282,8 @@ const SAMPLES: Sample[] = [
         reviewCount: 31,
         averageRating: locale === "tr" ? "4,3" : "4.3",
         repliedShare: locale === "tr" ? "%82" : "82%",
-        link: "http://localhost:3000/insights",
-        settingsUrl: "http://localhost:3000/insights",
+        link: "http://localhost:3000/analytics",
+        settingsUrl: "http://localhost:3000/analytics",
         attachmentName: copy.filename(`${BUSINESS} ${LOCATION}`, period.start),
       });
     },

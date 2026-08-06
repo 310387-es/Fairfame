@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { DashboardFacts, ReviewFact } from "@/dashboard/facts";
 import {
+  computeBranches,
   computeKpis,
   computeRatingDistribution,
+  computeResponseDistribution,
   computeResponseTimes,
   computeSentiment,
   computeSeries,
@@ -11,7 +13,7 @@ import {
   isImprovement,
 } from "@/dashboard/metrics";
 import { rangeWindow, SPARKLINE_BUCKETS } from "@/dashboard/range";
-import { computePulse } from "@/digest/metrics";
+import { computePulse, rawPulse } from "@/digest/metrics";
 
 /**
  * The four headline numbers.
@@ -32,6 +34,9 @@ function fact(overrides: Partial<ReviewFact> & { at: Date }): ReviewFact {
 
   return {
     reviewId: `review-${counter}`,
+    // Everything in a single-branch fixture belongs to the same branch; the
+    // per-branch tests build their own facts with real ids (W4.3).
+    locationId: "branch-1",
     source: "google",
     itemType: "review",
     rating: null,
@@ -54,7 +59,9 @@ function daysAgo(days: number): Date {
 }
 
 function facts(current: ReviewFact[], previous: ReviewFact[] = []): DashboardFacts {
-  return { current, previous };
+  // The ninety-day baseline the reputation score is smoothed toward (W3.3).
+  // Both windows together is what a fixture has; a real load reaches further.
+  return { current, previous, baseline: [...current, ...previous] };
 }
 
 describe("average rating", () => {
@@ -204,10 +211,18 @@ describe("reputation", () => {
       fact({ at: daysAgo(2), rating: 2, sentimentScore: -0.6 }),
     ];
 
-    // Home and the digest must never report two different scores for the same
-    // reviews, so this asserts identity with the shared function rather than a
-    // hard-coded number that could drift from it.
-    expect(computeKpis(facts(rows), WINDOW).reputation.value).toBe(computePulse(rows));
+    /**
+     * Home and the digest must never report two different scores for the same
+     * reviews, so this asserts identity with the shared function rather than a
+     * hard-coded number that could drift from it.
+     *
+     * The prior is passed explicitly because that is what the dashboard does
+     * (W3.3): the score is smoothed toward the ninety-day baseline, and
+     * comparing against the *unsmoothed* blend would assert that Home ignores
+     * the smoothing — the opposite of what this test is for.
+     */
+    const prior = rawPulse(rows);
+    expect(computeKpis(facts(rows), WINDOW).reputation.value).toBe(computePulse(rows, { prior }));
   });
 });
 
@@ -484,5 +499,136 @@ describe("response time", () => {
 
     // Clock skew between a platform and us, not a reply sent before the review.
     expect(times.medianHours).toBe(0);
+  });
+});
+
+describe("the response-time distribution (W4.3)", () => {
+  const answered = (hours: number) =>
+    fact({
+      at: new Date("2026-08-01T00:00:00Z"),
+      repliedAt: new Date(Date.parse("2026-08-01T00:00:00Z") + hours * 3_600_000),
+    });
+
+  const bucket = (rows: DashboardFacts, key: string) =>
+    computeResponseDistribution(rows).find((entry) => entry.key === key);
+
+  it("puts each wait in the bucket its promise belongs to", () => {
+    const rows = facts([answered(0.5), answered(6), answered(48), answered(200)]);
+
+    expect(bucket(rows, "under_hour")?.count).toBe(1);
+    expect(bucket(rows, "under_day")?.count).toBe(1);
+    expect(bucket(rows, "under_three_days")?.count).toBe(1);
+    expect(bucket(rows, "slower")?.count).toBe(1);
+  });
+
+  it("counts the unanswered rather than leaving them out", () => {
+    /**
+     * The assertion the card exists for. A queue that never got a reply is the
+     * worst response time there is, and a distribution drawn over answered
+     * reviews only is the same flattery as measuring satisfaction among the
+     * people who did not leave.
+     */
+    const rows = facts([answered(2), fact({ at: new Date("2026-08-01T00:00:00Z") })]);
+
+    expect(bucket(rows, "unanswered")?.count).toBe(1);
+    expect(bucket(rows, "unanswered")?.share).toBe(50);
+  });
+
+  it("keeps its empty buckets", () => {
+    // A distribution missing them reads as a different shape entirely.
+    expect(computeResponseDistribution(facts([answered(2)]))).toHaveLength(5);
+  });
+
+  it("treats a reply timestamped before its review as instant, not negative", () => {
+    // Clock skew, clamped — the same rule `computeResponseTimes` applies.
+    const skewed = fact({
+      at: new Date("2026-08-01T10:00:00Z"),
+      repliedAt: new Date("2026-08-01T09:00:00Z"),
+    });
+
+    expect(bucket(facts([skewed]), "under_hour")?.count).toBe(1);
+  });
+
+  it("shares nothing rather than dividing by zero", () => {
+    for (const entry of computeResponseDistribution(facts([]))) {
+      expect(entry.share).toBe(0);
+      expect(entry.count).toBe(0);
+    }
+  });
+});
+
+describe("the branch comparison strip (W4.3)", () => {
+  const at = (locationId: string, overrides: Partial<ReviewFact> = {}) =>
+    fact({ at: new Date("2026-08-01T00:00:00Z"), locationId, ...overrides });
+
+  it("slices the same facts the headline numbers were computed from", () => {
+    /**
+     * The whole reason `locationId` is carried on a fact. A per-branch query
+     * would be a second definition of "this month's rating", and the two would
+     * disagree the first time somebody changed one of them.
+     */
+    const rows = computeBranches(
+      facts([at("a", { rating: 5 }), at("a", { rating: 3 }), at("b", { rating: 1 })]),
+      ["a", "b"],
+    );
+
+    expect(rows[0]?.rating).toBe(4);
+    expect(rows[1]?.rating).toBe(1);
+    expect(rows[0]?.volume).toBe(2);
+  });
+
+  it("reports null, not zero, for a branch with nothing rated", () => {
+    // A branch with no rated reviews did not score nought stars.
+    const rows = computeBranches(facts([at("a", { rating: null })]), ["a"]);
+
+    expect(rows[0]?.rating).toBeNull();
+    expect(rows[0]?.ratingDelta).toBeNull();
+    expect(rows[0]?.volume).toBe(1);
+  });
+
+  it("returns a row for a branch with nothing at all", () => {
+    // Otherwise a quiet branch vanishes from the comparison, which is the one
+    // reading a comparison must never allow.
+    const rows = computeBranches(facts([at("a", { rating: 4 })]), ["a", "b"]);
+
+    expect(rows).toHaveLength(2);
+    expect(rows[1]?.volume).toBe(0);
+    expect(rows[1]?.rating).toBeNull();
+  });
+
+  it("withholds a volume delta from zero", () => {
+    // 0 → 5 is not "500% up", it is "five where there were none" — the same
+    // rule `percentChange` applies to the headline KPI.
+    const rows = computeBranches(facts([at("a"), at("a")], []), ["a"]);
+    expect(rows[0]?.volumeDelta).toBeNull();
+  });
+
+  it("compares a branch against its own previous window", () => {
+    const rows = computeBranches(
+      facts([at("a", { rating: 5 })], [at("a", { rating: 3 }), at("b", { rating: 1 })]),
+      ["a"],
+    );
+
+    expect(rows[0]?.ratingDelta).toBe(2);
+  });
+
+  it("counts a branch's unanswered and takes the median of what was answered", () => {
+    const rows = computeBranches(
+      facts([
+        at("a", { repliedAt: new Date("2026-08-01T02:00:00Z") }),
+        at("a", { repliedAt: new Date("2026-08-01T06:00:00Z") }),
+        at("a"),
+      ]),
+      ["a"],
+    );
+
+    expect(rows[0]?.unanswered).toBe(1);
+    expect(rows[0]?.medianResponseHours).toBe(4);
+  });
+
+  it("keeps the caller's order rather than sorting", () => {
+    // Sorting here would fix an order the reader is meant to choose on screen.
+    const rows = computeBranches(facts([at("a"), at("b"), at("b")]), ["b", "a"]);
+    expect(rows.map((row) => row.locationId)).toEqual(["b", "a"]);
   });
 });

@@ -4,6 +4,7 @@ import { Check, Loader2, RotateCcw, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useTransition } from "react";
+import { Stars } from "@/components/ds/stars";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,17 @@ import { setDigestActionStatusAction } from "@/server/digests";
  * A closed action stays visible, struck through rather than removed. Watching
  * the list empty is the reward, and a vanished item leaves the owner wondering
  * whether they imagined it.
+ *
+ * **It carries its evidence (W2.1).** The card used to say "3 reviews on
+ * servis" and link to `?theme=servis` — which is "reviews *like* these", not
+ * "these three". An owner reading a recommendation asks two questions in order:
+ * *who said that* and *show me*. So the card now answers the first in place,
+ * with two of the customer's own sentences, and the second with a link pinned
+ * to exactly the reviews the model cited when it wrote the sentence above.
+ *
+ * Two quotes, not all of them: the point is to make the claim checkable at a
+ * glance, and a card that unrolls into nine reviews is the Inbox with extra
+ * steps. The link is there for the rest.
  */
 
 export type ActionCardProps = {
@@ -29,6 +41,12 @@ export type ActionCardProps = {
   status: "open" | "done" | "dismissed";
   themeSlug: string;
   reviewCount: number;
+  /** Where the cited reviews live — the link has to name the branch. */
+  locationId: string;
+  /** Exactly what the model cited. Drives the link, not just the count. */
+  reviewIds: string[];
+  /** Two of them, verbatim. Empty when the analysis predates evidence. */
+  quotes: { text: string; rating: number | null }[];
 };
 
 export function ActionCard({
@@ -38,6 +56,9 @@ export function ActionCard({
   status,
   themeSlug,
   reviewCount,
+  locationId,
+  reviewIds,
+  quotes,
 }: ActionCardProps) {
   const t = useTranslations("digest");
   const [pending, startTransition] = useTransition();
@@ -84,13 +105,41 @@ export function ActionCard({
           {text}
         </p>
 
+        {/*
+          The customer's own words, not ours. A recommendation an owner cannot
+          trace back to somebody who actually said it reads as an opinion, and
+          the whole argument for the digest is that it is not one.
+        */}
+        {quotes.length > 0 ? (
+          <ul className="flex flex-col gap-1.5 border-l-2 border-line pl-3">
+            {quotes.map((quote) => (
+              <li key={quote.text} className="text-copy text-pretty text-ink-400 italic">
+                {quote.rating !== null ? (
+                  <Stars
+                    rating={quote.rating}
+                    srLabel={t("starLabel", { rating: quote.rating })}
+                    className="mr-1.5 align-[-1px] not-italic"
+                  />
+                ) : null}
+                {`“${quote.text}”`}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-copy text-muted-foreground">
           {/*
-            Evidence is a link, not a citation. "Because customers said so" is
-            only persuasive if the owner can read what they said in one click.
+            Evidence is a link, not a citation — and now it is a link to *these*
+            reviews rather than to the theme they share. `location` is on the
+            URL because the Inbox otherwise reads the branch from a cookie, and
+            a digest for Kadıköy opened with Beşiktaş active showed nothing.
           */}
           <Link
-            href={`/inbox?theme=${encodeURIComponent(themeSlug)}`}
+            href={
+              reviewIds.length > 0
+                ? `/reviews?location=${encodeURIComponent(locationId)}&reviews=${reviewIds.map(encodeURIComponent).join(",")}`
+                : `/reviews?theme=${encodeURIComponent(themeSlug)}`
+            }
             className="underline-offset-4 hover:underline"
           >
             {t("evidence", { count: reviewCount, theme: themeSlug })}

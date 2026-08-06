@@ -152,7 +152,7 @@ Render the latest digest as **Home**: reputation pulse + delta, what changed, th
 
 **"Generate now" reports that the work was queued** rather than pretending to wait. Composing takes the better part of a minute in the worker, and a spinner resolving into the same stale page is worse than saying plainly that it is being written. Admin-only, matching the server action, since it spends the AI allowance.
 
-**Live-verified by actually rendering the page**, not by inspecting components: with the dev server running, a real session was created and `/home` fetched in both locales. Both returned 200 with the full digest — pulse 20 (−21.2), three Turkish actions, the changes list, the loop reporting "1 of 3 completed" with the two still-open actions carried over, themes with real quotes, and a reply draft.
+**Live-verified by actually rendering the page**, not by inspecting components: with the dev server running, a real session was created and `/dashboard` fetched in both locales. Both returned 200 with the full digest — pulse 20 (−21.2), three Turkish actions, the changes list, the loop reporting "1 of 3 completed" with the two still-open actions carried over, themes with real quotes, and a reply draft.
 
 Two copy bugs the render exposed, both fixed: the Turkish subtitle read **"Kadıköy Şubesi şubesinde"** because location names already contain the word, and a falling volume rendered as **"(%-50)"** — a minus glued to a percent sign, in a language that puts the sign first. The direction now lives in the wording.
 
@@ -162,15 +162,15 @@ Two copy bugs the render exposed, both fixed: the Turkish subtitle read **"Kadı
 
 That is the first defect the click-through gap actually produced. Worth recording: the service layer and the actions were tested, the wiring between button and action was not, and this is precisely the class of bug that leaves.
 
-**Known gap:** an action's evidence links to `/inbox?theme=…`, and the Inbox does not filter by theme yet — that is T9. The link lands on an unfiltered Inbox until then. **Closed in T9.**
+**Known gap:** an action's evidence links to `/reviews?theme=…`, and the Inbox does not filter by theme yet — that is T9. The link lands on an unfiltered Inbox until then. **Closed in T9.**
 
 ### P1a-T9 — Inbox enhancements — **done (live-verified 2 Aug 2026)**
 Review cards show **sentiment + theme tags**; filters by source/sentiment/status; review detail shows insights + the reply composer from T6.
 **Done when:** the Inbox is filterable by sentiment/theme and every card reflects its analysis.
 
-**What shipped.** `src/inbox/queries.ts` (`listInbox` + `inboxFacets`), `src/components/inbox/filter-bar.tsx`, sentiment chips and clickable theme tags on every card, and an Inbox page driven by URL filters.
+**What shipped.** `src/reviews/queries.ts` (`listInbox` + `inboxFacets`), `src/components/reviews/filter-bar.tsx`, sentiment chips and clickable theme tags on every card, and an Inbox page driven by URL filters.
 
-**Filters are links, not client state.** Every filter is a URL, so a filtered Inbox can be bookmarked, shared, and — the reason this shape was chosen — **linked to from a digest action**. `/inbox?theme=otopark` is what makes "see the reviews behind this recommendation" a single href, and it closes the gap T8 left open.
+**Filters are links, not client state.** Every filter is a URL, so a filtered Inbox can be bookmarked, shared, and — the reason this shape was chosen — **linked to from a digest action**. `/reviews?theme=otopark` is what makes "see the reviews behind this recommendation" a single href, and it closes the gap T8 left open.
 
 **One query, not three.** A card needs the review, its analysis and its reply state together; fetching those separately would mean N+1 round trips over the same hundred rows. Theme matching uses `= any(topics)` rather than a LIKE, so it hits the GIN index from migration 0008 and matches exactly — a test pins that "servi" does not match "servis".
 

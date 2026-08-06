@@ -9,6 +9,7 @@ import { Eyebrow } from "@/components/ds/eyebrow";
 import { Metric } from "@/components/ds/metric";
 import { SectionCard } from "@/components/ds/section-card";
 import { PageHeader } from "@/components/shell/page-header";
+import { SectionTabs } from "@/components/shell/section-tabs";
 import { ResourcePage } from "@/components/ds/resource-page";
 import { Badge } from "@/components/ui/badge";
 import { listLocationsForActor } from "@/lib/active-location";
@@ -56,6 +57,7 @@ export default async function SurveysPage() {
     return (
       <>
         <PageHeader title={t("title")} subtitle={t("subtitle")} />
+        <SectionTabs active="surveys" />
         <SectionCard title={t("locked.title")} icon={ClipboardList}>
           <p className="pb-(--card-py) text-body text-ink-400">{t("locked.body")}</p>
         </SectionCard>
@@ -100,82 +102,88 @@ export default async function SurveysPage() {
         };
 
   return (
-    <ResourcePage
-      title={t("title")}
-      subtitle={t("subtitle")}
-      icon={ClipboardList}
-      isEmpty={surveys.length === 0}
-      empty={{ line: t("empty.title"), hint: t("empty.body") }}
-      create={create}
-    >
-      <ul className="grid gap-(--grid-gap) sm:grid-cols-2">
-        {surveys.map((survey) => {
-          const figure = headline(survey.score);
-          const thin =
-            survey.score.responses > 0 && survey.score.responses < MIN_MEANINGFUL_RESPONSES;
+    <>
+      {/* Above the ResourcePage: the tabs switch which *section* you are in,
+          and the page's own header describes the one you landed on. */}
+      <SectionTabs active="surveys" />
 
-          return (
-            <li key={survey.id}>
-              <SectionCard
-                title={
-                  <Link
-                    href={`/surveys/${survey.id}`}
-                    className="rounded-sm hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-                  >
-                    {survey.name}
-                  </Link>
-                }
-                meta={survey.locationName}
-                action={
-                  <Badge variant={survey.status === "active" ? "positive" : "secondary"}>
-                    {statusLabel[survey.status]}
-                  </Badge>
-                }
-              >
-                <div className="flex flex-wrap items-end justify-between gap-3 pb-(--card-py)">
-                  <div className="flex flex-col gap-0.5">
-                    <Eyebrow>{survey.type === "nps" ? t("typeNps") : t("typeCsat")}</Eyebrow>
-                    {/*
+      <ResourcePage
+        title={t("title")}
+        subtitle={t("subtitle")}
+        icon={ClipboardList}
+        isEmpty={surveys.length === 0}
+        empty={{ line: t("empty.title"), hint: t("empty.body") }}
+        create={create}
+      >
+        <ul className="grid gap-(--grid-gap) sm:grid-cols-2">
+          {surveys.map((survey) => {
+            const figure = headline(survey.score);
+            const thin =
+              survey.score.responses > 0 && survey.score.responses < MIN_MEANINGFUL_RESPONSES;
+
+            return (
+              <li key={survey.id}>
+                <SectionCard
+                  title={
+                    <Link
+                      href={`/surveys/${survey.id}`}
+                      className="rounded-sm hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                    >
+                      {survey.name}
+                    </Link>
+                  }
+                  meta={survey.locationName}
+                  action={
+                    <Badge variant={survey.status === "active" ? "positive" : "secondary"}>
+                      {statusLabel[survey.status]}
+                    </Badge>
+                  }
+                >
+                  <div className="flex flex-wrap items-end justify-between gap-3 pb-(--card-py)">
+                    <div className="flex flex-col gap-0.5">
+                      <Eyebrow>{survey.type === "nps" ? t("typeNps") : t("typeCsat")}</Eyebrow>
+                      {/*
                         A survey with no answers reads as an em dash, never as a
                         zero. An NPS of 0 is a real result — as many promoters as
                         detractors — so printing it for "nobody replied" would
                         show a business a score it had not earned.
                       */}
-                    <Metric>
-                      {figure.value === null
-                        ? "—"
-                        : format.number(figure.value, {
-                            minimumFractionDigits: figure.digits,
-                            maximumFractionDigits: figure.digits,
-                          })}
-                    </Metric>
-                  </div>
+                      <Metric>
+                        {figure.value === null
+                          ? "—"
+                          : format.number(figure.value, {
+                              minimumFractionDigits: figure.digits,
+                              maximumFractionDigits: figure.digits,
+                            })}
+                      </Metric>
+                    </div>
 
-                  <div className="flex flex-col items-end gap-0.5 text-right">
-                    {/*
+                    <div className="flex flex-col items-end gap-0.5 text-right">
+                      {/*
                         "7 answers from 0 people" is what a response rate reads
                         like for a survey nobody was emailed — every answer came
                         from a printed code. So the rate is only shown when
                         there is a rate: a denominator of zero is not a low
                         response rate, it is a different measurement.
                       */}
-                    <p className="text-meta text-faint">
-                      {survey.sent > 0
-                        ? t("funnel", { sent: survey.sent, answered: survey.answered })
-                        : t("answerCount", { count: survey.answered })}
-                    </p>
-                    {thin ? (
-                      <p className="text-meta text-state-rating-text">
-                        {t("thinSample", { min: MIN_MEANINGFUL_RESPONSES })}
+                      <p className="text-meta text-faint">
+                        {survey.sent > 0
+                          ? t("funnel", { sent: survey.sent, answered: survey.answered })
+                          : t("answerCount", { count: survey.answered })}
                       </p>
-                    ) : null}
+                      {thin ? (
+                        <p className="text-meta text-state-rating-text">
+                          {t("thinSample", { min: MIN_MEANINGFUL_RESPONSES })}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              </SectionCard>
-            </li>
-          );
-        })}
-      </ul>
-    </ResourcePage>
+                </SectionCard>
+              </li>
+            );
+          })}
+        </ul>
+      </ResourcePage>
+    </>
   );
 }

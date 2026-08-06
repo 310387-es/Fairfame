@@ -14,6 +14,7 @@ import {
   clusterThemes,
   computeChanges,
   computePulse,
+  rawPulse,
   type ThemeCluster,
   type WindowChange,
 } from "./metrics.ts";
@@ -162,8 +163,15 @@ function computeSample(now: Date) {
 
   const themes = clusterThemes(reviews, { limit: 6 });
   const priorThemes = clusterThemes(prior, { limit: 6 });
-  const pulse = computePulse(reviews);
-  const priorPulse = computePulse(prior);
+  /**
+   * Smoothed toward both fortnights together (W3.3), the same shape the real
+   * pipeline uses. The sample is a *public demonstration* of what the product
+   * shows, so it has to be scored the way the product scores — an unsmoothed
+   * sample would advertise a number the app would never print.
+   */
+  const baseline = rawPulse([...reviews, ...prior]);
+  const pulse = computePulse(reviews, { prior: baseline });
+  const priorPulse = computePulse(prior, { prior: baseline });
 
   return {
     reviews,

@@ -1,6 +1,7 @@
 import { and, asc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/config.ts";
+import { pinnedReviewsHref } from "../reviews/filters.ts";
 import { childLogger } from "../lib/logger.ts";
 import { withTenant, type TenantDatabase } from "../lib/tenancy.ts";
 import { dashboardUrl } from "../lib/urls.ts";
@@ -199,6 +200,9 @@ export async function sendDigestEmails(options: {
         digestId: schema.digestActions.digestId,
         position: schema.digestActions.position,
         text: schema.digestActions.text,
+        // The citations W1.6 stores, so the email can carry a customer's own
+        // words and link to the reviews rather than asking to be believed.
+        evidence: schema.digestActions.evidence,
       })
       .from(schema.digestActions)
       .where(
@@ -212,10 +216,18 @@ export async function sendDigestEmails(options: {
       )
       .orderBy(asc(schema.digestActions.position));
 
-    const actionsByDigest = new Map<string, { position: number; text: string }[]>();
+    type ActionRow = { position: number; text: string; reviewIds: string[] };
+    const actionsByDigest = new Map<string, ActionRow[]>();
     for (const row of actionRows) {
       const existing = actionsByDigest.get(row.digestId);
-      const action = { position: row.position, text: row.text };
+      // `evidence` is jsonb, so its shape is whatever was written — including by
+      // a revision that predates `reviewIds`. Read defensively rather than
+      // asserting: a malformed blob must cost the citation, not the email.
+      const evidence = row.evidence as { reviewIds?: unknown } | null;
+      const reviewIds = Array.isArray(evidence?.reviewIds)
+        ? evidence.reviewIds.filter((id): id is string => typeof id === "string")
+        : [];
+      const action = { position: row.position, text: row.text, reviewIds };
       if (existing) existing.push(action);
       else actionsByDigest.set(row.digestId, [action]);
     }
@@ -251,6 +263,20 @@ export async function sendDigestEmails(options: {
 
         const payload = digest.payload;
 
+        /**
+         * Every quoted review the payload carries, by id.
+         *
+         * The same source `digest-view.tsx` reads, and deliberately so: the
+         * quote in the email is then guaranteed to be the text the model was
+         * shown when it wrote the recommendation, rather than a fresh read that
+         * could have been edited or deleted since.
+         */
+        const quoteById = new Map(
+          (payload?.themes ?? []).flatMap((theme) =>
+            theme.quotes.map((quote) => [quote.reviewId, quote] as const),
+          ),
+        );
+
         const message = renderDigestEmail({
           // The recipient's language, not the language the briefing was
           // composed in: the model wrote it in the location's locale, and a
@@ -266,7 +292,25 @@ export async function sendDigestEmails(options: {
           reviewCount: digest.reviewCount,
           headline: payload?.headline ?? "",
           summary: payload?.summary ?? "",
-          actions: actionsByDigest.get(digest.digestId) ?? [],
+          actions: (actionsByDigest.get(digest.digestId) ?? []).map((action) => {
+            const quote = action.reviewIds
+              .map((id) => quoteById.get(id))
+              .find((found) => found !== undefined);
+
+            return {
+              position: action.position,
+              text: action.text,
+              quote: quote ? { text: quote.text, rating: quote.rating } : null,
+              reviewCount: action.reviewIds.length,
+              // The same link the action card renders on screen, from the one
+              // module that owns it. Absolute, because a mail client has no
+              // origin to resolve `/reviews` against.
+              link:
+                action.reviewIds.length > 0
+                  ? dashboardUrl(pinnedReviewsHref(digest.locationId, action.reviewIds, null))
+                  : null,
+            };
+          }),
           themes:
             payload?.themes.map((theme) => ({
               label: theme.label,
@@ -274,8 +318,16 @@ export async function sendDigestEmails(options: {
               positive: theme.positive,
               negative: theme.negative,
             })) ?? [],
+          // From the payload, frozen at composition — see `priorOutcome` on
+          // `DigestEmailInput` for why that is the right source in an email.
+          priorOutcome: payload?.priorActionsOutcome
+            ? {
+                done: payload.priorActionsOutcome.done,
+                total: payload.priorActionsOutcome.total,
+              }
+            : null,
           heldCount: heldIds.length,
-          link: dashboardUrl(`/digest/${digest.digestId}`),
+          link: dashboardUrl(`/weekly-plan/${digest.digestId}`),
           settingsUrl: dashboardUrl("/settings#notifications"),
         });
 

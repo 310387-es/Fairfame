@@ -4,30 +4,29 @@
     "tagline": "Review and customer-voice management"
   },
   "nav": {
-    "home": "Home",
-    "inbox": "Inbox",
-    "requests": "Requests",
+    "home": "Dashboard",
+    "inbox": "Reviews",
+    "requests": "Get reviews",
     "locations": "Locations",
     "team": "Team",
     "settings": "Settings",
     "signOut": "Sign out",
     "notifications": "Notifications",
     "unreadBadge": "{count} unread",
-    "groupDaily": "Daily",
-    "groupGrowth": "Growth",
-    "groupAccount": "Account",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "menu": "Menu",
-    "digest": "Digest",
-    "widgets": "Showcase",
-    "insights": "Insights",
+    "digest": "Weekly plan",
+    "widgets": "Website widgets",
+    "insights": "Analytics",
     "contacts": "Contacts",
-    "surveys": "Surveys",
-    "messages": "Messages",
-    "broadcasts": "Broadcasts",
-    "clients": "Clients",
-    "organizations": "Organizations"
+    "messages": "Conversations",
+    "clients": "Agency",
+    "organizations": "Organizations",
+    "channels": "Channels",
+    "groupWork": "Work",
+    "groupGrow": "Grow",
+    "groupSetup": "Setup"
   },
   "shell": {
     "locationSwitcher": "Active location",
@@ -56,7 +55,8 @@
     "overviewSubtitle": "{location} — live",
     "kpi": {
       "reputation": {
-        "label": "Reputation score"
+        "label": "Reputation score",
+        "hint": "Blended from {rating}% star rating and {sentiment}% how customers wrote, smoothed against the last 90 days."
       },
       "rating": {
         "label": "Average rating"
@@ -73,7 +73,9 @@
       "noComparison": "no prior period",
       "up": "up",
       "down": "down",
-      "flat": "unchanged"
+      "flat": "unchanged",
+      "percentagePoints": "{value} pp",
+      "outOf": "out of {max}"
     },
     "insight": {
       "waiting": "{count, plural, =1 {1 review is waiting for a reply} other {# reviews are waiting for a reply}}.",
@@ -119,7 +121,13 @@
         "mention": "Mention",
         "dm": "Message",
         "review": "Review"
-      }
+      },
+      "draftWithAi": "Draft with AI",
+      "drafting": "Drafting…",
+      "drafted": "Draft ready — read it before it goes out.",
+      "draftLabel": "AI draft",
+      "editAndSend": "Edit and send",
+      "open": "Open"
     },
     "range": {
       "7d": {
@@ -201,7 +209,15 @@
       "slower": "{change} slower",
       "noComparison": "no prior period",
       "replied": "{count, plural, =1 {1 reply sent} other {# replies sent}}",
-      "empty": "Nothing has been answered in this period."
+      "empty": "Nothing has been answered in this period.",
+      "bucket": {
+        "under_hour": "Under 1h",
+        "under_day": "Under 24h",
+        "under_three_days": "1–3 days",
+        "slower": "Over 3 days",
+        "unanswered": "Unanswered"
+      },
+      "bucketSr": "{bucket}: {count} reviews, {share}"
     },
     "activity": {
       "title": "Recent activity",
@@ -224,10 +240,22 @@
       "themes": "Themes",
       "ratings": "Ratings",
       "sources": "Sources"
+    },
+    "overviewSubtitleAll": "{count, plural, one {# branch} other {All # branches}} — live",
+    "branches": {
+      "title": "By branch",
+      "meta": "{count} branches · this period",
+      "branch": "Branch",
+      "rating": "Rating",
+      "volume": "Reviews",
+      "unanswered": "Waiting",
+      "response": "Median reply",
+      "noRating": "No rating",
+      "ratingSr": "{rating} out of 5"
     }
   },
   "insights": {
-    "title": "Insights",
+    "title": "Analytics",
     "subtitle": "Are you improving, where, and driven by what.",
     "summary": "{reviews, plural, one {# review} other {# reviews}} across {locations, plural, one {# branch} other {# branches}}",
     "pendingAnalysis": "{count} not analysed yet",
@@ -242,7 +270,7 @@
     },
     "trend": {
       "rating": "Rating",
-      "sentiment": "Sentiment",
+      "sentiment": "Positive share",
       "volume": "Reviews"
     },
     "trendCaption": "{measure} per period, and how many reviews it was drawn from.",
@@ -259,7 +287,6 @@
       "change": "Change"
     },
     "noValue": "—",
-    "points": "pts",
     "byLocation": "By branch",
     "byLocationEmpty": "Nothing arrived at any branch in this period.",
     "bySource": "By source",
@@ -295,7 +322,8 @@
       "saving": "Saving…",
       "saved": "Saved",
       "stop": "Stop sending",
-      "locked": "Scheduled reports are not part of this plan. Upgrade to have these numbers arrive without opening the app."
+      "locked": "Scheduled reports are not part of this plan. Upgrade to have these numbers arrive without opening the app.",
+      "action": "Schedule"
     },
     "benchmark": {
       "title": "Against competitors",
@@ -322,7 +350,49 @@
     "surveysNote": "What people said when asked directly",
     "surveysThin": "Fewer than {min} answers",
     "surveyNps": "NPS",
-    "surveyCsat": "CSAT"
+    "surveyCsat": "CSAT",
+    "percentagePoints": "pp",
+    "heatmap": {
+      "title": "Themes over time",
+      "meta": "Colour is mood, depth is volume",
+      "caption": "Mentions per theme per period, coloured by sentiment.",
+      "theme": "Theme",
+      "total": "Total",
+      "empty": "No themes have been extracted for this period yet.",
+      "noMentions": "No mentions",
+      "cell": "{theme}: {mentions} mentions, {mood}",
+      "cellEmpty": "{theme}: no mentions",
+      "mood": {
+        "positive": "mostly positive",
+        "neutral": "mixed",
+        "negative": "mostly negative",
+        "unknown": "not analysed"
+      }
+    },
+    "histogram": {
+      "title": "How the stars fall",
+      "meta": "{count} rated reviews",
+      "empty": "Nothing rated in this period.",
+      "stars": "{count} stars",
+      "rating": "Rating",
+      "reviews": "Reviews",
+      "bar": "{count} stars: {reviews} reviews, {share}"
+    },
+    "percentiles": {
+      "title": "How long people wait",
+      "meta": "{answered} answered",
+      "empty": "Nothing was answered in this period.",
+      "p50": "Half within",
+      "p75": "Three in four within",
+      "p90": "Nine in ten within",
+      "percentile": "Share",
+      "wait": "Within",
+      "noData": "—",
+      "minutes": "{count} min",
+      "hours": "{count} h",
+      "days": "{count} d",
+      "unanswered": "{count} still unanswered — not counted above."
+    }
   },
   "digest": {
     "archiveTitle": "Your weekly plan",
@@ -332,9 +402,9 @@
     "thinWeek": "Not enough to draw a plan from",
     "thinWeekLink": "See what came in",
     "reviewCount": "{count, plural, =0 {no reviews} =1 {1 review} other {# reviews}}",
-    "pulse": "Reputation pulse",
-    "pulseHint": "Blended from star ratings and what customers actually wrote.",
-    "noPulse": "—",
+    "pulse": "Reputation score",
+    "pulseHint": "Blended from {rating}% star rating and {sentiment}% how customers wrote.",
+    "noPulse": "Not enough data yet",
     "deltaUp": "up {value} on last week",
     "deltaDown": "down {value} on last week",
     "deltaFlat": "level with last week",
@@ -368,6 +438,23 @@
     "loopTitle": "Since last week",
     "loopSummary": "You completed {done} of {total} actions.",
     "loopStillOpen": "Still open:",
+    "recordTitle": "Your record",
+    "recordOver": "{digests, plural, one {Last briefing} other {Last # briefings}}",
+    "recordHeadline": "{done} of {total} actions done",
+    "recordFraction": "{done} of {total}",
+    "recordDone": "Done",
+    "recordSr": "{done} of {total} recommended actions completed.",
+    "recordDismissed": "{count, plural, one {# action was dismissed} other {# actions were dismissed}} and is not counted.",
+    "recordByLever": "What gets finished",
+    "recordLeverSr": "{lever}: {done} of {total} completed.",
+    "lever": {
+      "staffing": "Staffing",
+      "hours": "Opening hours",
+      "menu_item": "Menu",
+      "reply_backlog": "Replying",
+      "signage": "Signage",
+      "process": "Process"
+    },
     "lastGenerated": "Composed {when}",
     "noLocation": "Add a location and your first weekly digest will arrive after the week ends.",
     "noLocationAction": "Go to Locations",
@@ -383,18 +470,22 @@
     "detailPending": "This week's digest is still being composed. Check back in a minute.",
     "detailFailed": "This digest could not be composed. The hourly sweep retries automatically, so it may appear shortly.",
     "archiveListTitle": "Past weeks",
-    "archiveListMeta": "Reputation pulse, and the change on the week before",
+    "archiveListMeta": "Reputation score, and the change on the week before",
     "up": "up",
     "down": "down",
     "flat": "unchanged",
     "points": "{value} pts",
     "openWeek": "Open the digest for {period}",
     "briefingLabel": "This week",
+    "exportPdf": "Download PDF",
+    "shareCopy": "Copy as text",
+    "shareCopied": "Copied",
     "thinWeekBodyThin": "{reviews, plural, =1 {Only 1 review arrived this week} other {Only # reviews arrived this week}}. That is too little to tell a pattern from a bad Tuesday, so we have not guessed at one.",
-    "thinWeekBodyPending": "{reviews, plural, =1 {1 review arrived} other {# reviews arrived}}, and {analysed, plural, =0 {none have been analysed yet} =1 {only 1 has been analysed so far} other {only # have been analysed so far}}. Rather than guess at a plan, here is what is waiting."
+    "thinWeekBodyPending": "{reviews, plural, =1 {1 review arrived} other {# reviews arrived}}, and {analysed, plural, =0 {none have been analysed yet} =1 {only 1 has been analysed so far} other {only # have been analysed so far}}. Rather than guess at a plan, here is what is waiting.",
+    "starLabel": "{rating} out of 5"
   },
   "inbox": {
-    "title": "Inbox",
+    "title": "Reviews",
     "subtitle": "Every review from every connected source, in one place.",
     "empty": "No reviews yet. Connect a source to a location to start ingesting.",
     "emptyAction": "Go to Locations",
@@ -406,7 +497,6 @@
     "ownerReplied": "You replied",
     "filterSource": "Source",
     "filterSentiment": "Sentiment",
-    "filterTheme": "Theme",
     "filterReply": "Reply",
     "filterUnanswered": "Needs a reply",
     "filterAnswered": "Answered",
@@ -422,6 +512,8 @@
     "next": "Next",
     "range": "{from}–{to} of {total}",
     "filterQuick": "Quick",
+    "filterPinned": "Pinned",
+    "filterFromDigest": "From your digest",
     "filterStatus": "Status",
     "filterAssignedToMe": "Assigned to me",
     "filterOverdue": "Overdue",
@@ -432,7 +524,7 @@
     "sort": "Sort",
     "sortRecent": "Newest",
     "sortPriority": "Priority",
-    "savedViews": "Views",
+    "savedViews": "Saved",
     "viewShared": "Shared",
     "saveView": "Save view",
     "saveViewName": "Name",
@@ -459,7 +551,23 @@
     "bulkClear": "Clear",
     "bulkDone": "{count, plural, =0 {Nothing changed} =1 {1 review updated} other {# reviews updated}}",
     "bulkDraftNote": "Drafting writes replies for review. Nothing is posted until someone approves it.",
-    "bulkUntag": "Remove"
+    "bulkUntag": "Remove",
+    "filterCanonical": "Themes",
+    "filterTag": "Tags",
+    "themesPending": "Analysed under the new themes: {done} of {total}. Re-analyse to filter by theme.",
+    "pickOne": "Choose a review from the list to read it and reply.",
+    "backToList": "All reviews",
+    "starsLabel": "{rating} out of 5 stars",
+    "anonymous": "Anonymous",
+    "overdue": "Overdue",
+    "viewsLabel": "Queues",
+    "view": {
+      "all": "All",
+      "unanswered": "Needs a reply",
+      "negative": "Negative",
+      "mine": "Assigned to me",
+      "overdue": "Overdue"
+    }
   },
   "locations": {
     "title": "Locations",
@@ -476,7 +584,6 @@
     "addDescription": "A branch, venue or storefront you collect reviews for.",
     "namePlaceholder": "e.g. Kadıköy branch",
     "addressPlaceholder": "Street, district, city",
-    "categoryPlaceholder": "e.g. restaurant",
     "adding": "Adding…",
     "connecting": "Connecting…",
     "syncNow": "Sync now",
@@ -498,7 +605,34 @@
     "publicPageOpen": "Open page",
     "publicPageCopy": "Copy link",
     "publicPageCopied": "Copied",
-    "publicPageNothingApproved": "Nothing is approved for display yet, so the page will be empty until you approve some reviews in Showcase."
+    "publicPageNothingApproved": "Nothing is approved for display yet, so the page will be empty until you approve some reviews in Showcase.",
+    "vertical": {
+      "restaurant": "Restaurant",
+      "cafe": "Café",
+      "hotel": "Hotel",
+      "retail": "Shop",
+      "clinic": "Clinic",
+      "services": "Services",
+      "other": "Other"
+    },
+    "categoryUnset": "Not set",
+    "col": {
+      "expand": "Expand",
+      "branch": "Branch",
+      "sources": "Sources",
+      "reviews": "Reviews · 30d",
+      "rating": "Rating",
+      "unanswered": "Unanswered",
+      "publicPage": "Public page"
+    },
+    "expandRow": "Show details for {name}",
+    "collapseRow": "Hide details for {name}",
+    "noSources": "None",
+    "noRating": "No rating",
+    "published": "Published",
+    "notPublished": "Not published",
+    "topThemes": "Top themes",
+    "ratingSr": "{rating} out of 5"
   },
   "publicPage": {
     "metaTitle": "{business} — {location} reviews",
@@ -533,7 +667,7 @@
     "noGoogleLocations": "This Google account administers no locations we can sync."
   },
   "requests": {
-    "title": "Requests",
+    "title": "Get reviews",
     "subtitle": "Ask customers for a review, and see what came of it.",
     "usage": "{used} of {limit} requests used this month",
     "usageUnlimited": "{used} requests sent this month",
@@ -580,7 +714,7 @@
     "recipientsHint": "One per line, or separated by commas. Up to {max} at a time.",
     "send": "Send requests",
     "sending": "Sending…",
-    "sendResult": "{sent} sent · {failed} failed · {skipped} skipped (unsubscribed)",
+    "sendResult": "{sent} sent · {failed} failed · {skipped} opted out",
     "invalidAddresses": "Not sent — these addresses are not valid: {list}",
     "linkOnlyHint": "Nothing is sent for a link campaign. Print the QR code or share the link.",
     "recentTitle": "Recent requests",
@@ -597,7 +731,54 @@
       "opened": "Opened",
       "submitted": "Review left",
       "failed": "Failed"
-    }
+    },
+    "pickerLabel": "Choose people",
+    "pickerPlaceholder": "Search by name, email or phone",
+    "pickerSearch": "Search",
+    "pickerAdd": "Add",
+    "pickerAdded": "Added",
+    "pickerRemove": "Remove",
+    "pickerUnnamed": "Unnamed contact",
+    "pickerNoResults": "Nobody matched. They may have opted out, or have no address for this channel.",
+    "pickerContactsOnly": "On this channel you can only message people already in Contacts — consent is recorded against a person.",
+    "importCsv": "Import CSV",
+    "sendSkippedNoAddress": "{count} had no address for this channel",
+    "funnel": {
+      "title": "How collection is going",
+      "meta": "Last {days} days",
+      "empty": "Nothing sent yet, and no reviews through a code or link.",
+      "byChannel": "By channel",
+      "ofSent": "of everyone asked",
+      "walkIn": "{count} reviews came in through a code or link.",
+      "walkInNote": "Nobody was asked for these, so they have no funnel.",
+      "stage": {
+        "sent": "Asked",
+        "opened": "Opened the page",
+        "submitted": "Left a review"
+      },
+      "ofPrevious": {
+        "opened": "of those asked",
+        "submitted": "of those who opened"
+      },
+      "channel": {
+        "email": "Email",
+        "sms": "SMS",
+        "whatsapp": "WhatsApp"
+      },
+      "channelSr": "{channel}: {sent} asked, {submitted} left a review, {rate}",
+      "column": {
+        "stage": "Stage",
+        "count": "Count"
+      }
+    },
+    "poster": {
+      "headline": "How did we do?",
+      "subhead": "Scan the code and tell us in thirty seconds. It helps more than you'd think.",
+      "urlLabel": "Or visit",
+      "foldLabel": "fold here"
+    },
+    "posterLabel": "Poster",
+    "tableTent": "Table tent"
   },
   "contacts": {
     "title": "Contacts",
@@ -715,7 +896,13 @@
     "conversation": "Conversation",
     "openConversation": "Messages",
     "conversationHint": "Open the thread to reply, or to send an approved template.",
-    "conversationNoPhone": "This contact has no phone number, so there is nothing to message."
+    "conversationNoPhone": "This contact has no phone number, so there is nothing to message.",
+    "sendRequest": "Ask for a review",
+    "sendCampaign": "Campaign",
+    "sending": "Sending…",
+    "sendNoCampaign": "No active campaign to send under. Create one on Get reviews first.",
+    "sendOutcome": "{sent} sent · {failed} failed · {skipped} skipped",
+    "privateFollowUp": "Private follow-up"
   },
   "surveys": {
     "title": "Surveys",
@@ -819,7 +1006,7 @@
     "errorRateLimited": "Too many attempts. Please try again shortly."
   },
   "messages": {
-    "title": "Messages",
+    "title": "Conversations",
     "subtitle": "Conversations with customers, on WhatsApp and SMS.",
     "locked": {
       "title": "Messaging is not on your plan",
@@ -868,18 +1055,18 @@
     }
   },
   "broadcasts": {
-    "title": "Broadcasts",
+    "title": "Campaigns",
     "subtitle": "Send one thing to one audience — now, or at a time you choose.",
     "locked": {
-      "title": "Broadcasts are not on your plan",
+      "title": "Campaigns are not on your plan",
       "body": "Scheduled sends to a segment are included from Growth upwards."
     },
     "empty": {
-      "title": "No broadcasts yet",
-      "body": "A broadcast sends a review request, a survey or a message to everyone in a segment."
+      "title": "No campaigns yet",
+      "body": "A campaign sends a review request, a survey or a message to everyone in a segment."
     },
-    "newBroadcast": "New broadcast",
-    "noSegments": "Save a segment on Contacts first — a broadcast needs an audience.",
+    "newBroadcast": "New campaign",
+    "noSegments": "Save a segment on Contacts first — a campaign needs an audience.",
     "name": "Name",
     "namePlaceholder": "August review push",
     "what": "What to send",
@@ -947,7 +1134,7 @@
     "channelLink": "Link"
   },
   "clients": {
-    "title": "Clients",
+    "title": "Agency",
     "subtitle": "The organizations you look after, and how each is doing.",
     "roster": "Client organizations",
     "empty": {
@@ -1054,7 +1241,15 @@
   "settings": {
     "title": "Settings",
     "subtitle": "Organization preferences and billing.",
-    "language": "Language",
+    "language": {
+      "title": "Language",
+      "subtitle": "Stored against you, not this browser — it follows you to your phone.",
+      "label": "Interface language",
+      "option": {
+        "tr": "Türkçe",
+        "en": "English"
+      }
+    },
     "organization": "Organization",
     "notifications": {
       "title": "Notification preferences",
@@ -1180,14 +1375,14 @@
   },
   "sample": {
     "metaTitle": "A sample weekly plan — Revira",
-    "metaDescription": "See what Revira sends a business owner every week: a reputation pulse, what changed, and three things to do.",
+    "metaDescription": "See what Revira sends a business owner every week: a reputation score, what changed, and the three things to do about it.",
     "eyebrow": "Sample",
     "title": "This is what lands in your inbox every Monday",
     "intro": "A real weekly plan, composed the way yours would be — from reviews, not from a template. The café below is invented; the pipeline is the one your reviews would go through.",
     "demoNotice": "Demo data. {business} is not a real business and these reviews were written for this page.",
     "periodLabel": "Last {days} days",
     "reviewCount": "{count, plural, =1 {1 review} other {# reviews}}",
-    "pulse": "Reputation pulse",
+    "pulse": "Reputation score",
     "deltaUp": "up {value} on the previous period",
     "deltaDown": "down {value} on the previous period",
     "deltaFlat": "level with the previous period",
@@ -1227,7 +1422,7 @@
     "poweredBy": "Reviews by Revira"
   },
   "widgets": {
-    "title": "Showcase",
+    "title": "Website widgets",
     "subtitle": "Put your reviews on your own website.",
     "listTitle": "Your widgets",
     "limitMeta": "{used} of {limit} used",
@@ -1343,6 +1538,135 @@
       "agency1": "Unlimited locations",
       "agency2": "White-label and the client console",
       "agency3": "API access"
+    }
+  },
+  "channels": {
+    "title": "Channels",
+    "subtitle": "Where you message a customer. Separate from the sources reviews come from.",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connected": "{label} connected",
+    "disconnected": "{label} disconnected",
+    "ready": "Ready to send.",
+    "mode": {
+      "live": "Live",
+      "mock": "Mock",
+      "off": "Off"
+    },
+    "blockerLabel": {
+      "not_connected": "Not connected",
+      "connection_error": "Error",
+      "no_consent_registry": "No İYS registry",
+      "not_live": "Not live"
+    },
+    "blocker": {
+      "not_connected": "Nothing is configured to send with. Set {envVar}, or connect an account.",
+      "connection_error": "The last attempt failed with these credentials. Reconnect to try again.",
+      "no_consent_registry": "No consent registry is wired, so no commercial message may leave at all — however well this channel is configured.",
+      "not_live": "This channel accepts messages and reaches nobody. Nothing sent here has ever arrived on a phone."
+    },
+    "goLive": {
+      "whatsapp": "Needs a WhatsApp Business Account, an approved message template, and İYS registration.",
+      "sms": "Needs an SMS provider (BSP), which in Türkiye is also the İYS integration."
+    }
+  },
+  "compliance": {
+    "title": "Sending & compliance",
+    "intro": "Before any message reaches a customer, Turkish law requires their permission to be on record in İYS — the national registry. This is where you can see what is missing.",
+    "iysTitle": "İYS — the national permission registry",
+    "iysReady": "Connected",
+    "iysMissing": "Not connected",
+    "iysReadyBody": "Permissions are reported to the registry, so a commercial message may go out to anybody who has given one.",
+    "iysMissingBody": "No registry is connected, so every commercial message is refused — however well a channel is set up. A permission collected on your form is not yet a registered one.",
+    "mode": {
+      "live": "Live",
+      "mock": "Test only",
+      "off": "Off"
+    },
+    "channelState": {
+      "whatsapp": {
+        "live": "Connected and sending.",
+        "mock": "Set up for testing. Messages are accepted and reach nobody — no WhatsApp Business Account is connected yet.",
+        "off": "Switched off. Nothing can be sent on WhatsApp."
+      },
+      "sms": {
+        "live": "Connected and sending.",
+        "mock": "Set up for testing. Messages are accepted and reach nobody.",
+        "off": "No SMS provider is set up, so nothing can be sent by SMS."
+      }
+    },
+    "footer": "There is no way to send around these checks, and that is deliberate: a message sent without a registered permission is the one that carries a fine."
+  },
+  "tabs": {
+    "label": "Section",
+    "contacts": "Contacts",
+    "broadcasts": "Campaigns",
+    "requests": "Review requests",
+    "surveys": "Surveys",
+    "locations": "Branches",
+    "connections": "Connections"
+  },
+  "themes": {
+    "staff": "Staff",
+    "service": "Service",
+    "wait_time": "Waiting time",
+    "price": "Price",
+    "cleanliness": "Cleanliness",
+    "ambience": "Atmosphere",
+    "location_access": "Getting there",
+    "booking": "Booking",
+    "food_quality": "Food",
+    "menu_variety": "Menu",
+    "portion_size": "Portions",
+    "room_comfort": "Room",
+    "product_quality": "Products",
+    "stock_availability": "Stock",
+    "treatment_outcome": "Treatment"
+  },
+  "connections": {
+    "title": "Connections",
+    "subtitle": "Where your reviews come from, and whether each one is working.",
+    "coverageTitle": "Source coverage",
+    "coverageCount": "{connected} of {total} connected",
+    "coverageAttention": "{count} needs attention",
+    "coverageSr": "{connected} of {total} available sources connected, {attention} needing attention.",
+    "connectedHeading": "Connected",
+    "availableHeading": "Available to connect",
+    "roadmapHeading": "Not connected yet",
+    "roadmapIntro": "We don't read these yet. Tell us which ones matter to your business and it moves them up the list.",
+    "roadmapNote": {
+      "delivery": "Turkish delivery platform",
+      "reviews": "Review site",
+      "social": "Social network"
+    },
+    "request": "Request",
+    "requested": "Requested",
+    "requestRecorded": "Noted — we'll let you know when {label} is ready.",
+    "health": {
+      "healthy": "Working",
+      "setup": "Finish setup",
+      "reconnect": "Reconnect needed",
+      "limited": "Rate limited",
+      "failing": "Failing",
+      "stale": "Not syncing"
+    },
+    "demoData": "Demo data",
+    "lastSynced": "Last synced {when}",
+    "neverSynced": "Not synced yet",
+    "volumeLabel": "Reviews · last {days} days",
+    "feedsBranches": "{count, plural, one {# branch} other {# branches}}",
+    "manageOnLocations": "Manage on Branches →",
+    "willUseDemoData": "Connects with sample data until this deployment goes live.",
+    "willAuthorize": "You'll be sent to sign in and grant access.",
+    "needsLocationFirst": "Add a branch before connecting a source.",
+    "chooseBranch": "Branch",
+    "connect": "Connect",
+    "connectDemo": "Connect (demo)",
+    "connected": "{label} connected.",
+    "goLive": {
+      "google": "Needs a verified business and an approved Business Profile API access request.",
+      "instagram": "Needs Meta business verification and app review for the listed permissions.",
+      "whatsapp": "Needs a WhatsApp Business Account, an approved template, and İYS registration."
     }
   }
 }

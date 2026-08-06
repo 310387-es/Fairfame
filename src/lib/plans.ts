@@ -114,7 +114,7 @@ export const FEATURE_KEYS = [
    */
   "broadcasts",
   /**
-   * The agency console — `/clients` (P4-T6).
+   * The agency console — `/agency` (P4-T6).
    *
    * **Agency tier, because `docs/20` P4-T6 says so**, and this reverses my own
    * first judgement. T5 shipped it ungated on the argument that a roster is

@@ -10,7 +10,7 @@ import {
   withinScope,
 } from "@/auth/scope";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
-import { assignReview, recordFirstResponse, setReviewStatus, TriageError } from "@/inbox/triage";
+import { assignReview, recordFirstResponse, setReviewStatus, TriageError } from "@/reviews/triage";
 import { listLocations } from "@/lib/active-location";
 import { withTenant } from "@/lib/tenancy";
 

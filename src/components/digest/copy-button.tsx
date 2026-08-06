@@ -3,6 +3,7 @@
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /**
  * Copies a generated asset to the clipboard.
@@ -14,10 +15,13 @@ export function CopyButton({
   text,
   label,
   copiedLabel,
+  className,
 }: {
   text: string;
   label: string;
   copiedLabel: string;
+  /** Appended, so a caller in a row can cancel the asset card's own spacing. */
+  className?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -26,7 +30,7 @@ export function CopyButton({
       type="button"
       variant="outline"
       size="sm"
-      className="mt-1 self-start"
+      className={cn("mt-1 self-start", className)}
       onClick={() => {
         void navigator.clipboard.writeText(text).then(() => {
           setCopied(true);

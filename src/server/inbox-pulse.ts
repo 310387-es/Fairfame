@@ -1,8 +1,8 @@
 "use server";
 
 import { requireActor } from "@/auth/session";
-import { parseInboxFilters } from "@/inbox/filters";
-import { countInbox, toInboxFilters } from "@/inbox/queries";
+import { parseInboxFilters } from "@/reviews/filters";
+import { countInbox, toInboxFilters } from "@/reviews/queries";
 import {
   listLocationsForActor,
   readActiveLocationCookie,

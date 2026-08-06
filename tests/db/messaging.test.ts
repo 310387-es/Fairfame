@@ -333,6 +333,68 @@ describe("outbound is consent-gated", () => {
   });
 });
 
+describe("somebody with no number", () => {
+  it("is refused before the gate is even consulted", async () => {
+    /**
+     * The last line of defence, and it had no test (W2.2).
+     *
+     * It came up in use: the contact profile said "this person has no phone
+     * number, so no message can be sent" and linked to the conversation
+     * anyway, which rendered a working composer whose every send would fail
+     * here — after the message had been written. Both surfaces now refuse up
+     * front, and this pins the layer underneath them, which is the one that
+     * cannot be routed around by a link somebody adds later.
+     *
+     * Consent is deliberately on file, so the only thing that can produce this
+     * refusal is the missing number.
+     */
+    setIysGateway(createLocalGateway("test"));
+
+    const [contact] = await getAdminDb()
+      .insert(schema.contacts)
+      .values({
+        organizationId: alpha.orgId,
+        name: "Numarasız",
+        email: `numarasiz-${suffix}@example.test`,
+      })
+      .returning({ id: schema.contacts.id });
+
+    await withTenant({ organizationId: alpha.orgId }, (tx) =>
+      recordIysConsent({
+        tx,
+        organizationId: alpha.orgId,
+        contactRef: contact!.id,
+        channel: "message",
+        source: "web_form",
+        proofRef: "test",
+      }),
+    );
+
+    const outcome = await withTenant({ organizationId: alpha.orgId }, (tx) =>
+      sendMessage({
+        tx,
+        organizationId: alpha.orgId,
+        contactId: contact!.id,
+        channel: "whatsapp",
+        request: { kind: "template", template: "review_request", values: ["Kadıköy", "http://x"] },
+      }),
+    );
+
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.refusal).toBe("no_address");
+
+    // And **no row**: nothing left the building, so the thread must not show a
+    // failed message to somebody who could never have received one.
+    const rows = await getAdminDb()
+      .select({ id: schema.messages.id })
+      .from(schema.messages)
+      .where(eq(schema.messages.contactId, contact!.id));
+
+    expect(rows).toHaveLength(0);
+  });
+});
+
 describe("a mock conversation round-trips", () => {
   it("takes an inbound message, answers it, and records both", async () => {
     const at = new Date();

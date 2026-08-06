@@ -33,6 +33,12 @@ export type InsightInput = {
    * are already there. Omitting it on a re-analysis keeps what was stored.
    */
   staff?: string[];
+  /**
+   * Canonical themes (W3.2). Optional at this boundary for the same reason as
+   * `staff`: a caller that does not extract them must not erase the ones
+   * already stored, so omitting it on a re-analysis keeps what is there.
+   */
+  themes?: string[];
   language: string | null;
   /** Null when the embedding pass has not run yet. */
   embedding?: number[] | null;
@@ -73,6 +79,10 @@ export async function upsertInsight(
       sentimentScore: input.sentimentScore,
       topics: input.topics,
       staff: input.staff ?? [],
+      // Null, not `[]`, when the caller did not extract them: null means
+      // "analysed before the taxonomy existed" and `[]` means "no theme fits",
+      // and a screen must be able to tell those apart (W3.2).
+      themes: input.themes ?? null,
       language: input.language,
       embedding: input.embedding ?? null,
       contentHash: input.contentHash ?? null,
@@ -88,6 +98,11 @@ export async function upsertInsight(
         topics: input.topics,
         // Coalesced, not overwritten — same reasoning as `embedding` below.
         ...(input.staff ? { staff: input.staff } : { staff: sql`${schema.reviewInsights.staff}` }),
+        // Coalesced like `staff`: a re-analysis that did not produce themes
+        // must not erase the ones already there.
+        ...(input.themes
+          ? { themes: input.themes }
+          : { themes: sql`${schema.reviewInsights.themes}` }),
         language: input.language,
         // coalesce, not overwrite: see the note above.
         ...(input.embedding

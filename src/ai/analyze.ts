@@ -2,6 +2,7 @@ import { z } from "zod";
 import { LOCALES } from "../i18n/config.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import { analyzeReviewPrompt, draftReplyPrompt, MAX_REPLY_CHARS } from "../prompts/index.ts";
+import { normalizeThemes } from "../reviews/taxonomy.ts";
 import { runAi } from "./client.ts";
 import { boundOutput } from "./guardrails.ts";
 import { LlmError, type LlmProvider } from "./types.ts";
@@ -29,6 +30,13 @@ export const reviewAnalysisResultSchema = z.object({
   language: z.string().min(2).max(10),
   /** Names the reviewer wrote, as written. Empty is the common case. */
   staff: z.array(z.string().min(1).max(60)).max(5),
+  /**
+   * Canonical themes (W3.2) — the closed vocabulary that gets charted and
+   * compared. Already filtered to known keys by `normalizeThemes`, so anything
+   * here is a real theme; empty means the review fits none of them, which is a
+   * legitimate answer and better than a loose fit.
+   */
+  themes: z.array(z.string().min(1).max(40)).max(8),
 });
 
 export type ReviewAnalysis = z.infer<typeof reviewAnalysisResultSchema>;
@@ -43,6 +51,10 @@ const wireSchema = z.object({
   // newly-added property should degrade to "no names", not fail the analysis
   // of a review whose sentiment and themes came back perfectly well.
   staff: z.array(z.string()).optional(),
+  // Optional for the same reason as `staff`: a provider that ignores a newly
+  // added property should cost us the canonical themes, not the whole analysis
+  // of a review whose sentiment and tags came back perfectly well (W3.2).
+  themes: z.array(z.string()).optional(),
 });
 
 export type AnalyzeArgs = {
@@ -51,6 +63,8 @@ export type AnalyzeArgs = {
   actorUserId?: string | null;
   text: string;
   rating: number | null;
+  /** `locations.category` — narrows the canonical themes offered (W3.2). */
+  category?: string | null;
   tx?: TenantDatabase | undefined;
   provider?: LlmProvider | undefined;
 };
@@ -73,7 +87,14 @@ export type AnalyzeOutcome = {
  * it is in the data position, and the response is confined to an enum.
  */
 export async function analyzeReview(args: AnalyzeArgs): Promise<AnalyzeOutcome> {
-  const prompt = analyzeReviewPrompt({ text: args.text, rating: args.rating });
+  const prompt = analyzeReviewPrompt({
+    text: args.text,
+    rating: args.rating,
+    // Narrows the canonical themes to this business's vertical (W3.2). Absent
+    // is fine and means the universal set — a location with no category still
+    // gets waiting time, price and staff, which is most of what matters.
+    category: args.category ?? null,
+  });
 
   const { response, costUsd, listCostUsd } = await runAi({
     organizationId: args.organizationId,
@@ -114,6 +135,10 @@ export async function analyzeReview(args: AnalyzeArgs): Promise<AnalyzeOutcome> 
       // and failing the whole analysis over it would be pedantry.
       sentimentScore: Math.max(-1, Math.min(1, result.data.sentiment_score)),
       topics: normalizeTopics(result.data.topics),
+      // Dropped rather than kept when the model invents one: it was handed a
+      // closed list, so an unlisted value is a failure to follow instructions,
+      // not a discovery. The free tags above already carry the long tail.
+      themes: normalizeThemes(result.data.themes ?? []),
       language: normalizeLanguage(result.data.language),
       staff: normalizeStaff(result.data.staff ?? []),
     },

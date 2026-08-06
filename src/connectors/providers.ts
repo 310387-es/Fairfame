@@ -54,10 +54,32 @@ export type OAuthEndpoints = {
   authorizeParams?: Record<string, string>;
 };
 
+/**
+ * What a provider can do as a *messaging channel* (W2.2).
+ *
+ * A second axis, deliberately not folded into `Capability`. That one describes
+ * what a **connection** can do as a review source — it is snapshotted into
+ * `connections.capabilities` and read back, so it is allowed to go stale
+ * against a provider whose access has changed. Whether WhatsApp is a messaging
+ * channel is a fact about WhatsApp, not about one business's connection to it,
+ * and storing it per row would let a stale snapshot decide that a channel is
+ * not a channel.
+ *
+ *   - `two_way` — we can send *and* receive, so the 24-hour service window and
+ *     the "they wrote last" signal both mean something.
+ *   - `outbound` — we can send and nothing comes back.
+ *   - `none` — not a messaging channel. The default, and the honest answer for
+ *     Instagram: its DMs are *ingested* (P1b) but answering one is deliberately
+ *     not built, and offering it as a channel would promise a send that refuses.
+ */
+export type MessagingCapability = "two_way" | "outbound" | "none";
+
 export type ProviderDescriptor = {
   key: string;
   label: string;
   capabilities: Capability;
+  /** Omitted means `none` — see `MessagingCapability`. */
+  messaging?: MessagingCapability;
   /** False for sources we own — nothing to authorize, nothing to gate. */
   requiresOAuth: boolean;
   oauth?: OAuthEndpoints;
@@ -181,6 +203,9 @@ export const PROVIDERS: Record<string, ProviderDescriptor> = {
     label: "WhatsApp Business",
     // Outbound messaging and inbound webhooks — not a review source to read.
     capabilities: { read: "none", reply: "api", realtime: true },
+    // The one true messaging channel today: we send templates and free text,
+    // and Meta posts inbound messages and delivery receipts back to us.
+    messaging: "two_way",
     requiresOAuth: true,
     oauth: {
       authorizeUrl: "https://www.facebook.com/v21.0/dialog/oauth",

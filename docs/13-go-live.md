@@ -225,7 +225,7 @@ direct sender only.
 The benchmark compares a business's own lifetime rating and review count against
 the same two figures from a competitor's public listing. Everything except the
 last part is built: the `competitors` table, the comparison, the entitlement
-(`benchmarking`, Pro and above), and the card on `/insights`.
+(`benchmarking`, Pro and above), and the card on `/analytics`.
 
 What is missing is the adapter that reads somebody else's listing.
 

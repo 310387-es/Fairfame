@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNotNull, lt } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import type { RangeWindow } from "./range.ts";
@@ -29,6 +29,20 @@ export type ActivityItem = {
   rating: number | null;
   /** Present on requests: how many went out in that campaign send. */
   count?: number;
+  /**
+   * Who this event is about (W4.3).
+   *
+   * The customer for an arrival, the team member for a reply, null for a
+   * request — nobody sends a review request *personally*, it is a campaign, and
+   * inventing an actor there would be the feed's first untrue line.
+   *
+   * The audit asks for "a real avatar timeline", and this is what makes it one:
+   * without a name every entry was "new 5★ review on Google" and four of them
+   * in a row read as a rendering bug rather than as four events.
+   */
+  actorName: string | null;
+  /** Which branch, rendered only where more than one is in view. */
+  locationId: string;
 };
 
 const FEED_LIMIT = 6;
@@ -36,7 +50,7 @@ const FEED_LIMIT = 6;
 export async function recentActivity(
   tx: TenantDatabase,
   organizationId: string,
-  locationId: string,
+  locationIds: string[],
   window: RangeWindow,
 ): Promise<ActivityItem[]> {
   const inRange = (column: Parameters<typeof gte>[0]) =>
@@ -49,12 +63,14 @@ export async function recentActivity(
       source: schema.reviews.source,
       itemType: schema.reviews.itemType,
       rating: schema.reviews.rating,
+      actorName: schema.reviews.authorName,
+      locationId: schema.reviews.locationId,
     })
     .from(schema.reviews)
     .where(
       and(
         eq(schema.reviews.organizationId, organizationId),
-        eq(schema.reviews.locationId, locationId),
+        inArray(schema.reviews.locationId, locationIds),
         // Ingestion time, not the platform's timestamp: the feed answers "what
         // happened here recently", and a three-week-old review that arrived in
         // this morning's sync *is* this morning's news.
@@ -71,6 +87,12 @@ export async function recentActivity(
       source: schema.reviews.source,
       itemType: schema.reviews.itemType,
       rating: schema.reviews.rating,
+      // Who on the team sent it. Left-joined because a reply can be authored by
+      // nobody — the AI drafting path records the actor, but a row imported or
+      // written by a job has none, and an inner join would silently drop those
+      // replies from the feed entirely.
+      actorName: schema.users.name,
+      locationId: schema.reviews.locationId,
     })
     .from(schema.replies)
     .innerJoin(
@@ -80,10 +102,11 @@ export async function recentActivity(
         eq(schema.reviews.organizationId, schema.replies.organizationId),
       ),
     )
+    .leftJoin(schema.users, eq(schema.users.id, schema.replies.authorUserId))
     .where(
       and(
         eq(schema.replies.organizationId, organizationId),
-        eq(schema.reviews.locationId, locationId),
+        inArray(schema.reviews.locationId, locationIds),
         isNotNull(schema.replies.postedAt),
         inRange(schema.replies.postedAt),
       ),
@@ -96,12 +119,13 @@ export async function recentActivity(
       id: schema.reviewRequests.id,
       at: schema.reviewRequests.sentAt,
       channel: schema.reviewRequests.channel,
+      locationId: schema.reviewRequests.locationId,
     })
     .from(schema.reviewRequests)
     .where(
       and(
         eq(schema.reviewRequests.organizationId, organizationId),
-        eq(schema.reviewRequests.locationId, locationId),
+        inArray(schema.reviewRequests.locationId, locationIds),
         isNotNull(schema.reviewRequests.sentAt),
         inRange(schema.reviewRequests.sentAt),
       ),
@@ -117,6 +141,8 @@ export async function recentActivity(
       source: row.source,
       itemType: row.itemType,
       rating: row.rating,
+      actorName: row.actorName,
+      locationId: row.locationId,
     })),
     ...replies.flatMap((row) =>
       row.at
@@ -128,6 +154,8 @@ export async function recentActivity(
               source: row.source,
               itemType: row.itemType,
               rating: row.rating,
+              actorName: row.actorName,
+              locationId: row.locationId,
             },
           ]
         : [],
@@ -142,6 +170,10 @@ export async function recentActivity(
               source: row.channel,
               itemType: "review" as const,
               rating: null,
+              // Nobody sends a review request personally — it is a campaign,
+              // and naming an actor would be the feed's first untrue line.
+              actorName: null,
+              locationId: row.locationId,
             },
           ]
         : [],

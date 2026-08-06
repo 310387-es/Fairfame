@@ -9,6 +9,7 @@ import { SegmentRow, type SegmentChip } from "@/components/contacts/segment-row"
 import { Pager } from "@/components/ds/pager";
 import { SectionCard } from "@/components/ds/section-card";
 import { PageHeader } from "@/components/shell/page-header";
+import { SectionTabs } from "@/components/shell/section-tabs";
 import {
   contactFilterParams,
   contactsHref,
@@ -107,6 +108,7 @@ export default async function ContactsPage({ searchParams }: PageProps) {
     return (
       <>
         <PageHeader title={t("title")} subtitle={t("subtitle")} />
+        <SectionTabs active="contacts" />
         <SectionCard title={t("locked.title")} icon={Users}>
           <p className="pb-(--card-py) text-body text-ink-400">{t("locked.body")}</p>
         </SectionCard>
@@ -143,6 +145,7 @@ export default async function ContactsPage({ searchParams }: PageProps) {
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      <SectionTabs active="contacts" />
 
       <SegmentRow
         segments={segmentChips}

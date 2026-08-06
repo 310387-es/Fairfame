@@ -24,6 +24,12 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   en: "English",
 };
 
-export function isLocale(value: string | undefined): value is Locale {
-  return value !== undefined && (LOCALES as readonly string[]).includes(value);
+/**
+ * `null` as well as `undefined` (W3.3): the precedence in `src/i18n/resolve.ts`
+ * reads nullable database columns, and a guard that only knew about `undefined`
+ * pushed a `?? undefined` onto every call site — three chances to drop a value
+ * on the way past.
+ */
+export function isLocale(value: string | null | undefined): value is Locale {
+  return value !== null && value !== undefined && (LOCALES as readonly string[]).includes(value);
 }

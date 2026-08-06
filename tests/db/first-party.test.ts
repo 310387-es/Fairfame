@@ -589,7 +589,10 @@ describe("opt-out", () => {
 
     // Skipped before anything is queued: no row should imply we meant to write.
     expect(outcome.sent).toBe(0);
-    expect(outcome.skipped).toEqual([{ email: "cikis@example.com", reason: "unsubscribed" }]);
+    // `label` rather than `email` since W2.2: a skipped recipient may be a
+    // contact with no phone number, who is identified by name rather than by an
+    // address that does not exist.
+    expect(outcome.skipped).toEqual([{ label: "cikis@example.com", reason: "unsubscribed" }]);
   });
 
   it("is idempotent and keeps the original opt-out time", async () => {

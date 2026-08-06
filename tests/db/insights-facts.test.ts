@@ -2,7 +2,7 @@ import { inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { rangeWindow } from "@/dashboard/range";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
-import { loadInsightFacts } from "@/insights/facts";
+import { loadInsightFacts } from "@/analytics/facts";
 import { withTenant } from "@/lib/tenancy";
 
 /**

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { resolveLocationScope } from "@/auth/scope";
 import { withAuthenticatedTenant } from "@/auth/session";
-import { assignReview, setReviewStatus, TriageError } from "@/inbox/triage";
+import { assignReview, setReviewStatus, TriageError } from "@/reviews/triage";
 import { childLogger } from "@/lib/logger";
 import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
@@ -66,7 +66,7 @@ export async function setReviewStatusAction(input: {
       { minimumRole: "member" },
     );
 
-    revalidatePath("/inbox");
+    revalidatePath("/reviews");
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "setReviewStatus failed");
@@ -100,7 +100,7 @@ export async function assignReviewAction(input: {
       { minimumRole: "member" },
     );
 
-    revalidatePath("/inbox");
+    revalidatePath("/reviews");
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "assignReview failed");

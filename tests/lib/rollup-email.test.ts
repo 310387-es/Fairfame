@@ -9,7 +9,7 @@ import { renderReviewAlertEmail, renderRollupEmail } from "@/messaging/templates
  * pending notification through the *review alert* template, and a rollup payload
  * carries a count and a location name and nothing else — so an SLA rollup with
  * email enabled went out with no stars, no quote, no author, and a call to
- * action pointing at `/inbox?review=undefined`. Nothing failed; a customer's
+ * action pointing at `/reviews?review=undefined`. Nothing failed; a customer's
  * team simply received a broken email from their reputation tool.
  *
  * These assert the two properties that would have caught it: a rollup email
@@ -25,7 +25,7 @@ const rollup = (overrides: Partial<Parameters<typeof renderRollupEmail>[0]> = {}
     locationName: "Kadıköy",
     count: 23,
     kind: "sla",
-    link: "https://app.example.com/inbox?overdue=1",
+    link: "https://app.example.com/reviews?overdue=1",
     settingsUrl: "https://app.example.com/settings#notifications",
     ...overrides,
   });
@@ -42,7 +42,7 @@ describe("the rollup email", () => {
   it("links to the queue, never to a review", () => {
     const email = rollup();
 
-    expect(email.text).toContain("/inbox?overdue=1");
+    expect(email.text).toContain("/reviews?overdue=1");
     // The exact failure that shipped: a review link built from a payload that
     // has no review in it.
     expect(email.html).not.toContain("review=undefined");
@@ -55,7 +55,7 @@ describe("the rollup email", () => {
     const overdue = rollup({ kind: "sla" });
     const assigned = rollup({
       kind: "assignment",
-      link: "https://app.example.com/inbox?assignee=me",
+      link: "https://app.example.com/reviews?assignee=me",
     });
 
     expect(overdue.subject).not.toBe(assigned.subject);
@@ -110,7 +110,7 @@ describe("an assigned review's own alert", () => {
       excerpt: "Lovely coffee.",
       urgent: false,
       reason,
-      link: "https://app.example.com/inbox?review=abc",
+      link: "https://app.example.com/reviews?review=abc",
       settingsUrl: "https://app.example.com/settings#notifications",
     });
 

@@ -59,7 +59,7 @@ export async function linkClientAction(input: {
       { minimumRole: "admin" },
     );
 
-    revalidatePath("/clients");
+    revalidatePath("/agency");
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "linkClient failed");
@@ -89,7 +89,7 @@ export async function unlinkClientAction(input: {
       { minimumRole: "admin" },
     );
 
-    revalidatePath("/clients");
+    revalidatePath("/agency");
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "unlinkClient failed");

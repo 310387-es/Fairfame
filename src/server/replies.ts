@@ -39,34 +39,57 @@ const saveSchema = z.object({
   text: z.string().trim().min(1).max(MAX_REPLY_CHARS),
 });
 
-/** Maps a domain failure to something worth showing a person. */
-function toReplyResult(error: unknown): ActionResult {
+/**
+ * Maps a domain failure to something worth showing a person.
+ *
+ * Generic in the success payload it will never produce: every branch here is a
+ * failure, and typing the return as bare `ActionResult` forced a cast at the
+ * one call site that promises data back (W4.3). A cast at a failure boundary is
+ * the wrong place to have one — it is exactly where a shape mistake would be
+ * least visible.
+ */
+function toReplyResult<T>(error: unknown): ActionResult<T> {
   if (error instanceof ReplyError) return { ok: false, error: error.message };
   return toActionResult(error);
 }
 
-export async function draftReplyAction(input: { reviewId: string }): Promise<ActionResult> {
+/**
+ * Drafts a reply, and hands the text back (W4.3).
+ *
+ * It used to return bare `{ ok: true }` and rely on `revalidatePath` to put the
+ * draft on screen, which works on the Inbox because the composer is already
+ * rendered there. Home's queue has no composer — and the audit asks for a
+ * one-click AI reply *in* the queue — so the caller needs the words. The draft
+ * is still written to the database exactly as before; this only stops throwing
+ * away something we already have.
+ *
+ * It remains a **draft**. Approving and posting are `admin` and live where a
+ * person can read the thing before it goes to a customer, and one click on a
+ * dashboard must never be one click from publishing.
+ */
+export async function draftReplyAction(input: {
+  reviewId: string;
+}): Promise<ActionResult<{ text: string }>> {
   const parsed = reviewIdSchema.safeParse(input);
   if (!parsed.success) return invalidInput(parsed.error, "Invalid review.");
 
   try {
-    await withAuthenticatedTenant(
-      async (tx, actor) => {
-        await draftReplyForReview({
+    const reply = await withAuthenticatedTenant(
+      async (tx, actor) =>
+        draftReplyForReview({
           tx,
           organizationId: actor.organizationId,
           actorUserId: actor.userId,
           reviewId: parsed.data.reviewId,
-        });
-      },
+        }),
       { minimumRole: "member" },
     );
 
     revalidatePath("/", "layout");
-    return { ok: true };
+    return { ok: true, text: reply.text };
   } catch (error) {
     log.warn({ err: error }, "draftReply failed");
-    return toReplyResult(error);
+    return toReplyResult<{ text: string }>(error);
   }
 }
 

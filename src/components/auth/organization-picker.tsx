@@ -55,7 +55,7 @@ export function OrganizationPicker({
             onClick={() => {
               run(() => switchOrganizationAction({ organizationId: organization.id }), {
                 onSuccess: () => {
-                  router.push("/home");
+                  router.push("/dashboard");
                   router.refresh();
                 },
               });

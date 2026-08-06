@@ -155,15 +155,31 @@ describe("campaign input", () => {
     }
   });
 
-  it("rejects sms and whatsapp until their connectors exist", () => {
+  it("accepts sms and whatsapp, which route through the consent gate (W2.2)", () => {
+    // These were refused here until review requests learned to send through
+    // `sendMessage`. The refusal has not gone away — it has moved to where it
+    // belongs: a message on either channel is still stopped, by the gate, with
+    // a named reason, at the moment it would leave. A schema that rejected the
+    // *campaign* meant a business could not even describe the thing it wanted
+    // to do once the credentials arrived.
     for (const channel of ["sms", "whatsapp"]) {
       const result = createCampaignSchema.safeParse({
         locationId: LOCATION_ID,
-        name: "Too soon",
+        name: "Now describable",
         channel,
       });
-      expect(result.success, channel).toBe(false);
+      expect(result.success, channel).toBe(true);
     }
+  });
+
+  it("still refuses a channel that does not exist", () => {
+    const result = createCampaignSchema.safeParse({
+      locationId: LOCATION_ID,
+      name: "Carrier pigeon",
+      channel: "pigeon",
+    });
+
+    expect(result.success).toBe(false);
   });
 });
 

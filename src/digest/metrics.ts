@@ -48,7 +48,48 @@ export const SENTIMENT_WEIGHT = 0.35;
  */
 export type PulseInput = { rating: number | null; sentimentScore: number | null };
 
-export function computePulse(reviews: readonly PulseInput[]): number | null {
+/**
+ * Below this many reviews, there is no score — not a small one (W3.3).
+ *
+ * Two customers do not make a reputation. A single one-star among three
+ * reviews moves the raw blend by more than twenty points, so a business with a
+ * quiet week would watch a number swing wildly and correctly conclude it means
+ * nothing. Ten is a judgement rather than a derivation, written here so it can
+ * be argued with in one place; the surfaces say "not enough data yet" rather
+ * than drawing a dial nobody should read.
+ */
+export const MIN_REVIEWS_FOR_PULSE = 10;
+
+/**
+ * How much the longer run pulls a short window toward it.
+ *
+ * Bayesian smoothing with a pseudo-count: the score is
+ * `(n·window + K·prior) / (n + K)`, so a week of three reviews is mostly the
+ * prior and a week of two hundred is mostly itself. **K is in units of
+ * reviews** — at `K = 10`, ten reviews in the window carry equal weight with
+ * the ninety-day baseline.
+ *
+ * Without it the weekly number is unusable on a real small business: a café
+ * with eight reviews a week would show ±15 point swings driven entirely by who
+ * happened to write, and a metric that moves like that trains people to ignore
+ * it — the same failure the digest's filler content caused.
+ */
+export const PULSE_SMOOTHING_REVIEWS = 10;
+
+export type PulseOptions = {
+  /**
+   * The longer-run score to smooth toward — the ninety-day blend for this
+   * location. Null skips smoothing entirely, which is right for a caller that
+   * *is* the long run and would otherwise be smoothed toward itself.
+   */
+  prior?: number | null;
+};
+
+/**
+ * The raw, unsmoothed blend. Exported for the ninety-day baseline itself,
+ * which has nothing to be pulled toward.
+ */
+export function rawPulse(reviews: readonly PulseInput[]): number | null {
   const rated = reviews.filter((review) => review.rating !== null);
   const scored = reviews.filter((review) => review.sentimentScore !== null);
 
@@ -69,14 +110,46 @@ export function computePulse(reviews: readonly PulseInput[]): number | null {
           2) *
         100;
 
-  if (ratingPart === null) return round(sentimentPart ?? 0);
-  if (sentimentPart === null) return round(ratingPart);
+  if (ratingPart === null) return clamp(sentimentPart ?? 0);
+  if (sentimentPart === null) return clamp(ratingPart);
 
-  return round(ratingPart * RATING_WEIGHT + sentimentPart * SENTIMENT_WEIGHT);
+  return clamp(ratingPart * RATING_WEIGHT + sentimentPart * SENTIMENT_WEIGHT);
 }
 
-function round(value: number): number {
-  return Math.max(0, Math.min(100, Math.round(value * 10) / 10));
+/**
+ * The score a surface should show: smoothed, whole, or nothing at all.
+ *
+ * **Whole numbers** (W3.3). The decimal was precision the measurement does not
+ * have — "72,4" invites somebody to care about the 0,4, which is one
+ * indifferent review either way — and it was half of why the same reputation
+ * read as 70 on one screen and 72.3 on another.
+ */
+export function computePulse(
+  reviews: readonly PulseInput[],
+  options: PulseOptions = {},
+): number | null {
+  const usable = reviews.filter(
+    (review) => review.rating !== null || review.sentimentScore !== null,
+  );
+
+  const raw = rawPulse(usable);
+  if (raw === null) return null;
+
+  const prior = options.prior ?? null;
+
+  // Nothing to smooth toward: the sample has to stand on its own, and below
+  // the floor it cannot.
+  if (prior === null) {
+    return usable.length < MIN_REVIEWS_FOR_PULSE ? null : Math.round(raw);
+  }
+
+  const n = usable.length;
+  const smoothed = (n * raw + PULSE_SMOOTHING_REVIEWS * prior) / (n + PULSE_SMOOTHING_REVIEWS);
+  return Math.round(clamp(smoothed));
+}
+
+function clamp(value: number): number {
+  return Math.max(0, Math.min(100, value));
 }
 
 export type ThemeCluster = {

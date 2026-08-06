@@ -1,4 +1,4 @@
-import { History, Mail, MessageSquare, Phone, ShieldCheck, Tag, Users } from "lucide-react";
+import { History, Mail, MessageSquare, Phone, Send, ShieldCheck, Tag, Users } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { resolveLocationScope } from "@/auth/scope";
@@ -9,6 +9,7 @@ import { ConsentPanel } from "@/components/contacts/consent-panel";
 import { ContactAdmin } from "@/components/contacts/contact-admin";
 import { ContactTagsEditor } from "@/components/contacts/contact-tags-editor";
 import { ContactTimeline } from "@/components/contacts/contact-timeline";
+import { SendRequest } from "@/components/contacts/send-request";
 import { Eyebrow } from "@/components/ds/eyebrow";
 import { Metric } from "@/components/ds/metric";
 import { SectionCard } from "@/components/ds/section-card";
@@ -18,6 +19,7 @@ import { listContactConsent } from "@/contacts/consent";
 import { getContact } from "@/contacts/queries";
 import { listContactTags } from "@/contacts/tags";
 import { contactTimeline } from "@/contacts/timeline";
+import { listReviewCampaigns } from "@/surveys/store";
 import { can } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
 
@@ -66,6 +68,9 @@ export default async function ContactPage({ params }: PageProps) {
         consents: await listContactConsent(tx, actor.organizationId, contact.id),
         timeline: await contactTimeline(tx, actor.organizationId, contact),
         vocabulary: await listContactTags(tx, actor.organizationId),
+        // Scoped like everything else on this page: a member restricted to one
+        // branch must not be offered a campaign belonging to another.
+        campaigns: await listReviewCampaigns(tx, actor.organizationId, scope),
       };
     },
   );
@@ -74,7 +79,7 @@ export default async function ContactPage({ params }: PageProps) {
   // Distinguishing them would leak the thing each of them is withholding.
   if (!data) notFound();
 
-  const { contact, canMessage, consents, timeline, vocabulary } = data;
+  const { contact, canMessage, consents, timeline, vocabulary, campaigns } = data;
   const canManage = roleAtLeast(actor.role, "admin");
 
   const onContact = new Set(contact.tags.map((tag) => tag.slug));
@@ -142,6 +147,16 @@ export default async function ContactPage({ params }: PageProps) {
           </SectionCard>
 
           {/*
+            Asking this one person, from where you are already looking at them
+            (W2.2). Above the conversation card because it is the commoner
+            errand: a review request goes to anybody with an address, while a
+            conversation needs a phone number and an open window.
+          */}
+          <SectionCard title={t("sendRequest")} icon={Send}>
+            <SendRequest contactId={contact.id} campaigns={campaigns} />
+          </SectionCard>
+
+          {/*
             The way into a conversation (P4-T3). A link rather than a composer
             on this page: the thread is the context a reply needs, and two
             places to type a message is two places for the window rules to be
@@ -151,7 +166,14 @@ export default async function ContactPage({ params }: PageProps) {
             <SectionCard
               title={t("conversation")}
               icon={MessageSquare}
-              link={{ href: `/messages?c=${contact.id}`, label: t("openConversation") }}
+              // No link without a number. The card said "this person has no
+              // phone number, so no message can be sent" and offered a way in
+              // anyway — which landed on a working composer whose every send
+              // would fail. A control that contradicts the sentence beside it
+              // teaches people not to read either.
+              {...(contact.phone
+                ? { link: { href: `/conversations?c=${contact.id}`, label: t("openConversation") } }
+                : {})}
             >
               <p className="pb-(--card-py) text-body text-ink-400">
                 {contact.phone ? t("conversationHint") : t("conversationNoPhone")}

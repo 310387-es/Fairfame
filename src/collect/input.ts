@@ -10,19 +10,30 @@ import { LOCALES } from "../i18n/config.ts";
  * lengths — it is the only unauthenticated write path in the product.
  */
 
-/** Channels a send can actually go out on today. */
-export const SENDABLE_CHANNELS = ["email"] as const;
+/**
+ * Channels a send can actually go out on (W2.2).
+ *
+ * `whatsapp` and `sms` joined `email` when review requests learned to route
+ * through `sendMessage` and the İYS gate. They still refuse in every
+ * environment — `SMS_GATEWAY` and the WhatsApp mock both do — but the refusal
+ * now comes from the gate and the transport, with a named reason, rather than
+ * from a list here that said "not built".
+ *
+ * `link` is deliberately absent: a QR campaign has nothing to send.
+ */
+export const SENDABLE_CHANNELS = ["email", "whatsapp", "sms"] as const;
 
 /**
  * `link` is the QR / short-link campaign: nothing is sent, people arrive on
- * their own. `sms` and `whatsapp` exist in the enum but are refused until
- * their connectors and the İYS gate land (P1b-T3/T5).
+ * their own. `sms` and `whatsapp` route through `sendMessage` and the consent
+ * gate (W2.2) — they are offered here and refused at send time, by the gate,
+ * with a reason.
  */
 export const createCampaignSchema = z
   .object({
     locationId: z.uuid(),
     name: z.string().trim().min(1, "A campaign name is required.").max(120),
-    channel: z.enum(["email", "link"]).default("email"),
+    channel: z.enum(["email", "whatsapp", "sms", "link"]).default("email"),
     destination: z.enum(["firstparty", "external"]).default("firstparty"),
     destinationUrl: z
       .string()
@@ -83,24 +94,66 @@ export function parseCreateCampaign(formData: FormData) {
   });
 }
 
+const recipientNameSchema = z
+  .string()
+  .trim()
+  .max(120)
+  .nullish()
+  .transform((value) => (value == null || value === "" ? null : value));
+
 export const recipientSchema = z.object({
   email: z.email({ message: "That is not a valid email address." }).max(254),
-  name: z
-    .string()
-    .trim()
-    .max(120)
-    .nullish()
-    .transform((value) => (value == null || value === "" ? null : value)),
+  name: recipientNameSchema,
 });
 
+/**
+ * Somebody to ask, addressed the way the campaign's channel addresses people
+ * (W2.2).
+ *
+ * A union rather than one shape with both fields optional, because "an email
+ * address or a phone number" and "possibly neither" are different claims and
+ * only the first is true. A recipient with neither is not a recipient.
+ *
+ * **The phone form carries a `contactId`, not a raw number**, and that is the
+ * load-bearing difference. `checkSendAllowed` is keyed on the contact — consent
+ * is recorded against a person, not against a string of digits — so a messaging
+ * send that started from a pasted number would have to invent a contact before
+ * it could ask whether it was allowed to send, which is a row implying we meant
+ * to message somebody we had not yet checked. Choosing from people we already
+ * hold is the shape that makes the gate answerable.
+ */
+export const phoneRecipientSchema = z.object({
+  contactId: z.uuid(),
+  name: recipientNameSchema,
+});
+
+/**
+ * `Recipient` stays the email shape it has always been, and the union is a
+ * *separate* name used only by the review-request path.
+ *
+ * Surveys take recipients too (P4-T2) and are email-only; widening the shared
+ * type would have told every reader of `src/surveys/send.ts` that a survey can
+ * be sent to a phone, which is not true and would have to be re-checked at
+ * every use. A type that overstates what a module accepts is a type that has to
+ * be narrowed again by hand.
+ */
 export type Recipient = z.infer<typeof recipientSchema>;
+export type PhoneRecipient = z.infer<typeof phoneRecipientSchema>;
+export type RequestRecipient = Recipient | PhoneRecipient;
+
+export function isEmailRecipient(recipient: RequestRecipient): recipient is Recipient {
+  return "email" in recipient;
+}
 
 /** One send should not be able to become a mailing blast by accident. */
 export const MAX_RECIPIENTS_PER_SEND = 200;
 
 export const sendRequestsSchema = z.object({
   campaignId: z.uuid(),
-  recipients: z.array(recipientSchema).min(1).max(MAX_RECIPIENTS_PER_SEND),
+  recipients: z
+    .array(z.union([recipientSchema, phoneRecipientSchema]))
+    .min(1)
+    .max(MAX_RECIPIENTS_PER_SEND),
 });
 
 /**

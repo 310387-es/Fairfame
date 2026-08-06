@@ -1,4 +1,5 @@
 import { UNTRUSTED_SYSTEM_RULE, wrapUntrusted, type WrappedUntrusted } from "../ai/guardrails.ts";
+import { themesForVertical } from "../reviews/taxonomy.ts";
 import type { LlmRequest } from "../ai/types.ts";
 
 /**
@@ -70,7 +71,7 @@ export function buildPrompt(args: {
  * Insights page uses it to tell "nobody was named" apart from "analysed before
  * names were extracted at all".
  */
-export const ANALYZE_PROMPT_ID = "analyze_review@2";
+export const ANALYZE_PROMPT_ID = "analyze_review@3";
 
 /**
  * The shape T3 will persist into `review_insights`. Declared here because the
@@ -86,7 +87,22 @@ export const reviewAnalysisSchema = {
     },
     topics: {
       type: "array",
-      description: "One to five short lower-case theme tags in the review's own language.",
+      description:
+        "One to five short lower-case tags in the review's own language, naming the specific " +
+        "things it mentions — a dish, a room, a member of staff's role. The long tail, not a " +
+        "category.",
+      items: { type: "string" },
+    },
+    /**
+     * The closed vocabulary (W3.2). `enum` is filled per request from the
+     * location's vertical, so the model is never offered "room comfort" for a
+     * barber — an unusable theme it would eventually reach for.
+     */
+    themes: {
+      type: "array",
+      description:
+        "Every canonical theme this review is about, chosen only from the allowed list. " +
+        "Empty if none of them fit — never invent one.",
       items: { type: "string" },
     },
     language: { type: "string", description: "BCP-47 language tag of the review, e.g. tr or en." },
@@ -97,12 +113,12 @@ export const reviewAnalysisSchema = {
       items: { type: "string" },
     },
   },
-  required: ["sentiment", "sentiment_score", "topics", "language", "staff"],
+  required: ["sentiment", "sentiment_score", "topics", "themes", "language", "staff"],
 } as const satisfies Record<string, unknown>;
 
 const ANALYZE_SYSTEM = [
   "You classify customer reviews for a business-reputation product.",
-  "Work in the review's own language: a Turkish review yields Turkish topic tags, an English review English ones.",
+  "Free tags go in the review's own language: a Turkish review yields Turkish tags, an English review English ones. Canonical themes are always the English keys you are given, whatever the review's language — they are identifiers, not words a customer sees.",
   "Turkish and English must be treated with equal care; do not translate before classifying.",
   "Judge only what the text says. Do not infer facts that are not present, and do not speculate about the business.",
   // Naming a person is the one output here that is personal data about somebody
@@ -121,27 +137,52 @@ const ANALYZE_SYSTEM = [
  * connector), not the customer's prose — a 1-star review whose text reads
  * pleasantly is usually sarcasm, and the model should see both.
  */
-export function analyzeReviewPrompt(args: { text: string; rating: number | null }): BuiltPrompt {
+export function analyzeReviewPrompt(args: {
+  text: string;
+  rating: number | null;
+  /** `locations.category`. Decides which canonical themes are offered (W3.2). */
+  category?: string | null;
+}): BuiltPrompt {
   const ratingLine =
     args.rating === null
       ? "The reviewer left no star rating."
       : `The reviewer gave ${args.rating} out of 5 stars.`;
 
+  /**
+   * The allowed themes, narrowed to this business's vertical.
+   *
+   * Put in the **response schema** as an `enum` rather than only in the
+   * instruction, because a schema is a constraint and an instruction is a
+   * request. `normalizeThemes` drops anything outside the list anyway, so a
+   * provider that ignores the enum costs a theme rather than corrupting the
+   * column — but the enum is what stops it happening in the first place.
+   */
+  const allowed = themesForVertical(args.category);
+  const schema = {
+    ...reviewAnalysisSchema,
+    properties: {
+      ...reviewAnalysisSchema.properties,
+      themes: { ...reviewAnalysisSchema.properties.themes, enum: allowed },
+    },
+  };
+
   return buildPrompt({
-    // Bumped from @1 when staff extraction was added. The id is recorded on
-    // every insight, which is how the Insights page can tell a review nobody
-    // was named in from one analysed before the field existed.
+    // @3 adds canonical themes (W3.2). The id is recorded on every insight,
+    // which is how a screen tells a review with no themes from one analysed
+    // before the taxonomy existed.
     id: ANALYZE_PROMPT_ID,
     system: ANALYZE_SYSTEM,
     instruction: [
       "Classify the customer review below.",
       ratingLine,
-      "Return its overall sentiment, a sentiment score, one to five topic tags naming what the review is actually about (service, waiting time, price, cleanliness, staff, and so on), the language it is written in, and any staff the reviewer named.",
+      `Choose every canonical theme that applies, from exactly this list: ${allowed.join(", ")}.`,
+      "Choose none rather than a poor fit — a theme that is only loosely present makes a chart nobody can act on.",
+      "Separately, return one to five free tags in the review's own language naming the specific things it mentions, the language it is written in, and any staff the reviewer named.",
     ].join(" "),
     untrustedText: args.text,
     // Generous enough for five tags in Turkish, far too small for prose.
     maxOutputTokens: 512,
-    responseSchema: reviewAnalysisSchema,
+    responseSchema: schema,
   });
 }
 
@@ -377,8 +418,19 @@ export function digestPrompt(input: DigestPromptInput): BuiltPrompt {
       `Limits: headline ${MAX_HEADLINE_CHARS} characters, summary ${MAX_SUMMARY_CHARS}, each action ${MAX_ACTION_CHARS}.`,
     ].join("\n"),
     untrustedText: quotes,
-    // Enough for a briefing in Turkish, which runs longer than English.
-    maxOutputTokens: 1_200,
+    /**
+     * Enough for a briefing in Turkish, which runs longer than English —
+     * *and* for the evidence W1.6 added.
+     *
+     * 1,200 was sized for a response of prose plus three `{text, theme}`
+     * actions. Requiring `quoteRefs` and `lever` on each of them made the JSON
+     * longer, and against a real model the reply started being cut off
+     * mid-string — surfacing as "Unterminated string in JSON", which reads as a
+     * parse bug rather than a budget one. Raised with headroom, because the
+     * cost of being wrong here is a whole week's digest and the saving is
+     * fractions of a cent on a once-a-week call.
+     */
+    maxOutputTokens: 2_400,
     responseSchema: digestSchema as unknown as Record<string, unknown>,
   });
 }

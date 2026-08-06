@@ -8,7 +8,14 @@ import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { EMBEDDING_DIMENSIONS } from "@/db/schema";
 import { weekWindow } from "@/digest/metrics";
 import { generateDigest, MIN_ANALYSED_REVIEWS, type DigestPayload } from "@/digest/pipeline";
-import { digestProgress, latestDigest, listDigests, setActionStatus } from "@/digest/queries";
+import {
+  actionCompletionRecord,
+  digestProgress,
+  latestDigest,
+  listDigests,
+  RECORD_DIGESTS,
+  setActionStatus,
+} from "@/digest/queries";
 import { currentPeriod } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
 
@@ -310,6 +317,32 @@ describe("generating a digest", () => {
     expect(servis?.quotes[0]?.text).toContain("Garson hiç ilgilenmedi");
     expect(servis?.quotes[1]?.text).toContain("Servis çok yavaştı");
     expect(servis?.quotes[2]?.text).toContain("Siparişimiz karıştı");
+  });
+
+  it("never quotes the same review under two themes (W2.1)", async () => {
+    // A review carries several topics, so overlapping clusters is correct —
+    // but choosing each theme's quotes independently let the same worst review
+    // win under every theme it belonged to. A generated digest showed `fiyat`
+    // and `bekleme süresi` side by side quoting an identical pair, which reads
+    // as a broken page and files a queue complaint under a heading about price.
+    const row = await digestRow(fixture.orgId);
+    const payload = row?.payload as DigestPayload;
+
+    const quoted = payload.themes.flatMap((theme) => theme.quotes.map((quote) => quote.reviewId));
+
+    expect(quoted).toHaveLength(new Set(quoted).size);
+  });
+
+  it("still gives every theme a quote, even one whose reviews are all spoken for", async () => {
+    // The fallback, and it matters more than the rule: a theme with no quote is
+    // a theme the model cannot ground an action in, so losing the evidence
+    // would be a worse failure than repeating it.
+    const row = await digestRow(fixture.orgId);
+    const payload = row?.payload as DigestPayload;
+
+    for (const theme of payload.themes) {
+      expect(theme.quotes.length).toBeGreaterThan(0);
+    }
   });
 
   it("records the prompt revision and model that composed it", async () => {
@@ -802,6 +835,256 @@ describe("closing the loop", () => {
 
     expect(current?.pulseDelta).not.toBeNull();
     expect(current?.pulseDelta ?? 0).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The running completion record (W2.1).
+ *
+ * `priorActionsOutcome` above is a *snapshot*, frozen into the payload when a
+ * briefing is composed. This is the live read, and it answers the question the
+ * digest's whole claim rests on: over the last month, how much of what we told
+ * this business to do actually got done.
+ *
+ * Digests are inserted directly rather than generated. Every assertion here is
+ * about arithmetic over stored statuses, and driving the model to produce them
+ * would make the fixtures unreadable and the counts incidental.
+ */
+describe("the running completion record", () => {
+  const WEEK = 7 * 24 * 60 * 60 * 1000;
+
+  /** A ready digest `weeksAgo` before the current window, with its actions. */
+  async function addDigest(
+    fixture: Fixture,
+    weeksAgo: number,
+    actions: { status: "open" | "done" | "dismissed"; lever?: string | null }[],
+  ): Promise<string> {
+    const periodStart = new Date(WINDOW.start.getTime() - weeksAgo * WEEK);
+
+    const [digest] = await getAdminDb()
+      .insert(schema.digests)
+      .values({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        periodStart,
+        periodEnd: new Date(periodStart.getTime() + WEEK),
+        status: "ready",
+        reviewCount: 5,
+        generatedAt: periodStart,
+      })
+      .returning({ id: schema.digests.id });
+    if (!digest) throw new Error("digest insert returned nothing");
+
+    if (actions.length > 0) {
+      await getAdminDb()
+        .insert(schema.digestActions)
+        .values(
+          actions.map((action, index) => ({
+            organizationId: fixture.orgId,
+            digestId: digest.id,
+            position: index + 1,
+            text: `Eylem ${index + 1}`,
+            evidence: { themeSlug: "servis", reviewIds: [] },
+            lever: action.lever === undefined ? "process" : action.lever,
+            status: action.status,
+            ...(action.status === "open" ? {} : { completedAt: periodStart }),
+          })),
+        );
+    }
+
+    return digest.id;
+  }
+
+  const read = (fixture: Fixture, before: Date, digests?: number) =>
+    withTenant({ organizationId: fixture.orgId }, (tx) =>
+      actionCompletionRecord(tx, fixture.orgId, fixture.locationId, { before, digests }),
+    );
+
+  it("counts what was done across the recent briefings", async () => {
+    const fixture = await makeFixture("record");
+    await addDigest(fixture, 1, [{ status: "done" }, { status: "done" }, { status: "open" }]);
+    await addDigest(fixture, 2, [{ status: "done" }, { status: "open" }, { status: "open" }]);
+
+    const record = await read(fixture, WINDOW.start);
+
+    expect(record).toMatchObject({ total: 6, done: 3, open: 3, dismissed: 0, digests: 2 });
+  });
+
+  it("leaves out the briefing being read", async () => {
+    // The one that would otherwise make the number worst on the morning it is
+    // published: this week's three actions are hours old and necessarily open.
+    const fixture = await makeFixture("record-current");
+    await addDigest(fixture, 0, [{ status: "open" }, { status: "open" }, { status: "open" }]);
+    await addDigest(fixture, 1, [{ status: "done" }, { status: "done" }, { status: "open" }]);
+
+    const record = await read(fixture, WINDOW.start);
+
+    expect(record).toMatchObject({ total: 3, done: 2, digests: 1 });
+  });
+
+  it("keeps a dismissal out of the ratio", async () => {
+    // Deciding a recommendation is wrong for your business is engagement, not
+    // failure. Counting it done would flatter; counting it open would punish.
+    const fixture = await makeFixture("record-dismissed");
+    await addDigest(fixture, 1, [
+      { status: "done" },
+      { status: "dismissed" },
+      { status: "dismissed" },
+    ]);
+
+    const record = await read(fixture, WINDOW.start);
+
+    expect(record).toMatchObject({ total: 1, done: 1, dismissed: 2, open: 0 });
+  });
+
+  it("looks no further back than the window it claims", async () => {
+    const fixture = await makeFixture("record-window");
+    for (let week = 1; week <= 6; week += 1) {
+      await addDigest(fixture, week, [{ status: "done" }]);
+    }
+
+    expect(await read(fixture, WINDOW.start)).toMatchObject({ digests: RECORD_DIGESTS, done: 4 });
+    expect(await read(fixture, WINDOW.start, 2)).toMatchObject({ digests: 2, done: 2 });
+  });
+
+  it("says nothing at all before there is a record", async () => {
+    // A business in its first fortnight must not be shown "0 of 3": that is a
+    // fact about how long they have been here, not a finding about them.
+    const fixture = await makeFixture("record-new");
+    await addDigest(fixture, 0, [{ status: "open" }, { status: "open" }]);
+
+    expect(await read(fixture, WINDOW.start)).toMatchObject({ total: 0, digests: 0, byLever: [] });
+  });
+
+  it("ranks which kinds of action get finished", async () => {
+    const fixture = await makeFixture("record-lever");
+    await addDigest(fixture, 1, [
+      { status: "done", lever: "staffing" },
+      { status: "open", lever: "hours" },
+      { status: "open", lever: "hours" },
+    ]);
+
+    const record = await read(fixture, WINDOW.start);
+
+    expect(record.byLever.map((entry) => entry.lever)).toEqual(["staffing", "hours"]);
+    expect(record.byLever[0]).toMatchObject({ total: 1, done: 1 });
+    expect(record.byLever[1]).toMatchObject({ total: 2, done: 0 });
+  });
+
+  it("counts a pre-lever action in the totals but not in the breakdown", async () => {
+    // `lever` is nullable so digests written before W1.6 keep their meaning.
+    // Dropping those rows from the totals would understate real work done.
+    const fixture = await makeFixture("record-nolever");
+    await addDigest(fixture, 1, [{ status: "done", lever: null }, { status: "done" }]);
+
+    const record = await read(fixture, WINDOW.start);
+
+    expect(record).toMatchObject({ total: 2, done: 2 });
+    expect(record.byLever).toHaveLength(1);
+  });
+
+  it("ignores another location's briefings", async () => {
+    const fixture = await makeFixture("record-scope");
+    const [other] = await getAdminDb()
+      .insert(schema.locations)
+      .values({ organizationId: fixture.orgId, name: "Diğer Şube", locale: "tr" })
+      .returning({ id: schema.locations.id });
+    if (!other) throw new Error("location insert returned nothing");
+
+    await addDigest(fixture, 1, [{ status: "done" }]);
+    await addDigest({ ...fixture, locationId: other.id }, 1, [
+      { status: "done" },
+      { status: "done" },
+    ]);
+
+    expect(await read(fixture, WINDOW.start)).toMatchObject({ total: 1, done: 1 });
+  });
+});
+
+describe("marking an action", () => {
+  /**
+   * The record buckets by `completed_at`, so that timestamp is the moment the
+   * action stopped being open and must not move afterwards — a second press of
+   * a button that is already pressed would otherwise carry a closure from one
+   * month's record into the next one's.
+   */
+  async function anAction(fixture: Fixture): Promise<string> {
+    const periodStart = new Date(WINDOW.start.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const [digest] = await getAdminDb()
+      .insert(schema.digests)
+      .values({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        periodStart,
+        periodEnd: WINDOW.start,
+        status: "ready",
+        reviewCount: 1,
+      })
+      .returning({ id: schema.digests.id });
+    if (!digest) throw new Error("digest insert returned nothing");
+
+    const [action] = await getAdminDb()
+      .insert(schema.digestActions)
+      .values({
+        organizationId: fixture.orgId,
+        digestId: digest.id,
+        position: 1,
+        text: "Eylem",
+        evidence: { themeSlug: "servis", reviewIds: [] },
+        lever: "process",
+      })
+      .returning({ id: schema.digestActions.id });
+    if (!action) throw new Error("action insert returned nothing");
+
+    return action.id;
+  }
+
+  const mark = (fixture: Fixture, actionId: string, status: "open" | "done" | "dismissed") =>
+    withTenant({ organizationId: fixture.orgId }, (tx) =>
+      setActionStatus(tx, {
+        organizationId: fixture.orgId,
+        actionId,
+        status,
+        userId: fixture.userId,
+      }),
+    );
+
+  it("does not move a completion time when it is marked done twice", async () => {
+    const fixture = await makeFixture("mark-twice");
+    const actionId = await anAction(fixture);
+
+    const first = await mark(fixture, actionId, "done");
+    const second = await mark(fixture, actionId, "done");
+
+    expect(first?.completedAt).not.toBeNull();
+    expect(second?.completedAt?.getTime()).toBe(first?.completedAt?.getTime());
+    // `updated_at` is free to move — it records the write, not the closure.
+    expect(second?.updatedAt?.getTime()).toBeGreaterThanOrEqual(first!.updatedAt!.getTime());
+  });
+
+  it("keeps the moment it was closed when done becomes dismissed", async () => {
+    const fixture = await makeFixture("mark-change");
+    const actionId = await anAction(fixture);
+
+    const done = await mark(fixture, actionId, "done");
+    const dismissed = await mark(fixture, actionId, "dismissed");
+
+    expect(dismissed?.status).toBe("dismissed");
+    expect(dismissed?.completedAt?.getTime()).toBe(done?.completedAt?.getTime());
+  });
+
+  it("clears the completion when an action is reopened, and takes a fresh one after", async () => {
+    const fixture = await makeFixture("mark-reopen");
+    const actionId = await anAction(fixture);
+
+    const done = await mark(fixture, actionId, "done");
+    const reopened = await mark(fixture, actionId, "open");
+    const redone = await mark(fixture, actionId, "done");
+
+    expect(reopened?.completedAt).toBeNull();
+    expect(reopened?.completedByUserId).toBeNull();
+    // Reopening is a real change of mind, so the second closure is a new one.
+    expect(redone?.completedAt?.getTime()).toBeGreaterThan(done!.completedAt!.getTime());
   });
 });
 

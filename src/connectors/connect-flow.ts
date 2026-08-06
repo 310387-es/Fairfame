@@ -93,6 +93,7 @@ export async function completeOAuthConnection(
         capabilities: descriptor.capabilities,
         failureCount: 0,
         lastError: null,
+        lastErrorKind: null,
         nextSyncAt: null,
         updatedAt: now,
       },

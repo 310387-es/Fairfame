@@ -136,9 +136,9 @@ export function NotificationBell({ unread, urgent }: { unread: number; urgent: b
     // client-side push anyway.
     // A rollup names no review — the destination is the pile it is about, and
     // which pile depends on why it was rolled up.
-    if (item.type === "sla_rollup") router.push("/inbox?overdue=1");
-    else if (item.type === "assignment_rollup") router.push("/inbox?assignee=me");
-    else if (item.reviewId) router.push(`/inbox?review=${item.reviewId}`);
+    if (item.type === "sla_rollup") router.push("/reviews?overdue=1");
+    else if (item.type === "assignment_rollup") router.push("/reviews?assignee=me");
+    else if (item.reviewId) router.push(`/reviews?review=${item.reviewId}`);
   }
 
   return (

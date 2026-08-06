@@ -13,8 +13,8 @@ import {
   bulkUntag,
   MAX_BULK_ITEMS,
   type BulkOutcome,
-} from "@/inbox/bulk";
-import { TriageError } from "@/inbox/triage";
+} from "@/reviews/bulk";
+import { TriageError } from "@/reviews/triage";
 import { childLogger } from "@/lib/logger";
 import { draftReplyForReview } from "@/replies/service";
 import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
@@ -67,7 +67,7 @@ async function runBulk(
     { minimumRole: "member" },
   );
 
-  revalidatePath("/inbox");
+  revalidatePath("/reviews");
   return report(outcome);
 }
 

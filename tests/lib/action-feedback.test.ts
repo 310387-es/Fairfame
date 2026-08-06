@@ -58,11 +58,11 @@ function callsServerActions(): { path: string; source: string }[] {
 const EXEMPT: Record<string, string> = {
   "src/components/shell/search-palette.tsx":
     "Reads search results as you type. A toast per keystroke is not feedback.",
-  "src/components/inbox/live-refresh.tsx":
+  "src/components/reviews/live-refresh.tsx":
     "Polls for new reviews on a timer. Nobody asked, so nobody is told.",
   "src/components/shell/notification-bell.tsx":
     "Reads the feed and marks it read; the badge and the list are the confirmation.",
-  "src/components/inbox/template-picker.tsx":
+  "src/components/reviews/template-picker.tsx":
     "Reads the template list to fill a menu. The menu opening is the result.",
   "src/components/digest/action-card.tsx":
     "Toggles a checkbox that is its own confirmation, and reverts on failure.",

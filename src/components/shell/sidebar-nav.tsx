@@ -3,15 +3,14 @@
 import {
   Building2,
   CalendarRange,
-  ClipboardList,
   Contact,
   Home,
   Inbox,
   LayoutGrid,
   LineChart,
   MapPin,
-  Megaphone,
   MessageSquare,
+  Radio,
   Send,
   Settings,
   Users,
@@ -19,6 +18,7 @@ import {
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { railParentFor } from "@/lib/sections";
 import { cn } from "@/lib/utils";
 
 /**
@@ -34,62 +34,74 @@ import { cn } from "@/lib/utils";
  * treatment), so colours here are the fixed on-ink set rather than the
  * `--sidebar-*` aliases: this component always knows it is on ink.
  */
+/**
+ * Three groups, and the names are the owner's rather than ours (W3.1).
+ *
+ * Fifteen items is not a menu, it is an inventory, and most of them were named
+ * for the thing we built rather than the job somebody came to do: "Inbox",
+ * "Digest", "Showcase", "Broadcasts". The audit's complaint was that a café
+ * owner cannot tell from the rail where anything is.
+ *
+ * The three groups answer three different questions:
+ *
+ *   - **WORK** — what is waiting for me today.
+ *   - **GROW** — what I do to get more of it.
+ *   - **SETUP** — things I configure once and rarely revisit.
+ *
+ * Two items left the rail entirely and became tabs, because they are the *same
+ * errand* as their neighbour seen from a different angle: campaigns are how you
+ * reach the people in Contacts, and surveys are another way of asking what Get
+ * reviews asks. A rail entry for each made them look like separate departments.
+ *
+ * **Two deviations from `docs/remediation-plan.md`, both deliberate:**
+ *
+ *   1. The plan says "9-item rail" and then lists eleven. The list is the
+ *      intent; eleven it is. Thirteen with Channels, which W2.2 added after the
+ *      plan was written, and Agency, which only an agency sees.
+ *   2. The plan folds Connections into "Locations & Connections". Connections
+ *      does not exist as a screen yet — W4.2 builds it — so the entry stays
+ *      "Locations", which is what it currently opens. Naming it for a screen
+ *      that is not there would be the exact fault this task is fixing.
+ */
 const GROUPS = [
   {
-    label: "groupDaily",
+    label: "groupWork",
     // Notifications used to sit here. It moved to the top bar: it is a *state*
     // of the account rather than a place in the product, and an unread count
     // belongs where the eye already goes for account things — beside the avatar,
     // visible on every screen including a phone, where this rail is not.
     items: [
-      { href: "/home", key: "home", Icon: Home },
-      { href: "/inbox", key: "inbox", Icon: Inbox },
-      // Weekly rather than daily, so it sits below the two screens that are
-      // opened every day — but still in this group, because the digest is what
-      // the daily work is meant to add up to.
-      { href: "/digest", key: "digest", Icon: CalendarRange },
-      // Insights sits in Daily rather than Growth: "are we improving" is a
-      // question about the work already being done, not a channel for more of
-      // it — and it is read beside Home and the Digest, not beside Requests.
-      { href: "/insights", key: "insights", Icon: LineChart },
+      { href: "/dashboard", key: "home", Icon: Home },
+      // "Reviews", not "Inbox". An inbox is a mail metaphor; what is in here is
+      // reviews, and the word somebody searches the rail for is the noun.
+      { href: "/reviews", key: "inbox", Icon: Inbox },
+      { href: "/conversations", key: "messages", Icon: MessageSquare },
+      // "Weekly plan", not "Digest". A digest is a thing we compose; a plan is
+      // the thing they act on, and it is the product's whole claim.
+      { href: "/weekly-plan", key: "digest", Icon: CalendarRange },
     ],
   },
   {
-    label: "groupGrowth",
+    label: "groupGrow",
     items: [
-      { href: "/requests", key: "requests", Icon: Send },
-      // Contacts sits in Growth, next to Requests: the two are the same loop
-      // seen from either end — who we asked, and who they turned out to be.
-      // It is not an Account screen; a customer file is worked, not configured.
+      { href: "/get-reviews", key: "requests", Icon: Send },
       { href: "/contacts", key: "contacts", Icon: Contact },
-      // Surveys sit beside Requests and Contacts for the same reason: all three
-      // are ways of asking a customer something and doing something with the
-      // answer. A survey is not analytics — the score turns up on Insights, but
-      // the asking happens here.
-      { href: "/surveys", key: "surveys", Icon: ClipboardList },
-      // Conversations, not a second Inbox. The Inbox above triages *reviews* —
-      // items that arrive once and must be dealt with. This is people, and the
-      // two behave differently enough that merging them would give one of them
-      // the other's controls.
-      { href: "/messages", key: "messages", Icon: MessageSquare },
-      // Broadcasts last in Growth: it is the thing you reach for once the
-      // contacts, the surveys and the conversations already exist.
-      { href: "/broadcasts", key: "broadcasts", Icon: Megaphone },
-      // Showcase sits in Growth rather than Account: a widget is how reviews
-      // are turned into something that brings people in, which is the same job
-      // review requests do from the other end.
       { href: "/widgets", key: "widgets", Icon: LayoutGrid },
-      { href: "/locations", key: "locations", Icon: MapPin },
+      { href: "/analytics", key: "insights", Icon: LineChart },
     ],
   },
   {
-    label: "groupAccount",
+    label: "groupSetup",
     items: [
-      // Only meaningful for an agency, and harmless otherwise: the console's
-      // empty state explains what a client is and how to link one.
-      { href: "/clients", key: "clients", Icon: Building2 },
+      { href: "/locations", key: "locations", Icon: MapPin },
+      // Channels is Setup, not Growth: connecting WhatsApp is something you do
+      // once, and it belongs beside the other things you configure and forget.
+      { href: "/channels", key: "channels", Icon: Radio },
       { href: "/team", key: "team", Icon: Users },
       { href: "/settings", key: "settings", Icon: Settings },
+      // Only meaningful for an agency, and harmless otherwise: the console's
+      // empty state explains what a client is and how to link one.
+      { href: "/agency", key: "clients", Icon: Building2 },
     ],
   },
 ] as const;
@@ -112,7 +124,19 @@ export function SidebarNav() {
           </span>
 
           {group.items.map(({ href, key, Icon }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`);
+            /**
+             * A tabbed screen keeps its parent lit (W3.1).
+             *
+             * `/surveys` and `/campaigns` have no rail entry of their own, so
+             * without this the rail highlighted nothing the moment somebody
+             * opened a tab — the navigation telling the reader they were
+             * nowhere. `railParentFor` is the single definition of which
+             * screens belong together; the tab strip reads the same one.
+             */
+            const active =
+              pathname === href ||
+              pathname.startsWith(`${href}/`) ||
+              railParentFor(pathname) === href;
 
             return (
               <Link

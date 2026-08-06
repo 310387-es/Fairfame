@@ -1,6 +1,7 @@
-import { and, desc, eq, gte, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
-import { liveReplyJoin, UNANSWERED } from "../inbox/answered.ts";
+import { liveReplyJoin, UNANSWERED } from "../reviews/answered.ts";
+import { normalizeThemes } from "../reviews/taxonomy.ts";
 import type { Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import type { RangeWindow } from "./range.ts";
@@ -29,6 +30,19 @@ export type AttentionRow = {
   at: Date;
   sentiment: Sentiment | null;
   url: string | null;
+  /**
+   * Canonical themes (W3.2), or empty when this review predates the taxonomy
+   * or nothing fitted. Carried so the queue can say *what* the complaint is
+   * about without the reader opening it — "servis, bekleme süresi" is the
+   * difference between a list of angry people and a list of problems.
+   */
+  themes: string[];
+  /**
+   * Which branch, for the all-branches view (W4.3). Rendered only where more
+   * than one branch is in scope: on a single-branch account it would be the
+   * same word on every row.
+   */
+  locationId: string;
   /** Why it is here, highest first. See `scoreUrgency`. */
   urgency: number;
 };
@@ -91,7 +105,7 @@ export function rankAttention(rows: AttentionRow[], now: Date, limit: number): A
 export async function needsAttention(
   tx: TenantDatabase,
   organizationId: string,
-  locationId: string,
+  locationIds: string[],
   window: RangeWindow,
   options: { now?: Date; limit?: number } = {},
 ): Promise<AttentionRow[]> {
@@ -108,6 +122,8 @@ export async function needsAttention(
       authorName: schema.reviews.authorName,
       at: effectiveAt,
       sentiment: schema.reviewInsights.sentiment,
+      themes: schema.reviewInsights.themes,
+      locationId: schema.reviews.locationId,
       url: schema.reviews.url,
     })
     .from(schema.reviews)
@@ -122,7 +138,7 @@ export async function needsAttention(
     .where(
       and(
         eq(schema.reviews.organizationId, organizationId),
-        eq(schema.reviews.locationId, locationId),
+        inArray(schema.reviews.locationId, locationIds),
         gte(effectiveAt, window.start),
         lt(effectiveAt, window.end),
         // Unanswered: no live reply at all, and none the owner left on the
@@ -142,7 +158,14 @@ export async function needsAttention(
     .limit(50);
 
   return rankAttention(
-    rows.map((row) => ({ ...row, at: new Date(row.at), urgency: 0 })),
+    rows.map((row) => ({
+      ...row,
+      at: new Date(row.at),
+      // Through the same normaliser every other reader uses, so a value the
+      // model invented cannot reach a chip here while being dropped elsewhere.
+      themes: normalizeThemes(row.themes),
+      urgency: 0,
+    })),
     now,
     limit,
   );

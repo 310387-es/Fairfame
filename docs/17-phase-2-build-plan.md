@@ -2,7 +2,7 @@
 
 *Revira · turns the inbox into an operations tool · companion to `docs/02-prd.md` §5 (Phase 2) and `docs/06-ux-roles-and-flows.md`*
 
-> **Builds on what exists.** Phase 1 already shipped a basic inbox (`src/components/inbox/{filter-bar,review-list,reply-composer}.tsx`, `src/inbox/queries.ts`) for the AI-reply flow. Phase 2 elevates it from "list + reply" into a real **team triage inbox**: unified across sources, with status, assignment, SLA, templates, saved views, bulk actions, and near-real-time updates. Still on the **mock connector** (real sources are 1b, gated on the company).
+> **Builds on what exists.** Phase 1 already shipped a basic inbox (`src/components/reviews/{filter-bar,review-list,reply-composer}.tsx`, `src/reviews/queries.ts`) for the AI-reply flow. Phase 2 elevates it from "list + reply" into a real **team triage inbox**: unified across sources, with status, assignment, SLA, templates, saved views, bulk actions, and near-real-time updates. Still on the **mock connector** (real sources are 1b, gated on the company).
 
 ## Definition of Done
 
@@ -26,7 +26,7 @@ Migrations for the above; RLS on new tables; backfill `status='open'`. Derive `p
 **Done when:** migrations apply; existing reviews are `open`; new mock reviews get priority + SLA set.
 
 ### P2-T2 — Unified inbox query + filters
-Extend `src/inbox/queries.ts`: filter by source, sentiment, rating, **status, assignee, theme**, date; **full-text search** on review text; keyset pagination / infinite scroll. One tenant+location-scoped query, same "facts" discipline as the dashboard (no divergent counts).
+Extend `src/reviews/queries.ts`: filter by source, sentiment, rating, **status, assignee, theme**, date; **full-text search** on review text; keyset pagination / infinite scroll. One tenant+location-scoped query, same "facts" discipline as the dashboard (no divergent counts).
 **Done when:** every filter combines correctly, scoped to the active location, paginated.
 
 ### P2-T3 — Filter bar + saved views
@@ -71,4 +71,4 @@ Real-connector live verification (Phase 1b, post-company); widgets/showcase + be
 
 ## Claude Code Kickoff Prompt
 
-> Read `CLAUDE.md` and `docs/17-phase-2-build-plan.md`. Phase 1 (foundations + AI/digest + live Home) is done. We're starting **Phase 2 — the unified inbox & team workflow**, building on the existing inbox (`src/components/inbox/*`, `src/inbox/queries.ts`), still on the mock connector. First, update `CLAUDE.md`'s current-phase pointer to Phase 2, then restate the Definition of Done. Begin at **P2-T1** and proceed in order, pausing after each task for review. Keep the locked stack; build missing queries rather than stubbing; ask before adding any dependency not named in the plan.
+> Read `CLAUDE.md` and `docs/17-phase-2-build-plan.md`. Phase 1 (foundations + AI/digest + live Home) is done. We're starting **Phase 2 — the unified inbox & team workflow**, building on the existing inbox (`src/components/reviews/*`, `src/reviews/queries.ts`), still on the mock connector. First, update `CLAUDE.md`'s current-phase pointer to Phase 2, then restate the Definition of Done. Begin at **P2-T1** and proceed in order, pausing after each task for review. Keep the locked stack; build missing queries rather than stubbing; ask before adding any dependency not named in the plan.

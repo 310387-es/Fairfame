@@ -6,7 +6,7 @@ import { createInstagramConnector } from "@/connectors/instagram/connector";
 import { registerConnector, unregisterConnector } from "@/connectors/registry";
 import { connectSource, syncConnectionWithin, toConnection } from "@/connectors/sync";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
-import { listInbox } from "@/inbox/queries";
+import { listInbox } from "@/reviews/queries";
 import { resetEnvForTesting } from "@/lib/env";
 import { withTenant } from "@/lib/tenancy";
 

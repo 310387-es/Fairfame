@@ -35,7 +35,7 @@ function code(path: string): string {
     .replace(/\/\/.*$/gm, "");
 }
 
-const BULK_SOURCE = code("src/inbox/bulk.ts");
+const BULK_SOURCE = code("src/reviews/bulk.ts");
 const ACTIONS_SOURCE = code("src/server/bulk.ts");
 
 describe("bulk actions cannot publish", () => {

@@ -5,11 +5,12 @@ import {
   inboxFilterParams,
   inboxHref,
   MAX_LOAD_MORE,
+  MAX_PINNED_REVIEWS,
   parseInboxFilters,
   parseInboxPosition,
   toggleFilter,
   type InboxFilterState,
-} from "@/inbox/filters";
+} from "@/reviews/filters";
 
 /**
  * The Inbox's URL contract (P2-T2).
@@ -32,6 +33,7 @@ describe("parseInboxFilters", () => {
       source: "google",
       sentiment: "negative",
       theme: "servis",
+      ct: "wait_time",
       q: "yavaş servis",
       reply: "unanswered",
       status: "open,in_progress",
@@ -40,6 +42,7 @@ describe("parseInboxFilters", () => {
       overdue: "1",
       from: "2026-07-01",
       to: "2026-07-31",
+      reviews: "11111111-1111-4111-8111-111111111111,22222222-2222-4222-8222-222222222222",
       sort: "priority",
     });
 
@@ -47,6 +50,10 @@ describe("parseInboxFilters", () => {
       source: "google",
       sentiment: "negative",
       theme: "servis",
+      // The state's name, not the parameter's: `ct` in a URL, `canonical` in
+      // code. A canonical theme is not the same thing as a free-text tag, and
+      // the two travel separately (W3.2).
+      canonical: "wait_time",
       query: "yavaş servis",
       reply: "unanswered",
       status: ["open", "in_progress"],
@@ -55,6 +62,7 @@ describe("parseInboxFilters", () => {
       overdue: true,
       from: "2026-07-01",
       to: "2026-07-31",
+      reviews: ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"],
       sort: "priority",
     });
   });
@@ -119,7 +127,7 @@ describe("the URL round-trip", () => {
   });
 
   it("writes nothing at all for an unfiltered inbox", () => {
-    expect(inboxHref(EMPTY_INBOX_FILTERS)).toBe("/inbox");
+    expect(inboxHref(EMPTY_INBOX_FILTERS)).toBe("/reviews");
   });
 
   it("carries every filter through a page link", () => {
@@ -208,5 +216,59 @@ describe("hasActiveFilters", () => {
     expect(hasActiveFilters(filters({ overdue: true }))).toBe(true);
     expect(hasActiveFilters(filters({ rating: [1] }))).toBe(true);
     expect(hasActiveFilters(filters({ assignee: "unassigned" }))).toBe(true);
+  });
+});
+
+/**
+ * Pinning the Inbox to exactly these reviews (W2.1).
+ *
+ * The one filter that names rows instead of describing a kind of row, and the
+ * only one whose values come from a URL and go straight into a `WHERE … IN`.
+ * So the guards are the test: shape, bound, and the round-trip property every
+ * other filter here already has.
+ */
+describe("the exact-reviews filter", () => {
+  const A = "11111111-1111-4111-8111-111111111111";
+  const B = "22222222-2222-4222-8222-222222222222";
+
+  it("reads a comma-separated list", () => {
+    expect(parseInboxFilters({ reviews: `${A},${B}` }).reviews).toEqual([A, B]);
+  });
+
+  it("drops anything that is not a uuid", () => {
+    // Not fussiness. A non-uuid reaches Postgres as a *cast error*, not an
+    // empty result — so a stale bookmark would 500 rather than show nothing.
+    expect(
+      parseInboxFilters({ reviews: `${A},not-an-id,'; drop table reviews--` }).reviews,
+    ).toEqual([A]);
+  });
+
+  it("dedupes, so one review cannot be asked for twice", () => {
+    expect(parseInboxFilters({ reviews: `${A},${A},${B}` }).reviews).toEqual([A, B]);
+  });
+
+  it("caps how many a single link may pin", () => {
+    // A hand-written URL must not be able to ask the database for an unbounded
+    // list by id. A digest action cites at most five.
+    const many = Array.from(
+      { length: MAX_PINNED_REVIEWS + 10 },
+      (_, index) => `${String(index).padStart(8, "0")}-1111-4111-8111-111111111111`,
+    ).join(",");
+
+    expect(parseInboxFilters({ reviews: many }).reviews).toHaveLength(MAX_PINNED_REVIEWS);
+  });
+
+  it("survives a round trip through the URL", () => {
+    // The property the whole module exists for: a saved view compares by query
+    // string, so a filter that does not serialize back to itself silently
+    // changes what a saved view means.
+    const state = filters({ reviews: [A, B] });
+    expect(parseInboxFilters(Object.fromEntries(inboxFilterParams(state)))).toEqual(state);
+  });
+
+  it("counts as an active filter", () => {
+    // Otherwise the Inbox shows "Clear filters" as absent while displaying
+    // three reviews out of ninety, with nothing on screen saying why.
+    expect(hasActiveFilters(filters({ reviews: [A] }))).toBe(true);
   });
 });

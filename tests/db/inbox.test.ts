@@ -1,7 +1,7 @@
 import { inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
-import { inboxFacets, listInbox, locateReview } from "@/inbox/queries";
+import { inboxFacets, listInbox, locateReview } from "@/reviews/queries";
 import { withTenant } from "@/lib/tenancy";
 
 /**
@@ -51,6 +51,8 @@ async function addReview(
     text?: string;
     sentiment?: "positive" | "neutral" | "negative";
     topics?: string[];
+    /** Canonical themes (W3.2). Omitted means null, not empty. */
+    themes?: string[];
     locationId?: string;
     reply?: "draft" | "approved" | "posted" | "failed";
   } = {},
@@ -80,6 +82,10 @@ async function addReview(
         sentiment: options.sentiment ?? "neutral",
         sentimentScore: options.sentiment === "negative" ? -0.8 : 0.6,
         topics: options.topics ?? ["servis"],
+        // Undefined leaves it null — "analysed before the taxonomy existed",
+        // which is what every pre-W3.2 row holds and what the coverage
+        // reporting has to be able to tell from "no theme fits".
+        ...(options.themes === undefined ? {} : { themes: options.themes }),
         language: "tr",
         promptId: "test@1",
         model: "test",
@@ -299,6 +305,71 @@ describe("facets", () => {
     );
 
     expect(facets.total).toBe(4);
+  });
+});
+
+/**
+ * Canonical themes, and how much of a location has them (W3.2).
+ *
+ * `review_insights.themes` shipped with **no backfill**, so an account is
+ * part-way through re-analysis for as long as it takes to run. The counts are
+ * only as complete as the column, and the failure they cause is not a crash —
+ * it is a Themes row built from five reviews sitting beside a Tags row built
+ * from two hundred, which reads as "almost nobody mentioned staff" when the
+ * truth is "almost nothing has been re-analysed".
+ */
+describe("canonical theme coverage", () => {
+  let fixture: Fixture;
+
+  beforeAll(async () => {
+    fixture = await makeFixture("coverage");
+    // Three analysed under the taxonomy, one before it existed.
+    await addReview(fixture, { sentiment: "negative", themes: ["wait_time", "staff"] });
+    await addReview(fixture, { sentiment: "negative", themes: ["wait_time"] });
+    await addReview(fixture, { sentiment: "positive", themes: [] });
+    await addReview(fixture, { sentiment: "neutral" });
+  });
+
+  it("counts each canonical theme across the location", async () => {
+    const facets = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      inboxFacets(tx, fixture.orgId, fixture.locationId),
+    );
+
+    expect(facets.canonicalThemes).toEqual(
+      expect.arrayContaining([
+        { value: "wait_time", count: 2 },
+        { value: "staff", count: 1 },
+      ]),
+    );
+  });
+
+  it("separates 'no theme fits' from 'analysed before the taxonomy'", async () => {
+    /**
+     * The distinction the whole thing rests on. Three of the four rows were
+     * analysed under `@3` — one of them legitimately matching nothing — and the
+     * fourth predates it. `[]` counts as covered because it is an answer;
+     * `null` does not because it is a gap.
+     */
+    const facets = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      inboxFacets(tx, fixture.orgId, fixture.locationId),
+    );
+
+    expect(facets.themeCoverage).toEqual({ analysed: 4, withThemes: 3 });
+  });
+
+  it("reports no coverage for a location analysed entirely before the taxonomy", async () => {
+    // The state every existing account is in until `pnpm ai:analyze
+    // --recompute` runs, and the one that must not render a thin filter row.
+    const old = await makeFixture("coverage-old");
+    await addReview(old, { sentiment: "negative" });
+    await addReview(old, { sentiment: "positive" });
+
+    const facets = await withTenant({ organizationId: old.orgId }, (tx) =>
+      inboxFacets(tx, old.orgId, old.locationId),
+    );
+
+    expect(facets.canonicalThemes).toEqual([]);
+    expect(facets.themeCoverage).toEqual({ analysed: 2, withThemes: 0 });
   });
 });
 

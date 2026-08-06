@@ -77,7 +77,7 @@ function renderFor(row: PendingRow): RenderedEmail | null {
       count: payload.count,
       kind: row.type === "sla_rollup" ? "sla" : "assignment",
       // A pile, so a filtered queue — never a single review.
-      link: dashboardUrl(row.type === "sla_rollup" ? "/inbox?overdue=1" : "/inbox?assignee=me"),
+      link: dashboardUrl(row.type === "sla_rollup" ? "/reviews?overdue=1" : "/reviews?assignee=me"),
       settingsUrl,
     });
   }
@@ -98,7 +98,7 @@ function renderFor(row: PendingRow): RenderedEmail | null {
     excerpt: payload.excerpt ?? null,
     urgent: row.urgency === "urgent",
     reason: row.type === "review_assigned" ? "assigned" : "arrived",
-    link: dashboardUrl(`/inbox?review=${payload.reviewId}`),
+    link: dashboardUrl(`/reviews?review=${payload.reviewId}`),
     settingsUrl,
   });
 }
@@ -171,7 +171,7 @@ export async function sendPendingEmails(options: {
      * than guessing is the lesson from the bug that prompted the split: the
      * review template used to be applied to *every* payload, so a rollup — a
      * count and a location, nothing else — went out with blank stars, a blank
-     * quote and a button pointing at `/inbox?review=undefined`. A broken email
+     * quote and a button pointing at `/reviews?review=undefined`. A broken email
      * from a reputation tool is the kind a customer forwards to support.
      *
      * `skipped` rather than `failed`: nothing was attempted, and a retry would

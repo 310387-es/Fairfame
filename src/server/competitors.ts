@@ -64,7 +64,7 @@ export async function addCompetitorAction(input: {
       { minimumRole: "admin" },
     );
 
-    revalidatePath("/insights");
+    revalidatePath("/analytics");
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "addCompetitor failed");
@@ -94,7 +94,7 @@ export async function removeCompetitorAction(input: { id: string }): Promise<Act
       { minimumRole: "admin" },
     );
 
-    revalidatePath("/insights");
+    revalidatePath("/analytics");
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "removeCompetitor failed");

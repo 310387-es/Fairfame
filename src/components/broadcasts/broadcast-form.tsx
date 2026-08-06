@@ -39,9 +39,20 @@ export type BroadcastFormOption = { id: string; name: string };
 
 type Kind = "review_request" | "survey" | "message";
 
-/** The channels each kind can actually go out on. */
+/**
+ * The channels each kind can actually go out on.
+ *
+ * Review requests gained WhatsApp and SMS in W2.2, when they learned to route
+ * through `sendMessage` and the consent gate. Email leads because it is the one
+ * that reaches somebody the business does not already hold a permission for —
+ * the others are refused per recipient, by the gate, with a reason.
+ *
+ * Surveys are still email-only: nothing has taught `prepareInvites` to address
+ * a contact by phone, and offering a channel the send would refuse for a reason
+ * that is not about the *customer* would be a control that lies.
+ */
 const CHANNELS: Record<Kind, ("email" | "sms" | "whatsapp")[]> = {
-  review_request: ["email"],
+  review_request: ["email", "whatsapp", "sms"],
   survey: ["email"],
   message: ["whatsapp", "sms"],
 };
@@ -134,7 +145,7 @@ export function BroadcastForm({
         success: tf("created"),
         onSuccess: (result) => {
           close();
-          if (result && "id" in result && result.id) router.push(`/broadcasts/${result.id}`);
+          if (result && "id" in result && result.id) router.push(`/campaigns/${result.id}`);
         },
       },
     );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { csvFilename, toCsv } from "@/insights/csv";
+import { csvFilename, toCsv } from "@/analytics/csv";
 
 /**
  * The Insights export (P3-T4).

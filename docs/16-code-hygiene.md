@@ -25,7 +25,7 @@ Mark a deliberate export with `@public` in its JSDoc and say why:
 | Path | Reason |
 |---|---|
 | `src/components/ui/**` | shadcn primitives. They ship a full variant surface on purpose; using half of it is normal. |
-| `src/components/digest/**`, `src/server/digests.ts` | **Unshipped, not dead.** The weekly digest is generated, stored and tested — the workers run and `tests/db/digest.test.ts` covers it. Only the `/digest` route was never built; `docs/14-digest-surfaces.md` is the plan. Delete none of it. |
+| `src/components/digest/**`, `src/server/digests.ts` | **Unshipped, not dead.** The weekly digest is generated, stored and tested — the workers run and `tests/db/digest.test.ts` covers it. Only the `/weekly-plan` route was never built; `docs/14-digest-surfaces.md` is the plan. Delete none of it. |
 | `shadcn`, `tailwindcss`, `tw-animate-css` | Imported from `globals.css`, which knip does not follow. |
 | `pino-pretty` | Loaded by name at runtime when `LOG_PRETTY=true`, never imported. |
 

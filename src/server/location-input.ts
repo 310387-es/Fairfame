@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { VERTICALS } from "@/reviews/taxonomy";
 
 /**
  * Input schemas for the location server actions.
@@ -24,7 +25,29 @@ const optionalText = (max: number) =>
 export const createLocationSchema = z.object({
   name: z.string().trim().min(1, "A name is required.").max(120),
   address: optionalText(240),
-  category: optionalText(80),
+  /**
+   * The business's vertical, from the closed list (W3.2).
+   *
+   * Was free text, which meant it could not drive anything. It picks the
+   * canonical themes the model is offered, so an unrecognised value is not a
+   * harmless label — it silently narrows every review to the universal themes.
+   * Validated here rather than only in the form, because a form is a
+   * suggestion and a schema is the rule.
+   *
+   * Still optional: a business that has not said what it is gets the universal
+   * themes, which is most of what matters, and demanding an answer before a
+   * location can exist would put a taxonomy in front of the first-run flow.
+   */
+  category: z.preprocess(
+    // Blank means "not set" rather than invalid. A `<select>` posts `""` when
+    // nothing is chosen, and failing the whole form over that would put a
+    // taxonomy in front of creating a location.
+    (value) => {
+      const text = typeof value === "string" ? value.trim() : value;
+      return text === "" || text == null ? null : text;
+    },
+    z.enum(VERTICALS).nullable(),
+  ),
 });
 
 export type CreateLocationInput = z.infer<typeof createLocationSchema>;

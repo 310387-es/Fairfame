@@ -24,14 +24,34 @@ const BASE: DigestEmailInput = {
   headline: "Service picked up, coffee held steady",
   summary: "Eighteen reviews this week, and the wait-time complaints have stopped.",
   actions: [
-    { position: 1, text: "Thank the four regulars who mentioned Deniz by name." },
-    { position: 2, text: "Reply to the two unanswered one-star reviews." },
-    { position: 3, text: "Restock the oat milk before the weekend." },
+    {
+      position: 1,
+      text: "Thank the four regulars who mentioned Deniz by name.",
+      quote: { text: "Deniz remembered my order. Made my morning.", rating: 5 },
+      reviewCount: 4,
+      link: "https://app.test/inbox?location=loc-1&reviews=r1,r2",
+    },
+    {
+      position: 2,
+      text: "Reply to the two unanswered one-star reviews.",
+      quote: { text: "Nobody ever answered my complaint.", rating: 1 },
+      reviewCount: 2,
+      link: "https://app.test/inbox?location=loc-1&reviews=r3,r4",
+    },
+    // No citation — a digest composed before W1.6 stored none.
+    {
+      position: 3,
+      text: "Restock the oat milk before the weekend.",
+      quote: null,
+      reviewCount: 0,
+      link: null,
+    },
   ],
   themes: [
     { label: "Service", count: 9, positive: 7, negative: 2 },
     { label: "Coffee", count: 6, positive: 6, negative: 0 },
   ],
+  priorOutcome: null,
   heldCount: 0,
   link: "https://app.test/digest/abc-123",
   settingsUrl: "https://app.test/settings#notifications",
@@ -144,6 +164,99 @@ describe("held new-review alerts", () => {
   });
 });
 
+/**
+ * Every action carries its evidence (W2.1).
+ *
+ * The email was three bare sentences while the screen showed the customer's own
+ * words and a link to the exact reviews — so the surface most owners actually
+ * read was the one asking to be taken on trust. These assertions are about the
+ * *plain-text* part as much as the HTML: text is what a client that refuses
+ * HTML shows, and evidence that exists only in the rich version is evidence the
+ * most cautious reader never sees.
+ */
+describe("the evidence behind each action", () => {
+  it("quotes a customer, with their rating, beside the recommendation", () => {
+    const mail = renderDigestEmail(BASE);
+
+    expect(mail.html).toContain("Deniz remembered my order.");
+    expect(mail.text).toContain('"Deniz remembered my order. Made my morning."');
+    // ★★★★★ for a five. The one part of the on-screen card an email can copy.
+    expect(mail.html).toContain("★★★★★");
+    expect(mail.html).toContain("★☆☆☆☆");
+  });
+
+  it("links each action to its own reviews, not to one digest-wide page", () => {
+    const mail = renderDigestEmail(BASE);
+
+    expect(mail.html).toContain("reviews=r1,r2");
+    expect(mail.html).toContain("reviews=r3,r4");
+    expect(mail.text).toContain("See the 4 reviews behind this");
+    expect(mail.text).toContain("See the 2 reviews behind this");
+  });
+
+  it("renders an action with no citation rather than dropping it", () => {
+    // A digest composed before W1.6 stored none. The sentence is still worth
+    // sending; what it must not do is show a link that goes nowhere.
+    const mail = renderDigestEmail(BASE);
+
+    expect(mail.html).toContain("Restock the oat milk");
+    expect(mail.text).toContain("3. Restock the oat milk before the weekend.");
+    expect(mail.html).not.toContain("reviews=&");
+  });
+
+  it("does not say 'the 1 reviews'", () => {
+    const mail = renderDigestEmail({
+      ...BASE,
+      actions: [
+        {
+          position: 1,
+          text: "Answer the one-star.",
+          quote: null,
+          reviewCount: 1,
+          link: "https://app.test/inbox?reviews=r9",
+        },
+      ],
+    });
+
+    expect(mail.text).toContain("See the review behind this");
+  });
+
+  it("shows no stars for a review that has none", () => {
+    // A DM or a comment carries no rating, and five hollow stars would read as
+    // zero rather than as absent.
+    const mail = renderDigestEmail({
+      ...BASE,
+      actions: [
+        {
+          position: 1,
+          text: "Answer the direct message.",
+          quote: { text: "Are you open on Sunday?", rating: null },
+          reviewCount: 1,
+          link: null,
+        },
+      ],
+    });
+
+    expect(mail.html).toContain("Are you open on Sunday?");
+    expect(mail.html).not.toContain("☆");
+  });
+});
+
+describe("last week's follow-through", () => {
+  it("is silent before there is a last week", () => {
+    expect(renderDigestEmail(BASE).text).not.toContain("You completed");
+  });
+
+  it("reports what was closed, from the frozen payload", () => {
+    // Frozen on purpose: an email cannot update, so the number it states must
+    // be the one that was true when it was sent. The screen's card reads live.
+    const mail = renderDigestEmail({ ...BASE, priorOutcome: { done: 2, total: 3 } });
+
+    expect(mail.text).toContain("You completed 2 of last week's 3 actions.");
+    expect(mail.html).toContain("You completed 2 of last week&#39;s 3 actions.");
+  });
+});
+
 describe("untrusted text", () => {
   it("escapes model output before it reaches the HTML body", () => {
     // The headline, summary, actions and theme labels are all model output
@@ -153,7 +266,17 @@ describe("untrusted text", () => {
       ...BASE,
       headline: '<script>alert("xss")</script>',
       summary: "Ali & Ayşe said <b>great</b>",
-      actions: [{ position: 1, text: "Fix <img src=x onerror=alert(1)>" }],
+      actions: [
+        {
+          position: 1,
+          text: "Fix <img src=x onerror=alert(1)>",
+          // A customer's own words reach a mail client verbatim, so the quote
+          // is untrusted input exactly as the model's sentence is.
+          quote: { text: '<svg onload=alert("quote")>', rating: 3 },
+          reviewCount: 1,
+          link: "https://app.test/inbox?location=loc-1&reviews=r1",
+        },
+      ],
       themes: [{ label: "<i>Service</i>", count: 3, positive: 2, negative: 1 }],
     });
 
@@ -161,6 +284,7 @@ describe("untrusted text", () => {
     expect(mail.html).not.toContain("<img src=x");
     expect(mail.html).not.toContain("<b>great</b>");
     expect(mail.html).toContain("&lt;script&gt;");
+    expect(mail.html).not.toContain("<svg onload");
     expect(mail.html).toContain("Ali &amp; Ayşe");
   });
 

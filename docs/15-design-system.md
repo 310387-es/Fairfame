@@ -4,7 +4,7 @@
 
 This is the contract every screen inherits. Read it before building a new surface. If you find yourself typing a hex code, a font size or a corner radius, stop — the value you want is already a token, and if it genuinely is not, add it here first.
 
-The tokens live in `src/app/globals.css` under `Revira Design System`. The shared components live in `src/components/ds/`. `src/app/(app)/home` is the reference implementation.
+The tokens live in `src/app/globals.css` under `Revira Design System`. The shared components live in `src/components/ds/`. `src/app/(app)/dashboard` is the reference implementation.
 
 ---
 

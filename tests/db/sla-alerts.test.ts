@@ -2,9 +2,9 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { connectSource, syncConnection } from "@/connectors/sync";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
-import { listInbox, toInboxFilters } from "@/inbox/queries";
-import { EMPTY_INBOX_FILTERS } from "@/inbox/filters";
-import { recordFirstResponse } from "@/inbox/triage";
+import { listInbox, toInboxFilters } from "@/reviews/queries";
+import { EMPTY_INBOX_FILTERS } from "@/reviews/filters";
+import { recordFirstResponse } from "@/reviews/triage";
 import { withTenant } from "@/lib/tenancy";
 import { subscribeToPlanWith } from "./plan-fixture";
 import {

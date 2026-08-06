@@ -313,3 +313,22 @@ export function connectionContext(
 ): string {
   return `connection:${organizationId}:${locationId}:${provider}`;
 }
+
+/**
+ * The binding context for a **channel's** credentials (W2.2).
+ *
+ * Its own prefix rather than a reuse of `connectionContext` with a placeholder
+ * location, and that is the whole point of the separate context: a channel has
+ * no location, so any stand-in — an empty string, the organization id again —
+ * would be a value somebody could also produce on the source side, and the two
+ * blobs would become interchangeable. A distinct prefix means a WhatsApp
+ * *channel* token cannot be moved into a WhatsApp *source* row and decrypted,
+ * even though both are the same organization and the same provider name.
+ *
+ * Keyed on the slot for the same reason as above: `unique(organization_id,
+ * channel)` makes it identify exactly one row, and it is known before the row
+ * exists, which the OAuth callback needs.
+ */
+export function channelContext(organizationId: string, channel: string): string {
+  return `channel:${organizationId}:${channel}`;
+}

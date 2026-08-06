@@ -3,6 +3,8 @@ import {
   clusterThemes,
   computeChanges,
   computePulse,
+  MIN_REVIEWS_FOR_PULSE,
+  rawPulse,
   cosineSimilarity,
   openNegatives,
   priorWindow,
@@ -47,35 +49,41 @@ function labels(entries: Record<string, number>): Map<string, number[]> {
   return new Map(Object.entries(entries).map(([slug, axis]) => [slug, vector(axis)]));
 }
 
-describe("the reputation pulse", () => {
+describe("the reputation pulse — the blend itself", () => {
+  /**
+   * `rawPulse` is the formula; `computePulse` is what a screen may show (W3.3).
+   *
+   * The split exists because the formula is meaningful on one review and the
+   * *score* is not. These cases are about the arithmetic, so they use the raw
+   * one; the floor and the smoothing that stand between it and a screen are
+   * the block below.
+   */
   it("is null when there is nothing to measure", () => {
-    expect(computePulse([])).toBeNull();
-    expect(computePulse([review({ rating: null, sentimentScore: null })])).toBeNull();
+    expect(rawPulse([])).toBeNull();
+    expect(rawPulse([review({ rating: null, sentimentScore: null })])).toBeNull();
   });
 
   it("puts a perfect week at 100 and a terrible one at 0", () => {
-    expect(computePulse([review({ rating: 5, sentimentScore: 1 })])).toBe(100);
-    expect(computePulse([review({ rating: 1, sentimentScore: -1, sentiment: "negative" })])).toBe(
-      0,
-    );
+    expect(rawPulse([review({ rating: 5, sentimentScore: 1 })])).toBe(100);
+    expect(rawPulse([review({ rating: 1, sentimentScore: -1, sentiment: "negative" })])).toBe(0);
   });
 
   it("scores a rating-only week from the stars alone", () => {
     // A source that gives no text still moves the pulse; treating it as
     // unmeasurable would make a week of silent 1-stars read as "no change".
-    expect(computePulse([review({ rating: 3, sentimentScore: null, sentiment: null })])).toBe(50);
+    expect(rawPulse([review({ rating: 3, sentimentScore: null, sentiment: null })])).toBe(50);
   });
 
   it("scores a text-only week from sentiment alone", () => {
-    expect(computePulse([review({ rating: null, sentimentScore: 0 })])).toBe(50);
+    expect(rawPulse([review({ rating: null, sentimentScore: 0 })])).toBe(50);
   });
 
   it("lets sentiment pull down a five-star week", () => {
     // "Great, if you enjoy waiting an hour." The stars say 100; the words do
     // not, and an owner needs the pulse to notice.
-    const glowing = computePulse([review({ rating: 5, sentimentScore: 1 })]) ?? 0;
+    const glowing = rawPulse([review({ rating: 5, sentimentScore: 1 })]) ?? 0;
     const sarcastic =
-      computePulse([review({ rating: 5, sentimentScore: -0.8, sentiment: "negative" })]) ?? 0;
+      rawPulse([review({ rating: 5, sentimentScore: -0.8, sentiment: "negative" })]) ?? 0;
 
     expect(sarcastic).toBeLessThan(glowing);
     expect(sarcastic).toBeGreaterThan(0);
@@ -83,7 +91,64 @@ describe("the reputation pulse", () => {
 
   it("is deterministic", () => {
     const reviews = [review({ rating: 4 }), review({ rating: 2, sentimentScore: -0.5 })];
-    expect(computePulse(reviews)).toBe(computePulse([...reviews]));
+    expect(rawPulse(reviews)).toBe(rawPulse([...reviews]));
+  });
+});
+
+/**
+ * What a screen is allowed to show (W3.3).
+ *
+ * The audit found the same reputation rendered as 70, 72.3, 63/100 and 4/100.
+ * Part of that was a broken fixture and part was the decimal, but the part that
+ * mattered is this: on a small business the raw blend is not a measurement. A
+ * café with three reviews sees a number swing twenty points on one indifferent
+ * visit, and a metric that behaves like that teaches people to ignore it.
+ */
+describe("the reputation pulse — what a screen may show", () => {
+  const many = (count: number, rating: number) =>
+    Array.from({ length: count }, () => review({ rating, sentimentScore: null, sentiment: null }));
+
+  it("refuses to score a sample too small to mean anything", () => {
+    // Not a low score — no score. "3 reviews say 40/100" is a sentence about
+    // three people, dressed up as a sentence about a business.
+    expect(computePulse(many(MIN_REVIEWS_FOR_PULSE - 1, 5))).toBeNull();
+    expect(computePulse(many(MIN_REVIEWS_FOR_PULSE, 5))).toBe(100);
+  });
+
+  it("scores a small sample once there is a baseline to lean on", () => {
+    // With a prior there is something to smooth toward, so a short window is
+    // usable — that is the whole point of the smoothing.
+    expect(computePulse(many(2, 5), { prior: 50 })).not.toBeNull();
+  });
+
+  it("pulls a short window toward the longer run", () => {
+    /**
+     * Two reviews at five stars is 100 raw. Against a baseline of 50, the
+     * smoothed figure is `(2·100 + 10·50) / 12 ≈ 58` — much closer to the
+     * business's own history than to a fortnight's luck.
+     */
+    expect(computePulse(many(2, 5), { prior: 50 })).toBe(58);
+  });
+
+  it("lets a large window speak for itself", () => {
+    // A hundred reviews outweigh a ten-review pseudo-count, so the baseline
+    // barely moves it. Smoothing must not flatten a real change.
+    const smoothed = computePulse(many(100, 5), { prior: 50 }) ?? 0;
+    expect(smoothed).toBeGreaterThan(90);
+  });
+
+  it("shows whole numbers, because the measurement has no decimal in it", () => {
+    // "72,4" invites somebody to care about the 0,4, which is one indifferent
+    // review either way — and it is half of why one reputation read as 70 on
+    // one screen and 72.3 on another.
+    const score = computePulse(many(11, 4), { prior: 61.7 });
+    expect(score).not.toBeNull();
+    expect(Number.isInteger(score)).toBe(true);
+  });
+
+  it("never leaves the scale, however extreme the baseline", () => {
+    expect(computePulse(many(12, 5), { prior: 200 })).toBeLessThanOrEqual(100);
+    expect(computePulse(many(12, 1), { prior: -50 })).toBeGreaterThanOrEqual(0);
   });
 });
 

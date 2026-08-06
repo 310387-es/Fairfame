@@ -53,7 +53,7 @@ export function ClientRoster({
   const open = (organizationId: string) => {
     run(() => switchOrganizationAction({ organizationId }), {
       onSuccess: () => {
-        router.push("/home");
+        router.push("/dashboard");
       },
     });
   };

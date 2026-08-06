@@ -67,7 +67,7 @@ export function CreateOrganizationForm() {
       return;
     }
 
-    router.push("/home");
+    router.push("/dashboard");
     router.refresh();
   }
 

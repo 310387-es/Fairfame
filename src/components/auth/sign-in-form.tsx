@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { adoptLocaleAction } from "@/app/actions";
 import { signIn } from "@/auth/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -51,7 +52,17 @@ export function SignInForm() {
       return;
     }
 
-    router.push(destination ?? "/home");
+    /*
+      Adopt the person's stored language before navigating (W3.3).
+
+      Awaited rather than fired and forgotten: it writes a cookie, and the
+      push that follows is what renders the first page in the new language.
+      Racing them would show one screen in the wrong one, which is exactly the
+      moment somebody decides the product does not know who they are.
+    */
+    await adoptLocaleAction();
+
+    router.push(destination ?? "/dashboard");
     router.refresh();
   }
 

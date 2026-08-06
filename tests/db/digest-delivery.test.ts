@@ -109,7 +109,20 @@ async function makeFixture(label: string, options: { status?: "ready" | "pending
             positive: 6,
             negative: 1,
             averageSentiment: 0.6,
-            quotes: [],
+            // Real quotes, keyed to the ids the actions cite below. Without
+            // them the email's evidence wiring renders nothing and passes.
+            quotes: [
+              {
+                reviewId: "11111111-1111-4111-8111-111111111111",
+                text: "Waited twenty minutes and nobody came over.",
+                rating: 2,
+              },
+              {
+                reviewId: "22222222-2222-4222-8222-222222222222",
+                text: "Deniz knew my order by heart.",
+                rating: 5,
+              },
+            ],
           },
         ],
         assets: { replyDrafts: [], socialPost: null },
@@ -127,13 +140,18 @@ async function makeFixture(label: string, options: { status?: "ready" | "pending
         digestId: digest.id,
         position: 1,
         text: "Reply to the two unanswered reviews.",
-        evidence: { themeSlug: "service", reviewIds: [] },
+        evidence: {
+          themeSlug: "service",
+          reviewIds: ["11111111-1111-4111-8111-111111111111"],
+        },
       },
       {
         organizationId: org.id,
         digestId: digest.id,
         position: 2,
         text: "Thank the regulars who named Deniz.",
+        // No citations: a digest composed before W1.6 stored none, and the
+        // recommendation still has to reach the recipient.
         evidence: { themeSlug: "service", reviewIds: [] },
       },
     ]);
@@ -249,7 +267,30 @@ describe("sending", () => {
     expect(message.text).toContain("Service is holding up");
     expect(message.text).toContain("Reply to the two unanswered reviews.");
     expect(message.text).toContain("Thank the regulars who named Deniz.");
-    expect(message.text).toContain(`/digest/${fixture.digestId}`);
+    expect(message.text).toContain(`/weekly-plan/${fixture.digestId}`);
+  });
+
+  it("carries each action's evidence, from the stored citations (W2.1)", async () => {
+    // The template's own tests use a hand-built fixture, so this is the only
+    // thing asserting that `delivery.ts` reads `digest_actions.evidence`,
+    // resolves it against the payload's quotes, and builds a real link.
+    const message = (await sentTo(fixture, "send-owner"))!;
+
+    expect(message.text).toContain("Waited twenty minutes and nobody came over.");
+    expect(message.html).toContain("★★☆☆☆");
+    expect(message.text).toContain("reviews=11111111-1111-4111-8111-111111111111");
+    // The branch rides along, or the Inbox reads it from a cookie and a digest
+    // for one location opens showing another's.
+    expect(message.text).toContain(`location=${fixture.locationId}`);
+  });
+
+  it("still sends an action that has no citations", async () => {
+    const message = (await sentTo(fixture, "send-owner"))!;
+
+    expect(message.text).toContain("Thank the regulars who named Deniz.");
+    // The one quote in the payload that nothing cites must not leak in as if
+    // it were evidence for this sentence.
+    expect(message.text).not.toContain("Deniz knew my order by heart.");
   });
 
   it("records one ledger row per recipient", async () => {

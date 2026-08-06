@@ -2,15 +2,15 @@
 
 *Revira · where the weekly Action Digest goes now that Home is a live dashboard · companion to `docs/10-phase-1a-build-plan.md` (T7/T8) and `docs/home-live-dashboard.md` §6*
 
-> **Why this doc exists.** The Home redesign moved the digest off the screen it was built for. `docs/home-live-dashboard.md` §6 records the intent in one paragraph — "email + a `/digest` archive, not this task" — which was enough to keep that task honest and is not enough to build from. This is the plan.
+> **Why this doc exists.** The Home redesign moved the digest off the screen it was built for. `docs/home-live-dashboard.md` §6 records the intent in one paragraph — "email + a `/weekly-plan` archive, not this task" — which was enough to keep that task honest and is not enough to build from. This is the plan.
 
 ---
 
 ## 1. What is true today
 
-> **Status — D1, D2 and D3 are done (3 Aug 2026).** The digest has a surface again: it is emailed on the hourly sweep and archived at `/digest`. What §1 describes below is the state this plan was written against, kept because the reasoning still explains why the design is what it is. D4 (WhatsApp) remains gated on go-live.
+> **Status — D1, D2 and D3 are done (3 Aug 2026).** The digest has a surface again: it is emailed on the hourly sweep and archived at `/weekly-plan`. What §1 describes below is the state this plan was written against, kept because the reasoning still explains why the design is what it is. D4 (WhatsApp) remains gated on go-live.
 
-**What shipped.** `digest_deliveries` (migration `0023`, RLS'd like every tenant table) records one row per (digest, recipient, channel), which is what makes the hourly sweep safe to re-run — a partial failure retries only the addresses that failed. `messaging/templates.ts` gained `renderDigestEmail`, carrying the whole briefing rather than a link to it; `digest/delivery.ts` resolves recipients, skips the ledger, and discharges the deferred alerts; `digest_deliver` is the ninth job kind, fanned out by the existing `digest_sweep`. `/digest` lists past weeks and `/digest/[id]` renders one through the components that were orphaned. The copy moved from `home.*` to `digest.*`, and Home's AI strip links out to the archive when nothing is waiting in the Inbox. Verified against Mailpit in both languages.
+**What shipped.** `digest_deliveries` (migration `0023`, RLS'd like every tenant table) records one row per (digest, recipient, channel), which is what makes the hourly sweep safe to re-run — a partial failure retries only the addresses that failed. `messaging/templates.ts` gained `renderDigestEmail`, carrying the whole briefing rather than a link to it; `digest/delivery.ts` resolves recipients, skips the ledger, and discharges the deferred alerts; `digest_deliver` is the ninth job kind, fanned out by the existing `digest_sweep`. `/weekly-plan` lists past weeks and `/weekly-plan/[id]` renders one through the components that were orphaned. The copy moved from `home.*` to `digest.*`, and Home's AI strip links out to the archive when nothing is waiting in the Inbox. Verified against Mailpit in both languages.
 
 ---
 
@@ -60,7 +60,7 @@ Reuse `messaging/templates.ts` and the existing transport (Mailpit in dev). The 
 
 **How it came out.** `digest/delivery.ts` + `messaging/templates.ts:renderDigestEmail`, mailed by the `digest_deliver` job that `digest_sweep` fans out per organization. Idempotency is `digest_deliveries`, unique on `(digest_id, user_id, channel)` — a `sent` row closes a recipient out, a `failed` row is updated in place on retry. A quiet week still sends, because silence and a broken pipeline must not look identical from the recipient's inbox. Covered by `tests/lib/digest-email.test.ts` (16) and `tests/db/digest-delivery.test.ts` (12); both languages verified in Mailpit.
 
-### D2 — `/digest` archive — **done**
+### D2 — `/weekly-plan` archive — **done**
 
 List of past digests for the active location (`listDigests`), and a detail view rendering one through `DigestView` / `PulseTile` / `ActionCard`. The Home AI strip's "View weekly digest" links here — **until this exists that link has no destination and is deliberately absent from the strip.**
 
@@ -68,7 +68,7 @@ List of past digests for the active location (`listDigests`), and a detail view 
 
 **Done when:** past digests are listed newest-first, one opens in full, actions can be marked done/dismissed, compose works with its progress state, empty state for a location with no digests yet, TR/EN.
 
-**How it came out.** `/digest` lists weeks with the pulse as a plain number rather than twelve stacked gauges; a pending or failed week is listed but not linked, since there is no briefing behind it. `/digest/[id]` renders `DigestView` unchanged and reaches a non-ready week deliberately — saying "this could not be composed" beats a 404 implying the week never existed. `digestById` is tenant-scoped, so another organization's id is indistinguishable from one that does not exist. The rail gained a Digest entry under Daily, and the Home strip now links here when nothing is waiting in the Inbox — one call to action, and "reply to these four people" outranks "read last week".
+**How it came out.** `/weekly-plan` lists weeks with the pulse as a plain number rather than twelve stacked gauges; a pending or failed week is listed but not linked, since there is no briefing behind it. `/weekly-plan/[id]` renders `DigestView` unchanged and reaches a non-ready week deliberately — saying "this could not be composed" beats a 404 implying the week never existed. `digestById` is tenant-scoped, so another organization's id is indistinguishable from one that does not exist. The rail gained a Digest entry under Daily, and the Home strip now links here when nothing is waiting in the Inbox — one call to action, and "reply to these four people" outranks "read last week".
 
 ### D3 — Move the copy out of `home.*` — **done**
 

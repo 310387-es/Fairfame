@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { slaState } from "@/inbox/workflow";
+import { slaState } from "@/reviews/workflow";
 
 /**
  * The SLA clock (P2-T4).
