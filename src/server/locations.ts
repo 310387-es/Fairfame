@@ -7,6 +7,7 @@ import { withAuthenticatedTenant } from "@/auth/session";
 import { connectSource, syncConnectionWithin, toConnection } from "@/connectors/sync";
 import { schema } from "@/db/client";
 import { requireFeature, requireWithinLimit } from "@/lib/entitlements";
+import { getEnv } from "@/lib/env";
 import { childLogger } from "@/lib/logger";
 import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 import { FIRST_PARTY_PROVIDER } from "@/connectors/firstparty";
@@ -132,7 +133,16 @@ export async function connectSourceAction(input: {
       error: `"${descriptor.label}" is a messaging channel, not a review source. Connect it under Messages.`,
     };
   }
-  if (descriptor.devOnly === true && process.env.NODE_ENV === "production") {
+  /**
+   * The accept side of the same rule the pages apply, and it must read the
+   * *same* input or the screen is decorative.
+   *
+   * It read `NODE_ENV === "production"` and the pages read
+   * `ALLOW_DEV_CONNECTORS`; fixing only the pages made the button appear and
+   * then be refused — which the browser suite caught immediately, because this
+   * guard is doing exactly what W1.4 built it for.
+   */
+  if (descriptor.devOnly === true && !getEnv().ALLOW_DEV_CONNECTORS) {
     return { ok: false, error: `"${descriptor.label}" is not available here.` };
   }
   if (resolution.mode === "real" && descriptor.requiresOAuth) {

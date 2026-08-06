@@ -54,6 +54,14 @@ jobs:
       BETTER_AUTH_URL: http://localhost:3000
       LOG_LEVEL: warn
       LOG_PRETTY: "false"
+      # The browser suite connects the mock source, which is a development
+      # instrument and hidden unless a deployment opts in. `next start` runs in
+      # production mode here, so without this the suite cannot set an account
+      # up — see ALLOW_DEV_CONNECTORS in src/lib/env.ts.
+      ALLOW_DEV_CONNECTORS: "true"
+      # tests/db/channels.test.ts sets its own, but the app's own boot path
+      # wants one too, and a fixed value is fine for a throwaway database.
+      TOKEN_VAULT_KEYS: "ci0:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
     steps:
       - uses: actions/checkout@v7
@@ -97,6 +105,8 @@ jobs:
             echo "NODE_ENV=test"
             echo "LOG_LEVEL=warn"
             echo "LOG_PRETTY=false"
+            echo "ALLOW_DEV_CONNECTORS=$ALLOW_DEV_CONNECTORS"
+            echo "TOKEN_VAULT_KEYS=$TOKEN_VAULT_KEYS"
           } > .env
 
       - run: pnpm run db:migrate

@@ -174,6 +174,29 @@ const envSchema = z.object({
   COMPETITOR_SOURCE: z.enum(["none", "fixtures"]).default("none"),
 
   /**
+   * Whether the development connectors may be offered at all (W1.4, fixed here).
+   *
+   * "Mock source" and "Fixture provider" are instruments, not products, and
+   * W1.4 stopped advertising them beside Google on a screen shown to design
+   * partners. The gate it used was `NODE_ENV !== "production"` plus `?dev=1`,
+   * and the first half is the wrong question: **`next start` sets
+   * `NODE_ENV=production` in every environment**, including CI and any preview
+   * deployment. So the connectors vanished from the built app, the browser
+   * suite could not connect one, and nobody found out for two waves — because
+   * Playwright reuses a *dev* server locally and only CI runs the real bundle.
+   *
+   * An explicit flag instead, in the shape this codebase already uses for a
+   * test seam (`IYS_GATEWAY`, `SMS_GATEWAY`, `COMPETITOR_SOURCE`): a real
+   * deployment never sets it, so the default is the safe answer, and nothing
+   * depends on `NODE_ENV` meaning what we hoped. `?dev=1` is still required on
+   * top, so the connectors stay out of the way of somebody working normally.
+   */
+  ALLOW_DEV_CONNECTORS: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+
+  /**
    * Public origin for the links we hand to customers — review-request short
    * links and the QR codes that encode them. Distinct from BETTER_AUTH_URL
    * because a public collection page may well live on a different hostname

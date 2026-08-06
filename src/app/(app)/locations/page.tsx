@@ -17,6 +17,7 @@ import { describeConnectableProviders, describeProvider } from "@/connectors/cap
 import { FIRST_PARTY_PROVIDER } from "@/connectors/firstparty";
 import { schema } from "@/db/client";
 import { withinLimit } from "@/lib/entitlements";
+import { getEnv } from "@/lib/env";
 import { withTenant } from "@/lib/tenancy";
 import { publicBaseUrl } from "@/lib/urls";
 import { loadLocationFacts } from "@/locations/facts";
@@ -67,11 +68,17 @@ export default async function LocationsPage({
    * Whether to offer the development connectors (W1.4).
    *
    * Both conditions, not either: `?dev=1` is a convenience for whoever is
-   * working on the thing, and `NODE_ENV` is the part that cannot be typed into
-   * an address bar by a customer who saw the query string in a screen
-   * recording. In production this is false however the URL is written.
+   * working on the thing, and `ALLOW_DEV_CONNECTORS` is the part that cannot be
+   * typed into an address bar by a customer who saw the query string in a
+   * screen recording. A real deployment never sets it, so this is false there
+   * however the URL is written.
+   *
+   * It used to read `NODE_ENV !== "production"`, which was wrong in the
+   * direction nobody notices: `next start` is production mode *everywhere*,
+   * so the built app hid the connectors from CI as well — and the browser
+   * suite, which needs one, only caught it once CI ran the real bundle.
    */
-  const includeDevOnly = process.env.NODE_ENV !== "production" && params.dev === "1";
+  const includeDevOnly = getEnv().ALLOW_DEV_CONNECTORS && params.dev === "1";
 
   const { locations, connections, facts, publicPages, approvedCount, limit } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },

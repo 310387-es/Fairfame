@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/shell/page-header";
 import { SectionTabs } from "@/components/shell/section-tabs";
 import { loadConnectionFacts } from "@/connections/facts";
 import { schema } from "@/db/client";
+import { getEnv } from "@/lib/env";
 import { withTenant } from "@/lib/tenancy";
 
 /**
@@ -53,9 +54,10 @@ export default async function ConnectionsPage({
   ]);
 
   // Both conditions, exactly as `/locations` does it (W1.4): the query string is
-  // a convenience for whoever is building, and `NODE_ENV` is the half that
-  // cannot be typed into an address bar by a customer who saw it in a recording.
-  const includeDevOnly = process.env.NODE_ENV !== "production" && params.dev === "1";
+  // a convenience for whoever is building, and `ALLOW_DEV_CONNECTORS` is the
+  // half that cannot be typed into an address bar. It used to read `NODE_ENV`,
+  // which `next start` sets to production in CI too — see `src/lib/env.ts`.
+  const includeDevOnly = getEnv().ALLOW_DEV_CONNECTORS && params.dev === "1";
 
   const [facts, locations] = await Promise.all([
     loadConnectionFacts({
