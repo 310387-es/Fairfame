@@ -73,15 +73,6 @@ export default async function SamplePage() {
           ? t("deltaUp", { value: digest.delta.toFixed(1) })
           : t("deltaDown", { value: Math.abs(digest.delta).toFixed(1) });
 
-  const band =
-    digest.pulse === null
-      ? "text-muted-foreground"
-      : digest.pulse >= 70
-        ? "text-primary"
-        : digest.pulse >= 45
-          ? "text-rating"
-          : "text-destructive";
-
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 md:py-16">
       <header className="flex flex-col gap-4">
@@ -136,8 +127,37 @@ export default async function SamplePage() {
           </div>
 
           <div className="flex shrink-0 flex-col items-center rounded-lg border border-line p-5 sm:w-44">
-            <span className={cn("text-metric text-[2rem]", band)}>
-              {digest.pulse === null ? "—" : Math.round(digest.pulse)}
+            {/*
+              Ink, and the same shape the dashboard uses for the same number.
+
+              This tile used to band the score by threshold — indigo at 70+,
+              amber from 45, red below — which breaks two of the palette's rules
+              at once. Indigo means "this is interactive" and never "this is
+              good" (docs/15 §2); amber means "this is a rating", and a composed
+              0-100 score is not one. It also disagreed with the product it is
+              advertising: `/dashboard` draws this figure in ink and lets the
+              delta underneath carry the judgement, which is what the line below
+              already does here.
+
+              `/100` for the reason W4.3 added it in the app — this is the one
+              figure on the page that names no unit, and somebody reading it as
+              a percentage or as 65 reviews has misread the number a prospect is
+              being shown first. `sr-only` for the reading, `aria-hidden` for
+              the mark, so it announces as "65 out of 100".
+
+              The raw `text-[2rem]` went with it: `text-metric` is the token and
+              typing a font size is what the design system exists to stop.
+            */}
+            <span className="flex items-baseline gap-1">
+              <span className="text-metric">
+                {digest.pulse === null ? "—" : Math.round(digest.pulse)}
+              </span>
+              {digest.pulse === null ? null : (
+                <span className="text-copy text-faint">
+                  <span aria-hidden>/100</span>
+                  <span className="sr-only">{tc("outOf", { max: 100 })}</span>
+                </span>
+              )}
             </span>
             <span className="mt-1 text-copy font-medium">{t("pulse")}</span>
             <span className="mt-1 text-center text-[11px] text-muted-foreground">
