@@ -9,7 +9,9 @@ import {
   recordChannelError,
 } from "@/channels/store";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
+import { resetEnvForTesting } from "@/lib/env";
 import { withTenant } from "@/lib/tenancy";
+import { resetVaultKeysForTesting } from "@/lib/vault";
 
 /**
  * Messaging channels (W2.2).
@@ -20,6 +22,18 @@ import { withTenant } from "@/lib/tenancy";
  * wrong: that the credential never crosses a tenant boundary, and that it is
  * never readable from the row.
  */
+
+/**
+ * The suite supplies its own vault key, as every other credential-handling DB
+ * test here does (`connector-infra`, `instagram-ingest`).
+ *
+ * It has to. `TOKEN_VAULT_KEYS` is a deployment secret and is deliberately
+ * absent from CI's generated `.env`, so a suite that relied on the developer's
+ * own `.env` passes on the machine it was written on and fails everywhere
+ * else — which is exactly what happened: green locally, eight failures on the
+ * first CI run. A test about sealing credentials must set up the seal itself.
+ */
+const VAULT_KEY = "t0:" + Buffer.alloc(32, 11).toString("base64");
 
 const suffix = crypto.randomUUID().slice(0, 8);
 const orgIds: string[] = [];
@@ -46,6 +60,10 @@ const connect = (organizationId: string, token: string, externalId = "phone-1") 
   );
 
 beforeAll(async () => {
+  process.env.TOKEN_VAULT_KEYS = VAULT_KEY;
+  resetEnvForTesting();
+  resetVaultKeysForTesting();
+
   await makeOrg("a");
   await makeOrg("b");
 });
@@ -53,6 +71,12 @@ beforeAll(async () => {
 afterAll(async () => {
   await getAdminDb().delete(schema.organizations).where(inArray(schema.organizations.id, orgIds));
   await closeDatabasePools();
+
+  // Put the process back as it was found: these are module-level caches, and a
+  // suite that leaves a key behind makes the next one pass for its reasons.
+  delete process.env.TOKEN_VAULT_KEYS;
+  resetEnvForTesting();
+  resetVaultKeysForTesting();
 });
 
 describe("connecting a channel", () => {
