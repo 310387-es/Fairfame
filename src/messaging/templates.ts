@@ -473,6 +473,26 @@ export type DigestEmailInput = {
   settingsUrl: string;
 };
 
+/**
+ * **This copy is hardcoded, and that is how it drifted.**
+ *
+ * W3.3 settled that the 0-100 figure is called **Reputation score** everywhere
+ * — one number, one name — and renamed it across the app, the digest screen and
+ * the public sample, all of which read `digest.pulse` from the message
+ * catalogue. This map does not, so the email kept saying "Reputation pulse" /
+ * "İtibar nabzı" for four days: the product's own headline feature, arriving in
+ * somebody's inbox under a name that appears nowhere else in it.
+ *
+ * It survived because an email is the one surface with no way to look at it —
+ * a template only renders when the event behind it happens, which is exactly
+ * why `pnpm email:preview` exists. It was found by running it.
+ *
+ * The hardcoding itself stays: these templates are sent from the worker, which
+ * has no `next-intl` request context. But **a copy change in the app now means
+ * grepping here too**, and the identifier is still `pulse` on purpose — the
+ * code name did not move (docs/21 §1, same rule that keeps `src/digest` against
+ * a `/weekly-plan` route). Only the words a customer reads did.
+ */
 type DigestCopy = {
   subject: (input: DigestEmailInput & { period: string }) => string;
   greeting: (name: string | null) => string;
@@ -508,8 +528,8 @@ const DIGEST_COPY: Record<Locale, DigestCopy> = {
     quietBody:
       "Bu hafta yeni yorum gelmedi. Yapılacak bir şey yok — bir sonraki özet yeni yorumlar geldiğinde daha dolu olacak.",
     pulse: (score, delta) =>
-      delta ? `İtibar nabzı: ${score}/100 (${delta})` : `İtibar nabzı: ${score}/100`,
-    pulseNone: "İtibar nabzı: henüz hesaplanamadı",
+      delta ? `İtibar puanı: ${score}/100 (${delta})` : `İtibar puanı: ${score}/100`,
+    pulseNone: "İtibar puanı: henüz hesaplanamadı",
     deltaUp: (value) => `geçen haftaya göre +${value}`,
     deltaDown: (value) => `geçen haftaya göre ${value}`,
     deltaFlat: "geçen haftayla aynı",
@@ -518,7 +538,7 @@ const DIGEST_COPY: Record<Locale, DigestCopy> = {
     evidence: (count) => (count === 1 ? "Dayandığı yorumu gör" : `Dayandığı ${count} yorumu gör`),
     priorOutcome: (done, total) =>
       `Geçen haftanın ${total} eyleminin ${done} tanesini tamamladınız.`,
-    pulseLabel: "İtibar nabzı",
+    pulseLabel: "İtibar puanı",
     themesTitle: "Öne çıkan konular",
     themeLine: (label, count, positive, negative) =>
       `${label} — ${count} yorum (${positive} olumlu, ${negative} olumsuz)`,
@@ -538,8 +558,8 @@ const DIGEST_COPY: Record<Locale, DigestCopy> = {
     quietBody:
       "No new reviews came in this week. Nothing to do — the next digest will have more to say once reviews start arriving again.",
     pulse: (score, delta) =>
-      delta ? `Reputation pulse: ${score}/100 (${delta})` : `Reputation pulse: ${score}/100`,
-    pulseNone: "Reputation pulse: not enough data yet",
+      delta ? `Reputation score: ${score}/100 (${delta})` : `Reputation score: ${score}/100`,
+    pulseNone: "Reputation score: not enough data yet",
     deltaUp: (value) => `+${value} on last week`,
     deltaDown: (value) => `${value} on last week`,
     deltaFlat: "level with last week",
@@ -548,7 +568,7 @@ const DIGEST_COPY: Record<Locale, DigestCopy> = {
     evidence: (count) =>
       count === 1 ? "See the review behind this" : `See the ${count} reviews behind this`,
     priorOutcome: (done, total) => `You completed ${done} of last week's ${total} actions.`,
-    pulseLabel: "Reputation pulse",
+    pulseLabel: "Reputation score",
     themesTitle: "What customers talked about",
     themeLine: (label, count, positive, negative) =>
       `${label} — ${count} ${count === 1 ? "review" : "reviews"} (${positive} positive, ${negative} negative)`,
