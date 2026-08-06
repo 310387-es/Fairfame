@@ -332,7 +332,8 @@ export function composeReport(
       label: label(group.key),
       cells: [
         group.rating.value === null ? null : number(group.rating.value, 1),
-        group.sentiment.value === null ? null : number(group.sentiment.value, 2),
+        // A share, like the replied column — see the sentiment tile above.
+        group.sentiment.value === null ? null : percent(group.sentiment.value / 100),
         number(group.volume.value ?? 0, 0),
         group.responseRate.value === null ? null : percent(group.responseRate.value),
       ],
@@ -359,11 +360,26 @@ export function composeReport(
           (value) => number(value, 1),
           (value) => signed(value, 1),
         ),
+        /*
+          A **share**, formatted like one — the same as the "replied" tile
+          beside it (W3.3).
+
+          `number(value, 2)` is left over from when this was the model's mean
+          signed score on a −1…1 scale, where two decimals were the only thing
+          separating one reading from another. `breakdown()` has returned the
+          **positive share, 0–100** since W3.3, so those two decimals now print
+          a percentage as "38,00" — spurious precision, in a bare number, in a
+          column next to "%82".
+
+          Divided by 100 because `percent` takes a fraction, as the response
+          rate does. Both are now shares of reviews, drawn in the same unit, so
+          a reader can compare the two cells without being told they differ.
+        */
         metric(
           copy.column.sentiment,
           whole?.sentiment,
-          (value) => number(value, 2),
-          (value) => signed(value, 2),
+          (value) => percent(value / 100),
+          (value) => (value > 0 ? `+${percent(value / 100)}` : percent(value / 100)),
         ),
         metric(copy.column.replied, whole?.responseRate, percent, (value) =>
           value > 0 ? `+${percent(value)}` : percent(value),
