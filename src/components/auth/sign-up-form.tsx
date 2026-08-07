@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { signUp } from "@/auth/client";
+import { safeNextPath } from "@/auth/next-path";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,12 +24,12 @@ export function SignUpForm() {
    * this they land on Home and the invitation is lost, which is the one moment
    * where the product must not forget what somebody was trying to do.
    *
-   * **Only a path is honoured.** A full URL here would be an open redirect —
-   * `?next=https://evil.test` on a page that has just taken a password.
+   * **Only a path is honoured** — see `safeNextPath`, which is shared with the
+   * guard that bounces an already-signed-in visitor off this page, so the two
+   * cannot disagree about what an acceptable destination is.
    */
   const search = useSearchParams();
-  const next = search.get("next");
-  const destination = next?.startsWith("/") && !next.startsWith("//") ? next : null;
+  const destination = safeNextPath(search.get("next"));
 
   const [pending, setPending] = useState(false);
 

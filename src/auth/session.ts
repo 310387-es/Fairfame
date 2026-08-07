@@ -1,6 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { getAdminDb, schema } from "@/db/client";
+import { safeNextPath } from "@/auth/next-path";
 import { isRole, roleAtLeast, type Role } from "@/auth/permissions";
 import { auth } from "@/auth/config";
 import { withTenant, type TenantContext, type TenantDatabase } from "@/lib/tenancy";
@@ -45,6 +47,26 @@ export class ForbiddenError extends Error {
 /** The raw session, or null. */
 export async function getSession() {
   return auth.api.getSession({ headers: await headers() });
+}
+
+/**
+ * The mirror of the app shell's guard: sends a signed-in visitor *away* from
+ * the pre-authentication screens.
+ *
+ * It is a per-page call rather than a check in `(auth)/layout.tsx` for two
+ * reasons, and both are structural. A layout cannot see its child's pathname in
+ * the App Router — the constraint `invite/[id]` already records — and two of the
+ * routes in that group are reachable *only* while signed in: choosing an
+ * organization, and accepting an invitation. A guard in the layout would have to
+ * exempt them, which means the exemption list and the pages could drift.
+ *
+ * `next` is honoured so a stale `?next=` link — `/sign-in?next=/invite/abc`,
+ * followed by somebody who is already signed in — lands on the invitation
+ * rather than dead-ending on Home. It is sanitised, because the whole point of
+ * this function is that it redirects somebody who is already authenticated.
+ */
+export async function redirectIfSignedIn(next?: string | null): Promise<void> {
+  if (await getSession()) redirect(safeNextPath(next) ?? "/dashboard");
 }
 
 /**

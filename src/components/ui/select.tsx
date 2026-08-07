@@ -37,8 +37,13 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex h-8 w-full items-center justify-between gap-2 rounded-md border border-line bg-card px-2.5 text-copy transition-colors outline-none",
-        "hover:bg-surface-sunken focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+        // `--surface-sunken` and `text-body`, both matching `Input`: a select
+        // and a text field are the same kind of thing to whoever is filling the
+        // form, and on a white card the two sat side by side in different
+        // fills and different sizes. The hover deepens to the segmented trough,
+        // since the rest state is now where the hover used to go.
+        "flex h-8 w-full items-center justify-between gap-2 rounded-md border border-line bg-surface-sunken px-2.5 text-body transition-colors outline-none",
+        "hover:bg-surface-segmented focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
         "disabled:pointer-events-none disabled:opacity-45",
         "data-[placeholder]:text-muted-foreground [&>span]:truncate",
         className,
