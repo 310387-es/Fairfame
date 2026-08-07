@@ -109,18 +109,18 @@ export function renderReviewRequestEmail(input: ReviewRequestEmailInput): Render
 
   const html = `<!doctype html>
 <html lang="${input.locale}">
-  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+  <body style="margin:0;padding:24px;background:#f6f7fb;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#10193a;">
     <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
       <p style="margin:0 0 16px;font-size:16px;">${escapeHtml(greeting)}</p>
       <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">${escapeHtml(body)}</p>
       <p style="margin:0 0 24px;">
-        <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;">${escapeHtml(copy.cta)}</a>
+        <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#10193a;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;">${escapeHtml(copy.cta)}</a>
       </p>
       <p style="margin:0;font-size:15px;line-height:1.6;white-space:pre-line;">${escapeHtml(copy.signOff(input.businessName))}</p>
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
-      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(footer)}</p>
-      <p style="margin:0;font-size:12px;color:#6b7280;">
-        <a href="${escapeHtml(input.unsubscribeUrl)}" style="color:#6b7280;">${escapeHtml(copy.unsubscribe)}</a>
+      <hr style="border:none;border-top:1px solid #e7eaf3;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#666e88;">${escapeHtml(footer)}</p>
+      <p style="margin:0;font-size:12px;color:#666e88;">
+        <a href="${escapeHtml(input.unsubscribeUrl)}" style="color:#666e88;">${escapeHtml(copy.unsubscribe)}</a>
       </p>
     </div>
   </body>
@@ -255,25 +255,25 @@ export function renderReviewAlertEmail(input: ReviewAlertEmailInput): RenderedEm
     `${copy.settings}: ${input.settingsUrl}`,
   ].join("\n");
 
-  const accent = input.urgent ? "#b91c1c" : "#111827";
+  const accent = input.urgent ? "#c42b4c" : "#10193a";
 
   const html = `<!doctype html>
 <html lang="${input.locale}">
-  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+  <body style="margin:0;padding:24px;background:#f6f7fb;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#10193a;">
     <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
       <p style="margin:0 0 16px;font-size:16px;">${escapeHtml(greeting)}</p>
       <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:${accent};">${escapeHtml(lead)}</p>
       <div style="border-left:3px solid ${accent};padding:4px 0 4px 16px;margin:0 0 24px;">
-        <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">${escapeHtml([stars, byline].filter(Boolean).join("  "))}</p>
+        <p style="margin:0 0 6px;font-size:13px;color:#666e88;">${escapeHtml([stars, byline].filter(Boolean).join("  "))}</p>
         <p style="margin:0;font-size:15px;line-height:1.6;">${escapeHtml(body)}</p>
       </div>
       <p style="margin:0 0 24px;">
         <a href="${escapeHtml(input.link)}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;">${escapeHtml(copy.cta)}</a>
       </p>
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
-      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.footer)}</p>
-      <p style="margin:0;font-size:12px;color:#6b7280;">
-        <a href="${escapeHtml(input.settingsUrl)}" style="color:#6b7280;">${escapeHtml(copy.settings)}</a>
+      <hr style="border:none;border-top:1px solid #e7eaf3;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#666e88;">${escapeHtml(copy.footer)}</p>
+      <p style="margin:0;font-size:12px;color:#666e88;">
+        <a href="${escapeHtml(input.settingsUrl)}" style="color:#666e88;">${escapeHtml(copy.settings)}</a>
       </p>
     </div>
   </body>
@@ -373,11 +373,11 @@ export function renderRollupEmail(input: RollupEmailInput): RenderedEmail {
 
   // A lapsed promise is the one that warrants the alarm colour; a handoff is
   // ordinary work and is styled as such.
-  const accent = input.kind === "sla" ? "#b91c1c" : "#111827";
+  const accent = input.kind === "sla" ? "#c42b4c" : "#10193a";
 
   const html = `<!doctype html>
 <html lang="${input.locale}">
-  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+  <body style="margin:0;padding:24px;background:#f6f7fb;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#10193a;">
     <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
       <p style="margin:0 0 16px;font-size:16px;">${escapeHtml(greeting)}</p>
       <p style="margin:0 0 8px;font-size:32px;font-weight:600;color:${accent};">${input.count}</p>
@@ -385,10 +385,10 @@ export function renderRollupEmail(input: RollupEmailInput): RenderedEmail {
       <p style="margin:0 0 24px;">
         <a href="${escapeHtml(input.link)}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;">${escapeHtml(copy.cta)}</a>
       </p>
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
-      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.footer)}</p>
-      <p style="margin:0;font-size:12px;color:#6b7280;">
-        <a href="${escapeHtml(input.settingsUrl)}" style="color:#6b7280;">${escapeHtml(copy.settings)}</a>
+      <hr style="border:none;border-top:1px solid #e7eaf3;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#666e88;">${escapeHtml(copy.footer)}</p>
+      <p style="margin:0;font-size:12px;color:#666e88;">
+        <a href="${escapeHtml(input.settingsUrl)}" style="color:#666e88;">${escapeHtml(copy.settings)}</a>
       </p>
     </div>
   </body>
@@ -473,6 +473,53 @@ export type DigestEmailInput = {
   settingsUrl: string;
 };
 
+/**
+ * **The palette here is literal hex, and it must still be the brand's.**
+ *
+ * Email clients do not support custom properties, so `var(--ink-800)` is not
+ * available and every colour has to be written out — the same exemption
+ * `src/widgets/theme.ts` has, for the same reason. What is *not* exempt is
+ * which colours they are.
+ *
+ * Until 7 Aug 2026 these were Tailwind's stock defaults: `#6b7280` for muted
+ * text, `#111827` for ink, `#e5e7eb` for hairlines — and, in the digest,
+ * **`#4f46e5` for links, which is Tailwind's indigo-600 and not Revira's
+ * `#3d5af1`**. Two different indigos in one email, four pixels of hue apart,
+ * neither obviously wrong on its own. That is what a hand-copied palette looks
+ * like after a few months.
+ *
+ * Muted text is `--ink-350` (#666e88) rather than the `--ink-400` (#6b7391)
+ * that the app uses for the same role, and that is deliberate: several of these
+ * blocks sit on `--surface-sunken` rather than white, where `--ink-400` is
+ * **4.37:1** and illegal (docs/15, the contrast table). `--ink-350` clears AA on
+ * both — 5.06:1 on white, 4.73:1 on the tint — so one value is safe wherever a
+ * template puts it, which is worth more here than matching the app exactly.
+ * A template has no layout engine to check it with.
+ *
+ * `tests/lib/email-palette.test.ts` pins every hex in this file to a token in
+ * `globals.css`, so the next colour typed by hand fails rather than ships.
+ */
+
+/**
+ * **This copy is hardcoded, and that is how it drifted.**
+ *
+ * W3.3 settled that the 0-100 figure is called **Reputation score** everywhere
+ * — one number, one name — and renamed it across the app, the digest screen and
+ * the public sample, all of which read `digest.pulse` from the message
+ * catalogue. This map does not, so the email kept saying "Reputation pulse" /
+ * "İtibar nabzı" for four days: the product's own headline feature, arriving in
+ * somebody's inbox under a name that appears nowhere else in it.
+ *
+ * It survived because an email is the one surface with no way to look at it —
+ * a template only renders when the event behind it happens, which is exactly
+ * why `pnpm email:preview` exists. It was found by running it.
+ *
+ * The hardcoding itself stays: these templates are sent from the worker, which
+ * has no `next-intl` request context. But **a copy change in the app now means
+ * grepping here too**, and the identifier is still `pulse` on purpose — the
+ * code name did not move (docs/21 §1, same rule that keeps `src/digest` against
+ * a `/weekly-plan` route). Only the words a customer reads did.
+ */
 type DigestCopy = {
   subject: (input: DigestEmailInput & { period: string }) => string;
   greeting: (name: string | null) => string;
@@ -508,8 +555,8 @@ const DIGEST_COPY: Record<Locale, DigestCopy> = {
     quietBody:
       "Bu hafta yeni yorum gelmedi. Yapılacak bir şey yok — bir sonraki özet yeni yorumlar geldiğinde daha dolu olacak.",
     pulse: (score, delta) =>
-      delta ? `İtibar nabzı: ${score}/100 (${delta})` : `İtibar nabzı: ${score}/100`,
-    pulseNone: "İtibar nabzı: henüz hesaplanamadı",
+      delta ? `İtibar puanı: ${score}/100 (${delta})` : `İtibar puanı: ${score}/100`,
+    pulseNone: "İtibar puanı: henüz hesaplanamadı",
     deltaUp: (value) => `geçen haftaya göre +${value}`,
     deltaDown: (value) => `geçen haftaya göre ${value}`,
     deltaFlat: "geçen haftayla aynı",
@@ -518,7 +565,7 @@ const DIGEST_COPY: Record<Locale, DigestCopy> = {
     evidence: (count) => (count === 1 ? "Dayandığı yorumu gör" : `Dayandığı ${count} yorumu gör`),
     priorOutcome: (done, total) =>
       `Geçen haftanın ${total} eyleminin ${done} tanesini tamamladınız.`,
-    pulseLabel: "İtibar nabzı",
+    pulseLabel: "İtibar puanı",
     themesTitle: "Öne çıkan konular",
     themeLine: (label, count, positive, negative) =>
       `${label} — ${count} yorum (${positive} olumlu, ${negative} olumsuz)`,
@@ -538,8 +585,8 @@ const DIGEST_COPY: Record<Locale, DigestCopy> = {
     quietBody:
       "No new reviews came in this week. Nothing to do — the next digest will have more to say once reviews start arriving again.",
     pulse: (score, delta) =>
-      delta ? `Reputation pulse: ${score}/100 (${delta})` : `Reputation pulse: ${score}/100`,
-    pulseNone: "Reputation pulse: not enough data yet",
+      delta ? `Reputation score: ${score}/100 (${delta})` : `Reputation score: ${score}/100`,
+    pulseNone: "Reputation score: not enough data yet",
     deltaUp: (value) => `+${value} on last week`,
     deltaDown: (value) => `${value} on last week`,
     deltaFlat: "level with last week",
@@ -548,7 +595,7 @@ const DIGEST_COPY: Record<Locale, DigestCopy> = {
     evidence: (count) =>
       count === 1 ? "See the review behind this" : `See the ${count} reviews behind this`,
     priorOutcome: (done, total) => `You completed ${done} of last week's ${total} actions.`,
-    pulseLabel: "Reputation pulse",
+    pulseLabel: "Reputation score",
     themesTitle: "What customers talked about",
     themeLine: (label, count, positive, negative) =>
       `${label} — ${count} ${count === 1 ? "review" : "reviews"} (${positive} positive, ${negative} negative)`,
@@ -607,26 +654,27 @@ function formatDelta(copy: DigestCopy, delta: number | null, locale: Locale): st
 function renderActionCard(action: DigestEmailInput["actions"][number], copy: DigestCopy): string {
   const evidence = action.link
     ? `<p style="margin:8px 0 0;font-size:13px;line-height:1.5;">
-              <a href="${escapeHtml(action.link)}" style="color:#4f46e5;text-decoration:none;">${escapeHtml(copy.evidence(action.reviewCount))} →</a>
+              <a href="${escapeHtml(action.link)}" style="color:#3d5af1;text-decoration:none;">${escapeHtml(copy.evidence(action.reviewCount))} →</a>
             </p>`
     : "";
 
   const quote = action.quote
-    ? // The rule is `#cbd5e1`, not the `#e5e7eb` used elsewhere: this one sits
-      // on the card's own `#f9fafb` rather than on white, and against that it
-      // was invisible — the quote read as an unattributed second sentence.
-      `<p style="margin:10px 0 0;padding:0 0 0 12px;border-left:3px solid #cbd5e1;font-size:14px;line-height:1.55;color:#4b5563;font-style:italic;">
+    ? // The rule is `--ink-300` (#8b93ac), not the `--line` (#e7eaf3) used
+      // elsewhere: this one sits on the card's own `--surface-sunken` rather
+      // than on white, and against that a hairline was invisible — the quote
+      // read as an unattributed second sentence.
+      `<p style="margin:10px 0 0;padding:0 0 0 12px;border-left:3px solid #8b93ac;font-size:14px;line-height:1.55;color:#3a4260;font-style:italic;">
               ${escapeHtml(stars(action.quote.rating))}${escapeHtml(`“${action.quote.text}”`)}
             </p>`
     : "";
 
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 12px;background:#f9fafb;border-radius:10px;">
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 12px;background:#f5f7fa;border-radius:10px;">
         <tr>
           <td width="34" valign="top" style="padding:16px 0 16px 16px;">
-            <div style="width:24px;height:24px;border-radius:12px;background:#eef2ff;color:#4f46e5;font-size:13px;font-weight:700;line-height:24px;text-align:center;">${action.position}</div>
+            <div style="width:24px;height:24px;border-radius:12px;background:#eef1fe;color:#3d5af1;font-size:13px;font-weight:700;line-height:24px;text-align:center;">${action.position}</div>
           </td>
           <td valign="top" style="padding:16px 16px 16px 10px;">
-            <p style="margin:0;font-size:15px;line-height:1.5;font-weight:600;color:#111827;">${escapeHtml(action.text)}</p>
+            <p style="margin:0;font-size:15px;line-height:1.5;font-weight:600;color:#10193a;">${escapeHtml(action.text)}</p>
             ${quote}
             ${evidence}
           </td>
@@ -684,28 +732,28 @@ export function renderDigestEmail(input: DigestEmailInput): RenderedEmail {
   const deltaText = formatDelta(copy, input.pulseDelta, input.locale);
   const deltaColour =
     input.pulseDelta === null || Math.round(input.pulseDelta * 10) === 0
-      ? "#6b7280"
+      ? "#666e88"
       : input.pulseDelta > 0
-        ? "#047857"
-        : "#b91c1c";
+        ? "#0b7d57"
+        : "#c42b4c";
 
   const pulseBlock =
     input.pulseScore === null
-      ? `<div style="background:#f6f7f9;border-radius:10px;padding:14px 16px;margin:0 0 24px;">
-        <p style="margin:0;font-size:14px;color:#6b7280;">${escapeHtml(copy.pulseNone)}</p>
+      ? `<div style="background:#f6f7fb;border-radius:10px;padding:14px 16px;margin:0 0 24px;">
+        <p style="margin:0;font-size:14px;color:#666e88;">${escapeHtml(copy.pulseNone)}</p>
       </div>`
-      : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;background:#f6f7f9;border-radius:10px;">
+      : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 24px;background:#f6f7fb;border-radius:10px;">
         <tr>
           <td valign="middle" style="padding:16px;">
-            <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;">${escapeHtml(copy.pulseLabel)}</p>
-            <p style="margin:2px 0 0;font-size:15px;color:#6b7280;">${escapeHtml(copy.reviewCount(input.reviewCount))}</p>
+            <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#666e88;">${escapeHtml(copy.pulseLabel)}</p>
+            <p style="margin:2px 0 0;font-size:15px;color:#666e88;">${escapeHtml(copy.reviewCount(input.reviewCount))}</p>
           </td>
           <td valign="middle" align="right" style="padding:16px;">
-            <p style="margin:0;font-size:30px;line-height:1.1;font-weight:700;color:#111827;">${escapeHtml(
+            <p style="margin:0;font-size:30px;line-height:1.1;font-weight:700;color:#10193a;">${escapeHtml(
               new Intl.NumberFormat(input.locale, { maximumFractionDigits: 0 }).format(
                 input.pulseScore,
               ),
-            )}<span style="font-size:15px;font-weight:400;color:#6b7280;">/100</span></p>
+            )}<span style="font-size:15px;font-weight:400;color:#666e88;">/100</span></p>
             ${deltaText ? `<p style="margin:2px 0 0;font-size:13px;color:${deltaColour};">${escapeHtml(deltaText)}</p>` : ""}
           </td>
         </tr>
@@ -759,14 +807,14 @@ export function renderDigestEmail(input: DigestEmailInput): RenderedEmail {
 
   const html = `<!doctype html>
 <html lang="${input.locale}">
-  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+  <body style="margin:0;padding:24px;background:#f6f7fb;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#10193a;">
     <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
       <p style="margin:0 0 16px;font-size:16px;">${escapeHtml(greeting)}</p>
       <p style="margin:0 0 20px;font-size:16px;line-height:1.6;">${escapeHtml(lead)}</p>
 
       ${
         quiet
-          ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#6b7280;">${escapeHtml(copy.quietBody)}</p>`
+          ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#666e88;">${escapeHtml(copy.quietBody)}</p>`
           : `<p style="margin:0 0 10px;font-size:19px;line-height:1.4;font-weight:600;">${escapeHtml(input.headline)}</p>
       <p style="margin:0 0 24px;font-size:15px;line-height:1.6;">${escapeHtml(input.summary)}</p>`
       }
@@ -781,7 +829,7 @@ ${
 }${
     input.priorOutcome
       ? `
-      <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#6b7280;">${escapeHtml(
+      <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#666e88;">${escapeHtml(
         copy.priorOutcome(input.priorOutcome.done, input.priorOutcome.total),
       )}</p>`
       : ""
@@ -789,7 +837,7 @@ ${
     themes.length > 0
       ? `
       <p style="margin:0 0 10px;font-size:15px;font-weight:600;">${escapeHtml(copy.themesTitle)}</p>
-      <ul style="margin:0 0 24px;padding-left:20px;font-size:15px;line-height:1.6;color:#374151;">
+      <ul style="margin:0 0 24px;padding-left:20px;font-size:15px;line-height:1.6;color:#3a4260;">
         ${themes
           .map(
             (theme) =>
@@ -803,17 +851,17 @@ ${
   }${
     input.heldCount > 0
       ? `
-      <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.held(input.heldCount))}</p>`
+      <p style="margin:0 0 24px;font-size:14px;line-height:1.5;color:#666e88;">${escapeHtml(copy.held(input.heldCount))}</p>`
       : ""
   }
       <p style="margin:0 0 24px;">
-        <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;">${escapeHtml(copy.cta)}</a>
+        <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#10193a;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;">${escapeHtml(copy.cta)}</a>
       </p>
 
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
-      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.footer)}</p>
-      <p style="margin:0;font-size:12px;color:#6b7280;">
-        <a href="${escapeHtml(input.settingsUrl)}" style="color:#6b7280;">${escapeHtml(copy.settings)}</a>
+      <hr style="border:none;border-top:1px solid #e7eaf3;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#666e88;">${escapeHtml(copy.footer)}</p>
+      <p style="margin:0;font-size:12px;color:#666e88;">
+        <a href="${escapeHtml(input.settingsUrl)}" style="color:#666e88;">${escapeHtml(copy.settings)}</a>
       </p>
     </div>
   </body>
@@ -937,21 +985,21 @@ export function renderReportEmail(input: ReportEmailInput): RenderedEmail {
 
   const html = `<!doctype html>
 <html lang="${input.locale}">
-  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+  <body style="margin:0;padding:24px;background:#f6f7fb;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#10193a;">
     <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
       <p style="margin:0 0 16px;font-size:16px;">${escapeHtml(greeting)}</p>
       <p style="margin:0 0 20px;font-size:16px;line-height:1.6;">${escapeHtml(lead)}</p>
-      <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">${escapeHtml(copy.attached(input.attachmentName))}</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#666e88;">${escapeHtml(copy.attached(input.attachmentName))}</p>
 ${
   quiet
     ? ""
     : `
-      <div style="background:#f6f7f9;border-radius:8px;padding:14px 16px;margin:0 0 24px;">
+      <div style="background:#f6f7fb;border-radius:8px;padding:14px 16px;margin:0 0 24px;">
         <p style="margin:0 0 8px;font-size:14px;font-weight:600;">${escapeHtml(copy.figures)}</p>
         ${figures
           .map(
             (line) =>
-              `<p style="margin:0 0 4px;font-size:14px;color:#374151;">${escapeHtml(line)}</p>`,
+              `<p style="margin:0 0 4px;font-size:14px;color:#3a4260;">${escapeHtml(line)}</p>`,
           )
           .join("\n        ")}
       </div>`
@@ -960,10 +1008,10 @@ ${
         <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#3d5af1;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;">${escapeHtml(copy.cta)}</a>
       </p>
 
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px;">
-      <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(copy.footer)}</p>
-      <p style="margin:0;font-size:12px;color:#6b7280;">
-        <a href="${escapeHtml(input.settingsUrl)}" style="color:#6b7280;">${escapeHtml(copy.settings)}</a>
+      <hr style="border:none;border-top:1px solid #e7eaf3;margin:0 0 16px;">
+      <p style="margin:0 0 6px;font-size:12px;color:#666e88;">${escapeHtml(copy.footer)}</p>
+      <p style="margin:0;font-size:12px;color:#666e88;">
+        <a href="${escapeHtml(input.settingsUrl)}" style="color:#666e88;">${escapeHtml(copy.settings)}</a>
       </p>
     </div>
   </body>
@@ -1081,7 +1129,7 @@ export function renderSurveyInviteEmail(input: SurveyInviteEmailInput): Rendered
 
   const html = `<!doctype html>
 <html lang="${input.locale}">
-  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+  <body style="margin:0;padding:24px;background:#f6f7fb;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#10193a;">
     <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
       <p style="margin:0 0 16px;font-size:16px;">${escapeHtml(greeting)}</p>
       <p style="margin:0 0 16px;font-size:18px;line-height:1.5;font-weight:600;">${escapeHtml(question)}</p>
@@ -1090,10 +1138,10 @@ export function renderSurveyInviteEmail(input: SurveyInviteEmailInput): Rendered
         <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#3d5af1;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;">${escapeHtml(copy.cta)}</a>
       </p>
       <p style="margin:0;font-size:15px;line-height:1.6;white-space:pre-line;">${escapeHtml(copy.signOff(input.businessName))}</p>
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
-      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(footer)}</p>
-      <p style="margin:0;font-size:12px;color:#6b7280;">
-        <a href="${escapeHtml(input.unsubscribeUrl)}" style="color:#6b7280;">${escapeHtml(copy.unsubscribe)}</a>
+      <hr style="border:none;border-top:1px solid #e7eaf3;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#666e88;">${escapeHtml(footer)}</p>
+      <p style="margin:0;font-size:12px;color:#666e88;">
+        <a href="${escapeHtml(input.unsubscribeUrl)}" style="color:#666e88;">${escapeHtml(copy.unsubscribe)}</a>
       </p>
     </div>
   </body>
@@ -1179,16 +1227,16 @@ export function renderInvitationEmail(input: InvitationEmailInput): RenderedEmai
 
   const html = `<!doctype html>
 <html lang="${input.locale}">
-  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+  <body style="margin:0;padding:24px;background:#f6f7fb;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#10193a;">
     <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
       <p style="margin:0 0 16px;font-size:18px;line-height:1.5;font-weight:600;">${escapeHtml(copy.lead(input))}</p>
       <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">${escapeHtml(copy.role(input))}</p>
       <p style="margin:0 0 24px;">
         <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#3d5af1;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;">${escapeHtml(copy.cta)}</a>
       </p>
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
-      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.expiry(input))}</p>
-      <p style="margin:0;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.ignore)}</p>
+      <hr style="border:none;border-top:1px solid #e7eaf3;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#666e88;">${escapeHtml(copy.expiry(input))}</p>
+      <p style="margin:0;font-size:12px;line-height:1.5;color:#666e88;">${escapeHtml(copy.ignore)}</p>
     </div>
   </body>
 </html>`;
@@ -1262,15 +1310,15 @@ export function renderPasswordResetEmail(input: PasswordResetEmailInput): Render
 
   const html = `<!doctype html>
 <html lang="${input.locale}">
-  <body style="margin:0;padding:24px;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+  <body style="margin:0;padding:24px;background:#f6f7fb;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#10193a;">
     <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
       <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">${escapeHtml(copy.lead(input))}</p>
       <p style="margin:0 0 24px;">
         <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#3d5af1;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;">${escapeHtml(copy.cta)}</a>
       </p>
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 16px;" />
-      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.expiry(input))}</p>
-      <p style="margin:0;font-size:12px;line-height:1.5;color:#6b7280;">${escapeHtml(copy.ignore)}</p>
+      <hr style="border:none;border-top:1px solid #e7eaf3;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#666e88;">${escapeHtml(copy.expiry(input))}</p>
+      <p style="margin:0;font-size:12px;line-height:1.5;color:#666e88;">${escapeHtml(copy.ignore)}</p>
     </div>
   </body>
 </html>`;

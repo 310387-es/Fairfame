@@ -2,7 +2,8 @@ import { CalendarRange, Inbox, Send } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ds/empty-state";
+import { Card } from "@/components/ui/card";
 import { RANGES, type Range } from "@/dashboard/range";
 
 /**
@@ -28,38 +29,42 @@ export async function DashboardEmpty({
 
   return (
     <Card>
-      <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-        <span className="grid size-11 place-items-center rounded-lg bg-surface-sunken text-ink-400">
-          {reason === "no_sources" ? (
-            <Inbox className="size-5" aria-hidden />
-          ) : (
-            <CalendarRange className="size-5" aria-hidden />
-          )}
-        </span>
+      {/*
+        Through `EmptyState`, which is now the product's one layout for this.
 
-        {/* The card-title role, not a fourth heading size. An empty state is a
-            result the page is reporting, not a second page-level headline. */}
-        <h2 className="text-title">{t(`${reason}.title`)}</h2>
-        <p className="max-w-md text-body text-pretty text-ink-400">{t(`${reason}.body`)}</p>
+        The two *reasons* stay — that distinction is the whole point of this
+        component and no shared primitive should flatten it — but the icon
+        tile, the title, the body and the spacing are no longer a fourth
+        hand-built copy of a pattern that exists three other places.
 
-        {reason === "no_sources" ? (
-          <div className="mt-2 flex flex-wrap justify-center gap-2">
-            <Button asChild size="sm">
-              <Link href="/locations">{t("connect")}</Link>
-            </Button>
+        `blank` tone, not `filtered`, even for a quiet period: a business whose
+        last seven days were silent is not looking at a filtered list, and the
+        way out is a wider window rather than "clear your filters".
+      */}
+      <EmptyState
+        icon={reason === "no_sources" ? Inbox : CalendarRange}
+        title={t(`${reason}.title`)}
+        body={t(`${reason}.body`)}
+        action={
+          reason === "no_sources" ? (
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild size="sm">
+                <Link href="/locations">{t("connect")}</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/get-reviews">
+                  <Send className="size-4" aria-hidden />
+                  {t("request")}
+                </Link>
+              </Button>
+            </div>
+          ) : range !== "90d" ? (
             <Button asChild size="sm" variant="outline">
-              <Link href="/get-reviews">
-                <Send className="size-4" aria-hidden />
-                {t("request")}
-              </Link>
+              <Link href={`/dashboard?range=${wider}`}>{t(`widen.${wider}`)}</Link>
             </Button>
-          </div>
-        ) : range !== "90d" ? (
-          <Button asChild size="sm" variant="outline" className="mt-2">
-            <Link href={`/dashboard?range=${wider}`}>{t(`widen.${wider}`)}</Link>
-          </Button>
-        ) : null}
-      </CardContent>
+          ) : null
+        }
+      />
     </Card>
   );
 }

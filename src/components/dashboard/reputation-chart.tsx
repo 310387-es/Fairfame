@@ -31,7 +31,23 @@ import {
  * line under an indigo legend swatch. The line and the reference line are
  * therefore coloured from the wrapper with descendant variants, which produce a
  * real rule against the rendered path.
+ *
+ * **The axes are the second instance of that same trap, and it hid for longer.**
+ * `className` on `<XAxis>`/`<YAxis>` lands on the axis *layer*; each tick is
+ * drawn by Recharts' own `<Text>`, which writes its own classes onto the
+ * `<text>`. `fill` is an inherited SVG property, so the grey arrived and the
+ * styling looked applied — while `font-size` and `font-family` fell through to
+ * the browser defaults. Every tick on this chart was rendering at **16px in
+ * Geist sans** instead of 10px in Geist Mono: 60% too large, the wrong family,
+ * proportional digits on an axis, and no error anywhere.
+ *
+ * `tick` is the prop Recharts spreads onto the text element. It is the only
+ * place this can land, which is why it is a shared constant rather than two
+ * class strings that can drift apart again.
  */
+
+/** Axis tick styling. Must go on `tick`, never on the axis — see above. */
+const TICK = { className: "fill-graphic-faint font-mono text-[10px]" };
 
 export type ChartPoint = {
   /** Preformatted server-side: the client has no business re-deriving a locale. */
@@ -77,7 +93,7 @@ export function ReputationChart({
             axisLine={false}
             // `--graphic-faint`, not a text token: axis ticks are non-text
             // graphics and sit one step below the AA text floor by design.
-            className="fill-graphic-faint font-mono text-[10px]"
+            tick={TICK}
             // Never every day on a 90-day range: overlapping labels are worse
             // than fewer of them.
             interval="preserveStartEnd"
@@ -98,7 +114,7 @@ export function ReputationChart({
             tickMargin={6}
             // `--graphic-faint`, not a text token: axis ticks are non-text
             // graphics and sit one step below the AA text floor by design.
-            className="fill-graphic-faint font-mono text-[10px]"
+            tick={TICK}
           />
 
           {/* Volume rides its own hidden scale: the bars are context for the

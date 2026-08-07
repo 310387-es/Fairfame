@@ -1,12 +1,14 @@
+import { MapPin } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Suspense } from "react";
 import { requireActor } from "@/auth/session";
 import { Overview, OverviewSkeleton } from "@/components/dashboard/overview";
 import { RangeToggle } from "@/components/dashboard/range-toggle";
+import { EmptyState } from "@/components/ds/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { parseRange, rangeWindow } from "@/dashboard/range";
 import { BRANCH_PARAM, resolveHomeScope } from "@/dashboard/scope";
 import { listLocationsForActor } from "@/lib/active-location";
@@ -59,14 +61,15 @@ export default async function HomePage({
       <>
         <PageHeader title={t("overviewTitle")} />
         <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
-            <p className="max-w-sm text-body text-pretty text-muted-foreground">
-              {t("noLocation")}
-            </p>
-            <Button asChild size="sm">
-              <Link href="/locations">{t("noLocationAction")}</Link>
-            </Button>
-          </CardContent>
+          <EmptyState
+            icon={MapPin}
+            title={t("noLocation")}
+            action={
+              <Button asChild size="sm">
+                <Link href="/locations">{t("noLocationAction")}</Link>
+              </Button>
+            }
+          />
         </Card>
       </>
     );

@@ -3,6 +3,12 @@ import { cn } from "@/lib/utils";
 /**
  * Seven points of trend, drawn as SVG.
  *
+ * **Baselines at the series minimum**, which is what distinguishes it from
+ * `ds/sparkline.tsx`'s `VolumeSparkline` — see that file for why the two exist
+ * and which quantity each is for. Short version: this draws *bounded* measures
+ * (a 1–5 rating, a percentage, a score out of 100), where zero-basing would pin
+ * every real business's line flat near the top; a count must use the other one.
+ *
  * Deliberately not Recharts. A sparkline has no axes, no tooltip and no
  * interaction — it is one polyline — and rendering four of them through a
  * charting library would turn every KPI card into a client component and ship a
@@ -19,7 +25,7 @@ const WIDTH = 70;
 const HEIGHT = 30;
 const PADDING = 3;
 
-export function Sparkline({
+export function TrendSparkline({
   points,
   className,
 }: {

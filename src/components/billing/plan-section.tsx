@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Meter } from "@/components/ds/meter";
 import { useAction } from "@/components/ui/use-action";
 import { startCheckoutAction } from "@/server/billing";
+import { cn } from "@/lib/utils";
 import type { PlanKey } from "@/lib/plans";
 
 /**
@@ -124,17 +125,43 @@ export function PlanSection({
           </div>
         ) : null}
 
-        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {plans.map((plan) => {
+        {/*
+          Two across until a very wide screen, where it was four at `xl`.
+
+          Four tiers in a 1060px card is a 230px column, and 230px is what made
+          these read as four boxes rather than a price list: there was no room
+          for the price to be the biggest thing on the card, so it sat at body
+          size next to the plan name and the whole surface flattened. This is the
+          screen where the product asks for money; it can afford the height.
+        */}
+        <ul className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+          {plans.map((plan, index) => {
             const isCurrent = plan.key === current;
+            /*
+              `plans` arrives in `PLAN_CATALOG` order, which is ascending, so an
+              index above the current one is an upgrade. That is the only thing
+              deciding button emphasis — moving up is the action this screen is
+              for, moving down is a decision somebody has already made elsewhere
+              and does not need encouraging with an indigo button.
+            */
+            const currentIndex = plans.findIndex((option) => option.key === current);
+            const isUpgrade = currentIndex !== -1 && index > currentIndex;
 
             return (
               <li
                 key={plan.key}
-                className="flex flex-col gap-2 rounded-md border border-line p-3.5"
+                className={cn(
+                  "flex flex-col gap-3 rounded-lg border p-4 transition-colors",
+                  // The plan you are on is the fact this section exists to
+                  // state. It had a small badge and nothing else, so finding it
+                  // meant reading four cards; now it is the one that is lit.
+                  isCurrent
+                    ? "border-indigo-600 bg-state-accent-bg/40 ring-1 ring-indigo-600"
+                    : "border-line bg-card",
+                )}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-title">{plan.name}</span>
+                  <span className="text-eyebrow text-faint uppercase">{plan.name}</span>
                   {isCurrent ? (
                     <Badge variant="positive">
                       {isTrialing ? t("currentTrial") : t("current")}
@@ -142,11 +169,23 @@ export function PlanSection({
                   ) : null}
                 </div>
 
-                <p className="font-mono text-body tabular-nums">{price(plan)}</p>
+                {/*
+                  The price leads, and the plan name became its label above.
 
-                <ul className="flex flex-1 flex-col gap-1">
+                  It was `text-body` mono — the same size as the feature lines
+                  under it — so the one number somebody is here to compare had no
+                  more weight than "Up to 3 locations".
+
+                  One string, not an amount styled large beside a small "/
+                  month": Turkish is `aylık {amount}`, so the period comes
+                  *before* the number and any split that looks right in English
+                  puts the pieces in the wrong order in the launch locale.
+                */}
+                <p className="text-metric text-foreground tabular-nums">{price(plan)}</p>
+
+                <ul className="flex flex-1 flex-col gap-1.5">
                   {plan.highlights.map((line) => (
-                    <li key={line} className="flex gap-1.5 text-copy text-ink-400">
+                    <li key={line} className="flex gap-2 text-copy text-ink-600">
                       <Check
                         className="mt-0.5 size-3.5 shrink-0 text-state-positive-text"
                         aria-hidden
@@ -157,22 +196,24 @@ export function PlanSection({
                 </ul>
 
                 {/*
-                  Three reasons this button may not appear, and each says
-                  something different. A single disabled control would say none
-                  of them, which is the failure this whole work package is about.
-                */}
-                {/*
                   A button only when pressing it can work. The two reasons it
                   might not are said elsewhere — "priced per deal" here, because
                   it is a fact about *this* tier, and "we cannot bill your
                   currency" once above, because it is a fact about the account.
+
+                  `mt-auto` on every branch, including the text one: the Agency
+                  tier has prose where the others have a control, and without it
+                  that card's copy floated up and left the row of buttons ragged.
                 */}
                 {isCurrent || !canManage ? null : plan.priceMonth === null ? (
-                  <p className="text-copy text-ink-400">{t("contactUs")}</p>
+                  <p className="mt-auto text-copy text-ink-400">{t("contactUs")}</p>
                 ) : canCheckout ? (
                   <Button
-                    size="sm"
-                    variant="outline"
+                    className="mt-auto w-full"
+                    // Indigo to move up, outline to move down. Four identical
+                    // outline buttons asked the reader to work out which one was
+                    // the offer.
+                    variant={isUpgrade ? "default" : "outline"}
                     disabled={pending}
                     onClick={() => run(() => startCheckoutAction({ planKey: plan.key }))}
                   >

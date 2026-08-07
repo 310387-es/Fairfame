@@ -58,7 +58,21 @@ export function Delta({
   return (
     <span
       className={cn(
-        "font-mono text-[11.5px] leading-none font-semibold tabular-nums",
+        /*
+          Never broken across lines.
+
+          A delta is one value — an arrow, a magnitude and a unit — and the
+          English unit is abbreviated where the Turkish one is not: "8.5 pp"
+          against "6,8 yüzde puan", four times the length, in the tightest
+          column on the dashboard. Without this it wrapped as "▼ 6,8 yüzde" /
+          "puan", splitting the unit from its number and dropping half of it
+          below the metric's baseline.
+
+          With `nowrap` the delta stays whole and moves to its own line instead,
+          which the row's `flex-wrap` allows. Losing a line is a much smaller
+          cost than a figure that reads as two.
+        */
+        "font-mono text-[11.5px] leading-none font-semibold whitespace-nowrap tabular-nums",
         direction === true && "text-state-positive-text",
         direction === false && "text-state-negative-text",
         direction === null && "text-faint",

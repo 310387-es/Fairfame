@@ -184,12 +184,19 @@ export function ratingTrend(
 }
 
 /**
- * Average sentiment score per bucket, on the model's own −1…1 scale.
+ * The **positive share** per bucket, 0–100.
  *
- * Kept as the score rather than converted to a percentage of positives: the
- * share-of-positive version moves in steps on a small corpus (three reviews,
- * so 0%, 33%, 67%, 100%) and reads as violent swings in a business that had a
- * normal week.
+ * This docblock used to describe the opposite — "average sentiment score on the
+ * model's own −1…1 scale" — and argue *for* keeping it, several paragraphs
+ * above a body that had done the other thing since W3.3. Left as it was, the
+ * next reader gets the pre-W3.3 rationale for a decision that was reversed, in
+ * the most authoritative-looking place in the file.
+ *
+ * The argument it made is still worth answering rather than deleting: a
+ * share-of-positive does move in steps on a small corpus (three reviews → 0%,
+ * 33%, 67%, 100%). That is real, and it lost to the fact that "−0,24" is a
+ * figure on a scale nobody outside this codebase has ever seen — see the note
+ * inside the function.
  *
  * Trailing, like the rating, and for the same reason.
  */

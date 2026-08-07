@@ -50,7 +50,19 @@ export const WIDGET_PALETTES: Record<WidgetTheme, WidgetPalette> = {
     border: "#e5e8f2",
     // Brand Ink — 17.2:1 on white.
     ink: "#10193a",
-    // 6.1:1 on white. The hex counterpart of `--muted-foreground`.
+    /*
+      6.1:1 on white. It said "the hex counterpart of `--muted-foreground`",
+      which was true when it was written and is not now: the design-system block
+      later re-pointed that alias at `--ink-400` (#6b7391, 4.68:1), and this hex
+      did not follow.
+
+      **Deliberately not updated to match.** A widget renders on a stranger's
+      site, at whatever size and against whatever background their CSS leaves
+      behind, with no way for us to check the result. 6.1:1 is the right amount
+      of margin for that; 4.68 is the app's floor, chosen for a surface we
+      control. The claim was wrong, not the colour — so the claim is what
+      changed.
+    */
     inkMuted: "#5a6180",
     /**
      * Not brand amber. `#f5a524` is 2.04:1 on white — `globals.css` measured the

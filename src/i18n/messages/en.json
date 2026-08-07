@@ -482,7 +482,10 @@
     "shareCopied": "Copied",
     "thinWeekBodyThin": "{reviews, plural, =1 {Only 1 review arrived this week} other {Only # reviews arrived this week}}. That is too little to tell a pattern from a bad Tuesday, so we have not guessed at one.",
     "thinWeekBodyPending": "{reviews, plural, =1 {1 review arrived} other {# reviews arrived}}, and {analysed, plural, =0 {none have been analysed yet} =1 {only 1 has been analysed so far} other {only # have been analysed so far}}. Rather than guess at a plan, here is what is waiting.",
-    "starLabel": "{rating} out of 5"
+    "starLabel": "{rating} out of 5",
+    "latestEyebrow": "Latest plan",
+    "openLatest": "Open the plan",
+    "outOf": "out of {max}"
   },
   "inbox": {
     "title": "Reviews",
@@ -511,6 +514,7 @@
     "previous": "Previous",
     "next": "Next",
     "range": "{from}–{to} of {total}",
+    "filterMore": "More filters",
     "filterQuick": "Quick",
     "filterPinned": "Pinned",
     "filterFromDigest": "From your digest",

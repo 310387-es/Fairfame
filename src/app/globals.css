@@ -135,6 +135,36 @@
   }
 }
 
+@layer utilities {
+  /**
+   * A phantom gap under every labelled `Select`, and the reason it is a
+   * stylesheet rule rather than a fix in fifteen components.
+   *
+   * A named Radix `Select` renders a hidden `<select>` after its trigger — the
+   * node that makes the value submit with the surrounding form. It is
+   * absolutely positioned, so it takes no space itself, **but it is the field
+   * column's real last child**, and Tailwind v4's `space-y-*` puts its margin
+   * on every child *except* the last. So the spacing meant to sit between
+   * controls lands under the trigger instead, and the column is 8px taller
+   * than it looks.
+   *
+   * Invisible in a stacked form. In a row aligned by `items-end` — the invite
+   * form on `/team` — it lifts the select 8px above the text field and the
+   * button beside it, which is what the misalignment was.
+   *
+   * In `utilities` because `space-y-*` is a utility: an earlier layer would
+   * lose to it whatever the specificity. Within the layer this wins on
+   * specificity alone, since Tailwind wraps that rule in a zero-specificity
+   * `:where()`. It is deliberately narrow — the trigger *immediately* followed
+   * by Radix's bubble input, which is the only arrangement that produces the
+   * gap. No trigger in the product carries a margin of its own; one that did
+   * would want `margin-block-end` set on itself and would beat this.
+   */
+  [data-slot="select-trigger"]:has(+ select[aria-hidden="true"]) {
+    margin-bottom: 0;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -562,4 +592,143 @@
    * no entrance animation on data — a number that changes just changes. */
   --default-transition-duration: 120ms;
   --default-transition-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* ===========================================================================
+ * Visual-language refinement (docs/21-visual-language.md)
+ *
+ * A refinement of the block above, not a replacement: same brand, same oklch
+ * architecture, same shadcn aliasing. Four things were wrong when the running
+ * app was looked at rather than read.
+ *
+ *   1. **The small-text roles were all the same size.** body 13.5 · copy 12.5 ·
+ *      meta 11 · eyebrow 10.5 is four roles inside a 3px band, so a card title,
+ *      a customer's sentence and a timestamp all read as one grey texture.
+ *      Hierarchy has to be *visible at a glance* or it is not hierarchy.
+ *   2. **The page title was smaller than a statistic.** `display` 25 against
+ *      `metric` 28 — the h1 lost to every tile on the screen.
+ *   3. **Selected and hover were the same colour.** Both `--surface-sunken`,
+ *      one at 60% — so on the review list you cannot tell what you have chosen
+ *      from what your mouse is over. Selection needs its own surface.
+ *   4. **Nothing had an edge.** One near-invisible shadow token, used almost
+ *      nowhere. A flat card on a tinted page is correct; a *menu* that does not
+ *      lift off the thing it covers is not.
+ * ======================================================================== */
+
+:root {
+  /* --- Surfaces the system was missing ---------------------------------- */
+  /* Selection is indigo, hover is grey. They must never be the same value:
+   * one says "you are here", the other says "your pointer is here".
+   *
+   * **Its own hex, not `var(--indigo-050)`, and that is a contrast decision
+   * rather than a stylistic one.** A selected review row carries `--ink-350` on
+   * this surface — the timestamp, and the snippet of a row already answered. On
+   * `--indigo-050` (#eef1fe) that measures **4.49:1**, which misses WCAG AA for
+   * body text by a hundredth. Nothing looks wrong; it is simply illegal, and it
+   * is illegal on the row somebody is actually looking at.
+   *
+   * `--indigo-050` cannot just be lightened to fix it: it is also
+   * `--state-accent-bg`, a badge wash carrying `--indigo-700`, and moving it
+   * changes a colour whose job is unrelated. So selection gets its own value,
+   * one step lighter — 4.57:1, a margin of seven hundredths — and
+   * `tests/lib/design-contrast.test.ts` pins both this surface and
+   * `--surface-hover` in the lightest-legal-ink table.
+   *
+   * `--surface-hover` clears it at 4.56:1 and is left alone. */
+  --surface-selected: #f0f3fe;
+  --surface-hover: #f1f3f9;
+
+  /* --- Elevation, as a real four-step language ---------------------------
+   * Two shadows per step, which is the whole trick: a tight, darker *contact*
+   * shadow that reads as an edge, plus a wide, soft *ambient* one that reads as
+   * height. A single blur at any radius looks like a smudge — which is what the
+   * old one-line `--elevation-md` looked like under a dropdown.
+   *
+   * Tinted with the ink hue (16 25 58) rather than black, so a shadow beside
+   * indigo never goes grey-brown. */
+  --elevation-xs: 0 1px 1px rgb(16 25 58 / 0.04);
+  --elevation-sm: 0 1px 2px rgb(16 25 58 / 0.06), 0 1px 3px -1px rgb(16 25 58 / 0.04);
+  --elevation-md: 0 2px 4px -1px rgb(16 25 58 / 0.06), 0 8px 20px -6px rgb(16 25 58 / 0.12);
+  --elevation-lg: 0 4px 8px -2px rgb(16 25 58 / 0.08), 0 20px 40px -12px rgb(16 25 58 / 0.18);
+  /* Not decoration: the ring a *chosen* control wears, so selection survives
+   * being printed, screenshotted or looked at by somebody with low vision. */
+  --elevation-selected: inset 0 0 0 1px rgb(61 90 241 / 0.22);
+}
+
+@theme inline {
+  --color-surface-selected: var(--surface-selected);
+  --color-surface-hover: var(--surface-hover);
+
+  --shadow-xs: var(--elevation-xs);
+  --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
+  --shadow-lg: var(--elevation-lg);
+
+  /* --- Type: the same eight roles, re-spaced ----------------------------
+   * The ratio between neighbouring roles is now ~1.12–1.25 instead of ~1.04,
+   * which is the difference between a scale and a rounding error. Sizes are
+   * whole or half pixels only — 13.5px was rendering differently per browser
+   * for no benefit. */
+
+  /* 32 → 34. Public surfaces only; unchanged in intent. */
+  --text-hero: 2.125rem; /* 34px */
+  --text-hero--line-height: 1.1;
+  --text-hero--letter-spacing: -0.032em;
+  --text-hero--font-weight: 650;
+
+  /* 25 → 27. The h1 now outranks a metric tile, which is the correct order:
+   * a page has one subject and it is named at the top. */
+  --text-display: 1.6875rem; /* 27px */
+  --text-display--line-height: 1.15;
+  --text-display--letter-spacing: -0.028em;
+  --text-display--font-weight: 650;
+
+  /* Unchanged at 28 — but it is no longer the largest thing on the page. */
+  --text-metric: 1.75rem; /* 28px */
+  --text-metric--line-height: 1;
+  --text-metric--letter-spacing: -0.032em;
+  --text-metric--font-weight: 650;
+
+  /* New. One hero statistic per dashboard, and only where a number *is* the
+   * headline — the reputation score. Everything else stays `metric`. */
+  --text-metric-lg: 2.375rem; /* 38px */
+  --text-metric-lg--line-height: 1;
+  --text-metric-lg--letter-spacing: -0.035em;
+  --text-metric-lg--font-weight: 650;
+
+  /* New. The one role the scale had no answer for: a sentence that is the
+   * subject of its row — a customer's words in the review list, the question a
+   * survey asked. Sat at `copy` (12.5px) and read as a caption. */
+  --text-lead: 0.9375rem; /* 15px */
+  --text-lead--line-height: 1.45;
+
+  /* 14 → 14.5, and 600 stays. A card title has to win against 14px body. */
+  --text-title: 0.90625rem; /* 14.5px */
+  --text-title--line-height: 1.3;
+  --text-title--letter-spacing: -0.008em;
+  --text-title--font-weight: 600;
+
+  /* 13.5 → 14. Turkish runs ~30% longer than English (docs/15 §7) and 13.5px
+   * was under the comfortable floor for a launch locale full of diacritics —
+   * `ğ`, `ş` and the dotless `ı` all lose their distinguishing mark first. */
+  --text-body: 0.875rem; /* 14px */
+  --text-body--line-height: 1.5;
+
+  /* 12.5 → 13. Body inside a card. */
+  --text-copy: 0.8125rem; /* 13px */
+  --text-copy--line-height: 1.5;
+
+  /* Unchanged. Timestamps and legends. */
+  --text-meta: 0.6875rem; /* 11px */
+  --text-meta--line-height: 1.4;
+
+  /* Left at 0.08em. 0.09em was tried and reverted: an eyebrow sits in the
+   * narrowest column on any data surface — the dashboard's metric strip already
+   * wraps "REPUTATION SCORE" onto two lines at 1440px — so its tracking is a
+   * layout value, not a typographic preference, and there was nothing to spend.
+   * (That wrap predates this file and is priority 6 in docs/21 §9.) */
+  --text-eyebrow: 0.65625rem; /* 10.5px */
+  --text-eyebrow--line-height: 1;
+  --text-eyebrow--letter-spacing: 0.08em;
+  --text-eyebrow--font-weight: 600;
 }

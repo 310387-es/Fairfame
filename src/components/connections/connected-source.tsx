@@ -3,7 +3,7 @@ import Link from "next/link";
 import { GoLiveNote } from "@/components/connections/go-live-note";
 import { HealthBadge } from "@/components/connections/health-badge";
 import { ProviderMark } from "@/components/connections/provider-mark";
-import { Sparkline } from "@/components/ds/sparkline";
+import { VolumeSparkline } from "@/components/ds/sparkline";
 import { Card } from "@/components/ui/card";
 import { SPARKLINE_DAYS, type ConnectedSourceCard as Card_ } from "@/connections/facts";
 import { needsAttention } from "@/connections/health";
@@ -83,7 +83,7 @@ export async function ConnectedSourceCard({
             {format.number(card.volumeTotal)}
           </p>
         </div>
-        <Sparkline values={card.volume} />
+        <VolumeSparkline values={card.volume} />
       </div>
 
       <div className="mt-auto border-t border-line pt-3">

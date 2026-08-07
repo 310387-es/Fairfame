@@ -123,14 +123,27 @@ export default async function BroadcastsPage() {
 
   return (
     <>
-      {/* Above the ResourcePage: the tabs switch which *section* you are in,
-          and the page's own header describes the one you landed on. */}
-      <SectionTabs active="broadcasts" />
+      {/*
+        Into `ResourcePage`'s `tabs` slot, which renders them *under* the page
+        header — the placement `/locations`, `/connections` and `/contacts`
+        already use.
 
+        These three had them above the header instead, on the reasoning that a
+        tab strip switches section while the header describes the page. That is
+        true and it is not what the reader sees: above the title, the strip
+        reads as chrome the title hangs off, and the page's own name comes
+        second on its own screen.
+
+        What settles it is that this file already did both. The locked-plan
+        branch a few lines up renders `PageHeader` then `SectionTabs`, so the
+        tab strip moved up or down the page depending on the organization's
+        entitlement — the same screen, two layouts, decided by billing.
+      */}
       <ResourcePage
         title={t("title")}
         subtitle={t("subtitle")}
         icon={Megaphone}
+        tabs={<SectionTabs active="broadcasts" />}
         isEmpty={broadcasts.length === 0}
         empty={{ line: t("empty.title"), hint: t("empty.body") }}
         create={create}

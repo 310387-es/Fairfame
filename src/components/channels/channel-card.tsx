@@ -97,7 +97,27 @@ export function ChannelCard({
         ) : null
       }
     >
-      {displayName ? <p className="mb-3 text-body">{displayName}</p> : null}
+      {/*
+        The connected account's own name — "Kadıköy Kahve", the WhatsApp
+        Business profile somebody actually linked. Worth a line, because it is
+        the one thing on this card that says *which* account, and a business
+        with two of them cannot tell otherwise.
+
+        Suppressed when it merely restates the channel, which is what the mock
+        does: `createMockWhatsAppClient` names its account "WhatsApp Business
+        (mock)", so the card rendered "WhatsApp Business" as its title and
+        "WhatsApp Business (mock)" as its first body line, directly underneath.
+        A real account could collide the same way — plenty of businesses name
+        their profile after the product — so this is a guard rather than a
+        mock-only special case.
+
+        `startsWith` on the label, not equality: the collision is a prefix
+        ("WhatsApp Business" inside "WhatsApp Business (mock)"), and the mode is
+        already shown as the card's `meta`.
+      */}
+      {displayName && !displayName.startsWith(label) ? (
+        <p className="mb-3 text-body">{displayName}</p>
+      ) : null}
 
       {blockers.length === 0 ? (
         <p className="text-body text-state-positive-text">{t("ready")}</p>

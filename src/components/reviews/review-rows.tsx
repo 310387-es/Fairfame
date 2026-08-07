@@ -175,60 +175,109 @@ export function ReviewRows({
                 select(review.id);
               }}
               className={cn(
-                "flex w-full flex-col gap-0.5 px-3 py-2 text-left transition-colors",
-                "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-                active ? "bg-surface-sunken" : "hover:bg-surface-sunken/60",
+                "relative flex w-full flex-col gap-1 py-2.5 pr-3 pl-4 text-left transition-colors",
+                "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:-outline-offset-2 focus-visible:outline-none",
+                /*
+                  Selected and hover must not be the same colour.
+
+                  They were: `bg-surface-sunken` against `bg-surface-sunken/60`,
+                  the same grey at two opacities. On a list you drive with `j`
+                  and `k` that makes the selection invisible the moment the
+                  pointer is anywhere near it — you cannot tell what you chose
+                  from what you are merely over.
+
+                  Selection is now indigo — a wash plus a 2px bar in the gutter,
+                  the pattern Front, Superhuman and Linear all settled on — and
+                  hover stays grey. The bar is what survives at a glance from
+                  across a desk, where a 4% wash does not.
+                */
+                active ? "bg-surface-selected" : "hover:bg-surface-hover",
               )}
             >
+              {active ? (
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 w-[3px] rounded-r-full bg-primary"
+                />
+              ) : null}
+
               <div className="flex items-center gap-2">
                 {/* Priority as a dot, not a word: it is a scanning cue, and a
-                    column of the word "High" is noise the eye has to read. */}
+                    column of the word "High" is noise the eye has to read.
+                    Ringed rather than flat so a 6px mark still reads as
+                    deliberate at arm's length. */}
                 <span
                   aria-hidden
                   className={cn(
-                    "size-1.5 shrink-0 rounded-full",
+                    "size-1.5 shrink-0 rounded-full ring-3",
                     review.priority === "high"
-                      ? "bg-sentiment-negative"
+                      ? "bg-sentiment-negative ring-state-negative-bg"
                       : review.priority === "medium"
-                        ? "bg-sentiment-neutral"
-                        : "bg-graphic-faint",
+                        ? "bg-sentiment-neutral ring-state-rating-bg"
+                        : "bg-graphic-faint ring-transparent",
                   )}
                 />
-                <span className="min-w-0 flex-1 truncate text-copy font-medium text-foreground">
+                <span
+                  className={cn(
+                    "min-w-0 flex-1 truncate text-copy",
+                    /*
+                      Answered rows recede *by their name*, not only by their
+                      snippet. Dimming the sentence alone left a column of equally
+                      bold names, so the queue still looked full of work after
+                      half of it was done — the one thing a triage list must never
+                      get wrong.
+                    */
+                    review.answered ? "font-normal text-ink-500" : "font-semibold text-foreground",
+                  )}
+                >
                   {review.authorName ?? unnamed}
                 </span>
                 {review.rating === null ? null : (
-                  <Stars rating={review.rating} srLabel={review.ratingLabel ?? ""} />
+                  <Stars rating={review.rating} srLabel={review.ratingLabel ?? ""} size="sm" />
                 )}
-                <span className="shrink-0 text-meta text-faint">{review.postedAt}</span>
+                <span className="shrink-0 font-mono text-meta text-faint tabular-nums">
+                  {review.postedAt}
+                </span>
               </div>
 
               {/*
-                Two lines, ~56px, and the second one is **the review**.
+                **The customer's words, on two lines.**
 
-                The source label was here first and had to go: "Google Business
-                Profile" is thirty characters that are the same on every row of
-                a business with one source, and it pushed the customer's actual
-                words off the end. The plan asks for a source *glyph* — real
-                provider logos land in W4.2, and this line gets one back then.
-                Until then the detail pane names the source and the filter bar
-                above shows the mix, so nothing is lost but repetition.
+                They had one line and `truncate`, in a 19rem column: about
+                thirty characters, cut mid-word. "Cumartesi akşamı kuyruk çok
+                uzundu. Otop…" is not a preview of a review, it is evidence that
+                one exists — and in a product whose entire subject is what
+                customers said, the sentence is the row. Every inbox worth
+                copying (Front, Superhuman, Gmail, Linear's issue list) gives the
+                preview two lines and a wider column; the column widens on the
+                page, and this is the other half.
+
+                `line-clamp-2` rather than a character budget: the cut lands
+                where the text actually runs out of room, which is the only way
+                it works in both English and a Turkish string ~30% longer.
               */}
-              <div className="flex items-center gap-1.5">
-                <p
-                  className={cn(
-                    "min-w-0 flex-1 truncate text-copy",
-                    review.answered ? "text-faint" : "text-muted-foreground",
-                  )}
-                >
-                  {review.snippet}
-                </p>
-                {review.overdue ? (
-                  <span className="shrink-0 text-meta text-state-negative-text">
-                    {overdueLabel}
-                  </span>
-                ) : null}
-              </div>
+              <p
+                className={cn(
+                  "line-clamp-2 text-copy",
+                  review.answered ? "text-faint" : "text-secondary-foreground",
+                )}
+              >
+                {review.snippet}
+              </p>
+
+              {/*
+                Overdue as a chip, not as red words at the end of the sentence.
+
+                Inline it sat immediately after the customer's truncated text in
+                `--state-negative-text`, so it read as part of what they wrote —
+                a review ending in the word "Overdue". A state belongs in a
+                container that says it is a state.
+              */}
+              {review.overdue ? (
+                <span className="inline-flex w-fit items-center rounded-sm bg-state-negative-bg px-1.5 py-0.5 text-eyebrow font-semibold text-state-negative-text uppercase">
+                  {overdueLabel}
+                </span>
+              ) : null}
             </a>
           </li>
         );

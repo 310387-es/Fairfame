@@ -303,8 +303,37 @@ describe("both languages", () => {
 
     expect(mail.subject).toContain("haftalık özet");
     expect(mail.text).toContain("Bu hafta yapılacak üç şey");
-    expect(mail.text).toContain("İtibar nabzı: 72/100");
+    expect(mail.text).toContain("İtibar puanı: 72/100");
     expect(mail.html).toContain('lang="tr"');
+  });
+
+  /*
+    One number, one name — and this is the surface that forgot it.
+
+    W3.3 settled that the 0-100 figure is "Reputation score" / "İtibar puanı"
+    everywhere, and renamed it across the app, the digest screen and the public
+    sample. Those all read the message catalogue; `DigestCopy` in
+    `src/messaging/templates.ts` is hardcoded, so the email went on saying
+    "Reputation pulse" / "İtibar nabzı" — the product's headline feature landing
+    in an inbox under a name appearing nowhere else in it, for four days,
+    because an email is the one surface nobody can look at without sending one.
+
+    Asserted in both languages, and asserted *negatively* too: the old name
+    coming back is the actual regression, and a `toContain` on the new one would
+    still pass if both were printed.
+  */
+  it("calls the score by the one name the rest of the product uses", () => {
+    for (const [locale, expected, retired] of [
+      ["en", "Reputation score", "Reputation pulse"],
+      ["tr", "İtibar puanı", "İtibar nabzı"],
+    ] as const) {
+      const mail = renderDigestEmail({ ...BASE, locale });
+
+      expect(mail.text).toContain(expected);
+      expect(mail.html).toContain(expected);
+      expect(mail.text).not.toContain(retired);
+      expect(mail.html).not.toContain(retired);
+    }
   });
 
   it("carries the reason-for-receipt and a route to change it, in both", () => {

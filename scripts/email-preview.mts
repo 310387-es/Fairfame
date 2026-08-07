@@ -306,7 +306,11 @@ const SAMPLES: Sample[] = [
         metrics: [
           { label: copy.column.volume, value: number(31, 0), delta: "+7", direction: "up" },
           { label: copy.column.rating, value: number(4.3, 1), delta: "+0,4", direction: "up" },
-          { label: copy.column.sentiment, value: number(0.38, 2), delta: null, direction: null },
+          // A positive share, not the retired −1…1 mean. This fixture said
+          // `0.38` long after `breakdown()` stopped producing that scale, so
+          // the preview showed a plausible-looking number from a metric the
+          // product no longer has — which is worse than showing nothing.
+          { label: copy.column.sentiment, value: percent(0.72), delta: null, direction: null },
           {
             label: copy.column.replied,
             value: percent(0.82),
@@ -328,7 +332,7 @@ const SAMPLES: Sample[] = [
               {
                 key: "kadikoy",
                 label: LOCATION,
-                cells: [number(4.3, 1), number(0.38, 2), number(31, 0), percent(0.82)],
+                cells: [number(4.3, 1), percent(0.72), number(31, 0), percent(0.82)],
               },
               {
                 key: "sisli",

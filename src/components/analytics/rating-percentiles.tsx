@@ -19,6 +19,21 @@ import { cn } from "@/lib/utils";
  * Five bars, always, including the empty ones. A histogram missing its zeroes
  * is a different shape, and the shape is the whole content.
  */
+/**
+ * Star count → its bar colour, from the ramp in `globals.css`.
+ *
+ * Written out rather than interpolated (`bg-rating-${n}`): Tailwind scans source
+ * text for complete class names, so a template literal produces classes that
+ * exist in the markup and in no stylesheet — bars with no colour at all.
+ */
+const RAMP = {
+  5: "bg-rating-5",
+  4: "bg-rating-4",
+  3: "bg-rating-3",
+  2: "bg-rating-2",
+  1: "bg-rating-1",
+} as const;
+
 export async function RatingHistogram({ bars }: { bars: RatingBar[] }) {
   const [t, format] = await Promise.all([getTranslations("insights.histogram"), getFormatter()]);
 
@@ -37,11 +52,12 @@ export async function RatingHistogram({ bars }: { bars: RatingBar[] }) {
             {bars.map((bar) => (
               <li key={bar.rating} className="flex items-center gap-3">
                 <span className="w-[74px] shrink-0">
-                  <Stars
-                    rating={bar.rating}
-                    srLabel={t("stars", { count: bar.rating })}
-                    className="text-state-rating-text"
-                  />
+                  {/* No colour override: `Stars` is amber on its own now. This
+                      passed `text-state-rating-text`, the darker AA *ink*
+                      amber, which made the only histogram in the product a
+                      different gold from every other star on every other
+                      screen. */}
+                  <Stars rating={bar.rating} srLabel={t("stars", { count: bar.rating })} />
                 </span>
 
                 <span
@@ -60,11 +76,25 @@ export async function RatingHistogram({ bars }: { bars: RatingBar[] }) {
                     aria-hidden
                     className={cn(
                       "block h-full rounded-[5px]",
-                      // One and two stars are the tail this card exists to
-                      // expose. Colouring them is not decoration: on a chart
-                      // whose whole point is the shape of the bottom, a
-                      // uniform palette hides it.
-                      bar.rating <= 2 ? "bg-sentiment-negative" : "bg-amber-500",
+                      /*
+                        The five-star ramp, which the tokens already defined and
+                        this card was not using.
+
+                        It was a two-way split — red at or below two stars,
+                        brand amber above — and that throws away exactly what
+                        `--rating-5…1` exists to say: "A rating is an ordered
+                        scale, not three categories: three stars is the middle
+                        of it, four is short of good and two is short of bad"
+                        (globals.css). Under the split, a three-star bar and a
+                        five-star bar were the same colour, so the one row that
+                        distinguishes a mediocre business from a loved one was
+                        drawn identically to the row above it.
+
+                        The ramp walks green → amber → red the short way round
+                        the hue circle, so the order reads without a legend, and
+                        every step clears 4.5:1 on a white card.
+                      */
+                      RAMP[bar.rating as keyof typeof RAMP] ?? "bg-rating-3",
                     )}
                     style={{ width: `${peak === 0 ? 0 : (bar.count / peak) * 100}%` }}
                   />

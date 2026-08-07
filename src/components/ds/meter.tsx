@@ -55,8 +55,25 @@ export function Meter({ label, percent, tone = "accent", value, srLabel, classNa
         />
       </span>
 
+      {/*
+        `min-w`, not `w`, and never wrapping.
+
+        The column was a fixed 92px, which fits "3 used · unlimited" and does
+        not fit "3 kullanıldı · sınırsız" — so on the billing screen, in the
+        launch locale, both usage rows broke across two lines and pushed
+        themselves apart. A fixed width sized for the English string is the
+        exact failure docs/21 §8 is about: Turkish runs ~30% longer, so it is
+        the language that decides how wide a column has to be.
+
+        The floor keeps the values aligned down the list in the ordinary case;
+        a longer one now takes room from the bar beside it, which is the right
+        thing to give up. A meter's bar is a proportion — it reads the same at
+        any width — and its figure does not.
+      */}
       {value ? (
-        <span className="w-[92px] shrink-0 text-right text-meta text-faint">{value}</span>
+        <span className="min-w-[92px] shrink-0 text-right text-meta whitespace-nowrap text-faint">
+          {value}
+        </span>
       ) : null}
     </div>
   );

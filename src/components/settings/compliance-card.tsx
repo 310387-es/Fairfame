@@ -64,9 +64,29 @@ export async function ComplianceCard({ statuses }: { statuses: ChannelStatus[] }
               {t(`channelState.${status.descriptor.key}.${status.mode}`)}
             </p>
 
-            {/* The variable, for whoever can actually change it. Small, and
-                last: it is a pointer for one reader and noise for the other. */}
-            <p className="font-mono text-meta text-faint">{status.descriptor.envVar}</p>
+            {/*
+              The environment variable's name used to print here, in monospace,
+              on the theory that it was "a pointer for one reader and noise for
+              the other". Removed 7 Aug 2026, because on inspection it was noise
+              for both.
+
+              Every other sentence in this card is written for a business owner
+              — "Before any message reaches a customer, Turkish law requires
+              their permission to be on record in İYS" — and `SMS_GATEWAY` in
+              monospace underneath that is the one line addressed to somebody
+              else. It reads as a leak, which is what makes an otherwise careful
+              screen feel like an internal tool.
+
+              And it did not serve the operator either: it printed the variable's
+              *name* and never its *value*, so it said nothing the status chip
+              above it had not already said. Somebody who can change it knows the
+              name from `.env.example`; what they want is `pnpm golive`, which
+              reports the resolved configuration and is the tool for this job.
+
+              `envVar` is still rendered on `/channels`, and correctly — there it
+              sits inside a sentence with a verb ("Set {envVar}, or connect an
+              account"), which is instruction rather than a label.
+            */}
           </li>
         ))}
       </ul>

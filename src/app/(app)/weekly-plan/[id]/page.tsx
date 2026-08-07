@@ -1,15 +1,13 @@
+import { CircleAlert, Loader } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
 import { requireActor } from "@/auth/session";
-import { schema } from "@/db/client";
 import { DigestShare } from "@/components/digest/digest-share";
 import { DigestView } from "@/components/digest/digest-view";
+import { EmptyState } from "@/components/ds/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
-import { Card, CardContent } from "@/components/ui/card";
-import { actionCompletionRecord, digestById } from "@/digest/queries";
-import { digestShareText } from "@/digest/share";
-import { toShareableDigest } from "@/digest/shareable";
+import { Card } from "@/components/ui/card";
+import { describeDigest, loadDigestBundle } from "@/digest/page-data";
 import { withTenant } from "@/lib/tenancy";
 
 /**
@@ -33,69 +31,20 @@ export default async function DigestDetailPage({ params }: { params: Promise<{ i
 
   const { digest, record, locationName } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
-    async (tx) => {
-      const digest = await digestById(tx, actor.organizationId, id);
-
-      // Sequential, not `Promise.all`: one tenant transaction is one `pg`
-      // client, which allows a single query in flight (P4-T1). The record also
-      // needs this digest's period to know what to exclude.
-      const record = digest
-        ? await actionCompletionRecord(tx, actor.organizationId, digest.locationId, {
-            before: digest.periodStart,
-          })
-        : null;
-
-      const [location] = digest
-        ? await tx
-            .select({ name: schema.locations.name })
-            .from(schema.locations)
-            .where(
-              and(
-                eq(schema.locations.organizationId, actor.organizationId),
-                eq(schema.locations.id, digest.locationId),
-              ),
-            )
-            .limit(1)
-        : [];
-
-      return { digest, record, locationName: location?.name ?? "" };
-    },
+    (tx) => loadDigestBundle(tx, actor.organizationId, id),
   );
 
   // Tenant-scoped, so another organization's id is indistinguishable from one
   // that does not exist — which is the correct answer to both.
   if (!digest) notFound();
 
-  const inclusiveEnd = new Date(digest.periodEnd.getTime() - 1);
-  const period = `${format.dateTime(digest.periodStart, {
-    day: "numeric",
-    month: "short",
-  })} – ${format.dateTime(inclusiveEnd, { day: "numeric", month: "short", year: "numeric" })}`;
-
-  /**
-   * The shareable text is built on the server and handed to the copy button as
-   * a string (W2.1).
-   *
-   * Not a client-side assembler: `toShareableDigest` needs a translator and a
-   * locale-aware formatter, and shipping the payload plus both to the browser
-   * to rebuild what the server already has would be the P3-T4 mistake — a
-   * formatter across the RSC boundary — with extra bytes.
-   */
-  const shareText =
-    digest.status === "ready"
-      ? digestShareText(
-          toShareableDigest({
-            digest,
-            scopeName: locationName,
-            period,
-            t,
-            format: {
-              number: (value, maximumFractionDigits) =>
-                format.number(value, { maximumFractionDigits }),
-            },
-          }),
-        )
-      : "";
+  const { period, shareText } = describeDigest({
+    digest,
+    locationName,
+    t,
+    formatDate: (value, options) => format.dateTime(value, options),
+    formatNumber: (value, maximumFractionDigits) => format.number(value, { maximumFractionDigits }),
+  });
 
   return (
     <>
@@ -116,11 +65,11 @@ export default async function DigestDetailPage({ params }: { params: Promise<{ i
         // Saying which of the two it is beats a 404 that implies the week never
         // existed.
         <Card>
-          <CardContent className="py-14 text-center">
-            <p className="mx-auto max-w-sm text-body text-pretty text-muted-foreground">
-              {t(digest.status === "pending" ? "detailPending" : "detailFailed")}
-            </p>
-          </CardContent>
+          <EmptyState
+            tone="filtered"
+            icon={digest.status === "pending" ? Loader : CircleAlert}
+            title={t(digest.status === "pending" ? "detailPending" : "detailFailed")}
+          />
         </Card>
       )}
     </>

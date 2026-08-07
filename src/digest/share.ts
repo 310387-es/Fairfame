@@ -73,7 +73,7 @@ export function digestShareText(digest: ShareableDigest): string {
   if (digest.pulse.value) {
     lines.push(
       "",
-      // "İtibar nabzı: 86/100 · 31 yorum · geçen haftaya göre +5,2"
+      // "İtibar puanı: 86/100 · 31 yorum · geçen haftaya göre +5,2"
       [`${digest.pulse.label}: ${digest.pulse.value}`, digest.pulse.meta, digest.pulse.delta]
         .filter((part): part is string => Boolean(part))
         .join(" · "),
