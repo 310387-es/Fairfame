@@ -559,7 +559,6 @@
     "filterCanonical": "Temalar",
     "filterTag": "Etiketler",
     "themesPending": "Yeni temalarla incelenen: {total} yorumun {done} tanesi. Temaya göre süzmek için yeniden inceleyin.",
-    "pickOne": "Okumak ve yanıtlamak için listeden bir yorum seçin.",
     "backToList": "Tüm yorumlar",
     "starsLabel": "5 üzerinden {rating} yıldız",
     "anonymous": "Anonim",
@@ -571,7 +570,8 @@
       "negative": "Olumsuz",
       "mine": "Bana atanan",
       "overdue": "Süresi geçen"
-    }
+    },
+    "closeReview": "Kapat"
   },
   "locations": {
     "title": "Şubeler",

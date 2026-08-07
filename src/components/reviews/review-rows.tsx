@@ -217,9 +217,22 @@ export function ReviewRows({
                         : "bg-graphic-faint ring-transparent",
                   )}
                 />
+                {/*
+                  `max-w`, not `flex-1`.
+
+                  The name used to take all the free space, so the rating and
+                  the date sat hard against the right edge. Invisible in a 23rem
+                  column and absurd once the drawer freed the list to full
+                  width: a name and its rating are one fact, and they ended up
+                  800px apart with the eye asked to cross the gap on every row.
+
+                  Now the name is as wide as it needs to be, the rating follows
+                  it immediately, and `ml-auto` on the date pushes that alone to
+                  the right where a timestamp belongs.
+                */}
                 <span
                   className={cn(
-                    "min-w-0 flex-1 truncate text-copy",
+                    "max-w-[16rem] min-w-0 truncate text-copy",
                     /*
                       Answered rows recede *by their name*, not only by their
                       snippet. Dimming the sentence alone left a column of equally
@@ -235,7 +248,7 @@ export function ReviewRows({
                 {review.rating === null ? null : (
                   <Stars rating={review.rating} srLabel={review.ratingLabel ?? ""} size="sm" />
                 )}
-                <span className="shrink-0 font-mono text-meta text-faint tabular-nums">
+                <span className="ml-auto shrink-0 font-mono text-meta text-faint tabular-nums">
                   {review.postedAt}
                 </span>
               </div>

@@ -559,7 +559,6 @@
     "filterCanonical": "Themes",
     "filterTag": "Tags",
     "themesPending": "Analysed under the new themes: {done} of {total}. Re-analyse to filter by theme.",
-    "pickOne": "Choose a review from the list to read it and reply.",
     "backToList": "All reviews",
     "starsLabel": "{rating} out of 5 stars",
     "anonymous": "Anonymous",
@@ -571,7 +570,8 @@
       "negative": "Negative",
       "mine": "Assigned to me",
       "overdue": "Overdue"
-    }
+    },
+    "closeReview": "Close"
   },
   "locations": {
     "title": "Locations",

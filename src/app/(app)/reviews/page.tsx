@@ -1,4 +1,4 @@
-import { Inbox, MapPin, MousePointerClick, SearchX } from "lucide-react";
+import { Inbox, MapPin, SearchX } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { roleAtLeast } from "@/auth/permissions";
@@ -6,6 +6,7 @@ import { assignableMembers } from "@/auth/scope";
 import { requireActor } from "@/auth/session";
 import { InboxFilterBar, InboxSortBar } from "@/components/reviews/filter-bar";
 import { ReviewList, type InboxReview } from "@/components/reviews/review-list";
+import { ReviewDrawer } from "@/components/reviews/review-drawer";
 import { ReviewRows, type ReviewRow } from "@/components/reviews/review-rows";
 import { ViewsRail } from "@/components/reviews/views-rail";
 import { ScrollToReview } from "@/components/reviews/scroll-to-review";
@@ -43,7 +44,6 @@ import {
 } from "@/lib/active-location";
 import { can } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
-import { cn } from "@/lib/utils";
 
 /**
  * The Inbox — every ingested review for the active location, newest first,
@@ -400,31 +400,35 @@ export default async function InboxPage({
           ) : (
             <SelectionProvider>
               {/*
-                Two panes (W4.1): a dense queue you can scan, and one review you
-                can act on. The list was twenty full-width cards stacked — a
-                minute of scrolling to see what was waiting, and 25,000 pixels
-                on a phone. Triage is a scanning job; a list you cannot scan is
-                an archive, not a queue.
+                **The queue is the screen; one review is a drawer over it.**
 
-                The detail is the *same* `ReviewList` with a single review, not
-                a second rendering of a review. One card, one set of triage
-                controls, one composer — a parallel "detail" component is how
-                the two drift until a control exists in one place only.
-              */}
-              {/*
-                The list column was 19rem, which is where the one-line, cut
-                mid-word snippet came from: thirty characters is all that fits,
-                so the row could only ever prove a review existed. 23rem plus
-                the two-line clamp in `ReviewRows` is roughly a hundred
-                characters — a preview somebody can actually triage from, and
-                still comfortably narrower than the pane where the work happens.
+                W4.1 put the detail in a third pane, which is the Front /
+                Superhuman shape — and that shape is for *long* documents, where
+                the queue has to stay visible while you read a body that
+                scrolls. A review is one to three sentences; the median on a
+                real account is 53 characters.
 
-                The width comes out of the detail pane, not the rail: 10.5rem
-                was tried and clipped "Assigned to me" to "Assigned to …" in
-                English, which is worse in Turkish ("Bana atanan") and worse
-                again for the one entry naming a person.
+                So the pane reserved roughly 700px for something read in two
+                seconds, and paid for it out of the only column carrying the
+                product's content: the customer's words got 338px, clamped. And
+                that is the state you *arrive* in — nothing selected, half the
+                screen a bordered box saying "choose a review".
+
+                Two columns now, and the list takes everything the rail does not.
+                The words get about three times the room; the drawer
+                (`ReviewDrawer`) carries the reading and the reply. What is
+                given up is seeing the queue while replying, which is the right
+                trade: replying is a focused task, and `j`/`k` still move
+                underneath so the drawer follows the selection instead of having
+                to be closed and reopened.
+
+                The detail is still the *same* `ReviewList` with a single
+                review, server-rendered and passed into the drawer as children.
+                One card, one set of triage controls, one composer — a parallel
+                "detail" component is how the two drift until a control exists
+                in one place only.
               */}
-              <div className="grid gap-(--grid-gap) lg:grid-cols-[11.5rem_minmax(0,23rem)_minmax(0,1fr)] lg:items-start">
+              <div className="grid gap-(--grid-gap) lg:grid-cols-[11.5rem_minmax(0,1fr)] lg:items-start">
                 {/* The five questions this screen answers, standing still
                     (W4.1). Hidden on a phone, where the filter bar above is
                     already the way in and a third column has nowhere to go. */}
@@ -449,15 +453,13 @@ export default async function InboxPage({
                   />
                 </div>
 
-                <Card
-                  className={cn(
-                    "overflow-hidden p-0",
-                    // On a phone there is room for one thing. Choosing a review
-                    // replaces the queue rather than pushing it off-screen, and
-                    // the header's back link is the way out.
-                    selected ? "hidden lg:block" : undefined,
-                  )}
-                >
+                {/*
+                  The queue no longer hides when a review is chosen. It did,
+                  because on a phone there was room for one thing and the detail
+                  took the column; the drawer overlays instead, at every width,
+                  so the list simply stays.
+                */}
+                <Card className="overflow-hidden p-0">
                   <ReviewRows
                     reviews={rows}
                     selectedId={selected?.id ?? null}
@@ -467,22 +469,31 @@ export default async function InboxPage({
                   />
                 </Card>
 
-                <div
-                  className={cn(
-                    "flex flex-col gap-(--grid-gap)",
-                    selected ? undefined : "hidden lg:block",
-                  )}
+                {/*
+                  Rendered here rather than in a portal of its own, so the
+                  content stays a *server* render: `ReviewDrawer` is a client
+                  shell and this is its children, which keeps the composer, the
+                  triage controls and their permission checks exactly where they
+                  were in the pane.
+
+                  The "choose a review" resting state is gone with the pane. It
+                  existed to explain an empty half-screen; there is no empty
+                  half-screen now, and a drawer that is closed needs no caption.
+                */}
+                {/*
+                  `closeReview` is "Close", not the old "All reviews":
+                  `closeLabel` becomes the `aria-label` on the X, so that string
+                  had a screen reader announcing the close button as the name of
+                  the destination.
+                */}
+                <ReviewDrawer
+                  open={selected !== null}
+                  closeHref={inboxHref(filters, { page: currentPage, more: position.more })}
+                  title={selected?.authorName ?? t("anonymous")}
+                  closeLabel={t("closeReview")}
                 >
                   {selected ? (
-                    <>
-                      {/* Only on a phone, where the queue is not beside it. */}
-                      <Link
-                        href={inboxHref(filters, { page: currentPage, more: position.more })}
-                        scroll={false}
-                        className="w-fit text-copy text-muted-foreground underline-offset-4 hover:underline lg:hidden"
-                      >
-                        ← {t("backToList")}
-                      </Link>
+                    <div className="p-(--card-px)">
                       <ReviewList
                         reviews={[selected]}
                         options={{
@@ -492,20 +503,20 @@ export default async function InboxPage({
                           // decides whether to render a control that would be refused.
                           canApprove: roleAtLeast(actor.role, "admin"),
                           /*
-                            No highlight ring here, and this is a change.
+                          No highlight ring here, and this is a change.
 
-                            `?review=` used to mean one thing — "a notification
-                            or a digest sent you to this review" — and the ring
-                            was how it was found in a long scrolling list. W4.1
-                            made the same parameter carry *ordinary selection*,
-                            so the emphatic 2px indigo outline now fired on
-                            every single click: a heavy ring around the detail
-                            pane that reads as a validation error, restating
-                            something the selected row already says.
+                          `?review=` used to mean one thing — "a notification
+                          or a digest sent you to this review" — and the ring
+                          was how it was found in a long scrolling list. W4.1
+                          made the same parameter carry *ordinary selection*,
+                          so the emphatic 2px indigo outline now fired on
+                          every single click: a heavy ring around the detail
+                          pane that reads as a validation error, restating
+                          something the selected row already says.
 
-                            The pane is the highlight. There is exactly one
-                            review in it, and it arrived because you chose it.
-                          */
+                          The pane is the highlight. There is exactly one
+                          review in it, and it arrived because you chose it.
+                        */
                           highlightId: null,
                           assignees: assignees.map((member) => ({
                             userId: member.userId,
@@ -517,20 +528,9 @@ export default async function InboxPage({
                           canSelect: canBulk && roleAtLeast(actor.role, "member"),
                         }}
                       />
-                    </>
-                  ) : (
-                    // Desktop only — on a phone the queue itself is showing.
-                    //
-                    // `resting`, not `blank`: there are sixty-five reviews two
-                    // hundred pixels to the left. This pane is waiting for a
-                    // choice, and dressing it as a first-run empty screen —
-                    // which a bordered box with centred grey text does — told
-                    // people the opposite of what was true.
-                    <Card>
-                      <EmptyState tone="resting" icon={MousePointerClick} title={t("pickOne")} />
-                    </Card>
-                  )}
-                </div>
+                    </div>
+                  ) : null}
+                </ReviewDrawer>
               </div>
 
               {/* Only offered to people who can act on a selection; the server
