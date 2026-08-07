@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ProviderMark } from "@/components/connections/provider-mark";
 import { Avatar } from "@/components/ds/avatar";
 import { Stars } from "@/components/ds/stars";
+import { SelectCheckbox } from "@/components/reviews/selection";
 import { useAction } from "@/components/ui/use-action";
 import { setReviewStatusAction } from "@/server/triage";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,14 @@ export type ReviewRow = {
   sourceLabel: string;
   /** Derived triage priority — the dot's colour. */
   priority: "high" | "medium" | "low";
+  /**
+   * The checkbox's accessible name, already translated.
+   *
+   * Precomputed per row rather than passed as a formatter: this is a client
+   * component, and **a function cannot cross the RSC boundary** — the exact
+   * P3-T4 defect, which this file's `ratingLabel` already exists to avoid.
+   */
+  selectLabel: string;
   /** Set only where the plan tracks deadlines and this one has slipped. */
   overdue: boolean;
   answered: boolean;
@@ -59,6 +68,7 @@ export function ReviewRows({
   overdueLabel,
   resolvedLabel,
   showSource,
+  canSelect,
 }: {
   reviews: ReviewRow[];
   selectedId: string | null;
@@ -77,6 +87,8 @@ export function ReviewRows({
   showSource: boolean;
   /** Confirmation for `e`, which has no visible control to press. */
   resolvedLabel: string;
+  /** Growth+ and member or above; the server enforces the same rule. */
+  canSelect: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -180,7 +192,27 @@ export function ReviewRows({
         const active = review.id === selectedId;
 
         return (
-          <li key={review.id}>
+          <li key={review.id} className="flex items-start">
+            {/*
+              **Outside the anchor, deliberately.**
+
+              The whole row is a link, and a checkbox nested inside one is a
+              control you cannot tick — the click navigates before it toggles,
+              and stopping propagation to prevent that leaves a link whose
+              behaviour depends on which pixel you hit. As a sibling it is a
+              plain checkbox, and the rest of the row is still a real link that
+              middle-clicks and opens in a new tab.
+
+              `pt-4` rather than centring: it lines up with the first line of
+              text, which is where the eye is, not with the middle of a
+              two-line row.
+            */}
+            {canSelect ? (
+              <span className="shrink-0 pt-4 pl-3">
+                <SelectCheckbox reviewId={review.id} label={review.selectLabel} />
+              </span>
+            ) : null}
+
             <a
               href={`?review=${review.id}`}
               aria-current={active ? "true" : undefined}
@@ -191,7 +223,7 @@ export function ReviewRows({
                 select(review.id);
               }}
               className={cn(
-                "relative flex w-full flex-col gap-1 py-3 pr-4 pl-3 text-left transition-colors",
+                "relative flex min-w-0 flex-1 flex-col gap-1 py-3 pr-4 pl-3 text-left transition-colors",
                 "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:-outline-offset-2 focus-visible:outline-none",
                 /*
                   Selected and hover must not be the same colour.

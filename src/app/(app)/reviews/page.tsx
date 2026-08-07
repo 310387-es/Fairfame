@@ -268,6 +268,7 @@ export default async function InboxPage({
     authorName: review.authorName,
     rating: review.rating,
     ratingLabel: review.rating === null ? null : t("starsLabel", { rating: review.rating }),
+    selectLabel: t("selectReview", { author: review.authorName ?? "—" }),
     snippet: review.text,
     postedAt: review.postedAt ? format.dateTime(review.postedAt, "short") : "",
     source: review.source,
@@ -459,6 +460,9 @@ export default async function InboxPage({
                     unnamed={t("anonymous")}
                     overdueLabel={t("overdue")}
                     resolvedLabel={t("statusDone")}
+                    // Selection belongs to the list, which is the only place
+                    // more than one review exists to select.
+                    canSelect={canBulk && roleAtLeast(actor.role, "member")}
                     // Naming the source only helps when there is another one to
                     // tell it apart from.
                     showSource={(facets?.sources.length ?? 0) > 1}
@@ -521,7 +525,6 @@ export default async function InboxPage({
                           // A client may read their reviews; running the queue is the
                           // business's job. The server enforces the same rule.
                           canTriage: roleAtLeast(actor.role, "member"),
-                          canSelect: canBulk && roleAtLeast(actor.role, "member"),
                         }}
                       />
                     </div>

@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReplyComposer, type ReplyState } from "@/components/reviews/reply-composer";
-import { SelectCheckbox } from "@/components/reviews/selection";
 import { TriageBar, type AssigneeOption } from "@/components/reviews/triage-bar";
 import type { ReplyAffordance } from "@/connectors/capability-view";
 import type { ReviewStatus } from "@/db/schema";
@@ -60,7 +59,6 @@ export type ReviewListOptions = {
    * A checkbox with no bar to act on it is worse than no checkbox: it invites a
    * selection and then does nothing with it.
    */
-  canSelect: boolean;
 };
 
 /**
@@ -135,14 +133,17 @@ export async function ReviewList({
           <Card>
             <CardContent className="space-y-3 py-5">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                {/* The only client code inside an otherwise server-rendered
-                    card — see the note in selection.tsx. */}
-                {options.canSelect ? (
-                  <SelectCheckbox
-                    reviewId={review.id}
-                    label={t("selectReview", { author: review.authorName ?? "—" })}
-                  />
-                ) : null}
+                {/*
+                  No selection checkbox here.
+
+                  This component renders exactly one review — the drawer's
+                  detail — and a tick-box beside the single thing you are
+                  already looking at selects nothing you could not have selected
+                  by being here. It made sense when this card *was* the list;
+                  W4.1 moved the list to `ReviewRows` and left the checkbox
+                  behind, which is how bulk selection ended up reachable only
+                  for one review at a time. It lives in the row now.
+                */}
                 <span className="font-medium">{review.authorName ?? "—"}</span>
                 <Rating
                   rating={review.rating}
