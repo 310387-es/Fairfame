@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ProviderMark } from "@/components/connections/provider-mark";
+import { Avatar } from "@/components/ds/avatar";
 import { Stars } from "@/components/ds/stars";
 import { useAction } from "@/components/ui/use-action";
 import { setReviewStatusAction } from "@/server/triage";
@@ -40,6 +42,8 @@ export type ReviewRow = {
   ratingLabel: string | null;
   snippet: string | null;
   postedAt: string;
+  /** The provider key, for its mark. */
+  source: string;
   sourceLabel: string;
   /** Derived triage priority — the dot's colour. */
   priority: "high" | "medium" | "low";
@@ -54,11 +58,23 @@ export function ReviewRows({
   unnamed,
   overdueLabel,
   resolvedLabel,
+  showSource,
 }: {
   reviews: ReviewRow[];
   selectedId: string | null;
   unnamed: string;
   overdueLabel: string;
+  /**
+   * Only where there is more than one source to tell apart.
+   *
+   * W4.1 removed the source label because "Google Business Profile" is thirty
+   * identical characters on every row of a single-source business. Widening the
+   * column answered the *space* half of that and not the repetition half: a
+   * label that reads the same all the way down is noise however much room it
+   * has. So it comes back conditionally — which is what the original decision
+   * should have been.
+   */
+  showSource: boolean;
   /** Confirmation for `e`, which has no visible control to press. */
   resolvedLabel: string;
 }) {
@@ -175,7 +191,7 @@ export function ReviewRows({
                 select(review.id);
               }}
               className={cn(
-                "relative flex w-full flex-col gap-1 py-2.5 pr-3 pl-4 text-left transition-colors",
+                "relative flex w-full flex-col gap-1 py-3 pr-4 pl-3 text-left transition-colors",
                 "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:-outline-offset-2 focus-visible:outline-none",
                 /*
                   Selected and hover must not be the same colour.
@@ -201,96 +217,137 @@ export function ReviewRows({
                 />
               ) : null}
 
-              <div className="flex items-center gap-2">
+              {/*
+                **Three zones, not one line of floating text.**
+
+                The row was designed for a 23rem column and then stretched to
+                64rem when the detail became a drawer. A short sentence in a
+                1000px line with a void in the middle is what that looks like,
+                and no amount of type tuning fixes it: the row needed *columns*.
+
+                  [avatar] name · rating · source        [state]  date
+                           the customer's words
+
+                The avatar is the scanning anchor a list of names needs — it is
+                the same monogram the activity feed and the user menu draw, and
+                its colour is a hash of the name, so one customer is one circle
+                everywhere. The metadata goes right, in its own column, so the
+                eye runs *down* it instead of across each row hunting for the
+                date.
+              */}
+              <div className="flex min-w-0 items-start gap-3">
                 {/* Priority as a dot, not a word: it is a scanning cue, and a
-                    column of the word "High" is noise the eye has to read.
-                    Ringed rather than flat so a 6px mark still reads as
-                    deliberate at arm's length. */}
+                    column of the word "High" is noise the eye has to read. It
+                    keeps its own narrow gutter to the left of the avatar, so
+                    the marks line up down the list. */}
                 <span
                   aria-hidden
                   className={cn(
-                    "size-1.5 shrink-0 rounded-full ring-3",
+                    "mt-3 size-1.5 shrink-0 rounded-full",
                     review.priority === "high"
-                      ? "bg-sentiment-negative ring-state-negative-bg"
+                      ? "bg-sentiment-negative"
                       : review.priority === "medium"
-                        ? "bg-sentiment-neutral ring-state-rating-bg"
-                        : "bg-graphic-faint ring-transparent",
+                        ? "bg-sentiment-neutral"
+                        : "bg-transparent",
                   )}
                 />
+
+                <Avatar name={review.authorName} className="mt-0.5" />
+
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span
+                      className={cn(
+                        "min-w-0 truncate text-copy",
+                        /*
+                          Answered rows recede *by their name*, not only by their
+                          snippet. Dimming the sentence alone left a column of
+                          equally bold names, so the queue still looked full of
+                          work after half of it was done — the one thing a triage
+                          list must never get wrong.
+                        */
+                        review.answered
+                          ? "font-normal text-ink-500"
+                          : "font-semibold text-foreground",
+                      )}
+                    >
+                      {review.authorName ?? unnamed}
+                    </span>
+
+                    {review.rating === null ? null : (
+                      <Stars rating={review.rating} srLabel={review.ratingLabel ?? ""} size="sm" />
+                    )}
+
+                    {/*
+                      A **mark**, not the name.
+
+                      W4.1 removed "Google Business Profile" as thirty identical
+                      characters on every row and said the answer was a source
+                      glyph once real provider marks existed. They landed in
+                      W4.2 (`provider-mark.tsx`, drawn geometry rather than
+                      traced trademarks) and this row went on printing the
+                      words. A 14px mark is scannable where a repeated
+                      thirty-character label is only noise, and it costs the
+                      line almost nothing.
+
+                      The name still reaches assistive technology, which never
+                      saw the glyph.
+                    */}
+                    {showSource ? (
+                      <span
+                        className="inline-flex shrink-0 items-center"
+                        title={review.sourceLabel}
+                      >
+                        <ProviderMark provider={review.source} size={14} />
+                        <span className="sr-only">{review.sourceLabel}</span>
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {/*
+                    **The customer's words, and they lead.**
+
+                    `text-lead` — the 15px role added for exactly this, "a
+                    sentence that *is* the subject of its row", and until now
+                    defined and unused. The name above it is 13px: in a product
+                    whose whole subject is what customers said, the sentence
+                    should be the largest thing in the row, not a caption under
+                    the person's name.
+
+                    `line-clamp-2` rather than a character budget: the cut lands
+                    where the text runs out of room, which is the only version
+                    that works in English and in a Turkish string ~30% longer.
+                  */}
+                  <p
+                    className={cn(
+                      "line-clamp-2 text-lead text-pretty",
+                      review.answered ? "text-ink-500" : "text-foreground",
+                    )}
+                  >
+                    {review.snippet}
+                  </p>
+                </div>
+
                 {/*
-                  `max-w`, not `flex-1`.
+                  State and time, in a column of their own.
 
-                  The name used to take all the free space, so the rating and
-                  the date sat hard against the right edge. Invisible in a 23rem
-                  column and absurd once the drawer freed the list to full
-                  width: a name and its rating are one fact, and they ended up
-                  800px apart with the eye asked to cross the gap on every row.
-
-                  Now the name is as wide as it needs to be, the rating follows
-                  it immediately, and `ml-auto` on the date pushes that alone to
-                  the right where a timestamp belongs.
+                  Fixed width so they align down the list — a date that starts
+                  at a different x on every row is a date nobody can scan. The
+                  overdue chip sits above it rather than inline with the
+                  sentence, where it used to read as part of what the customer
+                  wrote.
                 */}
-                <span
-                  className={cn(
-                    "max-w-[16rem] min-w-0 truncate text-copy",
-                    /*
-                      Answered rows recede *by their name*, not only by their
-                      snippet. Dimming the sentence alone left a column of equally
-                      bold names, so the queue still looked full of work after
-                      half of it was done — the one thing a triage list must never
-                      get wrong.
-                    */
-                    review.answered ? "font-normal text-ink-500" : "font-semibold text-foreground",
-                  )}
-                >
-                  {review.authorName ?? unnamed}
-                </span>
-                {review.rating === null ? null : (
-                  <Stars rating={review.rating} srLabel={review.ratingLabel ?? ""} size="sm" />
-                )}
-                <span className="ml-auto shrink-0 font-mono text-meta text-faint tabular-nums">
-                  {review.postedAt}
-                </span>
+                <div className="flex w-[7.5rem] shrink-0 flex-col items-end gap-1.5">
+                  <span className="font-mono text-meta text-faint tabular-nums">
+                    {review.postedAt}
+                  </span>
+                  {review.overdue ? (
+                    <span className="inline-flex items-center rounded-sm bg-state-negative-bg px-1.5 py-0.5 text-eyebrow font-semibold text-state-negative-text uppercase">
+                      {overdueLabel}
+                    </span>
+                  ) : null}
+                </div>
               </div>
-
-              {/*
-                **The customer's words, on two lines.**
-
-                They had one line and `truncate`, in a 19rem column: about
-                thirty characters, cut mid-word. "Cumartesi akşamı kuyruk çok
-                uzundu. Otop…" is not a preview of a review, it is evidence that
-                one exists — and in a product whose entire subject is what
-                customers said, the sentence is the row. Every inbox worth
-                copying (Front, Superhuman, Gmail, Linear's issue list) gives the
-                preview two lines and a wider column; the column widens on the
-                page, and this is the other half.
-
-                `line-clamp-2` rather than a character budget: the cut lands
-                where the text actually runs out of room, which is the only way
-                it works in both English and a Turkish string ~30% longer.
-              */}
-              <p
-                className={cn(
-                  "line-clamp-2 text-copy",
-                  review.answered ? "text-faint" : "text-secondary-foreground",
-                )}
-              >
-                {review.snippet}
-              </p>
-
-              {/*
-                Overdue as a chip, not as red words at the end of the sentence.
-
-                Inline it sat immediately after the customer's truncated text in
-                `--state-negative-text`, so it read as part of what they wrote —
-                a review ending in the word "Overdue". A state belongs in a
-                container that says it is a state.
-              */}
-              {review.overdue ? (
-                <span className="inline-flex w-fit items-center rounded-sm bg-state-negative-bg px-1.5 py-0.5 text-eyebrow font-semibold text-state-negative-text uppercase">
-                  {overdueLabel}
-                </span>
-              ) : null}
             </a>
           </li>
         );

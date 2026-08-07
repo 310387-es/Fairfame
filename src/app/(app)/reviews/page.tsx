@@ -270,6 +270,7 @@ export default async function InboxPage({
     ratingLabel: review.rating === null ? null : t("starsLabel", { rating: review.rating }),
     snippet: review.text,
     postedAt: review.postedAt ? format.dateTime(review.postedAt, "short") : "",
+    source: review.source,
     sourceLabel: review.sourceLabel,
     // The dot is a scanning cue for "deal with this first", so it reads the
     // same two signals triage does: an unanswered negative is what matters.
@@ -466,6 +467,9 @@ export default async function InboxPage({
                     unnamed={t("anonymous")}
                     overdueLabel={t("overdue")}
                     resolvedLabel={t("statusDone")}
+                    // Naming the source only helps when there is another one to
+                    // tell it apart from.
+                    showSource={(facets?.sources.length ?? 0) > 1}
                   />
                 </Card>
 
