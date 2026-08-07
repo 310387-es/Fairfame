@@ -191,8 +191,27 @@ export function ReviewRows({
       {reviews.map((review) => {
         const active = review.id === selectedId;
 
+        /*
+          **The background belongs to the row, not to the link.**
+
+          The checkbox has to live outside the anchor (see below), and while the
+          anchor carried `hover:` and the selected wash, those stopped at its
+          left edge — so every hovered row had an unpainted notch where the
+          checkbox sits, and a selected row was highlighted everywhere except
+          its own tick-box.
+
+          The `<li>` is the only element spanning both, so it owns the surface,
+          the transition and the selected bar. The anchor keeps the focus ring,
+          because that should outline what is actually focusable.
+        */
         return (
-          <li key={review.id} className="flex items-start">
+          <li
+            key={review.id}
+            className={cn(
+              "relative flex items-start transition-colors",
+              active ? "bg-surface-selected" : "hover:bg-surface-hover",
+            )}
+          >
             {/*
               **Outside the anchor, deliberately.**
 
@@ -207,6 +226,13 @@ export function ReviewRows({
               text, which is where the eye is, not with the middle of a
               two-line row.
             */}
+            {active ? (
+              <span
+                aria-hidden
+                className="absolute inset-y-0 left-0 w-[3px] rounded-r-full bg-primary"
+              />
+            ) : null}
+
             {canSelect ? (
               <span className="shrink-0 pt-4 pl-3">
                 <SelectCheckbox reviewId={review.id} label={review.selectLabel} />
@@ -222,33 +248,22 @@ export function ReviewRows({
                 event.preventDefault();
                 select(review.id);
               }}
+              /*
+                Selected and hover must not be the same colour — they were,
+                `bg-surface-sunken` against `bg-surface-sunken/60`, the same
+                grey at two opacities. On a list driven by `j`/`k` that makes
+                the selection invisible the moment the pointer is near it.
+
+                Both now live on the `<li>` above, which is the only element
+                that spans the checkbox as well as the link. Indigo wash plus a
+                3px bar in the gutter for selected — the pattern Front,
+                Superhuman and Linear all settled on — and grey for hover.
+              */
               className={cn(
-                "relative flex min-w-0 flex-1 flex-col gap-1 py-3 pr-4 pl-3 text-left transition-colors",
+                "flex min-w-0 flex-1 flex-col gap-1 py-3 pr-4 pl-3 text-left",
                 "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:-outline-offset-2 focus-visible:outline-none",
-                /*
-                  Selected and hover must not be the same colour.
-
-                  They were: `bg-surface-sunken` against `bg-surface-sunken/60`,
-                  the same grey at two opacities. On a list you drive with `j`
-                  and `k` that makes the selection invisible the moment the
-                  pointer is anywhere near it — you cannot tell what you chose
-                  from what you are merely over.
-
-                  Selection is now indigo — a wash plus a 2px bar in the gutter,
-                  the pattern Front, Superhuman and Linear all settled on — and
-                  hover stays grey. The bar is what survives at a glance from
-                  across a desk, where a 4% wash does not.
-                */
-                active ? "bg-surface-selected" : "hover:bg-surface-hover",
               )}
             >
-              {active ? (
-                <span
-                  aria-hidden
-                  className="absolute inset-y-0 left-0 w-[3px] rounded-r-full bg-primary"
-                />
-              ) : null}
-
               {/*
                 **Three zones, not one line of floating text.**
 
