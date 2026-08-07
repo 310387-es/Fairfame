@@ -326,6 +326,22 @@ export default async function InboxPage({
               filters={filters}
               sourceLabels={sourceLabels}
               canTrackSla={canTrackSla}
+              trailing={
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <p className="text-body text-muted-foreground">
+                    {/*
+                      Two different truths, said differently: a filtered list and
+                      the whole thing. The count is exact in both cases — the
+                      pager below carries "which slice you are looking at", so
+                      this no longer has to hedge about truncation.
+                    */}
+                    {filtered && facets
+                      ? t("filtered", { shown: matching, total: facets.total })
+                      : t("count", { count: matching })}
+                  </p>
+                  <InboxSortBar filters={filters} />
+                </div>
+              }
             />
           ) : null}
 
@@ -347,30 +363,6 @@ export default async function InboxPage({
               canSave={filtered}
             />
           ) : null}
-
-          {/*
-            The result count and the order, on one line above the list.
-
-            The sort control used to be a fourth row inside the filter card,
-            under three rows of chips. It is not a filter — it says how the list
-            is arranged — and it belongs beside the number it arranges. Putting
-            them together also gives the count something to be next to: it was a
-            single grey sentence floating in its own band of whitespace.
-          */}
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <p className="text-body text-muted-foreground">
-              {/*
-                Two different truths, said differently: a filtered list and the
-                whole thing. The count is now exact in both cases — the pager
-                below carries "which slice of it you are looking at", so this
-                line no longer has to hedge about truncation.
-              */}
-              {filtered && facets
-                ? t("filtered", { shown: matching, total: facets.total })
-                : t("count", { count: matching })}
-            </p>
-            <InboxSortBar filters={filters} />
-          </div>
 
           {items.length === 0 ? (
             /*

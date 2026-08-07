@@ -107,18 +107,41 @@ export async function ViewsRail({
             key={key}
             href={href}
             aria-current={active ? "page" : undefined}
+            /*
+              The chosen queue is *selected*, not merely bolder.
+
+              It was `bg-surface-sunken` with a heavier weight — the same grey
+              the hover uses, so the rail read as five identical text links and
+              you had to compare font weights to see where you were. These are
+              the five questions the screen exists to answer; the one you are in
+              should be obvious without reading.
+
+              Indigo wash and indigo ink, matching how a selected row is drawn
+              in the list beside it and how the navigation rail marks the
+              current page. One idea, one appearance, three places.
+            */
             className={cn(
-              "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-copy transition-colors",
+              "flex items-center gap-2 rounded-md px-2.5 py-2 text-copy transition-colors",
               "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
               active
-                ? "bg-surface-sunken font-semibold text-foreground"
-                : "text-ink-400 hover:bg-surface-sunken/60",
+                ? "bg-surface-selected font-semibold text-indigo-700"
+                : "text-ink-500 hover:bg-surface-hover hover:text-foreground",
             )}
           >
             <Icon className="size-4 shrink-0" aria-hidden />
             <span className="min-w-0 flex-1 truncate">{t(`view.${key}`)}</span>
-            {/* Mono and tabular so a column of counts does not jitter. */}
-            <span className="shrink-0 font-mono text-meta text-graphic-faint tabular-nums">
+            {/*
+              Mono and tabular so a column of counts does not jitter — and a
+              zero recedes. "Assigned to me 0" in the same ink as "Needs a reply
+              46" gives equal weight to a queue with nothing in it, which is the
+              one entry a reader can safely skip.
+            */}
+            <span
+              className={cn(
+                "shrink-0 font-mono text-meta tabular-nums",
+                count === 0 ? "text-graphic-faint" : active ? "text-indigo-700" : "text-ink-400",
+              )}
+            >
               {count}
             </span>
           </Link>

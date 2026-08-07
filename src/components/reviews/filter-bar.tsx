@@ -1,4 +1,5 @@
 import { AlarmClock, CheckCheck, ChevronRight, ThumbsDown, UserRound, X } from "lucide-react";
+import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Chip, ChipGroup } from "@/components/ds/chip";
@@ -43,9 +44,20 @@ export async function InboxFilterBar({
   filters,
   sourceLabels,
   canTrackSla,
+  trailing,
 }: {
   facets: FacetCounts;
   filters: InboxFilterState;
+  /**
+   * The result count and the sort, on the same line as "More filters".
+   *
+   * They were a band of their own between this card and the list, so the screen
+   * opened with three stacked strips of chrome before a single review. They are
+   * *about* the list rather than filters of it, which is why they are passed in
+   * rather than built here — this component still has no idea how many rows
+   * matched, and should not.
+   */
+  trailing?: ReactNode;
   /** Provider key → display label, from the connector registry. */
   sourceLabels: Record<string, string>;
   /** False when the plan has no `sla_tracking`, so Overdue is not offered. */
@@ -278,41 +290,42 @@ export async function InboxFilterBar({
         computed, so arriving from a digest link on a theme never shows an empty
         bar with a mysteriously short list underneath.
       */}
-      <details
-        open={
-          Boolean(filters.source) ||
-          Boolean(filters.canonical) ||
-          Boolean(filters.theme) ||
-          Boolean(filters.query)
-        }
-        className="group/more"
-      >
-        <summary className="inline-flex w-fit cursor-pointer list-none items-center gap-1 rounded-sm py-0.5 text-meta font-semibold text-ink-500 transition-colors select-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
-          <ChevronRight
-            className="size-3 transition-transform group-open/more:rotate-90"
-            aria-hidden
-          />
-          {t("filterMore")}
-        </summary>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <details
+          open={
+            Boolean(filters.source) ||
+            Boolean(filters.canonical) ||
+            Boolean(filters.theme) ||
+            Boolean(filters.query)
+          }
+          className="group/more"
+        >
+          <summary className="inline-flex w-fit cursor-pointer list-none items-center gap-1 rounded-sm py-0.5 text-meta font-semibold text-ink-500 transition-colors select-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+            <ChevronRight
+              className="size-3 transition-transform group-open/more:rotate-90"
+              aria-hidden
+            />
+            {t("filterMore")}
+          </summary>
 
-        <div className="flex flex-col gap-2 pt-2">
-          {/* Only offered when there is more than one source to choose between. */}
-          {facets.sources.length > 1 ? (
-            <ChipGroup label={t("filterSource")}>
-              {facets.sources.map((source) => (
-                <Chip
-                  key={source.value}
-                  href={hrefFor(filters, "source", source.value)}
-                  active={filters.source === source.value}
-                  count={source.count}
-                >
-                  {sourceLabels[source.value] ?? source.value}
-                </Chip>
-              ))}
-            </ChipGroup>
-          ) : null}
+          <div className="flex flex-col gap-2 pt-2">
+            {/* Only offered when there is more than one source to choose between. */}
+            {facets.sources.length > 1 ? (
+              <ChipGroup label={t("filterSource")}>
+                {facets.sources.map((source) => (
+                  <Chip
+                    key={source.value}
+                    href={hrefFor(filters, "source", source.value)}
+                    active={filters.source === source.value}
+                    count={source.count}
+                  >
+                    {sourceLabels[source.value] ?? source.value}
+                  </Chip>
+                ))}
+              </ChipGroup>
+            ) : null}
 
-          {/*
+            {/*
         Canonical themes first, and its own row (W3.2). These are keys with one
         meaning across languages — what can be trended, compared and translated
         — while the row below is the customer's own words. Showing `wait_time`
@@ -323,7 +336,7 @@ export async function InboxFilterBar({
         column is nullable with no backfill, so an account analysed before the
         taxonomy simply does not have this row yet.
       */}
-          {/*
+            {/*
         Hidden rather than shown thin, when most reviews predate the taxonomy.
 
         The counts are only as complete as the column behind them, and there is
@@ -338,69 +351,72 @@ export async function InboxFilterBar({
         would read as a bug to whoever just turned the taxonomy on, and the
         fix — re-analyse — is not something they could guess.
       */}
-          {themesReliable && facets.canonicalThemes.length > 0 ? (
-            <ChipGroup label={t("filterCanonical")}>
-              {facets.canonicalThemes.map((theme) => (
-                <Chip
-                  key={theme.value}
-                  href={hrefFor(filters, "canonical", theme.value)}
-                  active={filters.canonical === theme.value}
-                  count={theme.count}
-                >
-                  {themeLabel(theme.value)}
-                </Chip>
-              ))}
-            </ChipGroup>
-          ) : null}
+            {themesReliable && facets.canonicalThemes.length > 0 ? (
+              <ChipGroup label={t("filterCanonical")}>
+                {facets.canonicalThemes.map((theme) => (
+                  <Chip
+                    key={theme.value}
+                    href={hrefFor(filters, "canonical", theme.value)}
+                    active={filters.canonical === theme.value}
+                    count={theme.count}
+                  >
+                    {themeLabel(theme.value)}
+                  </Chip>
+                ))}
+              </ChipGroup>
+            ) : null}
 
-          {!themesReliable && facets.themeCoverage.analysed > 0 ? (
-            <ChipGroup label={t("filterCanonical")}>
-              <span className="text-copy text-muted-foreground">
-                {t("themesPending", {
-                  done: facets.themeCoverage.withThemes,
-                  total: facets.themeCoverage.analysed,
-                })}
-              </span>
-            </ChipGroup>
-          ) : null}
+            {!themesReliable && facets.themeCoverage.analysed > 0 ? (
+              <ChipGroup label={t("filterCanonical")}>
+                <span className="text-copy text-muted-foreground">
+                  {t("themesPending", {
+                    done: facets.themeCoverage.withThemes,
+                    total: facets.themeCoverage.analysed,
+                  })}
+                </span>
+              </ChipGroup>
+            ) : null}
 
-          {facets.themes.length > 0 ? (
-            <ChipGroup label={t("filterTag")}>
-              {facets.themes.map((theme) => (
-                <Chip
-                  key={theme.value}
-                  href={hrefFor(filters, "theme", theme.value)}
-                  active={filters.theme === theme.value}
-                  count={theme.count}
-                >
-                  {theme.value}
-                </Chip>
-              ))}
-              {/*
+            {facets.themes.length > 0 ? (
+              <ChipGroup label={t("filterTag")}>
+                {facets.themes.map((theme) => (
+                  <Chip
+                    key={theme.value}
+                    href={hrefFor(filters, "theme", theme.value)}
+                    active={filters.theme === theme.value}
+                    count={theme.count}
+                  >
+                    {theme.value}
+                  </Chip>
+                ))}
+                {/*
             A theme linked from a digest may sit outside the top twelve. Showing
             it as an active chip means the filter never looks like it did
             nothing.
           */}
-              {filters.theme && !facets.themes.some((theme) => theme.value === filters.theme) ? (
-                <Chip href={hrefFor(filters, "theme", filters.theme)} active>
-                  {filters.theme}
-                </Chip>
-              ) : null}
-            </ChipGroup>
-          ) : null}
+                {filters.theme && !facets.themes.some((theme) => theme.value === filters.theme) ? (
+                  <Chip href={hrefFor(filters, "theme", filters.theme)} active>
+                    {filters.theme}
+                  </Chip>
+                ) : null}
+              </ChipGroup>
+            ) : null}
 
-          {/* A search arriving from the palette has to be visible and removable.
+            {/* A search arriving from the palette has to be visible and removable.
               Without a chip the list looks arbitrarily short and the only way
               back is the browser's back button. */}
-          {filters.query ? (
-            <ChipGroup label={t("filterSearch")}>
-              <Chip href={hrefFor(filters, "query", filters.query)} active>
-                {filters.query}
-              </Chip>
-            </ChipGroup>
-          ) : null}
-        </div>
-      </details>
+            {filters.query ? (
+              <ChipGroup label={t("filterSearch")}>
+                <Chip href={hrefFor(filters, "query", filters.query)} active>
+                  {filters.query}
+                </Chip>
+              </ChipGroup>
+            ) : null}
+          </div>
+        </details>
+
+        {trailing ? <div className="shrink-0">{trailing}</div> : null}
+      </div>
     </div>
   );
 }
