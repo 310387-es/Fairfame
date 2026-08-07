@@ -345,6 +345,107 @@ length, which is the thing a reputation product is selling.
 
 ---
 
+## 9b. Reference implementation — the review row
+
+The highest-frequency component in the product: 65 instances per screen, on the screen with
+the most sessions. Everything below is in `src/components/reviews/review-rows.tsx`; this is
+the diff worth reading rather than the whole file.
+
+### Before
+
+```tsx
+className={cn(
+  "flex w-full flex-col gap-0.5 px-3 py-2 text-left transition-colors",
+  active ? "bg-surface-sunken" : "hover:bg-surface-sunken/60",
+)}
+
+<span className="min-w-0 flex-1 truncate text-copy font-medium text-foreground">
+  {review.authorName ?? unnamed}
+</span>
+<Stars rating={review.rating} srLabel={review.ratingLabel ?? ""} />
+
+<div className="flex items-center gap-1.5">
+  <p className={cn("min-w-0 flex-1 truncate text-copy",
+    review.answered ? "text-faint" : "text-muted-foreground")}>
+    {review.snippet}
+  </p>
+  {review.overdue ? (
+    <span className="shrink-0 text-meta text-state-negative-text">{overdueLabel}</span>
+  ) : null}
+</div>
+```
+
+Four faults, none wrong in isolation:
+
+1. `bg-surface-sunken` against `bg-surface-sunken/60` — **selected and hover are the same
+   colour** at two opacities, on a list driven by `j`/`k`.
+2. `truncate` in a 19rem column — about thirty characters of the only content this product
+   has, cut mid-word.
+3. The name is `font-medium` whether or not the review is answered, so a half-worked queue
+   still looks full.
+4. Overdue is red words straight after the cut sentence, so a review appears to end with the
+   word "Overdue".
+
+### After
+
+```tsx
+className={cn(
+  "relative flex w-full flex-col gap-1 py-2.5 pr-3 pl-4 text-left transition-colors",
+  active ? "bg-surface-selected" : "hover:bg-surface-hover",
+)}
+
+{/* A 4% wash dies under a pointer; the bar survives a glance across a desk. */}
+{active ? (
+  <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] rounded-r-full bg-primary" />
+) : null}
+
+<span className={cn("min-w-0 flex-1 truncate text-copy",
+  review.answered ? "font-normal text-ink-500" : "font-semibold text-foreground")}>
+  {review.authorName ?? unnamed}
+</span>
+<Stars rating={review.rating} srLabel={review.ratingLabel ?? ""} size="sm" />
+
+{/* `line-clamp-2`, not a character budget: the cut lands where the text runs
+    out of room — the only version that works in EN and in a ~30% longer TR. */}
+<p className={cn("line-clamp-2 text-copy",
+  review.answered ? "text-faint" : "text-secondary-foreground")}>
+  {review.snippet}
+</p>
+
+{/* A state belongs in a container that says it is a state. */}
+{review.overdue ? (
+  <span className="inline-flex w-fit items-center rounded-sm bg-state-negative-bg px-1.5 py-0.5 text-eyebrow font-semibold uppercase text-state-negative-text">
+    {overdueLabel}
+  </span>
+) : null}
+```
+
+Two changes outside the component, because the row cannot fix them alone:
+
+```diff
+- lg:grid-cols-[11.5rem_minmax(0,19rem)_minmax(0,1fr)]   // reviews/page.tsx
++ lg:grid-cols-[11.5rem_minmax(0,23rem)_minmax(0,1fr)]
+```
+
+```diff
+- <span aria-hidden>{"★".repeat(filled)}{"☆".repeat(5 - filled)}</span>   // ds/stars.tsx
++ <span aria-hidden className="text-rating">{"★".repeat(filled)}</span>
++ <span aria-hidden className="text-graphic-faint">{"☆".repeat(5 - filled)}</span>
+```
+
+### Why this one is the north star
+
+It is four rules of this file working at once, which is why it is the reference rather than
+something prettier:
+
+- **§3** — selection is indigo, hover is grey, and they can never be the same value.
+- **§4** — a list row is two lines and the second is the content; the column widened
+  *because* of that. One decision, not two.
+- **§6** — `answered` recedes by name as well as snippet, and overdue is a state in a
+  container rather than coloured text.
+- **§2** — `Stars` carries amber itself. A component that makes the caller remember the
+  brand colour will have callers that forget.
+
 ## 10. Six principles
 
 1. **The customer's words are the content; everything else is chrome.** If a control is
