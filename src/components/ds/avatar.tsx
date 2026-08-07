@@ -71,7 +71,7 @@ export function Avatar({
       // would read every entry's person twice.
       aria-hidden
       className={cn(
-        "grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-semibold",
+        "grid size-7 shrink-0 place-items-center rounded-full text-meta font-semibold",
         toneFor(name),
         className,
       )}

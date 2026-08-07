@@ -160,7 +160,7 @@ export default async function SamplePage() {
               )}
             </span>
             <span className="mt-1 text-copy font-medium">{t("pulse")}</span>
-            <span className="mt-1 text-center text-[11px] text-muted-foreground">
+            <span className="mt-1 text-center text-meta text-muted-foreground">
               {deltaLabel ?? t("reviewCount", { count: digest.reviewCount })}
             </span>
           </div>
@@ -230,7 +230,7 @@ export default async function SamplePage() {
                     {t("themeCount", { count: theme.count })}
                   </span>
 
-                  <span className="ml-auto flex gap-1.5 text-[11px]">
+                  <span className="ml-auto flex gap-1.5 text-meta">
                     {theme.positive > 0 ? (
                       <span className="rounded-sm bg-state-positive-bg px-1.5 py-0.5 font-semibold text-state-positive-text">
                         {t("themePositive", { count: theme.positive })}

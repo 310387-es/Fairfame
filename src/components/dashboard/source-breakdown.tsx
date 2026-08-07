@@ -62,7 +62,7 @@ export async function SourceBreakdown({
                     />
                   </span>
 
-                  <span className="w-7 shrink-0 text-right font-mono text-[13px] font-semibold tabular-nums">
+                  <span className="w-7 shrink-0 text-right font-mono text-copy font-semibold tabular-nums">
                     {row.count}
                   </span>
                 </div>

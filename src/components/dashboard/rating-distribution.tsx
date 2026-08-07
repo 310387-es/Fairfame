@@ -74,7 +74,7 @@ export async function RatingDistribution({
                     />
                   </span>
 
-                  <span className="w-6 shrink-0 text-right font-mono text-[13px] font-semibold tabular-nums">
+                  <span className="w-6 shrink-0 text-right font-mono text-copy font-semibold tabular-nums">
                     {bucket.count}
                   </span>
                 </div>

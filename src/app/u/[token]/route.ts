@@ -42,10 +42,10 @@ function page(locale: Locale, message: string, status: number): Response {
     <meta name="robots" content="noindex" />
     <title>${escapeHtml(copy.title)}</title>
   </head>
-  <body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f6f7f9;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#111827;">
+  <body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f6f7fb;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#10193a;">
     <main style="max-width:420px;margin:24px;padding:32px;background:#fff;border-radius:12px;text-align:center;">
       <h1 style="margin:0 0 12px;font-size:18px;">${escapeHtml(copy.title)}</h1>
-      <p style="margin:0;font-size:15px;line-height:1.6;color:#374151;">${escapeHtml(message)}</p>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:#3a4260;">${escapeHtml(message)}</p>
     </main>
   </body>
 </html>`;

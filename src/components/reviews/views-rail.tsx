@@ -118,7 +118,7 @@ export async function ViewsRail({
             <Icon className="size-4 shrink-0" aria-hidden />
             <span className="min-w-0 flex-1 truncate">{t(`view.${key}`)}</span>
             {/* Mono and tabular so a column of counts does not jitter. */}
-            <span className="shrink-0 font-mono text-[11px] text-graphic-faint tabular-nums">
+            <span className="shrink-0 font-mono text-meta text-graphic-faint tabular-nums">
               {count}
             </span>
           </Link>
