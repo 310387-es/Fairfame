@@ -35,6 +35,8 @@ export type InboxReview = {
   /** From `review_insights`. Null until analysis has run.  */
   sentiment: "positive" | "neutral" | "negative" | null;
   topics: string[];
+  /** Canonical themes (W3.2); often empty — no backfill. */
+  themes: string[];
   /** Team triage state (P2-T4). */
   status: ReviewStatus;
   assigneeUserId: string | null;

@@ -1,7 +1,7 @@
 import { sourceLabel } from "@/connectors/source-label";
 import { BarChart3, Building2, Radio, Sparkles, Users } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { isCanonicalTheme } from "@/reviews/taxonomy";
+import { themeLabel } from "@/reviews/taxonomy";
 import { roleAtLeast } from "@/auth/permissions";
 import { requireActor } from "@/auth/session";
 import { SectionCard } from "@/components/ds/section-card";
@@ -225,8 +225,7 @@ export default async function InsightsPage({ searchParams }: PageProps) {
    * is looking. A key from a newer revision than this build's catalogue falls
    * back to itself rather than rendering `themes.foo`.
    */
-  const themeLabel = (key: string) =>
-    isCanonicalTheme(key) ? tThemes(key as Parameters<typeof tThemes>[0]) : key;
+  const label = (key: string) => themeLabel(key, tThemes);
   const mix = sentimentMix(current);
   const staff = staffMentions(current);
 
@@ -447,7 +446,7 @@ export default async function InsightsPage({ searchParams }: PageProps) {
             empty={t("themesEmpty")}
             newLabel={t("themeNew")}
             columns={[t("column.theme"), t("column.mentions"), t("column.change")]}
-            themeLabel={themeLabel}
+            themeLabel={label}
             moodLabel={(row) =>
               row.negative > row.positive
                 ? t("mostlyNegative", { count: row.negative })
@@ -480,7 +479,7 @@ export default async function InsightsPage({ searchParams }: PageProps) {
             wants first, and the grid answers "when" — the follow-up question,
             and the one worth scrolling for.
           */}
-          <ThemeHeatmapCard heatmap={heatmap} themeLabel={themeLabel} />
+          <ThemeHeatmapCard heatmap={heatmap} themeLabel={label} />
 
           {/* The two shapes a single number hides: how the stars are spread,
               and where the response-time tail is. */}

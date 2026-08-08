@@ -486,7 +486,13 @@ export type InboxRow = {
   rawPayload: unknown;
   sentiment: Sentiment | null;
   sentimentScore: number | null;
+  /** Free-text tags, in the language the customer wrote. Not a label. */
   topics: string[];
+  /**
+   * Canonical themes (W3.2). Frequently empty — the column landed with no
+   * backfill — which is why a reader prefers these and falls back to `topics`.
+   */
+  themes: string[];
   /** Team triage state (P2-T1). */
   status: ReviewStatus;
   priority: number | null;
@@ -657,6 +663,7 @@ export async function listInbox(
       sentiment: schema.reviewInsights.sentiment,
       sentimentScore: schema.reviewInsights.sentimentScore,
       topics: schema.reviewInsights.topics,
+      themes: schema.reviewInsights.themes,
       replyId: schema.replies.id,
       replyText: schema.replies.text,
       replyStatus: schema.replies.status,
@@ -707,6 +714,7 @@ export async function listInbox(
     sentiment: row.sentiment,
     sentimentScore: row.sentimentScore,
     topics: row.topics ?? [],
+    themes: row.themes ?? [],
     reply: row.replyId
       ? {
           id: row.replyId,

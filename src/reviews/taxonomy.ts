@@ -135,3 +135,21 @@ export function normalizeThemes(values: unknown): CanonicalTheme[] {
 
   return [...seen];
 }
+
+/**
+ * What to show a reader for a theme key.
+ *
+ * Canonical keys become a translated word; anything else is shown as the
+ * customer wrote it. Both halves matter: a canonical key must never reach a
+ * screen untranslated (that is the whole reason W3.2 exists), and a free tag
+ * must never be dropped, because `review_insights.themes` landed with no
+ * backfill and most rows still carry only the tail.
+ *
+ * A function here rather than three copies of the same ternary — which is what
+ * it was, in `filter-bar.tsx`, `analytics/page.tsx` and the reviews page, each
+ * with its own cast. Two of the three had it right and the third rendered raw
+ * keys, which is exactly how this kind of duplication fails: not all at once.
+ */
+export function themeLabel(key: string, translate: (canonical: CanonicalTheme) => string): string {
+  return isCanonicalTheme(key) ? translate(key) : key;
+}

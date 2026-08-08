@@ -1,3 +1,4 @@
+import { themeLabel } from "@/reviews/taxonomy";
 import { sourceLabel } from "@/connectors/source-label";
 import { Inbox, MapPin, SearchX } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
@@ -70,8 +71,11 @@ export default async function InboxPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [t, format, actor, params] = await Promise.all([
+  const [t, tThemes, format, actor, params] = await Promise.all([
     getTranslations("inbox"),
+    // The canonical theme names, so a row's chips read as the same words the
+    // filter bar above offers under "Themes".
+    getTranslations("themes"),
     getFormatter(),
     requireActor(),
     searchParams,
@@ -219,6 +223,7 @@ export default async function InboxPage({
       url: review.url,
       sentiment: review.sentiment,
       topics: review.topics,
+      themes: review.themes,
       status: review.status,
       assigneeUserId: review.assignee?.id ?? null,
       // Computed on the server so every card in a render agrees about "now",
@@ -291,7 +296,24 @@ export default async function InboxPage({
       themes is a row nobody reads. Two is enough to see a pattern down a
       column, and the filter bar above carries the full vocabulary with counts.
     */
-    themes: review.topics.slice(0, 2),
+    /*
+      Canonical themes first, falling back to the free tags.
+
+      The chips showed `topics` — the free-text tail — while the filter bar
+      directly above offers **Temalar** (canonical, translated) and **Etiketler**
+      (the tail) as two separate rows. So a row's chips did not correspond to
+      the facets used to filter it, and on a Turkish account the column read
+      "bekleme süresi, fiyat" on one row and "service, cleanliness" on the next
+      — the same complaint in two languages, one under the other.
+
+      Not canonical-only: `review_insights.themes` shipped with no backfill, so
+      most rows still have none and would lose their chips entirely. Preferring
+      canonical is never worse than today and gets better on its own as
+      `pnpm ai:analyze --recompute` works through the backlog.
+    */
+    themes: (review.themes.length > 0 ? review.themes : review.topics)
+      .slice(0, 2)
+      .map((key) => themeLabel(key, tThemes)),
     /*
       The reply, and its state — the thing this row most obviously lacked.
 

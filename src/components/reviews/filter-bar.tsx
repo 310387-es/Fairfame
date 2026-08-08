@@ -13,7 +13,7 @@ import Link from "next/link";
 import { ProviderMark } from "@/components/connections/provider-mark";
 import { Chip, ChipGroup } from "@/components/ds/chip";
 import { Input } from "@/components/ui/input";
-import { isCanonicalTheme } from "@/reviews/taxonomy";
+import { themeLabel } from "@/reviews/taxonomy";
 import { MIN_THEME_COVERAGE } from "@/reviews/filters";
 import { Segmented } from "@/components/ds/segmented";
 import {
@@ -104,8 +104,7 @@ export async function InboxFilterBar({
       : facets.themeCoverage.withThemes / facets.themeCoverage.analysed;
   const themesReliable = coverage >= MIN_THEME_COVERAGE;
 
-  const themeLabel = (key: string) =>
-    isCanonicalTheme(key) ? tThemes(key as Parameters<typeof tThemes>[0]) : key;
+  const label = (key: string) => themeLabel(key, tThemes);
 
   const sentimentLabel: Record<string, string> = {
     positive: t("sentimentPositive"),
@@ -446,7 +445,7 @@ export async function InboxFilterBar({
                     active={filters.canonical === theme.value}
                     count={theme.count}
                   >
-                    {themeLabel(theme.value)}
+                    {label(theme.value)}
                   </Chip>
                 ))}
               </ChipGroup>
