@@ -66,7 +66,22 @@ export async function ContactFilterBar({
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-line bg-card px-(--card-px) py-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <form method="get" action="/contacts" role="search" className="flex min-w-0 flex-1 gap-2">
+        {/*
+          `basis-full sm:basis-auto`: the sort control and the search box shared
+          one wrapping row, and on a 390px phone the segmented control took what
+          it needed and left the search field about seventy pixels — enough to
+          render "Ad," of "Ad, e-posta veya telefon". A search box narrower than
+          its own placeholder is not a search box.
+
+          Full width below `sm`, so sort wraps underneath it instead of
+          competing with it.
+        */}
+        <form
+          method="get"
+          action="/contacts"
+          role="search"
+          className="flex min-w-0 flex-1 basis-full gap-2 sm:basis-auto"
+        >
           {[...carried.entries()].map(([key, value]) => (
             <input key={`${key}:${value}`} type="hidden" name={key} value={value} />
           ))}
