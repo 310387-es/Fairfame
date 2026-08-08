@@ -571,7 +571,9 @@
       "mine": "Bana atanan",
       "overdue": "Süresi geçen"
     },
-    "closeReview": "Kapat"
+    "closeReview": "Kapat",
+    "searchLabel": "Bu yorumlarda ara",
+    "searchPlaceholder": "Müşterilerin yazdıklarında ara"
   },
   "locations": {
     "title": "Şubeler",

@@ -571,7 +571,9 @@
       "mine": "Assigned to me",
       "overdue": "Overdue"
     },
-    "closeReview": "Close"
+    "closeReview": "Close",
+    "searchLabel": "Search these reviews",
+    "searchPlaceholder": "Search what customers wrote"
   },
   "locations": {
     "title": "Locations",

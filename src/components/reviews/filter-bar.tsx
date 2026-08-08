@@ -1,9 +1,18 @@
-import { AlarmClock, CheckCheck, ChevronRight, ThumbsDown, UserRound, X } from "lucide-react";
+import {
+  AlarmClock,
+  CheckCheck,
+  ChevronRight,
+  Search,
+  ThumbsDown,
+  UserRound,
+  X,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { ProviderMark } from "@/components/connections/provider-mark";
 import { Chip, ChipGroup } from "@/components/ds/chip";
+import { Input } from "@/components/ui/input";
 import { isCanonicalTheme } from "@/reviews/taxonomy";
 import { MIN_THEME_COVERAGE } from "@/reviews/filters";
 import { Segmented } from "@/components/ds/segmented";
@@ -11,6 +20,7 @@ import {
   ASSIGNEE_ME,
   EMPTY_INBOX_FILTERS,
   hasActiveFilters,
+  inboxFilterParams,
   inboxHref,
   toggleFilter,
   type InboxFilterState,
@@ -221,6 +231,46 @@ export async function InboxFilterBar({
         they wrap to two on a narrow window, and the card reads as a toolbar
         rather than as a form somebody stopped filling in.
       */}
+      {/*
+        **The search box the screen never had.**
+
+        Everything behind it already existed: `?q=`, `searchPredicate` in the
+        query layer, `query` in the filter state, and a chip further down that
+        *displays* an active search. The only missing piece was somewhere to
+        type — so a screen holding hundreds of reviews, twenty at a time, could
+        show you a search filter it gave you no way to create. The one way in
+        was the global palette, which is a *navigation* control ("take me to
+        this review"), not a filter ("show me everything about parking").
+
+        A plain `<form method="get">`, the same shape `/contacts` uses, rather
+        than a client component: it works with no JavaScript, and a text box
+        that submits on Enter needs no more machinery than that.
+
+        It carries every other filter as a hidden input, or pressing Enter would
+        silently drop the sentiment you had selected. The sort travels too — not
+        a filter, but losing it here would still be a surprise.
+      */}
+      <form method="get" action="/reviews" role="search" className="flex min-w-0 gap-2">
+        {[...inboxFilterParams({ ...filters, query: null }).entries()].map(([key, value]) => (
+          <input key={`${key}:${value}`} type="hidden" name={key} value={value} />
+        ))}
+
+        <div className="relative min-w-0 flex-1 sm:max-w-96">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-graphic-faint"
+            aria-hidden
+          />
+          <Input
+            type="search"
+            name="q"
+            defaultValue={filters.query ?? ""}
+            aria-label={t("searchLabel")}
+            placeholder={t("searchPlaceholder")}
+            className="pl-8"
+          />
+        </div>
+      </form>
+
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         {facets.statuses.length > 0 ? (
           <ChipGroup layout="inline" label={t("filterStatus")}>
