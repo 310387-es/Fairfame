@@ -377,6 +377,11 @@ test.describe("the screens this suite had never measured", () => {
     { path: "/settings", name: "settings" },
     { path: "/channels", name: "channels" },
     { path: "/team", name: "team" },
+    // The two screens Wave 5 added. `/compliance` carries a four-across figure
+    // grid that has to become one column, and `/welcome` is the first screen a
+    // new customer sees — on the phone the plan says they live on.
+    { path: "/compliance", name: "compliance" },
+    { path: "/welcome", name: "the welcome screen" },
   ]) {
     test(`${name} fits the viewport, with nothing hanging off the side`, async ({ page }) => {
       await page.goto(path);

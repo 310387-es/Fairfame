@@ -58,11 +58,39 @@ export function pushConfig(): PushConfig | null {
   return {
     publicKey: env.VAPID_PUBLIC_KEY,
     privateKey: env.VAPID_PRIVATE_KEY,
-    // Push services require a contact for the *application*, so they have
-    // somebody to reach about abuse. The dashboard's origin is the honest
-    // answer until a support address exists.
-    subject: env.VAPID_SUBJECT ?? dashboardUrl("/"),
+    subject: vapidSubject(env.VAPID_SUBJECT, dashboardUrl("/")),
   };
+}
+
+/**
+ * The contact a push service is entitled to have for the *application*.
+ *
+ * The spec allows exactly two forms — `https:` and `mailto:` — and `web-push`
+ * enforces it by throwing. Defaulting to this deployment's own origin is the
+ * honest answer until a support address exists, and it is **wrong on every
+ * http origin**, which is every development machine: `setVapidDetails` threw
+ * `Vapid subject is not an https: or mailto: URL`, the drain's guard caught it,
+ * and the DB suite quietly logged "Push drain failed" on every run.
+ *
+ * So an unusable origin falls back to a `mailto:` on the origin's own host. It
+ * is not a real inbox and does not pretend to be — it is a syntactically valid
+ * contact that lets the local path work, and a deployment that wants to be
+ * reachable sets `VAPID_SUBJECT`.
+ */
+export function vapidSubject(configured: string | undefined, origin: string): string {
+  const candidate = configured ?? origin;
+  if (candidate.startsWith("mailto:") || candidate.startsWith("https://")) return candidate;
+
+  const host = safeHost(candidate) ?? "localhost";
+  return `mailto:push@${host}`;
+}
+
+function safeHost(value: string): string | null {
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return null;
+  }
 }
 
 export type PushSubscriptionInput = {

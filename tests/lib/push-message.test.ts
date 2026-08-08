@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pushMessageFor } from "../../src/notifications/push.ts";
+import { pushMessageFor, vapidSubject } from "../../src/notifications/push.ts";
 
 /**
  * What a push notification says on a lock screen (W5-9).
@@ -81,5 +81,25 @@ describe("pushMessageFor", () => {
     // in-app feed still has the row.
     expect(pushMessageFor({ ...base, type: "new_review", payload: {} })).toBeNull();
     expect(pushMessageFor({ ...base, type: "sla_rollup", payload: {} })).toBeNull();
+  });
+});
+
+describe("vapidSubject", () => {
+  it("keeps a configured https or mailto contact", () => {
+    expect(vapidSubject("mailto:destek@revira.app", "https://x")).toBe("mailto:destek@revira.app");
+    expect(vapidSubject("https://revira.app", "http://x")).toBe("https://revira.app");
+  });
+
+  it("rescues an http origin, which is every development machine", () => {
+    // The defect this pins: the spec allows only `https:` and `mailto:`, and
+    // `web-push` enforces it by throwing. Defaulting to the deployment's own
+    // origin is right in production and wrong on http — `setVapidDetails` threw,
+    // the drain's guard caught it, and the DB suite logged "Push drain failed"
+    // on every run without anything going red.
+    expect(vapidSubject(undefined, "http://localhost:3000/")).toBe("mailto:push@localhost");
+  });
+
+  it("survives a value that is not a URL at all", () => {
+    expect(vapidSubject("nonsense", "also nonsense")).toBe("mailto:push@localhost");
   });
 });

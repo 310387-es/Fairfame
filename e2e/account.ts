@@ -106,6 +106,41 @@ export async function createAccount(page: Page, baseURL: string | undefined): Pr
     .getByRole("button", { name: /mock source/i })
     .first()
     .click();
+
+  /*
+    The **first** source now lands on `/welcome` (positioning win 2).
+
+    That is the digest-first onboarding working, and it is exactly what a new
+    customer should get: reviews exist, nothing has read them, so the next
+    screen composes the briefing rather than showing an empty dashboard. It
+    also means this setup can no longer assume it is still on `/locations`.
+
+    The setup waits for it and then leaves. Waiting is not politeness — it is
+    the only deterministic signal that the connect action finished, and the
+    first attempt at this raced: `waitForURL(/welcome|locations/)` matched
+    `/locations` instantly, because that is where the click happened, and the
+    client-side redirect then replaced the page a moment after the `goto`.
+
+    Every test below wants an account with reviews rather than a briefing, so
+    the setup navigates straight off. One analysis batch may already be in
+    flight by then, which is the price of the screen doing its job.
+  */
+  await page.waitForURL(/\/welcome/, { timeout: 20_000 });
+  await page.goto("/locations");
+
+  /*
+    Expand the row.
+
+    Arriving fresh rather than staying put means the branch is collapsed — W4.2
+    opens a row by itself only when it has *no* sources, and it now has one.
+    The connect click used to leave it open, which is why this line was not
+    needed before and is now.
+  */
+  await page
+    .getByRole("button", { name: /ayrıntılarını göster|show .* details/i })
+    .first()
+    .click();
+
   await expect(page.getByRole("button", { name: /şimdi eşitle|sync now/i }).first()).toBeVisible({
     timeout: 15_000,
   });

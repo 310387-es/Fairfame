@@ -100,25 +100,59 @@ Renames: Home→**Dashboard**, Inbox→**Reviews**, Digest→**Weekly Plan**, Me
 
 **W4.5 — Get Reviews richness.** **Done (6 Aug 2026)**, with one deviation recorded in `CLAUDE.md`: the funnel has three stages rather than five. Delivered needs a transport receipt nothing currently provides, and Clicked and Opened are one event without a tracking pixel — both are named in `src/collect/funnel.ts` rather than rendered as permanently empty columns. Contact picker and CSV import were already delivered in W2.2. Funnel across the top (Sent → Delivered → Opened → Clicked → Reviewed with conversion %); channel comparison (WhatsApp / SMS / Email / QR); a **QR poster / table-tent PDF generator** (branch name + logo) — *highest ROI-to-effort item in the audit for a Turkish café; consider pulling into Wave 2*; contact picker + CSV import.
 
-**Fold in here (P2):** reply composer richness (tone/length/signature/regenerate/variants); notification prefs = one default + compact per-branch override table; reply templates moved into the composer with inline "Save as template"; real Recent-activity timeline; chart axis fixes (volume on its own right axis; clamp rating domains to `[min-0.3, max+0.3]`; hide a series rather than draw a fragment).
+**Fold in here (P2): complete (8 Aug 2026).** Templates in the composer, the per-branch notification table and the real activity timeline landed with W4.1–W4.3; the last three closed on 8 Aug. Reply composer richness is a **split button** — tone and length are modifiers on one action, not two selects on the surface — with regenerate and a way back to the previous draft; "variants" is deliberately *not* three parallel generations, which would spend a plan's allowance three times per press. The signature is per branch and is never written by the model. Chart axes: volume already had its own hidden scale, and the rating domains are now `[min-0.3, max+0.3]` clamped into `[1,5]` (`src/components/ds/chart-scale.ts`) — the fixed `1–5` scale had a fair reason, and the padding is what bounds *both* failure modes with one constant.
 
 ---
 
 ## Wave 5 — Missing-features backlog  *(ranked; after the fixes)*
 
-1. **WhatsApp/SMS requests** (done in W2.2). 2. **Team invitations** (W1.9). 3. **Billing** (W1.8). 4. **More sources** — Facebook, Trustpilot, TripAdvisor, **Yemeksepeti / Getir / Trendyol Yemek** (the TR delivery platforms = the local moat), Google Q&A + Posts, App Store/Play. 5. **QR poster generator** (W4.5). 6. **Auto-reply rules** ("auto-post AI reply to 5★ with no text after 24h; queue the rest" — the AI-native time-saver, all pieces exist). 7. **Cross-source duplicate detection** (pgvector cosine + author/date window). 8. **Business hours + SLA calendar** (SLA counts weekends today). 9. **PWA + push** (owners live on their phone). 10. Google Q&A/Posts management. 11. Competitor benchmarking with real data (go-live). 12. Templates with variables + per-branch signatures. 13. CSV/POS import (Adisyo/Simpra). 14. **Onboarding wizard + demo workspace**. 15. Notification quiet hours.
+**Complete (8 Aug 2026), less the three items gated on the company.** Every
+buildable entry shipped; each is recorded in `CLAUDE.md` with the decisions and
+the deviations. Items 4, 10 and 11 need a credential obtained through a
+commercial relationship that does not exist yet, and are written up in
+`docs/13-go-live.md` § *Wave 5 backlog items that are gated on the company* so
+nobody re-opens the question.
+
+1. **WhatsApp/SMS requests** — done in W2.2. 2. **Team invitations** — W1.9.
+3. **Billing** — W1.8. 4. **More sources** — Facebook, Trustpilot, TripAdvisor,
+**Yemeksepeti / Getir / Trendyol Yemek** (the TR delivery platforms = the local
+moat), App Store/Play. **Gated**: the first three need an app review each; the
+three Turkish delivery platforms have no public API at all, so what this needs
+is a phone call rather than a module. All six are already *named* on
+`/connections` with a "Request this integration" button (W4.2). 5. **QR poster
+generator** — W4.5. 6. **Auto-reply rules** — done: a wordless five-star review
+is answered with a template the business wrote, never generated text, and
+`src/replies/auto.ts` explains why that is what the condition forces rather than
+a compromise. 7. **Cross-source duplicate detection** — done: it links and
+changes no aggregate. 8. **Business hours + SLA calendar** — done: the clock
+only counts the hours a branch is open, and saving hours re-dates the open
+queue. 9. **PWA + push** — done, less delivery to a real device, which cannot be
+automated past a browser's own permission prompt. 10. **Google Q&A/Posts
+management** — **gated**, and the note that matters is to ask for the scopes in
+the *same* Google verification submission as reviews. 11. **Competitor
+benchmarking with real data** — **gated**, exactly as P3-T6 recorded.
+12. **Templates with variables + per-branch signatures** — done; variables
+already existed, signatures are new and are never written by the model.
+13. **CSV/POS import** — done, and it grants no permission to message anybody.
+14. **Onboarding wizard + demo workspace** — done, together with the two
+positioning wins below. 15. **Notification quiet hours** — done; it holds the
+email and never the in-app row, and urgent does not pierce it.
 
 ---
 
 ## Positioning quick wins *(do inside Waves 1–2 — they make the wedge visible in the first 5 minutes)*
 
-1. **Demo workspace on first login** ("Explore with sample data" → a fully-populated Kadıköy café with a real digest) — value visible before the connect flow.
-2. **Digest-first onboarding** — connect Google → run analysis → compose a digest immediately over the backfill → land the user on it. Not "wait a week."
-3. **Compliance page** (İYS status + KVKK tooling + the no-rating-gating statement) — then put it on the pricing page. It's the one claim a competitor can't copy in a quarter.
+**All three complete (8 Aug 2026)**, late rather than inside Waves 1–2.
+
+1. **Demo workspace on first login** ("Explore with sample data" → a fully-populated Kadıköy café with a real digest) — value visible before the connect flow. **Done.** It builds a *separate organization*, not a flagged branch: sample reviews must never share a tenant with real ones, or every average and export has to know about a flag. Press the button and a real Action Digest with three evidence-bearing actions lands in about thirty-five seconds.
+2. **Digest-first onboarding** — connect Google → run analysis → compose a digest immediately over the backfill → land the user on it. Not "wait a week." **Done**, and it is the same pipeline as (1): the first source connected sends you to `/welcome`. It analyses only the week it briefs on — a digest reads one week, so waiting on a two-hundred-review backfill would be fifteen minutes of progress bar for information it never opens.
+3. **Compliance page** (İYS status + KVKK tooling + the no-rating-gating statement) — then put it on the pricing page. It's the one claim a competitor can't copy in a quarter. **Done as a page** (`/compliance`, a tab of Settings), with `recorded` and `registered` as separate figures because a `local` acceptance is not a registration. **Not done: putting it on the pricing page** — that is a marketing site, which does not live in this repository.
 
 ## Re-test gate
 
 **After Wave 1, re-run BOTH persona sessions** (founder audit + cafe-owner) on the fixed product — that's when a naive-user test finally produces signal instead of "it broke."
+
+**Status:** not run as a formal persona session. Every wave has been driven by hand in Chrome — that is where the defects listed in `CLAUDE.md` were found, and several of them (a stranded broadcast, a service worker that never resolved, a raw SQL string in a toast) are exactly what a naive-user test is for. What has *not* happened is somebody sitting down cold with no knowledge of the build and being watched. That needs a person who is not the author, and it is the one item on this document that cannot be closed by writing code.
 
 ## Deferred to go-live (post-company)
 

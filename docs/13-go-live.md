@@ -261,6 +261,61 @@ null forever.
 
 ---
 
+## Wave 5 backlog items that are gated on the company (W5-4, W5-10, W5-11)
+
+The remediation plan's Wave 5 is a ranked feature list, and three of its
+fifteen items cannot be built here however much time is spent on them. They are
+recorded so nobody re-opens the question and so the reason is the same reason
+Google and Meta are on this page: a credential obtained through a commercial
+relationship that does not exist yet.
+
+### W5-4 — more sources
+
+> Facebook, Trustpilot, TripAdvisor, **Yemeksepeti / Getir / Trendyol Yemek**
+> (the TR delivery platforms = the local moat), Google Q&A + Posts, App
+> Store/Play.
+
+The six that a Turkish café actually cares about are already **named on the
+Connections screen** (`src/connectors/roadmap.ts`, W4.2), with a "Request this
+integration" button that records demand in `integration_requests`. That is
+deliberately as far as it goes:
+
+- **Facebook, Trustpilot, TripAdvisor** need an app review each, exactly as
+  Google and Instagram do. The `Connector` interface is what makes them a day's
+  work once a key exists — `tests/lib/connector-contract.test.ts` is the
+  acceptance test a new one has to pass — and nothing about that changes by
+  writing a connector against documentation now.
+- **Yemeksepeti, Getir and Trendyol Yemek have no public API at all.** There is
+  no developer programme to apply to; access is a merchant agreement, and for
+  two of them a partner integration negotiated per account. This is the item on
+  the list with the highest value and the least engineering content: what it
+  needs is a phone call, not a module.
+
+A roadmap entry has **no `ProviderDescriptor` and must never gain one** —
+`PROVIDERS` is read by the registry, the connect flow, the sync scheduler and
+`pnpm golive`, all of which reasonably assume a descriptor means a connector
+exists behind it.
+
+### W5-10 — Google Q&A and Posts
+
+A different scope on the *same* OAuth client as reviews, so it costs nothing
+extra to ask for at Google's verification step — and it is a genuinely
+different product surface: questions are answered rather than replied to, and a
+Post is content published on a schedule, which is a composer and a calendar this
+product does not have. **Ask for the scope during step 1 below**, so the feature
+is a screen rather than a second approval round; building the screens first
+would be building against a scope nobody has granted.
+
+### W5-11 — competitor benchmarking with real data
+
+Already covered in full above (P3-T6). The framework, the flag and the
+"unverified" warning all ship; `COMPETITOR_SOURCE` defaults to `none`, which
+**refuses** rather than inventing a plausible number. Nothing further is
+buildable until a data source is chosen — and the permanent limitation on
+competitor *sentiment* is stated there and has not changed.
+
+---
+
 ## What is verified without any credentials
 
 These run today and gate every commit:
@@ -285,6 +340,9 @@ missing credential results in an attempted live call.
 ## Order to go live in
 
 1. **Google** — the fastest to value and the least entangled. One approval.
+   **Ask for the Q&A and Posts scopes in the same submission** (W5-10): it is
+   the same OAuth client, and a second verification round later costs weeks for
+   nothing.
 2. **İYS — registration, a BSP, and the adapter** — everything commercial is
    blocked until this is done, and it is the longest pole that does not depend
    on Meta. The opt-in tick and the upload worker are already built; what
