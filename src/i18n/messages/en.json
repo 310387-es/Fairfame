@@ -790,7 +790,8 @@
       "foldLabel": "fold here"
     },
     "posterLabel": "Poster",
-    "tableTent": "Table tent"
+    "tableTent": "Table tent",
+    "printGroup": "Print"
   },
   "contacts": {
     "title": "Contacts",
@@ -1523,7 +1524,8 @@
     "anonymousAuthor": "Anonymous",
     "starLabel": "{rating} out of 5",
     "showMore": "Show {count} more",
-    "backToList": "All widgets"
+    "backToList": "All widgets",
+    "previewNothingApproved": "Nothing is approved yet, so this widget has nothing to quote. Choose reviews under “What it can quote” below — approving one shows it on every widget, badge and public page you have."
   },
   "billing": {
     "title": "Plan and billing",

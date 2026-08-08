@@ -1,3 +1,4 @@
+import { sourceLabel } from "@/connectors/source-label";
 import { Inbox, MapPin, SearchX } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -211,7 +212,9 @@ export default async function InboxPage({
       language: review.language,
       postedAt: review.postedAt,
       source: review.source,
-      sourceLabel: view?.label ?? review.source,
+      // `sourceLabel` already falls back for a source with no descriptor —
+      // `?? review.source` printed the raw enum key.
+      sourceLabel: sourceLabel(review.source),
       reply: view?.reply ?? "none",
       url: review.url,
       sentiment: review.sentiment,
@@ -238,10 +241,7 @@ export default async function InboxPage({
   });
 
   const sourceLabels = Object.fromEntries(
-    (facets?.sources ?? []).map((source) => [
-      source.value,
-      describeProvider(source.value)?.label ?? source.value,
-    ]),
+    (facets?.sources ?? []).map((source) => [source.value, sourceLabel(source.value)]),
   );
 
   const filtered = hasActiveFilters(filters);

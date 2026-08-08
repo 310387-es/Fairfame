@@ -1,4 +1,4 @@
-import { sourceLabel } from "@/connectors/source-label";
+import { sourceShortLabel } from "@/connectors/source-label";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -187,7 +187,7 @@ export default async function LocationReviewsPage({ params }: PageProps) {
                   {review.authorName ? (
                     <span className="font-semibold text-ink-400">{review.authorName}</span>
                   ) : null}
-                  <span>{sourceLabel(review.source)}</span>
+                  <span>{sourceShortLabel(review.source)}</span>
                   {review.postedAt ? <span>{formatDate(review.postedAt, page.locale)}</span> : null}
                   {review.url ? (
                     // `nofollow ugc`: third-party links a business placed on a

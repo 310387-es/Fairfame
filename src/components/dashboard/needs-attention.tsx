@@ -1,10 +1,10 @@
+import { sourceLabel } from "@/connectors/source-label";
 import { AlertTriangle } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { AttentionRow as Row, type AttentionRowView } from "@/components/dashboard/attention-row";
 import { SectionCard } from "@/components/ds/section-card";
 import { Card } from "@/components/ui/card";
 import type { AttentionRow } from "@/dashboard/attention";
-import { describeProvider } from "@/connectors/capability-view";
 
 /**
  * The queue (Home live dashboard §4, widget 4).
@@ -66,7 +66,7 @@ export async function NeedsAttention({
     itemTypeLabel: row.itemType === "review" ? null : t(`itemType.${row.itemType}`),
     themes: row.themes.map((theme) => tThemes(theme)),
     branchName: branchNames.get(row.locationId) ?? null,
-    sourceLabel: describeProvider(row.source)?.label ?? row.source,
+    sourceLabel: sourceLabel(row.source),
     at: row.at.toISOString(),
     atLabel: format.relativeTime(row.at, now),
     preview: preview(row.text) ?? t("noText"),

@@ -459,6 +459,27 @@ export function WidgetBuilder({
             meta={saved ? undefined : t("previewUnsaved")}
             flush
           >
+            {/*
+              Why the preview is empty, in the reader's language.
+
+              The frame is the real renderer, so its empty state is the
+              *widget's* — rendered in the language its visitors read, which is
+              the branch's. On an English builder previewing a Turkish widget
+              that means a brand-new widget greets you with a Turkish sentence,
+              no reason, and no next step, while the list that fixes it is a
+              full screen further down. The frame is right to say what a visitor
+              would see; the panel around it is where the operator gets told.
+
+              Only when nothing is approved: once there is something to show,
+              an empty preview means the filters excluded it, which is a
+              different problem and one the settings beside it can answer.
+            */}
+            {approvedRevision === 0 ? (
+              <p className="border-t border-line-soft px-(--card-px) py-3 text-copy text-ink-400">
+                {t("previewNothingApproved")}
+              </p>
+            ) : null}
+
             <div className="border-t border-line-soft bg-canvas p-3">
               <iframe
                 ref={previewFrame}

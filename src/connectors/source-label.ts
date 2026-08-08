@@ -45,3 +45,35 @@ export const SOURCE_LABELS: Record<string, string> = {
 export function sourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? source.charAt(0).toUpperCase() + source.slice(1);
 }
+
+/**
+ * The short form, for where a source is *repeated* rather than named.
+ *
+ * Unifying the labels was right and it made two surfaces measurably worse:
+ * "Google" became "Google Business Profile" on every review card in a published
+ * widget and under every review on a hosted page — twenty-three characters of
+ * somebody else's brand, once per review, taking the room from the customer's
+ * words that are the entire point of both surfaces. A single-source business
+ * gets the same phrase on every row.
+ *
+ * The rule is the same one W4.1 settled for the review queue and this file's
+ * first version got wrong by having only one answer:
+ *
+ * - **Named once** — an analytics row, a filter, a report's per-source table,
+ *   a connections card — take the full name. It is being identified, and the
+ *   official name is what a business matches against their own account.
+ * - **Repeated per item** — a widget card, a hosted page's review, an approval
+ *   row — take this, or better, `ProviderMark` where an SVG can be drawn.
+ *
+ * Entries only where the full name is actually longer; everything else falls
+ * through, so there is no second list to keep in step.
+ */
+const SOURCE_SHORT_LABELS: Record<string, string> = {
+  google: "Google",
+  whatsapp: "WhatsApp",
+  firstparty: "Our site",
+};
+
+export function sourceShortLabel(source: string): string {
+  return SOURCE_SHORT_LABELS[source] ?? sourceLabel(source);
+}

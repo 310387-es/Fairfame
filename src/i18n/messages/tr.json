@@ -790,7 +790,8 @@
       "foldLabel": "buradan katlayın"
     },
     "posterLabel": "Poster",
-    "tableTent": "Masa kartı"
+    "tableTent": "Masa kartı",
+    "printGroup": "Yazdır"
   },
   "contacts": {
     "title": "Kişiler",
@@ -1523,7 +1524,8 @@
     "anonymousAuthor": "Anonim",
     "starLabel": "5 üzerinden {rating}",
     "showMore": "{count} tane daha göster",
-    "backToList": "Tüm bileşenler"
+    "backToList": "Tüm bileşenler",
+    "previewNothingApproved": "Henüz onaylanmış yorum yok, bu nedenle bu bileşenin gösterebileceği bir şey yok. Aşağıdaki “Neleri gösterebilir” bölümünden yorum seçin — bir yorumu onaylamak onu tüm bileşenlerinizde, rozetlerinizde ve herkese açık sayfalarınızda gösterir."
   },
   "billing": {
     "title": "Paket ve faturalama",

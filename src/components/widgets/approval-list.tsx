@@ -1,5 +1,6 @@
 "use client";
 
+import { ProviderMark } from "@/components/connections/provider-mark";
 import { sourceLabel } from "@/connectors/source-label";
 import { ListChecks } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -149,8 +150,26 @@ export function ApprovalList({
                   ) : null}
                   <span className="text-meta text-faint">
                     {candidate.authorName ?? t("anonymousAuthor")}
-                    <span aria-hidden> · </span>
-                    {sourceLabel(candidate.source)}
+                  </span>
+                  {/*
+                    The mark, not the name — the W4.1 rule, and this list is
+                    exactly the case it was written for. A single-source
+                    business has the same words on all fifty-eight rows, and
+                    unifying the source labels made it worse rather than better:
+                    "Google" became "Google Business Profile", so the repetition
+                    grew from six characters to twenty-three and pushed the
+                    customer's words further off the end of every line.
+
+                    The full name is still right where a source appears *once* —
+                    the analytics table, the sources filter above — because
+                    there it is being named rather than repeated.
+                  */}
+                  <span
+                    className="inline-flex shrink-0 items-center"
+                    title={sourceLabel(candidate.source)}
+                  >
+                    <ProviderMark provider={candidate.source} size={13} />
+                    <span className="sr-only">{sourceLabel(candidate.source)}</span>
                   </span>
                 </div>
                 {candidate.text ? (

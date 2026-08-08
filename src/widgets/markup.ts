@@ -1,4 +1,4 @@
-import { sourceLabel } from "../connectors/source-label.ts";
+import { sourceShortLabel } from "../connectors/source-label.ts";
 import type { Locale } from "../i18n/config.ts";
 import { SIZE_MESSAGE_TYPE, isBadgeLayout, type WidgetStyle } from "./config.ts";
 import type { PublicReview, WidgetContent } from "./public.ts";
@@ -112,7 +112,7 @@ function renderCard(
     meta.push(`<span class="rvw-author">${escape(review.authorName)}</span>`);
   }
   if (style.showSource) {
-    meta.push(`<span>${escape(sourceLabel(review.source))}</span>`);
+    meta.push(`<span>${escape(sourceShortLabel(review.source))}</span>`);
   }
   if (style.showDate && review.postedAt) {
     meta.push(`<span>${escape(formatDate(review.postedAt, locale))}</span>`);

@@ -153,10 +153,24 @@ export default async function RequestsPage() {
             campaign at once rather than one card at a time. */}
         <FunnelStrip funnel={funnel} />
 
-        <ul className="grid gap-3 lg:grid-cols-2">
+        {/*
+          One campaign per row, not two across.
+
+          Two-up gave each card 520px of a 1500px page, and a campaign is not a
+          tile — it carries a QR, a public link, five share actions, a recipient
+          picker and an address box. At 520px the share buttons wrapped with
+          "Open page" alone on a line, the send form was pushed below everything,
+          and 990px of the page stayed empty. `CampaignCard` splits into share
+          and send at `lg` instead, so the width goes to the content rather than
+          to a second column of white.
+
+          Comparing campaigns is not the job here — `FunnelStrip` above answers
+          that across all of them at once, which is why it is at the top.
+        */}
+        <ul className="flex flex-col gap-4">
           {cards.map((campaign) => (
-            // `min-w-0`: a grid item defaults to `min-width: auto`, so without it
-            // the track is floored at the card's min-content width and no amount
+            // `min-w-0`: a flex item defaults to `min-width: auto`, so without it
+            // the row is floored at the card's min-content width and no amount
             // of wrapping inside can bring the page back (P1-12).
             <li key={campaign.id} className="min-w-0">
               <CampaignCard campaign={campaign} canManage={canManage} />
