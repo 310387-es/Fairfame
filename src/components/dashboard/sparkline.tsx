@@ -73,6 +73,9 @@ export function TrendSparkline({
   }
   if (current.length > 1) segments.push(current.join(" "));
 
+  // The newest point that exists — the series may end on a gap.
+  const last = [...coordinates].reverse().find((point) => point !== null) ?? null;
+
   return (
     // Full width of whatever cell it sits in, not a fixed 70px box. At a fixed
     // size it read as a stray squiggle parked next to the number rather than as
@@ -89,6 +92,21 @@ export function TrendSparkline({
       aria-hidden
       className={cn("h-6 w-full overflow-visible", className)}
     >
+      {/*
+        **A dot on the last point, and no area fill.**
+
+        A 1.5px line 24px tall with no axis is hard to read at a glance — the
+        obvious fix is to fill under it, and that would be wrong here. This
+        sparkline baselines at the series *minimum* (see the note above), so a
+        filled area would measure from an arbitrary floor and imply a quantity
+        the shape does not carry. `VolumeSparkline` may fill, because it starts
+        at zero; this one may not.
+
+        A terminal dot instead: it marks where the series ends, which is the
+        value printed beside it, and gives the eye something to land on at this
+        size. It is the one sparkline convention that adds a fact rather than a
+        decoration.
+      */}
       {segments.map((segment) => (
         <polyline
           key={segment}
@@ -101,6 +119,28 @@ export function TrendSparkline({
           vectorEffect="non-scaling-stroke"
         />
       ))}
+
+      {last ? (
+        /*
+          A zero-length round-capped line, not a `<circle>`.
+
+          This SVG stretches with `preserveAspectRatio="none"`, so circle
+          geometry is scaled with it and the dot rendered as a flat ellipse.
+          `vectorEffect` fixes *stroke* width, not fill geometry — but a stroke
+          with a round cap and no length is drawn as a true circle at the pinned
+          width, whatever the transform does to the coordinate space.
+        */
+        <line
+          x1={last.x}
+          y1={last.y}
+          x2={last.x}
+          y2={last.y}
+          stroke="currentColor"
+          strokeWidth={5}
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      ) : null}
     </svg>
   );
 }

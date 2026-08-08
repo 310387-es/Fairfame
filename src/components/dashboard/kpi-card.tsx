@@ -63,7 +63,19 @@ export async function KpiCard({ kpi }: { kpi: Kpi }) {
     kpi.delta === null
       ? null
       : kpi.unit === "count"
-        ? format.number(Math.abs(kpi.delta) / 100, { style: "percent", maximumFractionDigits: 1 })
+        ? format.number(Math.abs(kpi.delta) / 100, {
+            style: "percent",
+            /*
+              No decimal past 100%.
+
+              A count's delta is a percentage change, and off a small base it
+              gets large fast: seven reviews to fifty printed "614.3%", where
+              the tenth of a percent is noise dressed as precision — nobody
+              acts differently at 614.3 than at 614. Below 100 the decimal
+              still earns its place, because 4.2% and 4.9% are different weeks.
+            */
+            maximumFractionDigits: Math.abs(kpi.delta) >= 100 ? 0 : 1,
+          })
         : kpi.unit === "rating"
           ? format.number(Math.abs(kpi.delta), { maximumFractionDigits: 1 })
           : /**
