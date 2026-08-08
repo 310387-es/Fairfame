@@ -2,6 +2,7 @@ import { AlarmClock, CheckCheck, ChevronRight, ThumbsDown, UserRound, X } from "
 import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { ProviderMark } from "@/components/connections/provider-mark";
 import { Chip, ChipGroup } from "@/components/ds/chip";
 import { isCanonicalTheme } from "@/reviews/taxonomy";
 import { MIN_THEME_COVERAGE } from "@/reviews/filters";
@@ -16,6 +17,7 @@ import {
   type ToggleableFilter,
 } from "@/reviews/filters";
 import type { FacetCounts } from "@/reviews/queries";
+import { cn } from "@/lib/utils";
 
 /**
  * Inbox filters (P1a-T9; quick filters and status in P2-T3).
@@ -244,6 +246,32 @@ export async function InboxFilterBar({
                 active={filters.sentiment === entry.value}
                 count={entry.count}
               >
+                {/*
+                  A dot in the sentiment's own colour.
+
+                  Positive, neutral and negative are three different things and
+                  rendered as three identical grey pills, so the chip a worried
+                  owner reaches for looked exactly like the two they do not. The
+                  colours already exist and already mean this — the split bars
+                  on the dashboard and the heatmap on Analytics use the same
+                  three — so this is the filter agreeing with the charts it
+                  filters.
+
+                  A dot rather than a tinted chip: the chip's own fill already
+                  carries *selected*, and two colour systems on one control is
+                  how a filter bar stops being readable.
+                */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "size-1.5 shrink-0 rounded-full",
+                    entry.value === "positive"
+                      ? "bg-sentiment-positive"
+                      : entry.value === "negative"
+                        ? "bg-sentiment-negative"
+                        : "bg-sentiment-neutral",
+                  )}
+                />
                 {sentimentLabel[entry.value]}
               </Chip>
             ))}
@@ -319,6 +347,14 @@ export async function InboxFilterBar({
                     active={filters.source === source.value}
                     count={source.count}
                   >
+                    {/*
+                      The provider's mark — the same drawn geometry the review
+                      row and the Connections screen use. A source is the one
+                      filter with a real-world identity attached, and "Google
+                      Business Profile" as plain text beside "First-party page"
+                      made two very different things look like two words.
+                    */}
+                    <ProviderMark provider={source.value} size={14} />
                     {sourceLabels[source.value] ?? source.value}
                   </Chip>
                 ))}
