@@ -60,12 +60,20 @@ export type ChartPoint = {
 export function ReputationChart({
   points,
   average,
+  ratingDomain,
+  ratingTicks,
+  ratingTickLabels,
   ratingLabel,
   volumeLabel,
 }: {
   points: ChartPoint[];
   /** The whole range's average rating — the same number the KPI card shows. */
   average: number | null;
+  /** Fitted to the data with padding — see `ds/chart-scale.ts`. */
+  ratingDomain: [number, number];
+  ratingTicks: number[];
+  /** Tick value → its formatted label, keyed by `String(value)`. */
+  ratingTickLabels: Record<string, string>;
   ratingLabel: string;
   volumeLabel: string;
 }) {
@@ -100,17 +108,27 @@ export function ReputationChart({
             minTickGap={28}
           />
 
-          {/* Stars are a fixed 1-5 scale, so the axis is fixed too. Letting it
-            auto-fit would make a 4.4 → 4.5 wobble look like a cliff. */}
+          {/*
+            Fitted to the data and padded, not pinned to 1–5 (W4 fold-in).
+
+            This axis was fixed, with a fair reason: an auto-fitted scale turns
+            a 4.4 → 4.5 wobble into a cliff. The fix was the wrong one. A real
+            business sits between roughly 4.1 and 4.7, so the fixed scale drew a
+            flat line in the top fifth of the box and answered "how are we
+            moving" with nothing at all. `ratingScale` pads by ±0.3 before
+            fitting, which bounds the zoom — the cliff and the flatline are held
+            off by the same constant. See `ds/chart-scale.ts`.
+          */}
           <YAxis
             yAxisId="rating"
-            domain={[1, 5]}
-            ticks={[1, 2, 3, 4, 5]}
+            domain={ratingDomain}
+            ticks={ratingTicks}
+            tickFormatter={(value: number) => ratingTickLabels[String(value)] ?? String(value)}
             tickLine={false}
             axisLine={false}
-            // One mono digit plus breathing room to the first gridline. The
-            // scale is fixed at 1–5, so this never has to fit a wider label.
-            width={22}
+            // Wide enough for a half-star label ("4,5"), which the fitted scale
+            // can now produce; the old 22px was measured for a single digit.
+            width={30}
             tickMargin={6}
             // `--graphic-faint`, not a text token: axis ticks are non-text
             // graphics and sit one step below the AA text floor by design.

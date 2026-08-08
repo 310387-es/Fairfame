@@ -9,6 +9,7 @@ import { childLogger } from "../lib/logger.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import { MAX_REPLY_CHARS } from "../prompts/index.ts";
 import { boundOutput } from "../ai/guardrails.ts";
+import { appendSignature, type ReplyStyle } from "./style.ts";
 
 /**
  * The reply lifecycle: draft → edit → approve → post (P1a-T6).
@@ -104,11 +105,38 @@ export async function repliesForReviews(
   return new Map(rows.map((row) => [row.reviewId, row]));
 }
 
+/**
+ * A branch's configured sign-off, for the composer (W5-12).
+ *
+ * The Inbox needs it to offer "Add signature" on a reply somebody types
+ * themselves — the AI path gets it applied server-side in
+ * `draftReplyForReview`, but a hand-written reply never passes through here at
+ * all, and a signature that only lands on generated text is a signature the
+ * business cannot rely on.
+ */
+export async function replySignatureFor(
+  tx: TenantDatabase,
+  organizationId: string,
+  locationId: string,
+): Promise<string | null> {
+  const [row] = await tx
+    .select({ signature: schema.locations.replySignature })
+    .from(schema.locations)
+    .where(
+      and(eq(schema.locations.organizationId, organizationId), eq(schema.locations.id, locationId)),
+    )
+    .limit(1);
+
+  const trimmed = row?.signature?.trim() ?? "";
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 type ReviewContext = {
   reviewId: string;
   locationId: string;
   locationName: string;
   brandTone: string | null;
+  replySignature: string | null;
   source: string;
   sourceReviewId: string;
   text: string | null;
@@ -127,6 +155,7 @@ async function loadReview(
       locationId: schema.reviews.locationId,
       locationName: schema.locations.name,
       brandTone: schema.locations.brandTone,
+      replySignature: schema.locations.replySignature,
       source: schema.reviews.source,
       sourceReviewId: schema.reviews.sourceReviewId,
       text: schema.reviews.text,
@@ -180,6 +209,14 @@ export type DraftArgs = {
   reviewId: string;
   /** Overrides the location's configured voice for this draft only. */
   brandTone?: string | null;
+  /**
+   * Stance and length asked for on this draft (W4 fold-in).
+   *
+   * Optional, and omitting it reproduces the previous behaviour exactly — the
+   * digest pipeline drafts on a schedule with nobody to ask, and a scheduled
+   * draft should not silently acquire whatever stance the last person picked.
+   */
+  style?: ReplyStyle;
 };
 
 /**
@@ -232,8 +269,14 @@ export async function draftReplyForReview(args: DraftArgs): Promise<ReplyRow> {
       : review.brandTone
         ? { brandTone: review.brandTone }
         : {}),
+    ...(args.style ? { style: args.style } : {}),
     tx,
   });
+
+  // The branch's signature goes on after generation, never in the prompt: a
+  // model asked to sign off invents a name, and a name is the one thing a reply
+  // must not make up. Idempotent, so regenerating cannot sign twice.
+  const draftText = appendSignature(outcome.reply, review.replySignature);
 
   // Metered only on success. A refusal or a provider error produced no draft,
   // and charging for it would make an outage look like usage.
@@ -243,11 +286,11 @@ export async function draftReplyForReview(args: DraftArgs): Promise<ReplyRow> {
     organizationId,
     reviewId,
     authorUserId: actorUserId,
-    text: outcome.reply,
+    text: draftText,
     status: "draft" as const,
     aiGenerated: true,
     edited: false,
-    originalText: outcome.reply,
+    originalText: draftText,
     promptId: outcome.promptId,
     model: outcome.model,
     lastError: null,

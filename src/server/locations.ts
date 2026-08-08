@@ -14,6 +14,8 @@ import { FIRST_PARTY_PROVIDER } from "@/connectors/firstparty";
 import { getProvider, resolveMode } from "@/connectors/providers";
 import { requestAnalysis, requestNotifications } from "@/jobs/client";
 import { connectSourceSchema, parseCreateLocation, syncNowSchema } from "@/server/location-input";
+import { MAX_BRAND_TONE_CHARS } from "@/prompts/index";
+import { MAX_SIGNATURE_CHARS } from "@/replies/style";
 import { setPublicPage } from "@/seo/store";
 
 /**
@@ -306,6 +308,79 @@ export async function setPublicPageAction(input: {
     return { ok: true, slug: state.slug ?? undefined };
   } catch (error) {
     log.warn({ err: error }, "setPublicPage failed");
+    return toActionResult(error);
+  }
+}
+
+/**
+ * The branch's voice: how its replies sound, and how they are signed (W5-12).
+ *
+ * Both fields have always existed in the prompt path and neither has ever had a
+ * control — `brand_tone` has been read by `draftReplyForReview` since P1a-T6
+ * with no way to set it, which is the same as not having the feature. A column
+ * nothing writes is the `competitor_snapshots` mistake in the other direction.
+ *
+ * Admin, because these two strings appear on every public reply that branch
+ * sends, under the business's name.
+ *
+ * Empty means unset, not empty-string: the prompt falls back to a neutral
+ * default for a null tone, and a signature of `""` would otherwise start
+ * appending two blank lines to every draft.
+ */
+export async function setLocationVoiceAction(input: {
+  locationId: string;
+  brandTone: string;
+  replySignature: string;
+}): Promise<ActionResult> {
+  const parsed = z
+    .object({
+      locationId: z.uuid(),
+      brandTone: z.string().trim().max(MAX_BRAND_TONE_CHARS),
+      replySignature: z.string().trim().max(MAX_SIGNATURE_CHARS),
+    })
+    .safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error, "That is longer than we can use.");
+
+  try {
+    await withAuthenticatedTenant(
+      async (tx, actor) => {
+        const [row] = await tx
+          .update(schema.locations)
+          .set({
+            brandTone: parsed.data.brandTone.length > 0 ? parsed.data.brandTone : null,
+            replySignature:
+              parsed.data.replySignature.length > 0 ? parsed.data.replySignature : null,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.locations.id, parsed.data.locationId))
+          .returning({ id: schema.locations.id });
+
+        // RLS scopes the UPDATE to this tenant, so an empty result is "no such
+        // branch here" rather than a permission failure.
+        if (!row) throw new Error("That location does not exist.");
+
+        await tx.insert(schema.auditLogs).values({
+          organizationId: actor.organizationId,
+          actorUserId: actor.userId,
+          action: "location.voice_updated",
+          entity: `location:${parsed.data.locationId}`,
+          // The values themselves, because "who changed how our replies sign
+          // off" is answerable only if the log says what it changed to. Both
+          // are business copy the owner wrote, not personal data.
+          meta: {
+            brandTone: parsed.data.brandTone || null,
+            replySignature: parsed.data.replySignature || null,
+          },
+        });
+      },
+      { minimumRole: "admin" },
+    );
+
+    revalidatePath("/locations");
+    revalidatePath("/reviews");
+    return { ok: true };
+  } catch (error) {
+    log.warn({ err: error }, "setLocationVoice failed");
     return toActionResult(error);
   }
 }

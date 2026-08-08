@@ -61,6 +61,15 @@ export type ReviewListOptions = {
    * A checkbox with no bar to act on it is worse than no checkbox: it invites a
    * selection and then does nothing with it.
    */
+  /**
+   * The active branch's sign-off (W5-12), or null when it has none.
+   *
+   * On the options rather than on each review: this screen resolves exactly one
+   * location, so a per-review copy would be the same string repeated down the
+   * page — and the day the queue spans branches it becomes a review-level field
+   * in one edit, which is the moment it genuinely differs per row.
+   */
+  replySignature?: string | null;
 };
 
 /**
@@ -223,6 +232,7 @@ export async function ReviewList({
                   canUseAi={options.canUseAi}
                   canApprove={options.canApprove}
                   maxChars={MAX_REPLY_CHARS}
+                  signature={options.replySignature ?? null}
                   /*
                     Open already when a reply is owed.
 

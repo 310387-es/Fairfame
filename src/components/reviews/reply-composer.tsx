@@ -1,13 +1,41 @@
 "use client";
 
 import { useAction } from "@/components/ui/use-action";
-import { Check, Loader2, PenLine, Send, Sparkles, Trash2 } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Loader2,
+  PenLine,
+  Send,
+  Signature,
+  Sparkles,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { TemplatePicker } from "@/components/reviews/template-picker";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  appendSignature,
+  DEFAULT_REPLY_STYLE,
+  REPLY_LENGTHS,
+  REPLY_TONES,
+  type ReplyLength,
+  type ReplyStyle,
+  type ReplyTone,
+} from "@/replies/style";
 import {
   approveReplyAction,
   discardReplyAction,
@@ -35,6 +63,24 @@ import {
  * when that allowance runs out — or a plan never had it — an owner must still
  * be able to answer a customer. So "Write a reply" sits beside "Draft with AI"
  * and shares everything after it.
+ *
+ * ## Tone, length, signature, regenerate (W4 fold-in)
+ *
+ * Three additions, and each earns its place by answering something the composer
+ * previously could not:
+ *
+ *   - **Tone and length** hang off the draft button as a split menu rather than
+ *     sitting on the surface as two selects. They are modifiers on one action,
+ *     and a person who never opens them gets exactly the draft they got before.
+ *   - **Regenerate** is the same draft action pressed again, which is why it
+ *     appears on an existing *draft* and never on an approved reply — the server
+ *     refuses that, and a button whose only outcome is an error is worse than no
+ *     button. The text it replaces is kept, so "try again" is not a one-way
+ *     door: `Undo2` puts the previous generation back without a second call.
+ *   - **The signature** is the branch's, appended by the same idempotent helper
+ *     the server uses on AI drafts. Offered rather than automatic on the
+ *     hand-written path: somebody typing their own reply may well be signing it
+ *     in their own words already.
  */
 
 export type ReplyState = {
@@ -56,6 +102,8 @@ export type ReplyComposerProps = {
   maxChars: number;
   /** Start expanded — the caller decides, from whether a reply is owed. */
   openByDefault?: boolean;
+  /** This branch's configured sign-off, or null when it has none (W5-12). */
+  signature?: string | null;
 };
 
 export function ReplyComposer({
@@ -65,6 +113,7 @@ export function ReplyComposer({
   canApprove,
   maxChars,
   openByDefault = false,
+  signature = null,
 }: ReplyComposerProps) {
   const t = useTranslations("replies");
   const { run, pending } = useAction();
@@ -75,6 +124,16 @@ export function ReplyComposer({
   // previous generation, and React documents this as the supported pattern.
   const [serverText, setServerText] = useState(reply?.text ?? "");
   const [text, setText] = useState(reply?.text ?? "");
+  /**
+   * The draft that was on screen before the last regeneration.
+   *
+   * Held in the component, not the database: it is a within-the-minute "no, the
+   * other one was better", and persisting every superseded generation would
+   * mean keeping copies of text somebody has explicitly discarded. Cleared on
+   * every save, because once a version is stored it is the one that exists.
+   */
+  const [previousText, setPreviousText] = useState<string | null>(null);
+  const [style, setStyle] = useState<ReplyStyle>(DEFAULT_REPLY_STYLE);
   /**
    * Open already when the review is waiting for a reply.
    *
@@ -95,6 +154,10 @@ export function ReplyComposer({
   const [writing, setWriting] = useState(openByDefault);
 
   if (serverText !== (reply?.text ?? "")) {
+    // A regeneration landed. Keep what it replaced — but only when there was
+    // something to keep, or the first draft would offer to restore an empty
+    // editor.
+    if (serverText.trim().length > 0) setPreviousText(serverText);
     setServerText(reply?.text ?? "");
     setText(reply?.text ?? "");
   }
@@ -103,6 +166,45 @@ export function ReplyComposer({
   const approved = reply?.status === "approved";
   const dirty = reply !== null && text.trim() !== reply.text.trim();
   const over = text.length > maxChars;
+  const signed = signature !== null && appendSignature(text, signature) === text.trimEnd();
+
+  const draftControls = canUseAi ? (
+    <DraftControls
+      pending={pending}
+      style={style}
+      onStyleChange={setStyle}
+      label={reply === null ? t("draftWithAi") : t("regenerate")}
+      onDraft={() => run(() => draftReplyAction({ reviewId, style }))}
+    />
+  ) : null;
+
+  const signatureButton =
+    signature && !signed ? (
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        disabled={pending}
+        onClick={() => setText((current) => appendSignature(current, signature))}
+      >
+        <Signature className="size-4" aria-hidden />
+        {t("addSignature")}
+      </Button>
+    ) : null;
+
+  const restoreButton =
+    previousText !== null && previousText !== text ? (
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        disabled={pending}
+        onClick={() => setText(previousText)}
+      >
+        <Undo2 className="size-4" aria-hidden />
+        {t("restorePrevious")}
+      </Button>
+    ) : null;
 
   if (posted) {
     return (
@@ -162,22 +264,9 @@ export function ReplyComposer({
                 It replaces the text rather than appending, which is what
                 "draft" means and what the collapsed button always did.
               */}
-              {canUseAi ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => run(() => draftReplyAction({ reviewId }))}
-                >
-                  {pending ? (
-                    <Loader2 className="size-4 animate-spin" aria-hidden />
-                  ) : (
-                    <Sparkles className="size-4" aria-hidden />
-                  )}
-                  {t("draftWithAi")}
-                </Button>
-              ) : null}
+              {draftControls}
+
+              {signatureButton}
 
               <span
                 className={cn(
@@ -243,20 +332,7 @@ export function ReplyComposer({
             />
 
             {canUseAi ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={pending}
-                onClick={() => run(() => draftReplyAction({ reviewId }))}
-              >
-                {pending ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                ) : (
-                  <Sparkles className="size-4" aria-hidden />
-                )}
-                {t("draftWithAi")}
-              </Button>
+              draftControls
             ) : (
               <p className="text-copy text-muted-foreground">{t("notEntitled")}</p>
             )}
@@ -298,12 +374,28 @@ export function ReplyComposer({
               onPick={(body) => setText(body)}
             />
 
+            {/* Regenerating replaces a draft in place, which the server allows
+                only while it *is* a draft — so this is absent once approved
+                rather than present and refused. */}
+            {approved ? null : draftControls}
+
+            {approved ? null : restoreButton}
+
+            {approved ? null : signatureButton}
+
             <Button
               type="button"
               size="sm"
               variant="outline"
               disabled={pending || !dirty || over || text.trim().length === 0}
-              onClick={() => run(() => saveReplyAction({ replyId: reply.id, text }))}
+              onClick={() =>
+                run(async () => {
+                  const result = await saveReplyAction({ replyId: reply.id, text });
+                  // What is stored is now the only version there is.
+                  if (result.ok) setPreviousText(null);
+                  return result;
+                })
+              }
             >
               {t("save")}
             </Button>
@@ -354,5 +446,98 @@ export function ReplyComposer({
         <p className="text-copy text-destructive">{t("lastError", { reason: reply.lastError })}</p>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * "Draft with AI", with its two modifiers behind a caret.
+ *
+ * A split button rather than two selects on the surface: tone and length are
+ * settings *on* an action, not decisions of their own, and most drafts are
+ * taken as they come. Putting them in the row would spend two controls' worth
+ * of attention on something the majority never touches — the same argument
+ * W4.4 made when it moved the report schedule off the Analytics page body.
+ *
+ * The chosen values are rendered under the button so a stance picked three
+ * reviews ago is visible rather than surprising.
+ */
+function DraftControls({
+  pending,
+  style,
+  onStyleChange,
+  onDraft,
+  label,
+}: {
+  pending: boolean;
+  style: ReplyStyle;
+  onStyleChange: (style: ReplyStyle) => void;
+  onDraft: () => void;
+  label: string;
+}) {
+  const t = useTranslations("replies");
+
+  return (
+    <span className="inline-flex items-center">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="rounded-r-none border-r-0"
+        disabled={pending}
+        onClick={onDraft}
+      >
+        {pending ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+        ) : (
+          <Sparkles className="size-4" aria-hidden />
+        )}
+        {label}
+      </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="rounded-l-none px-2"
+            disabled={pending}
+            aria-label={t("styleLabel")}
+          >
+            <ChevronDown className="size-4" aria-hidden />
+          </Button>
+        </DropdownMenuTrigger>
+
+        {/* Wide enough that "As configured" and "Appreciative" stay on one
+            line. A radio label that wraps reads as two options. */}
+        <DropdownMenuContent align="start" className="min-w-44">
+          <DropdownMenuLabel>{t("tone")}</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={style.tone}
+            onValueChange={(value) => onStyleChange({ ...style, tone: value as ReplyTone })}
+          >
+            {REPLY_TONES.map((tone) => (
+              <DropdownMenuRadioItem key={tone} value={tone}>
+                {t(`tones.${tone}`)}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuLabel>{t("length")}</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={style.length}
+            onValueChange={(value) => onStyleChange({ ...style, length: value as ReplyLength })}
+          >
+            {REPLY_LENGTHS.map((length) => (
+              <DropdownMenuRadioItem key={length} value={length}>
+                {t(`lengths.${length}`)}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </span>
   );
 }

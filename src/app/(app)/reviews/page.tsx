@@ -37,6 +37,7 @@ import {
   toInboxFilters,
 } from "@/reviews/queries";
 import { listSavedViews } from "@/reviews/views";
+import { replySignatureFor } from "@/replies/service";
 import { listReplyTemplates } from "@/replies/templates";
 import { slaState } from "@/reviews/workflow";
 import {
@@ -116,6 +117,7 @@ export default async function InboxPage({
     views,
     assignees,
     templates,
+    replySignature,
   } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
@@ -158,6 +160,7 @@ export default async function InboxPage({
           views: [],
           assignees: [],
           templates: [],
+          replySignature: null,
         };
       }
 
@@ -199,6 +202,9 @@ export default async function InboxPage({
         // that produces unreachable work is worse than no picker.
         assignees: await assignableMembers(tx, actor.organizationId, active.id),
         templates: await listReplyTemplates(tx, actor.organizationId),
+        // The branch's sign-off, so a hand-written reply can be signed the same
+        // way a generated one is (W5-12).
+        replySignature: await replySignatureFor(tx, actor.organizationId, active.id),
       };
     },
   );
@@ -579,6 +585,7 @@ export default async function InboxPage({
                           // A client may read their reviews; running the queue is the
                           // business's job. The server enforces the same rule.
                           canTriage: roleAtLeast(actor.role, "member"),
+                          replySignature,
                         }}
                       />
                     </div>

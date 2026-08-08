@@ -646,7 +646,20 @@
     "published": "Yayında",
     "notPublished": "Yayında değil",
     "topThemes": "Öne çıkan temalar",
-    "ratingSr": "5 üzerinden {rating}"
+    "ratingSr": "5 üzerinden {rating}",
+    "voice": {
+      "heading": "Üslup",
+      "description": "Bu şubenin yanıtları nasıl konuşsun ve nasıl imzalansın.",
+      "toneLabel": "Marka sesi",
+      "tonePlaceholder": "sıcak ve samimi, kurumsal değil",
+      "toneHelp": "Bu şube için yanıt yazılırken kullanılır. Boş bırakırsanız nötr bir ses kullanılır.",
+      "signatureLabel": "Yanıt imzası",
+      "signaturePlaceholder": "— Ayşe, Kadıköy",
+      "signatureHelp": "Yanıtın sonuna eklenir. Yapay zekâ yazmaz; yalnızca buraya yazdığınız şeyi söyler.",
+      "save": "Üslubu kaydet",
+      "toneIs": "Buradaki yanıtların sesi: {tone}",
+      "toneUnset": "Bu şube için marka sesi belirlenmemiş."
+    }
   },
   "publicPage": {
     "metaTitle": "{business} — {location} yorumları",
@@ -1390,7 +1403,25 @@
     "lastError": "Son deneme başarısız: {reason}",
     "useTemplate": "Şablon",
     "templatesLoading": "Yükleniyor…",
-    "templatesEmpty": "Henüz şablon yok."
+    "templatesEmpty": "Henüz şablon yok.",
+    "regenerate": "Yeniden dene",
+    "restorePrevious": "Öncekine dön",
+    "addSignature": "İmza ekle",
+    "styleLabel": "Üslup ve uzunluk",
+    "tone": "Üslup",
+    "length": "Uzunluk",
+    "tones": {
+      "default": "Ayarlandığı gibi",
+      "warm": "Sıcak",
+      "formal": "Resmî",
+      "apologetic": "Özür dileyen",
+      "appreciative": "Teşekkür eden"
+    },
+    "lengths": {
+      "short": "Kısa",
+      "standard": "Standart",
+      "long": "Ayrıntılı"
+    }
   },
   "sample": {
     "metaTitle": "Örnek haftalık plan — Revira",

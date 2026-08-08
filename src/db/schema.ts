@@ -473,6 +473,22 @@ export const locations = pgTable(
      */
     brandTone: text("brand_tone"),
     /**
+     * How this branch signs a public reply (W5-12).
+     *
+     * Per location for the same reason `brand_tone` is: the person answering
+     * for the flagship is not the person answering for the airport kiosk, and
+     * "— Ayşe, Kadıköy Şubesi" is the half of a reply that makes it read as
+     * written by somebody rather than issued by a company.
+     *
+     * **Appended after generation, never asked of the model.** The draft system
+     * prompt forbids a signature block on purpose: a generated sign-off is a
+     * generated *name*, which is precisely the class of fact a reply may not
+     * invent. `appendSignature` in `src/replies/style.ts` is the only writer,
+     * and it is idempotent because a regenerated draft lands on text that may
+     * already carry it.
+     */
+    replySignature: text("reply_signature"),
+    /**
      * How many hours the team gives itself to respond here (P2-T1).
      *
      * Per location and nullable, because the target is a property of how a place

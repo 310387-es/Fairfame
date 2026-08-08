@@ -646,7 +646,20 @@
     "published": "Published",
     "notPublished": "Not published",
     "topThemes": "Top themes",
-    "ratingSr": "{rating} out of 5"
+    "ratingSr": "{rating} out of 5",
+    "voice": {
+      "heading": "Voice",
+      "description": "How replies from this branch sound, and how they sign off.",
+      "toneLabel": "Brand voice",
+      "tonePlaceholder": "warm and informal, never corporate",
+      "toneHelp": "Used when drafting replies for this branch. Leave empty for a neutral voice.",
+      "signatureLabel": "Reply signature",
+      "signaturePlaceholder": "— Ayşe, Kadıköy",
+      "signatureHelp": "Added to the end of a reply. Never written by AI, so it can only say what you type here.",
+      "save": "Save voice",
+      "toneIs": "Replies here sound: {tone}",
+      "toneUnset": "This branch has no brand voice set."
+    }
   },
   "publicPage": {
     "metaTitle": "{business} — {location} reviews",
@@ -1390,7 +1403,25 @@
     "lastError": "Last attempt failed: {reason}",
     "useTemplate": "Template",
     "templatesLoading": "Loading…",
-    "templatesEmpty": "No templates yet."
+    "templatesEmpty": "No templates yet.",
+    "regenerate": "Try again",
+    "restorePrevious": "Restore previous",
+    "addSignature": "Add signature",
+    "styleLabel": "Tone and length",
+    "tone": "Tone",
+    "length": "Length",
+    "tones": {
+      "default": "As configured",
+      "warm": "Warm",
+      "formal": "Formal",
+      "apologetic": "Apologetic",
+      "appreciative": "Appreciative"
+    },
+    "lengths": {
+      "short": "Short",
+      "standard": "Standard",
+      "long": "Detailed"
+    }
   },
   "sample": {
     "metaTitle": "A sample weekly plan — Revira",

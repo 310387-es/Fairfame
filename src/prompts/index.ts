@@ -1,4 +1,5 @@
 import { UNTRUSTED_SYSTEM_RULE, wrapUntrusted, type WrappedUntrusted } from "../ai/guardrails.ts";
+import { DEFAULT_REPLY_STYLE, styleInstructions, type ReplyStyle } from "../replies/style.ts";
 import { themesForVertical } from "../reviews/taxonomy.ts";
 import type { LlmRequest } from "../ai/types.ts";
 
@@ -233,13 +234,26 @@ export function draftReplyPrompt(args: {
   businessName: string;
   /** The owner's configured brand voice, e.g. "warm and informal". */
   brandTone: string;
+  /**
+   * The stance and length asked for on *this* draft.
+   *
+   * Separate from `brandTone` deliberately — see `src/replies/style.ts`. The
+   * brand voice is who the business is; this is what this one customer is owed.
+   * Optional so every existing caller keeps its behaviour: the default stance
+   * contributes no line at all, so an unstyled draft is word-for-word the
+   * prompt `draft_reply@1` sent, plus one length target.
+   */
+  style?: ReplyStyle;
 }): BuiltPrompt {
   return buildPrompt({
-    id: "draft_reply@1",
+    // @2: carries the per-draft tone and length (W4 fold-in). Replies are not
+    // cached, so unlike `analyze_review@2` this needs no backfill decision.
+    id: "draft_reply@2",
     system: DRAFT_SYSTEM,
     instruction: [
       `Draft a reply on behalf of ${args.businessName}.`,
       `Tone: ${normalizeBrandTone(args.brandTone)}.`,
+      ...styleInstructions(args.style ?? DEFAULT_REPLY_STYLE),
       args.rating === null ? "" : `The reviewer gave ${args.rating} out of 5 stars.`,
       "Reply to the review below.",
     ]

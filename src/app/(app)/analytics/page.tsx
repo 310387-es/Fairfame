@@ -23,6 +23,7 @@ import {
   ResponsePercentilesCard,
 } from "@/components/analytics/rating-percentiles";
 import { ThemeTrends } from "@/components/analytics/theme-trends";
+import { ratingScale } from "@/components/ds/chart-scale";
 import { TrendChart, type TrendChartPoint } from "@/components/analytics/trend-chart";
 import { PageHeader } from "@/components/shell/page-header";
 import { parseRange, rangeWindow } from "@/dashboard/range";
@@ -210,6 +211,8 @@ export default async function InsightsPage({ searchParams }: PageProps) {
   // The numbers
   // ---------------------------------------------------------------------
   const rating = ratingTrend(current, previous, window);
+  // Fitted to the points, padded, clamped into the star scale (W4 fold-in).
+  const ratingAxis = ratingScale(rating.map((point) => point.value));
   const sentiment = sentimentTrend(current, previous, window);
   const volume = volumeTrend(current, window);
   const themes = themeTrends(current, previous, window);
@@ -401,10 +404,17 @@ export default async function InsightsPage({ searchParams }: PageProps) {
         <>
           {/* Are we improving? Three measures, same buckets, read together. */}
           <div className="grid gap-(--grid-gap) lg:grid-cols-3">
+            {/*
+              The rating axis is fitted to the data with ±0.3 of padding rather
+              than pinned to 1–5 (W4 fold-in). A business that lives between 4.1
+              and 4.7 got a flat line in the top fifth of a fixed scale; the
+              padding is what keeps the fitted one from reading as a cliff. Same
+              module as Home's chart, so the two cannot disagree about it.
+            */}
             {trend("rating", rating, (value) => number(value, 1), {
-              domain: [1, 5],
-              ticks: [1, 2, 3, 4, 5],
-              tickRender: (value) => number(value, 0),
+              domain: ratingAxis.domain,
+              ticks: ratingAxis.ticks,
+              tickRender: (value) => number(value, ratingAxis.decimals),
             })}
             {/*
               The **positive share**, 0–100%, not a signed score on a −1…1 axis

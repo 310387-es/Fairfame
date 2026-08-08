@@ -2,6 +2,7 @@ import { z } from "zod";
 import { LOCALES } from "../i18n/config.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import { analyzeReviewPrompt, draftReplyPrompt, MAX_REPLY_CHARS } from "../prompts/index.ts";
+import type { ReplyStyle } from "../replies/style.ts";
 import { normalizeThemes } from "../reviews/taxonomy.ts";
 import { runAi } from "./client.ts";
 import { boundOutput } from "./guardrails.ts";
@@ -156,6 +157,8 @@ export type DraftArgs = {
   rating: number | null;
   businessName: string;
   brandTone?: string;
+  /** Stance and length for this one draft (W4 fold-in). See `replies/style.ts`. */
+  style?: ReplyStyle | undefined;
   tx?: TenantDatabase | undefined;
   provider?: LlmProvider | undefined;
 };
@@ -180,6 +183,7 @@ export async function draftReply(args: DraftArgs): Promise<DraftOutcome> {
     rating: args.rating,
     businessName: args.businessName,
     brandTone: args.brandTone ?? "warm, professional and specific",
+    ...(args.style ? { style: args.style } : {}),
   });
 
   const { response, costUsd, listCostUsd } = await runAi({

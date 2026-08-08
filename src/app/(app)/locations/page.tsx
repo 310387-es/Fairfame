@@ -89,6 +89,11 @@ export default async function LocationsPage({
           name: schema.locations.name,
           address: schema.locations.address,
           category: schema.locations.category,
+          // How this branch's replies sound and sign off (W5-12). Read here
+          // rather than in `loadLocationFacts` because they are settings, not
+          // figures — the facts loader answers "how is this branch doing".
+          brandTone: schema.locations.brandTone,
+          replySignature: schema.locations.replySignature,
         })
         .from(schema.locations)
         .where(eq(schema.locations.organizationId, actor.organizationId))
@@ -182,11 +187,15 @@ export default async function LocationsPage({
     const publicPage = publicPages.get(location.id) ?? { slug: null, published: false };
 
     const detailRow: LocationRow = {
-      ...location,
+      id: location.id,
+      name: location.name,
+      address: location.address,
+      category: location.category,
       reviewCount: fact?.reviews ?? 0,
       sources,
       connectable: connectableCatalogue.filter((source) => !connected.has(source.provider)),
       publicPage,
+      voice: { brandTone: location.brandTone, replySignature: location.replySignature },
     };
 
     const rating = fact?.rating ?? null;

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { withAuthenticatedTenant } from "@/auth/session";
 import { childLogger } from "@/lib/logger";
 import { MAX_REPLY_CHARS } from "@/prompts/index";
+import { REPLY_LENGTHS, REPLY_TONES } from "@/replies/style";
 import {
   approveReply,
   discardReply,
@@ -32,7 +33,17 @@ import { invalidInput, toActionResult, type ActionResult } from "@/server/action
 
 const log = childLogger({ module: "server/replies" });
 
-const reviewIdSchema = z.object({ reviewId: z.uuid() });
+/**
+ * The draft request, with its optional style.
+ *
+ * `z.enum` over the closed lists rather than a free string: tone and length
+ * reach the *instruction* half of a prompt, and the one rule this codebase has
+ * about that position is that only bounded values may occupy it.
+ */
+const draftSchema = z.object({
+  reviewId: z.uuid(),
+  style: z.object({ tone: z.enum(REPLY_TONES), length: z.enum(REPLY_LENGTHS) }).optional(),
+});
 const replyIdSchema = z.object({ replyId: z.uuid() });
 const saveSchema = z.object({
   replyId: z.uuid(),
@@ -69,8 +80,9 @@ function toReplyResult<T>(error: unknown): ActionResult<T> {
  */
 export async function draftReplyAction(input: {
   reviewId: string;
+  style?: { tone: string; length: string };
 }): Promise<ActionResult<{ text: string }>> {
-  const parsed = reviewIdSchema.safeParse(input);
+  const parsed = draftSchema.safeParse(input);
   if (!parsed.success) return invalidInput(parsed.error, "Invalid review.");
 
   try {
@@ -81,6 +93,10 @@ export async function draftReplyAction(input: {
           organizationId: actor.organizationId,
           actorUserId: actor.userId,
           reviewId: parsed.data.reviewId,
+          // Absent means "as configured" — the same draft this action produced
+          // before styles existed, which is what Home's one-click queue asks
+          // for and what the digest pipeline needs from the service beneath it.
+          ...(parsed.data.style ? { style: parsed.data.style } : {}),
         }),
       { minimumRole: "member" },
     );

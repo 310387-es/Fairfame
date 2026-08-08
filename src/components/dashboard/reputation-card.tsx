@@ -1,5 +1,6 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import { KpiRow, KpiRowSkeleton } from "@/components/dashboard/kpi-row";
+import { ratingScale } from "@/components/ds/chart-scale";
 import { ReputationChart, type ChartPoint } from "@/components/dashboard/reputation-chart";
 import { Card } from "@/components/ui/card";
 import type { DashboardKpis, SeriesPoint } from "@/dashboard/metrics";
@@ -66,6 +67,25 @@ export async function ReputationCard({
 
   const total = series.reduce((sum, point) => sum + point.volume, 0);
 
+  /**
+   * The rating axis, fitted to the data with padding (W4 fold-in).
+   *
+   * The tick *labels* are prepared here rather than in the chart for the reason
+   * every other label on this card is: the locale lives on the server, and a
+   * half-star tick is `4,5` in Turkish. Recharts would have written `4.5`, and
+   * nobody would have filed it.
+   */
+  const scale = ratingScale(series.map((point) => point.rating));
+  const ratingTickLabels = Object.fromEntries(
+    scale.ticks.map((tick) => [
+      String(tick),
+      format.number(tick, {
+        minimumFractionDigits: scale.decimals,
+        maximumFractionDigits: scale.decimals,
+      }),
+    ]),
+  );
+
   return (
     <Card className="gap-0 py-0">
       <KpiRow kpis={kpis} />
@@ -116,6 +136,9 @@ export async function ReputationCard({
           <>
             <ReputationChart
               points={points}
+              ratingDomain={scale.domain}
+              ratingTicks={scale.ticks}
+              ratingTickLabels={ratingTickLabels}
               average={average}
               ratingLabel={ratingLabel}
               volumeLabel={t("volume")}

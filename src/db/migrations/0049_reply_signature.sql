@@ -1,0 +1,18 @@
+-- Per-branch reply signatures (W5-12, item 12 on the remediation backlog).
+--
+-- `brand_tone` has been on this table since P1a-T6 and says how a branch's
+-- replies should *sound*. This says who they are *from*.
+--
+-- Per location rather than per organization, by the same argument the column
+-- above it makes: a chain's flagship and its airport kiosk are answered by
+-- different people, and a signature naming the wrong one is worse than none.
+--
+-- Nullable, and null means unsigned — not "fall back to the organization". A
+-- signature is a name, and inheriting somebody else's name is the one failure
+-- mode this feature must not have.
+--
+-- The model never writes it. `DRAFT_SYSTEM` in `src/prompts/index.ts` forbids a
+-- signature block explicitly, and `appendSignature` in `src/replies/style.ts`
+-- attaches this value after generation — idempotently, because a regenerated
+-- draft frequently lands on text that already carries it.
+ALTER TABLE "locations" ADD COLUMN "reply_signature" text;

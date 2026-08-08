@@ -5,6 +5,7 @@ import { useFormatter, useNow, useTranslations } from "next-intl";
 import Link from "next/link";
 import { GoogleMapping } from "@/components/connections/google-mapping";
 import { PublicPageControl } from "@/components/locations/public-page-control";
+import { VoiceSettings } from "@/components/locations/voice-settings";
 import { SourceBadges } from "@/components/connections/source-badges";
 import { Button } from "@/components/ui/button";
 import type { SyncKind } from "@/connectors/capability-view";
@@ -64,6 +65,8 @@ export type LocationRow = {
   connectable: ConnectableSource[];
   /** The hosted review page (P3-T3). Null slug until it is first published. */
   publicPage: { slug: string | null; published: boolean };
+  /** How this branch's replies sound and sign off (W5-12). */
+  voice: { brandTone: string | null; replySignature: string | null };
 };
 
 export function LocationDetail({
@@ -190,6 +193,13 @@ export function LocationDetail({
           ))}
         </div>
       ) : null}
+
+      <VoiceSettings
+        locationId={location.id}
+        brandTone={location.voice.brandTone}
+        replySignature={location.voice.replySignature}
+        canManage={canManage}
+      />
 
       <PublicPageControl
         locationId={location.id}
