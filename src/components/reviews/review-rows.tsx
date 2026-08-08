@@ -498,8 +498,18 @@ export function ReviewRows({
                   overdue chip sits above it rather than inline with the
                   sentence, where it used to read as part of what the customer
                   wrote.
+
+                  **`sm:` on the fixed width, and that is the whole point.**
+                  7.5rem is 120px, which is nothing on a desktop row and 31% of
+                  a 390px phone. With the checkbox beside it, a review's text
+                  column came out around 150px — "Müzik o kadar yüksekti ki…"
+                  clipped mid-word on the second line, which is the exact defect
+                  W4.1 removed from this row on the desktop and left standing
+                  where it costs most. Below `sm` the column takes only what the
+                  date needs; alignment is a luxury of having room, and the
+                  customer's words are not.
                 */}
-                <div className="flex w-[7.5rem] shrink-0 flex-col items-end gap-1.5">
+                <div className="flex shrink-0 flex-col items-end gap-1.5 sm:w-[7.5rem]">
                   <span className="font-mono text-meta text-faint tabular-nums">
                     {review.postedAt}
                   </span>

@@ -1,4 +1,5 @@
-import { KpiCard } from "@/components/dashboard/kpi-card";
+import { getTranslations } from "next-intl/server";
+import { KpiCard, reputationHint } from "@/components/dashboard/kpi-card";
 import type { DashboardKpis, KpiKey } from "@/dashboard/metrics";
 
 /**
@@ -17,7 +18,9 @@ import type { DashboardKpis, KpiKey } from "@/dashboard/metrics";
 
 const ORDER: KpiKey[] = ["reputation", "rating", "volume", "responseRate"];
 
-export function KpiRow({ kpis }: { kpis: DashboardKpis }) {
+export async function KpiRow({ kpis }: { kpis: DashboardKpis }) {
+  const t = await getTranslations("home.kpi");
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4">
       {ORDER.map((key, index) => (
@@ -34,6 +37,19 @@ export function KpiRow({ kpis }: { kpis: DashboardKpis }) {
           <KpiCard kpi={kpis[key]} />
         </div>
       ))}
+
+      {/*
+        The score's composition, once, under the strip — phones only.
+
+        Inside the tile it is four lines at 180px wide and unbalances the row
+        (see `KpiCard`). It has to stay somewhere on a phone: `73 /100` names no
+        unit on its own, and W4.3 put this sentence in precisely because the
+        explanation had been a `title` attribute, which a touch screen has no
+        way to show.
+      */}
+      <p className="col-span-2 border-t border-line-inner px-(--card-px) py-2.5 text-meta text-pretty text-faint lg:hidden">
+        {reputationHint(t)}
+      </p>
     </div>
   );
 }

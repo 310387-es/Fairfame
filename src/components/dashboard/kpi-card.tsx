@@ -23,6 +23,25 @@ import { cn } from "@/lib/utils";
  * bubble beside "New reviews" decorated labels that already said those words —
  * and at 28px the number should be the only thing with weight in the cell.
  */
+
+/**
+ * How the score is made, in the reader's language.
+ *
+ * The percentages come from the weights the maths actually uses, so the
+ * sentence cannot drift from the formula — a hint claiming 65/35 beside a score
+ * computed 50/50 would be worse than none, because it would be believed.
+ *
+ * Exported because it renders in two places and must be one sentence: inside
+ * the tile from `lg` up, and under the whole strip below it, where `KpiRow` puts
+ * it so four lines of text cannot unbalance a two-across grid.
+ */
+export function reputationHint(t: (key: string, values: Record<string, number>) => string): string {
+  return t("reputation.hint", {
+    rating: Math.round(RATING_WEIGHT * 100),
+    sentiment: Math.round(SENTIMENT_WEIGHT * 100),
+  });
+}
+
 export async function KpiCard({ kpi }: { kpi: Kpi }) {
   const [t, format] = await Promise.all([getTranslations("home.kpi"), getFormatter()]);
 
@@ -45,13 +64,7 @@ export async function KpiCard({ kpi }: { kpi: Kpi }) {
    * score computed 50/50 would be worse than no tooltip, because it would be
    * believed.
    */
-  const explanation =
-    kpi.key === "reputation"
-      ? t("reputation.hint", {
-          rating: Math.round(RATING_WEIGHT * 100),
-          sentiment: Math.round(SENTIMENT_WEIGHT * 100),
-        })
-      : null;
+  const explanation = kpi.key === "reputation" ? reputationHint(t) : null;
 
   // The sign lives in the arrow, so the number itself is always positive —
   // "−3.1% down" reads as a double negative.
@@ -204,7 +217,16 @@ export async function KpiCard({ kpi }: { kpi: Kpi }) {
         broken rather than as annotated.
       */}
       {explanation ? (
-        <p className="mt-2.5 text-meta text-pretty text-faint">{explanation}</p>
+        /*
+          `hidden lg:block`: the strip is two across below `lg`, and at ~180px
+          this sentence runs to four lines — so the score tile came out twice
+          the height of the one beside it and left a hundred-odd pixels of dead
+          space in the cell next door. The sentence is not dropped on a phone,
+          which is the whole reason W4.3 added it; `KpiRow` renders it once
+          under the strip instead, where it has the full width and costs the
+          grid nothing.
+        */
+        <p className="mt-2.5 hidden text-meta text-pretty text-faint lg:block">{explanation}</p>
       ) : null}
     </div>
   );

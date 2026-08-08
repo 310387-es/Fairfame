@@ -1,7 +1,9 @@
 {
   "app": {
     "name": "Revira",
-    "tagline": "Yorum ve müşteri sesi yönetimi"
+    "tagline": "Yorum ve müşteri sesi yönetimi",
+    "authPanelBody": "Bağladığınız her kaynak, haftada tek bir kısa plana dönüşür — ne değişti ve bu konuda yapmaya değer üç şey.",
+    "authPanelLink": "Örnek bir haftalık plan görün"
   },
   "nav": {
     "home": "Panel",

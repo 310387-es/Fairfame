@@ -1,7 +1,9 @@
 {
   "app": {
     "name": "Revira",
-    "tagline": "Review and customer-voice management"
+    "tagline": "Review and customer-voice management",
+    "authPanelBody": "Every source you connect turns into one short plan a week — what changed, and the three things worth doing about it.",
+    "authPanelLink": "See a sample weekly plan"
   },
   "nav": {
     "home": "Dashboard",
