@@ -351,6 +351,13 @@
       "when": 1785791242127,
       "tag": "0049_reply_signature",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1785791243127,
+      "tag": "0050_sample_workspace",
+      "breakpoints": true
     }
   ]
 }

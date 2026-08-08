@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import { refreshPriority } from "../reviews/workflow.ts";
 import { getEnv } from "../lib/env.ts";
@@ -55,6 +55,20 @@ export type BatchOptions = {
   recompute?: boolean;
   /** Limit to one location. */
   locationId?: string | undefined;
+  /**
+   * Limit to reviews posted in a window (W5-14).
+   *
+   * Added for the first briefing, which is about **one week** and therefore has
+   * no reason to wait on a two-hundred-review backfill before it can be
+   * composed. Analysing the window and its predecessor is what the digest
+   * actually reads; the sweep fills in the rest afterwards, when nobody is
+   * watching a progress bar.
+   *
+   * Both bounds optional and both half-open the usual way: `from` inclusive,
+   * `to` exclusive, matching `weekWindow`.
+   */
+  postedFrom?: Date | undefined;
+  postedTo?: Date | undefined;
   /** Cap the batch. */
   limit?: number;
   /** Also compute and store embeddings. */
@@ -94,6 +108,8 @@ function scopeOf(options: BatchOptions) {
   return and(
     eq(schema.reviews.organizationId, options.organizationId),
     options.locationId ? eq(schema.reviews.locationId, options.locationId) : undefined,
+    options.postedFrom ? gte(schema.reviews.postedAt, options.postedFrom) : undefined,
+    options.postedTo ? lt(schema.reviews.postedAt, options.postedTo) : undefined,
     // A rating-only review has nothing to analyze.
     sql`${schema.reviews.text} is not null and length(trim(${schema.reviews.text})) > 0`,
   );

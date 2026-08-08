@@ -417,6 +417,24 @@ export const organizations = pgTable("organizations", {
    */
   billingProvider: text("billing_provider"),
   billingCustomerId: text("billing_customer_id"),
+  /**
+   * True for the sample workspace, and for nothing else (W5-14).
+   *
+   * The demo lives in its **own organization** rather than as a flagged branch
+   * inside a real one, and that is the load-bearing decision. A sample *branch*
+   * would put invented reviews in the same tenant as real ones, and every facts
+   * loader, every average and every export would then need to know about a flag
+   * — the shape `docs/13` records as the `competitor_snapshots` mistake. A
+   * separate organization is held apart by RLS, which is the strongest boundary
+   * the product has, and deleting it is one cascade.
+   *
+   * What reads it: the banner that says where you are, the workspace switcher's
+   * label, the billing prompt (suppressed — a sample workspace is not something
+   * to buy), and the action that removes it. **Nothing that computes a number
+   * ever reads it**, because there is no number here that could be confused
+   * with a real one.
+   */
+  isSample: boolean("is_sample").notNull().default(false),
   /** BetterAuth's organization metadata — it stores stringified JSON here, so
    *  this is deliberately text and kept separate from `settings`. */
   metadata: text("metadata"),

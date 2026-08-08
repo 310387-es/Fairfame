@@ -3,6 +3,7 @@
 import { Link2, MessageSquare, RefreshCw, ShieldCheck } from "lucide-react";
 import { useFormatter, useNow, useTranslations } from "next-intl";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { GoogleMapping } from "@/components/connections/google-mapping";
 import { PublicPageControl } from "@/components/locations/public-page-control";
 import { VoiceSettings } from "@/components/locations/voice-settings";
@@ -89,6 +90,7 @@ export function LocationDetail({
   // it explicitly keeps this render identical on the server and after
   // hydration, instead of each side reading its own Date.now().
   const now = useNow();
+  const router = useRouter();
   const { run, pending } = useAction();
 
   return (
@@ -167,12 +169,16 @@ export function LocationDetail({
                   variant="outline"
                   disabled={pending}
                   onClick={() =>
-                    run(() =>
-                      connectSourceAction({
+                    run(async () => {
+                      const result = await connectSourceAction({
                         locationId: location.id,
                         provider: source.provider,
-                      }),
-                    )
+                      });
+                      // See `available-source.tsx`: the first source lands on
+                      // the first briefing rather than an empty dashboard.
+                      if (result.ok && result.next) router.push(result.next);
+                      return result;
+                    })
                   }
                 >
                   <Link2 className="size-4" aria-hidden />

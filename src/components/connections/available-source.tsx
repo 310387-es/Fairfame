@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ProviderMark } from "@/components/connections/provider-mark";
@@ -61,14 +62,23 @@ export function AvailableSource({
   canManage: boolean;
 }) {
   const t = useTranslations("connections");
+  const router = useRouter();
   const { run, pending } = useAction();
   const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
 
   const connect = () => {
     if (locationId === "") return;
-    run(() => connectSourceAction({ locationId, provider: card.provider }), {
-      success: t("connected", { label: card.label }),
-    });
+    run(
+      async () => {
+        const result = await connectSourceAction({ locationId, provider: card.provider });
+        // The *first* source earns the first briefing (positioning win 2): the
+        // action decides that, not this component, because "first" is a fact
+        // about the database at the moment of the insert.
+        if (result.ok && result.next) router.push(result.next);
+        return result;
+      },
+      { success: t("connected", { label: card.label }) },
+    );
   };
 
   return (

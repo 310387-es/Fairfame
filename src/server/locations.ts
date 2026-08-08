@@ -102,7 +102,7 @@ export async function createLocationAction(formData: FormData): Promise<ActionRe
 export async function connectSourceAction(input: {
   locationId: string;
   provider: string;
-}): Promise<ActionResult> {
+}): Promise<ActionResult<{ next?: string }>> {
   const parsed = connectSourceSchema.safeParse(input);
   if (!parsed.success) return invalidInput(parsed.error, "Invalid location.");
 
@@ -152,11 +152,20 @@ export async function connectSourceAction(input: {
   }
 
   let organizationId = "";
+  let firstSource = false;
 
   try {
     await withAuthenticatedTenant(
       async (tx, actor) => {
         organizationId = actor.organizationId;
+
+        // Asked before the insert, so "first" means before this one.
+        const [prior] = await tx
+          .select({ id: schema.connections.id })
+          .from(schema.connections)
+          .where(eq(schema.connections.organizationId, actor.organizationId))
+          .limit(1);
+        firstSource = prior === undefined;
 
         const [location] = await tx
           .select({ id: schema.locations.id })
@@ -201,7 +210,20 @@ export async function connectSourceAction(input: {
     await requestNotifications(organizationId);
 
     revalidatePath("/", "layout");
-    return { ok: true };
+    /**
+     * The first source is the digest-first moment (positioning win 2).
+     *
+     * `docs/remediation-plan.md`: "connect Google → run analysis → compose a
+     * digest immediately over the backfill → land the user on it. Not 'wait a
+     * week.'" Until now the answer to "what happens after I connect" was an
+     * Inbox and a seven-day wait for the screen the product is sold on.
+     *
+     * Only on the **first** source. Somebody adding Instagram to a working
+     * account has read plenty of briefings and does not need to be sent to a
+     * progress bar; `firstSource` is decided inside the transaction, before the
+     * new row exists, so it means what it says.
+     */
+    return firstSource ? { ok: true, next: "/welcome" } : { ok: true };
   } catch (error) {
     log.warn({ err: error, provider }, "connectSource failed");
     return toActionResult(error);

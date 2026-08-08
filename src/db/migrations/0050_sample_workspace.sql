@@ -1,0 +1,22 @@
+-- The sample workspace (W5-14, and positioning win 1 in the remediation plan).
+--
+-- "Explore with sample data" needs somewhere to put the sample data, and the
+-- choice of *where* is the whole design.
+--
+-- The obvious answer is a flagged branch inside the person's real
+-- organization. It is wrong. Sample reviews would then live in the same tenant
+-- as real ones, and every facts loader, every average, every export and every
+-- digest would have to learn about a flag — with the failure mode that a
+-- forgotten one silently mixes invented reviews into a real rating. That is the
+-- lesson `competitor_snapshots` is absent for.
+--
+-- So a sample workspace is its own organization, held apart by the boundary
+-- this product already trusts most: RLS. Nothing that computes a number ever
+-- reads this column, because there is no number in a sample organization that
+-- could reach a real one. What reads it is the banner saying where you are, the
+-- workspace switcher's label, the billing prompt (suppressed — a demo is not
+-- something to buy), and the action that deletes it.
+--
+-- Default false, so every organization that already exists is real, which is
+-- the only correct answer for rows written before this column did.
+ALTER TABLE "organizations" ADD COLUMN "is_sample" boolean NOT NULL DEFAULT false;

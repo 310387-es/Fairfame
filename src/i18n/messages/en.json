@@ -1719,5 +1719,26 @@
       "instagram": "Needs Meta business verification and app review for the listed permissions.",
       "whatsapp": "Needs a WhatsApp Business Account, an approved template, and İYS registration."
     }
+  },
+  "onboarding": {
+    "title": "Reading your reviews",
+    "body": "We are reading what your customers wrote and turning it into this week's plan. Your reviews are already on the dashboard — this only adds the analysis.",
+    "analysing": "Analysed",
+    "counted": "{done} of {total} reviews",
+    "done": "Your first briefing is ready.",
+    "empty": "There are no reviews to brief on yet. Connect a source and we will do this then.",
+    "failed": "We could not finish the analysis. Everything is still here — the dashboard has your reviews.",
+    "openBriefing": "Open the briefing",
+    "skip": "Skip to the dashboard",
+    "sample": {
+      "pitch": "Not ready to connect anything? Look around a sample café first — real screens, sample reviews, a real weekly plan.",
+      "explore": "Explore with sample data",
+      "building": "Building the sample…"
+    },
+    "banner": {
+      "title": "Sample workspace.",
+      "body": "These reviews are generated, not yours. Switch workspaces from the menu at the top right.",
+      "remove": "Delete sample"
+    }
   }
 }

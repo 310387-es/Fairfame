@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ExploreSample } from "@/components/onboarding/explore-sample";
 
 /** Turns a display name into a URL-safe slug, Turkish characters included. */
 function slugify(value: string): string {
@@ -93,6 +94,12 @@ export function CreateOrganizationForm() {
             {t("createOrg")}
           </Button>
         </form>
+
+        {/* Under the form, never beside it. Somebody who came to set up their
+            own business should meet the form first; this is for the visitor who
+            wants to see the product before authorizing anything (positioning
+            win 1 in `docs/remediation-plan.md`). */}
+        <ExploreSample />
       </CardContent>
     </Card>
   );

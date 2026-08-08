@@ -10,6 +10,7 @@ import { Logo } from "@/components/brand/logo";
 import { LocaleSwitcher } from "@/components/shell/locale-switcher";
 import { LocationSwitcher } from "@/components/shell/location-switcher";
 import { MobileNav } from "@/components/shell/mobile-nav";
+import { SampleBanner } from "@/components/onboarding/sample-banner";
 import { NotificationBell } from "@/components/shell/notification-bell";
 import { SearchPalette } from "@/components/shell/search-palette";
 import { SidebarNav } from "@/components/shell/sidebar-nav";
@@ -25,6 +26,7 @@ import {
 import { getEntitlements } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
 import { unreadCounts } from "@/notifications/feed";
+import { isSampleOrganization } from "@/onboarding/sample";
 
 /**
  * The authenticated application shell.
@@ -66,6 +68,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const activeLocation = resolveActiveLocation(locations, await readActiveLocationCookie());
 
+  // One boolean, read once per request, by the banner and the trial footer. The
+  // demo is not something to buy, so the "choose a plan" prompt is suppressed
+  // inside it — see migration 0050 for the list of everything allowed to read
+  // this flag, and the rule that nothing computing a number is on it.
+  const isSample = await isSampleOrganization(actor.organizationId);
+
   return (
     <div className="flex min-h-screen flex-1">
       {/* The rail is ink on every authenticated screen. Full-bleed colour
@@ -92,11 +100,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         <SidebarNav />
 
-        <TrialFooter
-          isTrialing={entitlements.isTrialing}
-          trialEndsAt={entitlements.trialEndsAt}
-          planKey={entitlements.effectivePlanKey}
-        />
+        {isSample ? null : (
+          <TrialFooter
+            isTrialing={entitlements.isTrialing}
+            trialEndsAt={entitlements.trialEndsAt}
+            planKey={entitlements.effectivePlanKey}
+          />
+        )}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col bg-canvas">
@@ -110,11 +120,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               across as children — see `mobile-nav.tsx`. */}
           <MobileNav
             footer={
-              <TrialFooter
-                isTrialing={entitlements.isTrialing}
-                trialEndsAt={entitlements.trialEndsAt}
-                planKey={entitlements.effectivePlanKey}
-              />
+              isSample ? null : (
+                <TrialFooter
+                  isTrialing={entitlements.isTrialing}
+                  trialEndsAt={entitlements.trialEndsAt}
+                  planKey={entitlements.effectivePlanKey}
+                />
+              )
             }
           />
 
@@ -139,6 +151,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             block gap. Pages therefore never set their own outer spacing, and
             two pages cannot drift apart on it. */}
         <main className="mx-auto flex w-full max-w-(--content-max) flex-1 flex-col gap-(--grid-gap) px-4 py-[22px] md:px-(--page-gutter)">
+          {/* Above the page, on every screen. See the component: a banner that
+              only appears on the dashboard has stopped saying anything by the
+              time somebody is reading Analytics and wondering whose numbers
+              these are. */}
+          {isSample ? <SampleBanner canDelete={actor.role === "owner"} /> : null}
           {children}
         </main>
       </div>

@@ -1719,5 +1719,26 @@
       "instagram": "Meta işletme doğrulaması ve listelenen izinler için uygulama incelemesi gerekir.",
       "whatsapp": "WhatsApp Business hesabı, onaylı bir mesaj şablonu ve İYS kaydı gerekir."
     }
+  },
+  "onboarding": {
+    "title": "Yorumlarınız okunuyor",
+    "body": "Müşterilerinizin yazdıklarını okuyup bu haftanın planına dönüştürüyoruz. Yorumlarınız zaten panoda — burada yalnızca inceleme ekleniyor.",
+    "analysing": "İncelenen",
+    "counted": "{total} yorumun {done} tanesi",
+    "done": "İlk brifinginiz hazır.",
+    "empty": "Henüz brifing çıkarılacak yorum yok. Bir kaynak bağlayın, gerisini biz yapalım.",
+    "failed": "İnceleme tamamlanamadı. Her şey yerinde — yorumlarınız panoda duruyor.",
+    "openBriefing": "Brifingi aç",
+    "skip": "Panoya geç",
+    "sample": {
+      "pitch": "Henüz bir şey bağlamak istemiyor musunuz? Önce örnek bir kafeyi gezin — gerçek ekranlar, örnek yorumlar, gerçek bir haftalık plan.",
+      "explore": "Örnek veriyle gezin",
+      "building": "Örnek hazırlanıyor…"
+    },
+    "banner": {
+      "title": "Örnek çalışma alanı.",
+      "body": "Bu yorumlar üretilmiştir, size ait değildir. Sağ üstteki menüden çalışma alanı değiştirebilirsiniz.",
+      "remove": "Örneği sil"
+    }
   }
 }
