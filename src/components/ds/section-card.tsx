@@ -26,6 +26,7 @@ export function SectionCard({
   meta,
   link,
   action,
+  hideTitle = false,
   children,
   flush = false,
   className,
@@ -42,16 +43,35 @@ export function SectionCard({
   link?: { href: string; label: string };
   /** Anything else right-aligned — a toggle, a count, a button. */
   action?: ReactNode;
+  /**
+   * Keep the heading for assistive technology and take it off the screen.
+   *
+   * For a pane whose name the page has already said — the conversations list
+   * sits forty pixels under an `<h1>` reading "Conversations", and printing it
+   * twice is noise. A screen reader still needs it: two panes side by side with
+   * only one named is worse than either.
+   *
+   * The card keeps no header row at all when there is nothing else in it, so
+   * the pane does not open with an empty 44px band.
+   */
+  hideTitle?: boolean;
   children: ReactNode;
   flush?: boolean;
   className?: string;
   bodyClassName?: string;
 }) {
+  const bareHeader = hideTitle && !icon && !meta && !link && !action;
+
   return (
     <Card {...(id ? { id } : {})} className={cn("gap-0", className)}>
-      <header className="flex items-center gap-2.5 px-(--card-px) pb-3">
+      <header
+        className={cn(
+          "flex items-center gap-2.5 px-(--card-px) pb-3",
+          bareHeader && "sr-only pb-0",
+        )}
+      >
         {icon ? <IconTile icon={icon} tone={tone} /> : null}
-        <h2 className="text-title">{title}</h2>
+        <h2 className={cn("text-title", hideTitle && !bareHeader && "sr-only")}>{title}</h2>
         {meta ? <span className="text-meta text-faint">{meta}</span> : null}
 
         {link || action ? (

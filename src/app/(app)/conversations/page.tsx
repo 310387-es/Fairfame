@@ -5,6 +5,7 @@ import { resolveLocationScope } from "@/auth/scope";
 import { requireActor } from "@/auth/session";
 import { Composer, type ComposerTemplate } from "@/components/conversations/composer";
 import { EmptyState } from "@/components/ds/empty-state";
+import { Avatar } from "@/components/ds/avatar";
 import { SectionCard } from "@/components/ds/section-card";
 import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -166,7 +167,12 @@ export default async function MessagesPage({ searchParams }: PageProps) {
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <div className="grid gap-(--grid-gap) lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-start">
-        <SectionCard title={t("conversations")} icon={MessageSquare} flush>
+        {/*
+          No card heading: the page is already called Conversations, and the
+          card sat forty pixels under the `<h1>` saying it again. A pane's
+          title earns its place when it names something the page does not.
+        */}
+        <SectionCard title={t("conversations")} hideTitle flush>
           <ul className="divide-y divide-line-soft">
             {conversations.map((row) => {
               const active = row.contactId === selected.contactId;
@@ -185,6 +191,14 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                     )}
                   >
                     <div className="flex items-center gap-2">
+                      {/*
+                        The monogram every other person-surface in the product
+                        now carries — and this is the screen where the people
+                        *are* the content. It also does the work a chat list
+                        needs: at a glance the column is faces, not a wall of
+                        left-aligned text.
+                      */}
+                      <Avatar name={row.contactName} className="size-6" />
                       <span className="truncate text-copy font-semibold text-foreground">
                         {row.contactName ?? row.phone ?? t("unnamed")}
                       </span>
@@ -234,8 +248,24 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                   </div>
 
                   <p className="flex items-center gap-1.5 text-meta text-faint">
+                    {/*
+                      The clock, not just the date.
+
+                      `"short"` renders "Aug 8" — so three messages exchanged
+                      over an afternoon all read "Aug 8", which tells a reader
+                      nothing about the order or the gaps, and the gaps are the
+                      whole texture of a conversation. It matters here more than
+                      elsewhere because the reply window is measured in hours:
+                      "you can reply until Aug 9" is answered by knowing this
+                      arrived at 14:20, not that it arrived on Tuesday.
+                    */}
                     <time dateTime={message.createdAt.toISOString()}>
-                      {format.dateTime(message.createdAt, "short")}
+                      {format.dateTime(message.createdAt, {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </time>
                     {/*
                       The basis it went out on, in the thread. `docs/20`'s first
