@@ -4,6 +4,7 @@ import { can } from "../lib/entitlements.ts";
 import { childLogger } from "../lib/logger.ts";
 import { withTenant, type TenantDatabase } from "../lib/tenancy.ts";
 import { recipientsForLocation, shouldNotify } from "./preferences.ts";
+import { sendAfter } from "./quiet-hours.ts";
 
 /**
  * Turning a new review into notifications (P1a-T5).
@@ -268,6 +269,17 @@ export async function notifyPendingReviews(options: {
               : decision.deferEmail
                 ? ("deferred" as const)
                 : ("skipped" as const),
+            /*
+              Quiet hours hold the email and never the feed row (W5-15).
+
+              Computed here, at write time, rather than asked at send time: a
+              person changing their quiet hours should not retroactively
+              silence or release alerts that were already decided. And
+              deliberately with no exception for `urgent` — a one-star review
+              at 03:40 is not more actionable at 03:40, and a quiet window with
+              an asterisk is one nobody trusts enough to switch on.
+            */
+            sendAfter: sendAfter(now, recipient.preference.quiet),
             createdAt: now,
           },
         ];
@@ -544,6 +556,11 @@ export async function notifySlaBreaches(options: {
             ? ("deferred" as const)
             : ("skipped" as const);
 
+        // Same rule as an arrival alert, including for a breach: see the note
+        // on the other insert. A rule with an exception is one nobody switches
+        // on, and 03:40 does not make an overdue review more answerable.
+        const holdUntil = sendAfter(now, recipient.preference.quiet);
+
         if (rolledUp) {
           const payload: SlaRollupPayload = {
             count: reviews.length,
@@ -565,6 +582,7 @@ export async function notifySlaBreaches(options: {
               // nothing to roll up rather than colliding on a key.
               dedupeKey: `sla_rollup:${locationId}:${now.toISOString()}`,
               emailStatus,
+              sendAfter: holdUntil,
               createdAt: now,
             },
           ];
@@ -587,6 +605,7 @@ export async function notifySlaBreaches(options: {
             language: review.language,
           } satisfies ReviewNotificationPayload,
           dedupeKey: dedupeKeyFor("sla_breach", review.id),
+          sendAfter: holdUntil,
           emailStatus,
           createdAt: now,
         }));

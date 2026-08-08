@@ -670,8 +670,26 @@
       "scope": "Never used on a review with words in it, never below five stars, and never twice on the same review.",
       "noTemplates": "Write a reply template in Settings first — this rule posts one of yours, never something generated.",
       "save": "Save rule",
-      "readOnly": "Wordless 5★ reviews here are answered automatically after {hours} hours.",
+      "readOnly": "{hours, plural, =1 {Wordless 5★ reviews here are answered automatically after 1 hour.} other {Wordless 5★ reviews here are answered automatically after # hours.}}",
       "sampleAuthor": "Ayşe"
+    },
+    "hours": {
+      "heading": "Opening hours",
+      "description": "When this branch is open. Reply deadlines only count the hours you are actually here.",
+      "closed": "Closed",
+      "openAt": "{day} opens at",
+      "closeAt": "{day} closes at",
+      "effect": "Setting these re-dates the reviews still waiting for a reply: a Friday evening complaint stops being overdue on Saturday morning.",
+      "save": "Save hours",
+      "day": {
+        "sunday": "Sunday",
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday"
+      }
     }
   },
   "publicPage": {
@@ -1313,7 +1331,11 @@
       "saved": "Saved",
       "reset": "Use my default",
       "overridden": "Overrides your default",
-      "noLocations": "Add a location to set per-location preferences."
+      "noLocations": "Add a location to set per-location preferences.",
+      "quiet": "Quiet hours",
+      "quietFrom": "Quiet hours start",
+      "quietTo": "Quiet hours end",
+      "quietHelp": "Email waits until the window ends. The in-app alert still arrives straight away."
     }
   },
   "auth": {
@@ -1766,7 +1788,7 @@
     "title": "Reading your reviews",
     "body": "We are reading what your customers wrote and turning it into this week's plan. Your reviews are already on the dashboard — this only adds the analysis.",
     "analysing": "Analysed",
-    "counted": "{done} of {total} reviews",
+    "counted": "{total, plural, =1 {{done} of 1 review} other {{done} of # reviews}}",
     "done": "Your first briefing is ready.",
     "empty": "There are no reviews to brief on yet. Connect a source and we will do this then.",
     "failed": "We could not finish the analysis. Everything is still here — the dashboard has your reviews.",

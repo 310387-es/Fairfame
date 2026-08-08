@@ -55,6 +55,8 @@ function argumentsOf(message: string): string[] {
  */
 const NOT_A_COUNT: Record<string, string> = {
   "publicPage.metaTitle": "`{business} — {location} reviews` — both arguments are names.",
+  "locations.hours.openAt": "`{day} opens at` — the argument is a weekday name.",
+  "locations.hours.closeAt": "`{day} closes at` — the argument is a weekday name.",
 };
 
 describe("English count messages", () => {

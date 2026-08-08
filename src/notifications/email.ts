@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/config.ts";
 import { getEmailTransport, type EmailTransport } from "../messaging/email.ts";
@@ -145,6 +145,17 @@ export async function sendPendingEmails(options: {
         and(
           eq(schema.notifications.organizationId, organizationId),
           eq(schema.notifications.emailStatus, "pending"),
+          /*
+            Quiet hours (W5-15). Null means no delay was ever asked for, which
+            is the overwhelming majority of rows and why the column is nullable
+            rather than defaulted to `now()`.
+
+            The row stays `pending` while it waits rather than taking a status
+            of its own: every query in the product that means "not sent yet"
+            would otherwise have to learn a second word for it, and rollups,
+            retries and the digest backlog all read that column.
+          */
+          or(isNull(schema.notifications.sendAfter), lte(schema.notifications.sendAfter, now)),
         ),
       )
       // Oldest first: a backlog should clear in the order it arrived, not

@@ -21,6 +21,7 @@ import { getEnv } from "@/lib/env";
 import { withTenant } from "@/lib/tenancy";
 import { publicBaseUrl } from "@/lib/urls";
 import { loadLocationFacts } from "@/locations/facts";
+import { parseBusinessHours } from "@/locations/opening-hours";
 import { renderAutoReply } from "@/replies/auto";
 import { listReplyTemplates } from "@/replies/templates";
 import { listPublicPages } from "@/seo/store";
@@ -108,6 +109,7 @@ export default async function LocationsPage({
           // The auto-reply rule (W5-6). Null template means off.
           autoReplyTemplateId: schema.locations.autoReplyTemplateId,
           autoReplyDelayHours: schema.locations.autoReplyDelayHours,
+          businessHours: schema.locations.businessHours,
         })
         .from(schema.locations)
         .where(eq(schema.locations.organizationId, actor.organizationId))
@@ -181,6 +183,29 @@ export default async function LocationsPage({
 
   const canManage = roleAtLeast(actor.role, "admin");
   const publicOrigin = publicBaseUrl();
+
+  /**
+   * The stored blob as the editor's seven rows, or null.
+   *
+   * Through `parseBusinessHours` rather than straight out of jsonb, so the
+   * screen and the deadline agree about what a malformed value means — the
+   * editor showing hours the SLA is ignoring would be the worst version of
+   * this.
+   */
+  function toEditableHours(value: unknown): ({ open: string; close: string } | null)[] | null {
+    const parsed = parseBusinessHours(value);
+    if (!parsed) return null;
+
+    return parsed.map((day) =>
+      day ? { open: clock(day.open), close: clock(day.close % (24 * 60)) } : null,
+    );
+  }
+
+  /** Minutes since local midnight back to `HH:MM`. */
+  function clock(minutes: number): string {
+    const hours = Math.floor(minutes / 60) % 24;
+    return `${String(hours).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+  }
 
   const templateOptions = templates.map((template) => ({
     id: template.id,
@@ -266,6 +291,10 @@ export default async function LocationsPage({
         */
         preview: autoReplyPreview(location, templates, t("autoReply.sampleAuthor")),
       },
+      // Read back through the same tolerant parser the SLA uses, then rendered
+      // as strings — so a blob the calendar would ignore is a blob the editor
+      // shows as "no hours" rather than as something half-filled.
+      businessHours: toEditableHours(location.businessHours),
     };
 
     const rating = fact?.rating ?? null;

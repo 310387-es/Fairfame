@@ -3,6 +3,7 @@ import { z } from "zod";
 import { schema } from "../db/client.ts";
 import type { ReviewStatus, Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
+import { addOpenHours, parseBusinessHours, type WeekSchedule } from "../locations/opening-hours.ts";
 import { answeredAt, liveReplyJoin } from "./answered.ts";
 
 /**
@@ -76,8 +77,32 @@ export function resolveSlaHours(locationHours: number | null, orgSettings: unkno
 export function slaDueAt(
   postedAt: Date | null | undefined,
   hours: number | undefined,
+  /**
+   * The branch's opening hours (W5-8). Absent means the clock runs constantly,
+   * which is exactly what this function did before the calendar existed — so a
+   * location that has never configured hours keeps every deadline it had.
+   */
+  schedule?: WeekSchedule | null,
 ): Date | null {
   if (!postedAt || hours === undefined) return null;
+
+  if (schedule) {
+    /*
+      Four hours *we were open for*, not four hours on a wall clock.
+
+      A one-star review at 19:00 on Friday against a four-hour target used to be
+      overdue at 23:00 on Friday — while the branch was shut. `addOpenHours`
+      makes it 13:00 on Monday, which is a deadline somebody can meet.
+
+      Null back means the target cannot be burned inside a fortnight of opening,
+      which describes a schedule/target pair that does not describe the
+      business. Falling through to the plain clock is better than no deadline:
+      the overdue filter is the reason the column exists.
+    */
+    const open = addOpenHours(postedAt, hours, schedule);
+    if (open) return open;
+  }
+
   return new Date(postedAt.getTime() + hours * 60 * 60 * 1000);
 }
 
@@ -87,11 +112,17 @@ export function slaDueAt(
  * A per-review lookup would issue one query per row on an ingest of a hundred;
  * a hard-coded default would make the per-location column decorative.
  */
+export type SlaTarget = {
+  hours: number;
+  /** Null when this branch has no opening hours — the round-the-clock case. */
+  schedule: WeekSchedule | null;
+};
+
 export async function slaHoursByLocation(
   tx: TenantDatabase,
   organizationId: string,
   locationIds: string[],
-): Promise<Map<string, number>> {
+): Promise<Map<string, SlaTarget>> {
   const unique = [...new Set(locationIds)];
   if (unique.length === 0) return new Map();
 
@@ -102,7 +133,11 @@ export async function slaHoursByLocation(
     .limit(1);
 
   const rows = await tx
-    .select({ id: schema.locations.id, slaHours: schema.locations.slaHours })
+    .select({
+      id: schema.locations.id,
+      slaHours: schema.locations.slaHours,
+      businessHours: schema.locations.businessHours,
+    })
     .from(schema.locations)
     .where(
       and(
@@ -111,9 +146,12 @@ export async function slaHoursByLocation(
       ),
     );
 
-  const resolved = new Map<string, number>();
+  const resolved = new Map<string, SlaTarget>();
   for (const row of rows) {
-    resolved.set(row.id, resolveSlaHours(row.slaHours, org?.settings));
+    resolved.set(row.id, {
+      hours: resolveSlaHours(row.slaHours, org?.settings),
+      schedule: parseBusinessHours(row.businessHours),
+    });
   }
 
   // A location the tenant cannot see is not silently given a deadline of its
@@ -332,4 +370,50 @@ export async function refreshPriority(
   `);
 
   return changed.length;
+}
+
+/**
+ * Recomputes the response deadline for a branch's open reviews (W5-8).
+ *
+ * Needed because `refreshPriority` deliberately does not touch `sla_due_at` —
+ * priority is derived from the review, and the deadline is derived from a
+ * *setting*. When somebody sets their opening hours, every deadline in the
+ * queue was computed against a clock that no longer applies, and an overdue
+ * filter that keeps showing Saturday breaches is the exact complaint W5-8 is
+ * about.
+ *
+ * Scoped to one location and to reviews that are still open: a closed review's
+ * deadline is history, and rewriting it would change what the SLA report says
+ * happened.
+ */
+export async function refreshSlaDueAt(
+  tx: TenantDatabase,
+  organizationId: string,
+  locationId: string,
+): Promise<number> {
+  const targets = await slaHoursByLocation(tx, organizationId, [locationId]);
+  const target = targets.get(locationId);
+  if (!target) return 0;
+
+  const rows = await tx
+    .select({ id: schema.reviews.id, postedAt: schema.reviews.postedAt })
+    .from(schema.reviews)
+    .where(
+      and(
+        eq(schema.reviews.organizationId, organizationId),
+        eq(schema.reviews.locationId, locationId),
+        sql`${schema.reviews.status} <> 'done'`,
+      ),
+    );
+
+  let updated = 0;
+  for (const row of rows) {
+    const due = slaDueAt(row.postedAt, target.hours, target.schedule);
+    if (!due) continue;
+
+    await tx.update(schema.reviews).set({ slaDueAt: due }).where(eq(schema.reviews.id, row.id));
+    updated += 1;
+  }
+
+  return updated;
 }

@@ -18,6 +18,7 @@ import { DEFAULT_LOCALE, isLocale } from "@/i18n/config";
 import { listLocationsForActor } from "@/lib/active-location";
 import { withTenant } from "@/lib/tenancy";
 import { DEFAULT_PREFERENCE, preferencesForUser } from "@/notifications/preferences";
+import { minutesToClock, quietWindowOf } from "@/notifications/quiet-hours";
 import { MAX_TEMPLATE_BODY, listReplyTemplates } from "@/replies/templates";
 import { parseBranding } from "@/agency/branding";
 import { can, getEntitlements, withinLimit } from "@/lib/entitlements";
@@ -74,6 +75,21 @@ export default async function SettingsPage() {
 
   const branding = parseBranding(organization?.branding);
 
+  /**
+   * The stored quiet window as the `HH:MM` pair the form edits.
+   *
+   * Through `quietWindowOf` rather than reading the two columns directly, so
+   * the screen and the sender agree about what half a window means — showing
+   * hours the sender is ignoring would be the worst version of this.
+   */
+  function toClockPair(
+    from: number | null,
+    to: number | null,
+  ): { from: string; to: string } | null {
+    const window = quietWindowOf(from, to);
+    return window ? { from: minutesToClock(window.from), to: minutesToClock(window.to) } : null;
+  }
+
   const defaultRow = preferences.find((row) => row.locationId === null);
   const defaultValue: PreferenceValue = defaultRow
     ? {
@@ -81,8 +97,9 @@ export default async function SettingsPage() {
         delivery: defaultRow.delivery,
         inApp: defaultRow.inApp,
         email: defaultRow.email,
+        quiet: toClockPair(defaultRow.quietFrom, defaultRow.quietTo),
       }
-    : DEFAULT_PREFERENCE;
+    : { ...DEFAULT_PREFERENCE, quiet: null };
 
   /**
    * The four tiers, straight from the catalog (W1.8).
@@ -175,6 +192,7 @@ export default async function SettingsPage() {
                           delivery: row.delivery,
                           inApp: row.inApp,
                           email: row.email,
+                          quiet: toClockPair(row.quietFrom, row.quietTo),
                         }
                       : defaultValue
                   }

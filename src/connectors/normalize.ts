@@ -67,7 +67,11 @@ export async function upsertReviews(
         url: review.url,
         ownerRepliedAt: review.ownerRepliedAt ?? null,
         rawPayload: review.rawPayload,
-        slaDueAt: slaDueAt(review.postedAt, slaHours.get(review.locationId)),
+        slaDueAt: slaDueAt(
+          review.postedAt,
+          slaHours.get(review.locationId)?.hours,
+          slaHours.get(review.locationId)?.schedule,
+        ),
       })),
     )
     .onConflictDoUpdate({

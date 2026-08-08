@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { GoogleMapping } from "@/components/connections/google-mapping";
 import { PublicPageControl } from "@/components/locations/public-page-control";
 import { AutoReplySettings } from "@/components/locations/auto-reply-settings";
+import { BusinessHours, type DayHoursValue } from "@/components/locations/business-hours";
 import { VoiceSettings } from "@/components/locations/voice-settings";
 import { SourceBadges } from "@/components/connections/source-badges";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,8 @@ export type LocationRow = {
   voice: { brandTone: string | null; replySignature: string | null };
   /** The auto-reply rule for wordless five-star reviews (W5-6). */
   autoReply: { templateId: string | null; delayHours: number; preview: string | null };
+  /** When this branch is open, Sunday first, or null for round the clock (W5-8). */
+  businessHours: DayHoursValue[] | null;
 };
 
 export function LocationDetail({
@@ -210,6 +213,12 @@ export function LocationDetail({
         locationId={location.id}
         brandTone={location.voice.brandTone}
         replySignature={location.voice.replySignature}
+        canManage={canManage}
+      />
+
+      <BusinessHours
+        locationId={location.id}
+        value={location.businessHours}
         canManage={canManage}
       />
 

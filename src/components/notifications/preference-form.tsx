@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAction } from "@/components/ui/use-action";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -33,7 +34,12 @@ export type PreferenceValue = {
   delivery: "instant" | "digest";
   inApp: boolean;
   email: boolean;
+  /** `HH:MM` pair, or null for none (W5-15). */
+  quiet: { from: string; to: string } | null;
 };
+
+/** What the checkbox turns on. Ten at night to eight in the morning. */
+const DEFAULT_QUIET = { from: "22:00", to: "08:00" };
 
 export type PreferenceFormProps = {
   /** Null for the organization-wide default row. */
@@ -107,6 +113,51 @@ export function PreferenceForm({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/*
+        Quiet hours (W5-15).
+
+        Under the delivery controls because it modifies them: it decides *when*
+        an email may go, and it is meaningless once email is off. It holds only
+        the email — the in-app row is written immediately — which is why it sits
+        beside these two rather than beside the scope select above.
+      */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <Checkbox
+          id={`quiet-${fieldId}`}
+          checked={draft.quiet !== null}
+          disabled={disabled || !draft.email}
+          onCheckedChange={(next) => update("quiet", next === true ? { ...DEFAULT_QUIET } : null)}
+        />
+        <Label htmlFor={`quiet-${fieldId}`} className="text-copy">
+          {t("quiet")}
+        </Label>
+
+        {draft.quiet ? (
+          <>
+            <Input
+              type="time"
+              aria-label={t("quietFrom")}
+              className="w-28"
+              value={draft.quiet.from}
+              disabled={disabled || !draft.email}
+              onChange={(event) => update("quiet", { ...draft.quiet!, from: event.target.value })}
+            />
+            <span aria-hidden className="text-muted-foreground">
+              –
+            </span>
+            <Input
+              type="time"
+              aria-label={t("quietTo")}
+              className="w-28"
+              value={draft.quiet.to}
+              disabled={disabled || !draft.email}
+              onChange={(event) => update("quiet", { ...draft.quiet!, to: event.target.value })}
+            />
+            <span className="text-copy text-muted-foreground">{t("quietHelp")}</span>
+          </>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-4">

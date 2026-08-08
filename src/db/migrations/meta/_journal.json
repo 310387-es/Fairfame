@@ -365,6 +365,20 @@
       "when": 1785791244127,
       "tag": "0051_auto_reply",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1785791245127,
+      "tag": "0052_business_hours",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1785791246127,
+      "tag": "0053_quiet_hours",
+      "breakpoints": true
     }
   ]
 }

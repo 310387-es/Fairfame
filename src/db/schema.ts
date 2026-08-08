@@ -533,6 +533,23 @@ export const locations = pgTable(
      */
     autoReplyDelayHours: integer("auto_reply_delay_hours").notNull().default(24),
     /**
+     * When this branch is open (W5-8), and therefore when its SLA clock runs.
+     *
+     * Seven `{ open, close }` pairs or nulls, Sunday first — the order
+     * `Date.getUTCDay()` uses, so the lookup and the storage agree. Parsed
+     * tolerantly by `src/locations/opening-hours.ts`; anything unrecognised
+     * means "no hours", which is the old round-the-clock behaviour.
+     *
+     * **Null is the default and it changes nothing.** A business opts into a
+     * calendar; nobody's existing deadlines are quietly reinterpreted.
+     *
+     * The remediation plan pairs this with the SLA calendar deliberately —
+     * W4.2 refused to collect business hours precisely because nothing read
+     * them, and a field nothing reads is the `competitor_snapshots` mistake.
+     * This is the reader.
+     */
+    businessHours: jsonb("business_hours"),
+    /**
      * How many hours the team gives itself to respond here (P2-T1).
      *
      * Per location and nullable, because the target is a property of how a place
@@ -2303,6 +2320,19 @@ export const notificationPreferences = pgTable(
     delivery: notificationDeliveryEnum("delivery").notNull().default("instant"),
     inApp: boolean("in_app").notNull().default(true),
     email: boolean("email").notNull().default(true),
+    /**
+     * The nightly window in which email waits (W5-15).
+     *
+     * Minutes since local midnight, both nullable, and either one missing means
+     * no quiet hours. A window may wrap midnight — 22:00–08:00 is what somebody
+     * means by "at night", and `from < to` would refuse the only shape anybody
+     * wants. `src/notifications/quiet-hours.ts` is the only interpreter.
+     *
+     * It holds the **email**, never the in-app row: quiet hours are about a
+     * phone at night, not about hiding what happened.
+     */
+    quietFrom: integer("quiet_from"),
+    quietTo: integer("quiet_to"),
     ...timestamps,
   },
   (table) => [
@@ -2349,6 +2379,17 @@ export const notifications = pgTable(
     dedupeKey: text("dedupe_key").notNull(),
     readAt: timestamp("read_at", { withTimezone: true }),
     emailStatus: notificationEmailStatusEnum("email_status").notNull().default("pending"),
+    /**
+     * The earliest this may be emailed (W5-15). Null means "now".
+     *
+     * Set from the recipient's quiet window at the moment the row is written,
+     * not consulted at send time — so a person who changes their quiet hours
+     * does not retroactively silence or release alerts that were already
+     * decided. Null rather than `now()` because "no delay was ever asked for"
+     * is a different fact from "the delay expired a millisecond ago", and the
+     * sender's predicate reads that way.
+     */
+    sendAfter: timestamp("send_after", { withTimezone: true }),
     emailedAt: timestamp("emailed_at", { withTimezone: true }),
     ...timestamps,
   },

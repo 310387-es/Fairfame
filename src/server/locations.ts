@@ -14,7 +14,9 @@ import { FIRST_PARTY_PROVIDER } from "@/connectors/firstparty";
 import { getProvider, resolveMode } from "@/connectors/providers";
 import { requestAnalysis, requestNotifications } from "@/jobs/client";
 import { connectSourceSchema, parseCreateLocation, syncNowSchema } from "@/server/location-input";
+import { businessHoursSchema } from "@/locations/opening-hours";
 import { MAX_BRAND_TONE_CHARS } from "@/prompts/index";
+import { refreshSlaDueAt } from "@/reviews/workflow";
 import { MAX_SIGNATURE_CHARS } from "@/replies/style";
 import { setPublicPage } from "@/seo/store";
 
@@ -475,6 +477,62 @@ export async function setAutoReplyAction(input: {
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "setAutoReply failed");
+    return toActionResult(error);
+  }
+}
+
+/**
+ * Sets a branch's opening hours, and re-dates its open reviews (W5-8).
+ *
+ * The second half is the point. `refreshPriority` deliberately never touches
+ * `sla_due_at`, so without this the queue would keep every deadline it had
+ * computed against a round-the-clock clock — and the overdue filter would go on
+ * showing the Saturday breaches this feature exists to stop.
+ *
+ * Empty (all seven days closed) clears the calendar rather than storing a week
+ * nobody is open: `parseBusinessHours` reads that as "no hours", which is the
+ * unchanged behaviour, and storing it would be a schedule whose deadline never
+ * arrives.
+ */
+export async function setBusinessHoursAction(input: {
+  locationId: string;
+  /** Seven entries, Sunday first — `Date.getUTCDay()`'s order. */
+  hours: ({ open: string; close: string } | null)[];
+}): Promise<ActionResult<{ rescored: number }>> {
+  const parsed = z.object({ locationId: z.uuid(), hours: businessHoursSchema }).safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error, "Those opening hours are not valid.");
+
+  const anyOpen = parsed.data.hours.some((day) => day !== null);
+
+  try {
+    const rescored = await withAuthenticatedTenant(
+      async (tx, actor) => {
+        const [row] = await tx
+          .update(schema.locations)
+          .set({ businessHours: anyOpen ? parsed.data.hours : null, updatedAt: new Date() })
+          .where(eq(schema.locations.id, parsed.data.locationId))
+          .returning({ id: schema.locations.id });
+
+        if (!row) throw new Error("That location does not exist.");
+
+        await tx.insert(schema.auditLogs).values({
+          organizationId: actor.organizationId,
+          actorUserId: actor.userId,
+          action: anyOpen ? "location.hours_set" : "location.hours_cleared",
+          entity: `location:${parsed.data.locationId}`,
+          meta: { hours: anyOpen ? parsed.data.hours : null },
+        });
+
+        return refreshSlaDueAt(tx, actor.organizationId, parsed.data.locationId);
+      },
+      { minimumRole: "admin" },
+    );
+
+    revalidatePath("/locations");
+    revalidatePath("/reviews");
+    return { ok: true, rescored };
+  } catch (error) {
+    log.warn({ err: error }, "setBusinessHours failed");
     return toActionResult(error);
   }
 }

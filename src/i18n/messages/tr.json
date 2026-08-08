@@ -670,8 +670,26 @@
       "scope": "İçinde yazı olan yorumlarda, beş yıldızın altındakilerde ve aynı yoruma ikinci kez asla kullanılmaz.",
       "noTemplates": "Önce Ayarlar'dan bir yanıt şablonu yazın — bu kural üretilmiş bir metni değil, sizin yazdığınızı gönderir.",
       "save": "Kuralı kaydet",
-      "readOnly": "Buradaki yazısız 5★ yorumlar {hours} saat sonra otomatik yanıtlanıyor.",
+      "readOnly": "{hours, plural, other {Buradaki yazısız 5★ yorumlar # saat sonra otomatik yanıtlanıyor.}}",
       "sampleAuthor": "Ayşe"
+    },
+    "hours": {
+      "heading": "Çalışma saatleri",
+      "description": "Bu şube ne zaman açık. Yanıt süreleri yalnızca açık olduğunuz saatleri sayar.",
+      "closed": "Kapalı",
+      "openAt": "{day} açılış",
+      "closeAt": "{day} kapanış",
+      "effect": "Bunu kaydettiğinizde yanıt bekleyen yorumların süresi yeniden hesaplanır: cuma akşamı gelen bir şikâyet cumartesi sabahı gecikmiş sayılmaz.",
+      "save": "Saatleri kaydet",
+      "day": {
+        "sunday": "Pazar",
+        "monday": "Pazartesi",
+        "tuesday": "Salı",
+        "wednesday": "Çarşamba",
+        "thursday": "Perşembe",
+        "friday": "Cuma",
+        "saturday": "Cumartesi"
+      }
     }
   },
   "publicPage": {
@@ -1313,7 +1331,11 @@
       "saved": "Kaydedildi",
       "reset": "Varsayılanımı kullan",
       "overridden": "Varsayılanınızı geçersiz kılar",
-      "noLocations": "Şubeye özel tercih için önce bir şube ekleyin."
+      "noLocations": "Şubeye özel tercih için önce bir şube ekleyin.",
+      "quiet": "Sessiz saatler",
+      "quietFrom": "Sessiz saat başlangıcı",
+      "quietTo": "Sessiz saat bitişi",
+      "quietHelp": "E-posta bu aralık bitene kadar bekler. Uygulama içi bildirim yine anında gelir."
     }
   },
   "auth": {
@@ -1766,7 +1788,7 @@
     "title": "Yorumlarınız okunuyor",
     "body": "Müşterilerinizin yazdıklarını okuyup bu haftanın planına dönüştürüyoruz. Yorumlarınız zaten panoda — burada yalnızca inceleme ekleniyor.",
     "analysing": "İncelenen",
-    "counted": "{total} yorumun {done} tanesi",
+    "counted": "{total, plural, =1 {1 yorumun {done} tanesi} other {# yorumun {done} tanesi}}",
     "done": "İlk brifinginiz hazır.",
     "empty": "Henüz brifing çıkarılacak yorum yok. Bir kaynak bağlayın, gerisini biz yapalım.",
     "failed": "İnceleme tamamlanamadı. Her şey yerinde — yorumlarınız panoda duruyor.",

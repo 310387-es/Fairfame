@@ -7,6 +7,7 @@ import { childLogger } from "@/lib/logger";
 import { listFeed, markAllRead, markRead, type FeedItem } from "@/notifications/feed";
 import { FEED_PAGE_SIZE } from "@/notifications/types";
 import { clearPreference, savePreference } from "@/notifications/preferences";
+import { clockToMinutes } from "@/notifications/quiet-hours";
 import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 
 /**
@@ -30,6 +31,28 @@ const preferenceSchema = z.object({
   delivery: z.enum(["instant", "digest"]),
   inApp: z.boolean(),
   email: z.boolean(),
+  /**
+   * The quiet window as clock times (W5-15), or null.
+   *
+   * `HH:MM` on the wire and minutes in the database: the form produces what a
+   * `<input type="time">` produces, and `quiet-hours.ts` owns the conversion so
+   * there is one definition of what a valid time is.
+   */
+  quiet: z
+    .object({ from: z.string(), to: z.string() })
+    .nullable()
+    .transform((value, ctx) => {
+      if (!value) return null;
+      const from = clockToMinutes(value.from);
+      const to = clockToMinutes(value.to);
+      if (from === null || to === null) {
+        ctx.addIssue({ code: "custom", message: "Quiet hours must be times of day." });
+        return z.NEVER;
+      }
+      // Equal bounds is a zero-length window, and reading it as 24 hours would
+      // silence somebody's alerts for ever without them choosing that.
+      return from === to ? null : { from, to };
+    }),
 });
 
 export async function markNotificationsReadAction(input: { ids: string[] }): Promise<ActionResult> {
@@ -97,6 +120,8 @@ export async function saveNotificationPreferenceAction(input: {
   delivery: string;
   inApp: boolean;
   email: boolean;
+  /** `HH:MM` pair, or null for no quiet hours (W5-15). */
+  quiet: { from: string; to: string } | null;
 }): Promise<ActionResult> {
   const parsed = preferenceSchema.safeParse(input);
   if (!parsed.success) return invalidInput(parsed.error, "Invalid preference.");

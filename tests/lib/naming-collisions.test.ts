@@ -44,6 +44,10 @@ const MAY_SAY_CAMPAIGN = [
   // İYS consent wording, where "campaigns and offers" is ordinary marketing
   // English about commercial messages in general, not about our entity.
   "collect.iysLabel",
+  // The compliance page's no-review-gating statement, explaining that a survey
+  // points at a *collection* campaign rather than deciding its own destination.
+  // It is the entity, named correctly, and naming it is the whole argument.
+  "compliance.gatingPoint2",
 ];
 
 function flatten(node: unknown, path = ""): [string, string][] {

@@ -1,6 +1,7 @@
 import { and, eq, isNull, or } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
+import { quietWindowOf, type QuietWindow } from "./quiet-hours.ts";
 
 /**
  * Who gets told what (P1a-T5).
@@ -24,6 +25,14 @@ export type Preference = {
   delivery: NotificationDelivery;
   inApp: boolean;
   email: boolean;
+  /**
+   * The nightly window in which email waits (W5-15). Null means none.
+   *
+   * On the preference rather than on the user, because it follows the same
+   * most-specific-wins resolution everything else here does — somebody covering
+   * one branch overnight can keep that branch loud and the rest quiet.
+   */
+  quiet: QuietWindow | null;
 };
 
 /**
@@ -39,6 +48,9 @@ export const DEFAULT_PREFERENCE: Preference = {
   delivery: "instant",
   inApp: true,
   email: true,
+  // Nobody gets quiet hours they did not ask for: a business that wants to
+  // hear about a one-star review at 23:00 is a business that should.
+  quiet: null,
 };
 
 /**
@@ -111,6 +123,8 @@ export async function recipientsForLocation(
       delivery: schema.notificationPreferences.delivery,
       inApp: schema.notificationPreferences.inApp,
       email_: schema.notificationPreferences.email,
+      quietFrom: schema.notificationPreferences.quietFrom,
+      quietTo: schema.notificationPreferences.quietTo,
     })
     .from(schema.memberships)
     .innerJoin(schema.users, eq(schema.users.id, schema.memberships.userId))
@@ -156,6 +170,7 @@ export async function recipientsForLocation(
           delivery: chosen.delivery!,
           inApp: chosen.inApp!,
           email: chosen.email_!,
+          quiet: quietWindowOf(chosen.quietFrom, chosen.quietTo),
         }
       : // No row at all: the default applies, except to `client`, which is
         // opted out until someone says otherwise.
@@ -211,6 +226,15 @@ export async function savePreference(
     delivery: NotificationDelivery;
     inApp: boolean;
     email: boolean;
+    /**
+     * Null clears the window; see `quiet-hours.ts` (W5-15).
+     *
+     * Optional so that every existing caller — and every test written before
+     * quiet hours existed — keeps meaning "no quiet hours", which is both the
+     * old behaviour and the right default: nobody should be given silence they
+     * did not ask for.
+     */
+    quiet?: QuietWindow | null;
   },
 ): Promise<void> {
   await tx
@@ -223,6 +247,8 @@ export async function savePreference(
       delivery: input.delivery,
       inApp: input.inApp,
       email: input.email,
+      quietFrom: input.quiet?.from ?? null,
+      quietTo: input.quiet?.to ?? null,
     })
     .onConflictDoUpdate({
       target: [
@@ -235,6 +261,8 @@ export async function savePreference(
         delivery: input.delivery,
         inApp: input.inApp,
         email: input.email,
+        quietFrom: input.quiet?.from ?? null,
+        quietTo: input.quiet?.to ?? null,
         updatedAt: new Date(),
       },
     });

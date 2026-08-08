@@ -1,0 +1,25 @@
+-- Business hours, and the SLA calendar that reads them (W5-8, item 8).
+--
+-- `docs/remediation-plan.md`: "Business hours + SLA calendar (SLA counts
+-- weekends today)."
+--
+-- The complaint is exact. `slaDueAt` was `posted_at + hours`, so a one-star
+-- review arriving at 19:00 on Friday against a four-hour target was overdue at
+-- 23:00 on Friday. A business closed for the weekend opened on Monday to a
+-- queue of breaches it could not have prevented — and the overdue filter, which
+-- is the one an owner opens the screen for, filled with noise it had to learn
+-- to ignore.
+--
+-- W4.2 deliberately refused to collect business hours, on the grounds that
+-- nothing read them and a field nothing reads is the mistake
+-- `competitor_snapshots` is absent for. This migration is the reader arriving.
+--
+-- jsonb rather than fourteen columns: it is seven optional pairs, it is read as
+-- a whole or not at all, and the shape will grow (a second window for a lunch
+-- close, a one-off holiday) in a way columns would make a migration each time.
+-- Validated with Zod on read, so a malformed blob costs a branch its calendar
+-- and not its inbox.
+--
+-- **Null is the default and changes nothing.** A business opts into a calendar;
+-- no existing deadline is silently reinterpreted.
+ALTER TABLE "locations" ADD COLUMN "business_hours" jsonb;
