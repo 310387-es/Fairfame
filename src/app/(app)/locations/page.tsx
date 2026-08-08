@@ -21,6 +21,8 @@ import { getEnv } from "@/lib/env";
 import { withTenant } from "@/lib/tenancy";
 import { publicBaseUrl } from "@/lib/urls";
 import { loadLocationFacts } from "@/locations/facts";
+import { renderAutoReply } from "@/replies/auto";
+import { listReplyTemplates } from "@/replies/templates";
 import { listPublicPages } from "@/seo/store";
 
 /**
@@ -80,7 +82,16 @@ export default async function LocationsPage({
    */
   const includeDevOnly = getEnv().ALLOW_DEV_CONNECTORS && params.dev === "1";
 
-  const { locations, connections, facts, publicPages, approvedCount, limit } = await withTenant(
+  const {
+    locations,
+    connections,
+    facts,
+    publicPages,
+    templates,
+    organizationName,
+    approvedCount,
+    limit,
+  } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => ({
       locations: await tx
@@ -94,6 +105,9 @@ export default async function LocationsPage({
           // figures — the facts loader answers "how is this branch doing".
           brandTone: schema.locations.brandTone,
           replySignature: schema.locations.replySignature,
+          // The auto-reply rule (W5-6). Null template means off.
+          autoReplyTemplateId: schema.locations.autoReplyTemplateId,
+          autoReplyDelayHours: schema.locations.autoReplyDelayHours,
         })
         .from(schema.locations)
         .where(eq(schema.locations.organizationId, actor.organizationId))
@@ -123,6 +137,16 @@ export default async function LocationsPage({
       // property of the *review* — the warning it drives is "you have approved
       // nothing at all", which is the only version of it that can be true.
       publicPages: await listPublicPages(tx, actor.organizationId),
+      // The business's own name, which a template's `{{business}}` expands to.
+      organizationName: await tx
+        .select({ name: schema.organizations.name })
+        .from(schema.organizations)
+        .where(eq(schema.organizations.id, actor.organizationId))
+        .limit(1)
+        .then(([row]) => row?.name ?? ""),
+      // What an auto-reply rule may point at. The whole (short) list, because
+      // the picker needs names and the preview needs one body.
+      templates: await listReplyTemplates(tx, actor.organizationId),
       approvedCount: await tx
         .select({ value: sql<number>`count(*)::int` })
         .from(schema.reviews)
@@ -157,6 +181,38 @@ export default async function LocationsPage({
 
   const canManage = roleAtLeast(actor.role, "admin");
   const publicOrigin = publicBaseUrl();
+
+  const templateOptions = templates.map((template) => ({
+    id: template.id,
+    name: template.name,
+    language: template.language,
+  }));
+
+  /**
+   * What a branch's auto-reply rule would actually post.
+   *
+   * Only for the template the rule is *currently* pointed at: a preview of an
+   * unsaved selection would need every template rendered on every branch, and
+   * the control says so rather than guessing.
+   */
+  function autoReplyPreview(
+    location: { autoReplyTemplateId: string | null; name: string; replySignature: string | null },
+    all: typeof templates,
+    sampleAuthor: string,
+  ): string | null {
+    if (!location.autoReplyTemplateId) return null;
+    const template = all.find((entry) => entry.id === location.autoReplyTemplateId);
+    if (!template) return null;
+
+    return renderAutoReply(
+      { body: template.body, signature: location.replySignature },
+      {
+        authorName: sampleAuthor,
+        locationName: location.name,
+        organizationName: organizationName,
+      },
+    );
+  }
 
   const rows: LocationTableRow[] = locations.map((location) => {
     const sources: ConnectedSource[] = connections
@@ -196,6 +252,20 @@ export default async function LocationsPage({
       connectable: connectableCatalogue.filter((source) => !connected.has(source.provider)),
       publicPage,
       voice: { brandTone: location.brandTone, replySignature: location.replySignature },
+      autoReply: {
+        templateId: location.autoReplyTemplateId,
+        delayHours: location.autoReplyDelayHours,
+        /*
+          What the rule would actually post, rendered here rather than in the
+          browser — the same reason every other formatted string on this page
+          is: `renderAutoReply` reaches the template body and the branch's
+          signature, and a client component may not.
+
+          The preview uses a stand-in author, because the rule answers whoever
+          turns up next and there is nobody to name yet.
+        */
+        preview: autoReplyPreview(location, templates, t("autoReply.sampleAuthor")),
+      },
     };
 
     const rating = fact?.rating ?? null;
@@ -248,6 +318,7 @@ export default async function LocationsPage({
           // the one an admin is signed in to — src/lib/urls.ts.
           publicOrigin={publicOrigin}
           approvedCount={approvedCount}
+          templates={templateOptions}
         />
       ),
     };

@@ -507,6 +507,32 @@ export const locations = pgTable(
      */
     replySignature: text("reply_signature"),
     /**
+     * The template this branch auto-posts to a wordless five-star review (W5-6).
+     *
+     * **Null means off, and off is the default.** One column is the whole
+     * switch: there is no separate boolean that could disagree with it.
+     *
+     * A *template*, not an AI draft, and that is the load-bearing part. The
+     * remediation plan asks for "auto-post AI reply to 5★ with no text", and a
+     * review with no text is precisely what `draftReplyForReview` refuses —
+     * there is nothing to read, so a generated reply would be generated from
+     * the star alone. The business writes the sentence; the rule posts it. See
+     * `src/replies/auto.ts` for the rest of the reasoning and
+     * `src/replies/service.ts` for the rule this deliberately does not break.
+     */
+    autoReplyTemplateId: uuid("auto_reply_template_id").references(() => replyTemplates.id, {
+      onDelete: "set null",
+    }),
+    /**
+     * How long to wait before posting one.
+     *
+     * The delay is the human's window. Twenty-four hours by default, which is
+     * the plan's own figure: long enough that anybody watching the Inbox can
+     * answer it themselves or turn the rule off, short enough that the reply
+     * still reads as attentive.
+     */
+    autoReplyDelayHours: integer("auto_reply_delay_hours").notNull().default(24),
+    /**
      * How many hours the team gives itself to respond here (P2-T1).
      *
      * Per location and nullable, because the target is a property of how a place

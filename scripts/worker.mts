@@ -20,6 +20,7 @@ import {
   scheduleNotifySweep,
   scheduleScan,
   scheduleIysSweep,
+  scheduleAutoReplySweep,
   scheduleBroadcastSweep,
   scheduleReportSweep,
   scheduleSlaSweep,
@@ -55,6 +56,7 @@ await scheduleIysSweep(queue, IYS_SWEEP_INTERVAL_MS);
 await scheduleReportSweep(queue, REPORT_SWEEP_INTERVAL_MS);
 await scheduleBroadcastSweep(queue, BROADCAST_SWEEP_INTERVAL_MS);
 await scheduleDigestSweep(queue, DIGEST_SWEEP_INTERVAL_MS);
+await scheduleAutoReplySweep(queue);
 
 log.info(
   {

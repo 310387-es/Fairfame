@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Meter } from "@/components/ds/meter";
+import { useAction } from "@/components/ui/use-action";
 import {
   advanceFirstBriefingAction,
   onboardingProgressAction,
@@ -46,6 +47,7 @@ export function FirstBriefingProgressView({
 }) {
   const t = useTranslations("onboarding");
   const router = useRouter();
+  const { run } = useAction();
   const [progress, setProgress] = useState(initial);
   const [failed, setFailed] = useState(false);
   // React 18 mounts effects twice in development; a second loop would double
@@ -76,35 +78,63 @@ export function FirstBriefingProgressView({
       });
     }, 2_000);
 
-    async function run() {
-      // Up to sixty steps. At ten reviews a step that is six hundred reviews,
-      // far past what any onboarding needs — it exists so a provider that
-      // returns without analysing anything cannot spin forever.
-      for (let step = 0; step < 60 && !cancelled; step += 1) {
-        const result = await advanceFirstBriefingAction({ locationId });
+    /*
+      The whole loop is one `useAction` call, not one per batch.
 
-        if (!result.ok) {
-          if (!cancelled) setFailed(true);
-          return;
-        }
+      `advanceFirstBriefingAction` *mutates* — it writes insights and composes a
+      digest — and `tests/lib/action-feedback.test.ts` requires every mutation
+      to report through `useAction` rather than name itself an exemption. One
+      `run()` around the loop is the honest shape: a failure toasts once, which
+      is what happened, instead of six times; `pending` stays true for as long
+      as the work actually takes; and the bar underneath keeps reporting
+      progress from its own cheap read.
+    */
+    run(
+      async () => {
+        // Up to sixty steps. At ten reviews a step that is six hundred reviews,
+        // far past what any onboarding needs — it exists so a provider that
+        // returns without analysing anything cannot spin forever.
+        let last = await advanceFirstBriefingAction({ locationId });
 
-        if (cancelled) return;
-        setProgress(result.progress);
+        for (let step = 0; step < 60 && !cancelled; step += 1) {
+          if (!last.ok) return last;
+          if (cancelled) return last;
 
-        if (result.progress.finished) {
-          if (result.progress.digestId) {
-            router.replace(`/weekly-plan/${result.progress.digestId}`);
+          setProgress(last.progress);
+
+          if (last.progress.finished) {
+            if (last.progress.digestId) {
+              router.replace(`/weekly-plan/${last.progress.digestId}`);
+            }
+            return last;
           }
-          return;
-        }
-      }
-    }
 
-    void run().finally(() => clearInterval(ticker));
+          last = await advanceFirstBriefingAction({ locationId });
+        }
+
+        return last;
+      },
+      {
+        // Both branches stop the ticker. Without it a failed run leaves a dead
+        // screen polling every two seconds for as long as the tab is open.
+        onSuccess: () => clearInterval(ticker),
+        // The screen already says what went wrong, in its own words and in
+        // place; `onError` is what stops the bar rendering as still working.
+        onError: () => {
+          setFailed(true);
+          clearInterval(ticker);
+        },
+      },
+    );
+
     return () => {
       cancelled = true;
       clearInterval(ticker);
     };
+    // `run` is stable per `useAction` instance; listing it would re-run the
+    // effect on every render and the ref guard would then be the only thing
+    // between this and an unbounded number of loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationId, router]);
 
   const done = progress.finished || failed;

@@ -65,6 +65,7 @@ describe("complianceOverview", () => {
         contactRef: contactId,
         channel: "message",
         source: "web_form",
+        proofRef: `form-${suffix}`,
       }),
     );
 

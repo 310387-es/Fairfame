@@ -163,6 +163,22 @@ export type BroadcastSweepJob = {
   kind: "broadcast_sweep";
 };
 
+/**
+ * Posts the thank-you a branch has chosen for its wordless five-star reviews
+ * (W5-6).
+ *
+ * A sweep for the reason the SLA and İYS ones are: the trigger is *time
+ * passing*. A five-star review arrives, and twenty-four hours later it becomes
+ * eligible — nothing happens at that moment, so something has to come looking.
+ *
+ * Hourly. The rule's own delay is measured in hours and its default is
+ * twenty-four, so a sweep more often than that would only shift when inside the
+ * hour a reply lands, at the cost of a query per location per run.
+ */
+export type AutoReplySweepJob = {
+  kind: "auto_reply_sweep";
+};
+
 export type ReviewJob =
   | ScanJob
   | SyncJob
@@ -176,7 +192,8 @@ export type ReviewJob =
   | DigestSweepJob
   | DigestDeliverJob
   | ReportSweepJob
-  | BroadcastSweepJob;
+  | BroadcastSweepJob
+  | AutoReplySweepJob;
 
 /**
  * BullMQ requires `maxRetriesPerRequest: null`: its blocking commands park on
@@ -328,6 +345,7 @@ export const IYS_SWEEP_SCHEDULER_ID = "iys-sweep";
 /** Stable scheduler id, so re-running the worker does not stack schedulers. */
 export const REPORT_SWEEP_SCHEDULER_ID = "report-sweep";
 export const BROADCAST_SWEEP_SCHEDULER_ID = "broadcast-sweep";
+export const AUTO_REPLY_SWEEP_SCHEDULER_ID = "auto-reply-sweep";
 export const DIGEST_SWEEP_SCHEDULER_ID = "digest-sweep";
 
 /**
@@ -387,6 +405,22 @@ export async function scheduleNotifySweep(
  * that nothing has touched, so a tighter interval buys precision nobody can use
  * at a cost that scales with the whole open backlog.
  */
+/**
+ * Installs the repeating auto-reply sweep (W5-6).
+ *
+ * Hourly, against a delay measured in hours. See `AutoReplySweepJob`.
+ */
+export async function scheduleAutoReplySweep(
+  queue: Queue<ReviewJob>,
+  everyMs = 3_600_000,
+): Promise<void> {
+  await queue.upsertJobScheduler(
+    AUTO_REPLY_SWEEP_SCHEDULER_ID,
+    { every: everyMs },
+    { name: "auto_reply_sweep", data: { kind: "auto_reply_sweep" } },
+  );
+}
+
 export async function scheduleSlaSweep(queue: Queue<ReviewJob>, everyMs = 300_000): Promise<void> {
   await queue.upsertJobScheduler(
     SLA_SWEEP_SCHEDULER_ID,

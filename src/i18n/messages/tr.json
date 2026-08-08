@@ -659,6 +659,19 @@
       "save": "Üslubu kaydet",
       "toneIs": "Buradaki yanıtların sesi: {tone}",
       "toneUnset": "Bu şube için marka sesi belirlenmemiş."
+    },
+    "autoReply": {
+      "heading": "Yazısız 5★ yorumlara otomatik yanıt",
+      "description": "Yazısız beş yıldızlı bir puanda cevaplanacak özel bir şey yoktur. Gönderilecek teşekkür metnini seçin; belirlediğiniz süre sonunda kendiliğinden gider. Diğer her şey yine sizi bekler.",
+      "templateLabel": "Şu metinle yanıtla",
+      "off": "Kapalı — hepsini ben yanıtlayayım",
+      "delayLabel": "Şu kadar saat sonra",
+      "previewLabel": "Gönderilecek metin tam olarak budur",
+      "scope": "İçinde yazı olan yorumlarda, beş yıldızın altındakilerde ve aynı yoruma ikinci kez asla kullanılmaz.",
+      "noTemplates": "Önce Ayarlar'dan bir yanıt şablonu yazın — bu kural üretilmiş bir metni değil, sizin yazdığınızı gönderir.",
+      "save": "Kuralı kaydet",
+      "readOnly": "Buradaki yazısız 5★ yorumlar {hours} saat sonra otomatik yanıtlanıyor.",
+      "sampleAuthor": "Ayşe"
     }
   },
   "publicPage": {

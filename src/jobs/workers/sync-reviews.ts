@@ -16,6 +16,7 @@ import { runAnalyze, runAnalyzeSweep } from "./analyze-reviews.ts";
 import { runDigest, runDigestDeliver, runDigestSweep } from "./digest-reviews.ts";
 import { runIysSweep } from "./iys-upload.ts";
 import { runReportSweep } from "./scheduled-reports.ts";
+import { runAutoReplySweep } from "./auto-reply.ts";
 import { runBroadcastSweep } from "./broadcasts.ts";
 import { runNotify, runNotifySweep, runSlaSweep } from "./notify-reviews.ts";
 
@@ -169,6 +170,8 @@ export function createReviewWorker(options: ReviewWorkerOptions): Worker<ReviewJ
           return runReportSweep();
         case "broadcast_sweep":
           return runBroadcastSweep();
+        case "auto_reply_sweep":
+          return runAutoReplySweep();
         case "digest_sweep":
           return runDigestSweep(queue);
         case "digest":

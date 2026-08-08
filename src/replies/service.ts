@@ -20,11 +20,18 @@ import { appendSignature, type ReplyStyle } from "./style.ts";
  *
  * Three rules shape the whole module:
  *
- *   - **Nothing reaches a platform without an explicit human approval.** The
- *     model drafts; a person approves; only then can it post. There is no code
- *     path from `draftReplyForReview` to `postReply`, deliberately, so no
- *     future "just auto-post the 5-star ones" can slip in without someone
- *     noticing this comment.
+ *   - **Nothing the model wrote reaches a platform without an explicit human
+ *     approval.** The model drafts; a person approves; only then can it post.
+ *     There is still no code path from `draftReplyForReview` to `postReply`.
+ *
+ *     This comment used to say "no future *just auto-post the 5-star ones* can
+ *     slip in without someone noticing this comment", and W5-6 is that future.
+ *     It was noticed, and the rule was kept rather than waived: `src/replies/
+ *     auto.ts` posts **a template the business wrote themselves**, never
+ *     generated text, and only to a five-star review with no words in it. The
+ *     model is not in that path at all — it cannot be, because
+ *     `draftReplyForReview` refuses a review with no text to read. Read that
+ *     module before widening anything about it.
  *   - **Posting is the irreversible step**, so it is the one that verifies the
  *     source can actually accept a reply, re-reads the row inside the
  *     transaction, and records what the platform said.
@@ -341,7 +348,8 @@ export async function draftReplyForReview(args: DraftArgs): Promise<ReplyRow> {
 export async function writeReplyDraft(args: {
   tx: TenantDatabase;
   organizationId: string;
-  actorUserId: string;
+  /** Null when nobody typed it — the auto-reply rule's template (W5-6). */
+  actorUserId: string | null;
   reviewId: string;
   text: string;
 }): Promise<ReplyRow> {
@@ -462,7 +470,14 @@ export async function saveReplyDraft(args: {
 export async function approveReply(args: {
   tx: TenantDatabase;
   organizationId: string;
-  actorUserId: string;
+  /**
+   * Who approved this. **Null means the auto-reply rule did** (W5-6) — see
+   * `src/replies/auto.ts`. `replies.approved_by_user_id` and
+   * `audit_logs.actor_user_id` are both nullable already, and leaving it null
+   * is what makes "no human approved this one" a fact the audit trail states
+   * rather than a placeholder id somebody has to decode later.
+   */
+  actorUserId: string | null;
   replyId: string;
   now?: Date;
 }): Promise<ReplyRow> {
@@ -524,7 +539,8 @@ export type PostOutcome =
 export async function postReply(args: {
   tx: TenantDatabase;
   organizationId: string;
-  actorUserId: string;
+  /** Null when the auto-reply rule posted it — see `approveReply` above. */
+  actorUserId: string | null;
   replyId: string;
   now?: Date;
 }): Promise<PostOutcome> {

@@ -659,6 +659,19 @@
       "save": "Save voice",
       "toneIs": "Replies here sound: {tone}",
       "toneUnset": "This branch has no brand voice set."
+    },
+    "autoReply": {
+      "heading": "Answer wordless 5★ reviews automatically",
+      "description": "A five-star rating with no words has nothing specific to answer. Choose the thank-you to post, and it goes out on its own after the delay. Everything else still waits for you.",
+      "templateLabel": "Reply with",
+      "off": "Off — answer everything myself",
+      "delayLabel": "After (hours)",
+      "previewLabel": "This is exactly what will be posted",
+      "scope": "Never used on a review with words in it, never below five stars, and never twice on the same review.",
+      "noTemplates": "Write a reply template in Settings first — this rule posts one of yours, never something generated.",
+      "save": "Save rule",
+      "readOnly": "Wordless 5★ reviews here are answered automatically after {hours} hours.",
+      "sampleAuthor": "Ayşe"
     }
   },
   "publicPage": {

@@ -406,3 +406,75 @@ export async function setLocationVoiceAction(input: {
     return toActionResult(error);
   }
 }
+
+/**
+ * Switches this branch's auto-reply rule on or off (W5-6).
+ *
+ * `templateId` null is off, and that is the whole switch — one column, so there
+ * is no boolean that could disagree with it.
+ *
+ * Admin, because this is the only setting in the product that puts words on a
+ * public platform without anybody pressing anything afterwards. The template
+ * has to belong to this organization, and that is checked here rather than
+ * relied on from RLS alone: the failure would be silent, and a foreign key
+ * violation is a worse error message than a sentence.
+ */
+export async function setAutoReplyAction(input: {
+  locationId: string;
+  templateId: string | null;
+  delayHours: number;
+}): Promise<ActionResult> {
+  const parsed = z
+    .object({
+      locationId: z.uuid(),
+      templateId: z.uuid().nullable(),
+      // One hour to a fortnight. The lower bound is the point: "immediately"
+      // would remove the window a person has to answer it themselves, which is
+      // the thing that makes this reversible without a support ticket.
+      delayHours: z.number().int().min(1).max(336),
+    })
+    .safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid auto-reply settings.");
+
+  try {
+    await withAuthenticatedTenant(
+      async (tx, actor) => {
+        if (parsed.data.templateId) {
+          const [template] = await tx
+            .select({ id: schema.replyTemplates.id })
+            .from(schema.replyTemplates)
+            .where(eq(schema.replyTemplates.id, parsed.data.templateId))
+            .limit(1);
+          if (!template) throw new Error("That template no longer exists.");
+        }
+
+        const [row] = await tx
+          .update(schema.locations)
+          .set({
+            autoReplyTemplateId: parsed.data.templateId,
+            autoReplyDelayHours: parsed.data.delayHours,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.locations.id, parsed.data.locationId))
+          .returning({ id: schema.locations.id });
+
+        if (!row) throw new Error("That location does not exist.");
+
+        await tx.insert(schema.auditLogs).values({
+          organizationId: actor.organizationId,
+          actorUserId: actor.userId,
+          action: parsed.data.templateId ? "location.auto_reply_on" : "location.auto_reply_off",
+          entity: `location:${parsed.data.locationId}`,
+          meta: { templateId: parsed.data.templateId, delayHours: parsed.data.delayHours },
+        });
+      },
+      { minimumRole: "admin" },
+    );
+
+    revalidatePath("/locations");
+    return { ok: true };
+  } catch (error) {
+    log.warn({ err: error }, "setAutoReply failed");
+    return toActionResult(error);
+  }
+}

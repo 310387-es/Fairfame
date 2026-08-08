@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleMapping } from "@/components/connections/google-mapping";
 import { PublicPageControl } from "@/components/locations/public-page-control";
+import { AutoReplySettings } from "@/components/locations/auto-reply-settings";
 import { VoiceSettings } from "@/components/locations/voice-settings";
 import { SourceBadges } from "@/components/connections/source-badges";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,8 @@ export type LocationRow = {
   publicPage: { slug: string | null; published: boolean };
   /** How this branch's replies sound and sign off (W5-12). */
   voice: { brandTone: string | null; replySignature: string | null };
+  /** The auto-reply rule for wordless five-star reviews (W5-6). */
+  autoReply: { templateId: string | null; delayHours: number; preview: string | null };
 };
 
 export function LocationDetail({
@@ -75,9 +78,12 @@ export function LocationDetail({
   canManage,
   publicOrigin,
   approvedCount,
+  templates,
 }: {
   location: LocationRow;
   canManage: boolean;
+  /** The organization's reply templates — what the auto-reply rule may point at. */
+  templates: { id: string; name: string; language: string }[];
   /** The origin a visitor hits, which is not necessarily the dashboard's. */
   publicOrigin: string;
   /** Approved-for-display reviews in this organization; drives one warning. */
@@ -204,6 +210,15 @@ export function LocationDetail({
         locationId={location.id}
         brandTone={location.voice.brandTone}
         replySignature={location.voice.replySignature}
+        canManage={canManage}
+      />
+
+      <AutoReplySettings
+        locationId={location.id}
+        templates={templates}
+        templateId={location.autoReply.templateId}
+        delayHours={location.autoReply.delayHours}
+        preview={location.autoReply.preview}
         canManage={canManage}
       />
 
