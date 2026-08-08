@@ -1,3 +1,4 @@
+import { themeLabel } from "@/reviews/taxonomy";
 import { CalendarRange, ChevronRight, MapPin } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -40,8 +41,9 @@ import { withTenant } from "@/lib/tenancy";
  * The pulse is named once in the card header rather than labelled on every row.
  */
 export default async function DigestArchivePage() {
-  const [t, format, actor] = await Promise.all([
+  const [t, tThemes, format, actor] = await Promise.all([
     getTranslations("digest"),
+    getTranslations("themes"),
     getFormatter(),
     requireActor(),
   ]);
@@ -99,6 +101,7 @@ export default async function DigestArchivePage() {
     latest?.digest && latest.digest.status === "ready"
       ? describeDigest({
           digest: latest.digest,
+          themeLabel: (key: string) => themeLabel(key, tThemes),
           locationName: latest.locationName,
           t,
           formatDate: (value, options) => format.dateTime(value, options),

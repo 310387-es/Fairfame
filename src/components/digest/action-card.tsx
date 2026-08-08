@@ -8,6 +8,7 @@ import { Stars } from "@/components/ds/stars";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { isCanonicalTheme, themeLabel } from "@/reviews/taxonomy";
 import { setDigestActionStatusAction } from "@/server/digests";
 
 /**
@@ -61,6 +62,8 @@ export function ActionCard({
   quotes,
 }: ActionCardProps) {
   const t = useTranslations("digest");
+  // Canonical theme names, the same catalogue every other surface reads.
+  const tThemes = useTranslations("themes");
   const [pending, startTransition] = useTransition();
 
   const closed = status !== "open";
@@ -134,15 +137,28 @@ export function ActionCard({
             URL because the Inbox otherwise reads the branch from a cookie, and
             a digest for Kadıköy opened with Beşiktaş active showed nothing.
           */}
+          {/*
+            The slug is a filter *value* here and a *word* one line below, and
+            since W3.2 reached the digest those are no longer the same string.
+
+            `?theme=` matches `review_insights.topics` and `?ct=` matches
+            `themes` — `src/reviews/filters.ts` keeps them apart on purpose,
+            "because a canonical key means the same thing in both languages and
+            a free tag does not". So a canonical slug sent to `?theme=` looks
+            for the literal text "wait_time" among the customers' own words and
+            finds nothing: the fallback link would land on an empty queue, with
+            no error and no clue why.
+          */}
           <Link
             href={
               reviewIds.length > 0
                 ? `/reviews?location=${encodeURIComponent(locationId)}&reviews=${reviewIds.map(encodeURIComponent).join(",")}`
-                : `/reviews?theme=${encodeURIComponent(themeSlug)}`
+                : `/reviews?${isCanonicalTheme(themeSlug) ? "ct" : "theme"}=${encodeURIComponent(themeSlug)}`
             }
             className="underline-offset-4 hover:underline"
           >
-            {t("evidence", { count: reviewCount, theme: themeSlug })}
+            {/* The word, not the key — `wait_time` is not a thing to read. */}
+            {t("evidence", { count: reviewCount, theme: themeLabel(themeSlug, tThemes) })}
           </Link>
 
           {closed ? (

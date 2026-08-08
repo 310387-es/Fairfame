@@ -22,7 +22,13 @@ export type WindowReview = {
   postedAt: Date | null;
   sentiment: Sentiment | null;
   sentimentScore: number | null;
+  /** Free-text tags, in the language the customer wrote. */
   topics: string[];
+  /**
+   * Canonical themes (W3.2). Empty on anything analysed before the taxonomy
+   * existed, which is why `clusterThemes` falls back rather than requiring it.
+   */
+  themes: string[];
   embedding: number[] | null;
   hasReply: boolean;
 };
@@ -243,10 +249,33 @@ export function clusterThemes(
   const threshold = options.threshold ?? THEME_MERGE_THRESHOLD;
   const labelVectors = options.labelVectors ?? new Map<string, number[]>();
 
+  /*
+    Canonical themes where a review has them, its free tags where it does not.
+
+    **W3.2's taxonomy never reached the digest**, which is the one feature it
+    mattered most for. The clusters built here become the labels in the
+    briefing, the `theme` on every action card, and the words in the weekly
+    email — all read straight from `topics`, the free-text tail. So a business
+    whose customers write in two languages got "bekleme süresi" under one action
+    and "waiting time" under the next, counted as two different problems; and
+    the public sample page showed a Turkish tag under an English action.
+
+    Canonical keys need no embedding to merge — they *are* a closed vocabulary,
+    so stage one's exact-slug pass does all the work and stage two never sees
+    them. The free tail still gets the semantic merge it was built for. That is
+    the whole change: what goes into the bucket, not how the bucketing works.
+
+    Preferred rather than required, because `review_insights.themes` shipped
+    with no backfill: demanding canonical would empty the digest for every
+    account analysed before the taxonomy, which is most of them today.
+  */
+  const labelsOf = (review: WindowReview) =>
+    review.themes.length > 0 ? review.themes : review.topics;
+
   // Stage one: exact slug.
   const bySlug = new Map<string, WindowReview[]>();
   for (const review of reviews) {
-    for (const topic of new Set(review.topics)) {
+    for (const topic of new Set(labelsOf(review))) {
       const bucket = bySlug.get(topic);
       if (bucket) bucket.push(review);
       else bySlug.set(topic, [review]);

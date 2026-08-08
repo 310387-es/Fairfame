@@ -1,3 +1,4 @@
+import { themeLabel } from "@/reviews/taxonomy";
 import { CircleAlert, Loader } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -22,8 +23,9 @@ import { withTenant } from "@/lib/tenancy";
  * digest's pipeline reads it.
  */
 export default async function DigestDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const [t, format, actor, { id }] = await Promise.all([
+  const [t, tThemes, format, actor, { id }] = await Promise.all([
     getTranslations("digest"),
+    getTranslations("themes"),
     getFormatter(),
     requireActor(),
     params,
@@ -40,6 +42,7 @@ export default async function DigestDetailPage({ params }: { params: Promise<{ i
 
   const { period, shareText } = describeDigest({
     digest,
+    themeLabel: (key: string) => themeLabel(key, tThemes),
     locationName,
     t,
     formatDate: (value, options) => format.dateTime(value, options),

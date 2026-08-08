@@ -1,3 +1,4 @@
+import { themeLabel } from "@/reviews/taxonomy";
 import { ArrowRight, Info, Minus, Quote, TrendingDown, TrendingUp } from "lucide-react";
 import type { Metadata } from "next";
 import { getFormatter, getTranslations } from "next-intl/server";
@@ -55,12 +56,13 @@ function ChangeIcon({ direction }: { direction: number }) {
 
 export default async function SamplePage() {
   const locale = await getLocale();
-  const [t, tc, format, digest] = await Promise.all([
+  const [t, tc, tThemes, format, digest] = await Promise.all([
     getTranslations({ locale, namespace: "sample" }),
     // The change sentences live in the `digest` namespace and are shared with
     // the real digest, so the two screens cannot describe the same data
     // differently.
     getTranslations({ locale, namespace: "digest" }),
+    getTranslations({ locale, namespace: "themes" }),
     getFormatter({ locale }),
     getSampleDigest({ locale }),
   ]);
@@ -76,6 +78,9 @@ export default async function SamplePage() {
     line printed "9.2", which is the punctuation mismatch `PulseTile`'s comment
     warns about, sitting on the marketing page rather than one screen away.
   */
+  // A canonical key becomes a word; a free tag is shown as written.
+  const label = (key: string) => themeLabel(key, tThemes);
+
   const points = (value: number) => format.number(value, { maximumFractionDigits: 1 });
 
   const deltaLabel =
@@ -203,7 +208,7 @@ export default async function SamplePage() {
                   A label, not a link: there is no Inbox to send an anonymous
                   visitor to, and a dead link is worse than no link.
                 */}
-                <span className="text-copy text-muted-foreground">{action.theme}</span>
+                <span className="text-copy text-muted-foreground">{label(action.theme)}</span>
               </div>
             </li>
           ))}
@@ -222,7 +227,7 @@ export default async function SamplePage() {
                 >
                   <ChangeIcon direction={change.direction} />
                   <span className="text-pretty">
-                    {formatChange(change, (key, values) => tc(key, values))}
+                    {formatChange(change, (key, values) => tc(key, values), label)}
                   </span>
                 </li>
               ))}
@@ -239,7 +244,7 @@ export default async function SamplePage() {
             <Card key={theme.label}>
               <CardContent className="py-5">
                 <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <span className="font-medium">{theme.label}</span>
+                  <span className="font-medium">{label(theme.label)}</span>
                   <span className="text-copy text-muted-foreground">
                     {t("themeCount", { count: theme.count })}
                   </span>

@@ -93,6 +93,8 @@ export function describeDigest(input: {
   digest: DigestView;
   locationName: string;
   t: ShareTranslator;
+  /** A canonical theme key to a word — see `toShareableDigest`. */
+  themeLabel: (key: string) => string;
   /**
    * The caller's own `format.dateTime`, so the two surfaces cannot format a
    * date differently.
@@ -141,7 +143,14 @@ export function describeDigest(input: {
   const shareText =
     digest.status === "ready"
       ? digestShareText(
-          toShareableDigest({ digest, scopeName: locationName, period, t, format: formatter }),
+          toShareableDigest({
+            digest,
+            scopeName: locationName,
+            period,
+            t,
+            themeLabel: input.themeLabel,
+            format: formatter,
+          }),
         )
       : "";
 

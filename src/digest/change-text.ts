@@ -23,7 +23,22 @@ export type ChangeTranslator = (
   values: Record<string, string>,
 ) => string;
 
-export function formatChange(change: WindowChange, t: ChangeTranslator): string {
+export function formatChange(
+  change: WindowChange,
+  t: ChangeTranslator,
+  /**
+   * A theme key to a word.
+   *
+   * Required, not optional, and that is deliberate. Since W3.2 reached the
+   * digest, `detail.label` is a canonical key wherever the reviews were
+   * analysed under the taxonomy — so a default of "print it as-is" would have
+   * shipped `food_quality is up, 2 → 5 reviews` onto the public sample page,
+   * which is exactly what it did before this parameter existed. Making every
+   * caller name a labeller is how the compiler finds the surfaces I would
+   * otherwise have to remember.
+   */
+  themeLabel: (key: string) => string,
+): string {
   const detail = change.detail as Record<string, string | number>;
 
   if (change.kind === "pulse") {
@@ -42,17 +57,20 @@ export function formatChange(change: WindowChange, t: ChangeTranslator): string 
   }
 
   if (detail.status === "new") {
-    return t("changeThemeNew", { label: String(detail.label), count: String(detail.count) });
+    return t("changeThemeNew", {
+      label: themeLabel(String(detail.label)),
+      count: String(detail.count),
+    });
   }
 
   return detail.status === "rising"
     ? t("changeThemeRising", {
-        label: String(detail.label),
+        label: themeLabel(String(detail.label)),
         from: String(detail.from),
         to: String(detail.to),
       })
     : t("changeThemeFalling", {
-        label: String(detail.label),
+        label: themeLabel(String(detail.label)),
         from: String(detail.from),
         to: String(detail.to),
       });

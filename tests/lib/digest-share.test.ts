@@ -181,6 +181,10 @@ describe("toShareableDigest", () => {
       scopeName: "Kadıköy",
       period: "27 Tem",
       t,
+      // The identity labeller: this suite is about the *seam*, and a fixture
+      // using free tags exercises the pass-through half of `themeLabel`.
+      // `tests/lib/digest-themes.test.ts` covers the canonical half.
+      themeLabel: (key) => key,
       format,
     });
 

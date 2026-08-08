@@ -420,7 +420,13 @@ export function digestPrompt(input: DigestPromptInput): BuiltPrompt {
     .join("\n");
 
   return buildPrompt({
-    id: "action_digest@1",
+    /*
+      `@2`: the themes this prompt is given are now the canonical taxonomy
+      (W3.2), not the free-text tail. The id moves for the same reason
+      `analyze_review@3` did — every digest records it, and "what was this model
+      actually shown" must stay answerable a year later.
+    */
+    id: "action_digest@2",
     system: DIGEST_SYSTEM,
     instruction: [
       facts,
@@ -429,6 +435,12 @@ export function digestPrompt(input: DigestPromptInput): BuiltPrompt {
       "",
       "Write: a one-line headline; a short summary of the week; up to three callouts naming what customers singled out; and exactly three actions.",
       `Each action cites one theme label from above, the numbers of the quotes it rests on, and one lever from: ${DIGEST_LEVERS.join(", ")}.`,
+      // The same rule `analyze_review` states, and it matters more here: a
+      // theme label is now usually a canonical key, so a briefing written in
+      // Turkish is handed English identifiers. Echoed into the `theme` field
+      // they are correct; written into a sentence they are a bug a customer
+      // reads.
+      "A theme label may be an English identifier such as wait_time even when you are writing in Turkish. Copy it exactly into the theme field, and never write it in the headline, the summary, a callout or an action — there, describe the theme in the customer's own language.",
       `Limits: headline ${MAX_HEADLINE_CHARS} characters, summary ${MAX_SUMMARY_CHARS}, each action ${MAX_ACTION_CHARS}.`,
     ].join("\n"),
     untrustedText: quotes,

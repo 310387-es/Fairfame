@@ -33,6 +33,9 @@ function review(overrides: Partial<WindowReview> = {}): WindowReview {
     sentiment: "positive",
     sentimentScore: 0.8,
     topics: ["servis"],
+    // Free tags by default, so the existing cases keep exercising the
+    // fallback path and the semantic merge that only the tail needs.
+    themes: [],
     embedding: null,
     hasReply: false,
     ...overrides,

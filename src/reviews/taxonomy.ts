@@ -153,3 +153,37 @@ export function normalizeThemes(values: unknown): CanonicalTheme[] {
 export function themeLabel(key: string, translate: (canonical: CanonicalTheme) => string): string {
   return isCanonicalTheme(key) ? translate(key) : key;
 }
+
+/**
+ * The theme names, for surfaces that cannot reach the message catalogue.
+ *
+ * `src/i18n/messages/*.json` is the source of truth and every screen reads it
+ * through `next-intl`. The **weekly email cannot**: it is rendered in the
+ * background worker, from plain `COPY[locale]` records, deliberately — a
+ * template that needed a request context could not be sent by a cron.
+ *
+ * So the email carries a copy, exactly as it carries a copy of the palette for
+ * the same class of reason (`tests/lib/email-palette.test.ts`). And exactly as
+ * there, a copy is only safe if something fails when it drifts:
+ * `tests/lib/digest-themes.test.ts` asserts these are the catalogue's own
+ * words, key for key, in both languages.
+ *
+ * Nothing in the app should reach for this. Use `themeLabel(key, tThemes)`.
+ */
+export const THEME_NAMES: Record<CanonicalTheme, { en: string; tr: string }> = {
+  staff: { en: "Staff", tr: "Personel" },
+  service: { en: "Service", tr: "Servis" },
+  wait_time: { en: "Waiting time", tr: "Bekleme süresi" },
+  price: { en: "Price", tr: "Fiyat" },
+  cleanliness: { en: "Cleanliness", tr: "Temizlik" },
+  ambience: { en: "Atmosphere", tr: "Ortam" },
+  location_access: { en: "Getting there", tr: "Ulaşım" },
+  booking: { en: "Booking", tr: "Rezervasyon" },
+  food_quality: { en: "Food", tr: "Yemek" },
+  menu_variety: { en: "Menu", tr: "Menü" },
+  portion_size: { en: "Portions", tr: "Porsiyon" },
+  room_comfort: { en: "Room", tr: "Oda" },
+  product_quality: { en: "Products", tr: "Ürünler" },
+  stock_availability: { en: "Stock", tr: "Stok" },
+  treatment_outcome: { en: "Treatment", tr: "Tedavi" },
+};

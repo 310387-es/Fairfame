@@ -348,7 +348,7 @@ describe("generating a digest", () => {
   it("records the prompt revision and model that composed it", async () => {
     const row = await digestRow(fixture.orgId);
 
-    expect(row?.promptId).toBe("action_digest@1");
+    expect(row?.promptId).toBe("action_digest@2");
     expect(row?.model).toBe("stub-1");
     expect(row?.locale).toBe("tr");
   });

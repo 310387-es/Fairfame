@@ -208,6 +208,7 @@ async function gather(
       sentiment: schema.reviewInsights.sentiment,
       sentimentScore: schema.reviewInsights.sentimentScore,
       topics: schema.reviewInsights.topics,
+      themes: schema.reviewInsights.themes,
       embedding: schema.reviewInsights.embedding,
       replyId: schema.replies.id,
       ownerRepliedAt: schema.reviews.ownerRepliedAt,
@@ -237,6 +238,7 @@ async function gather(
     sentiment: row.sentiment,
     sentimentScore: row.sentimentScore,
     topics: row.topics ?? [],
+    themes: row.themes ?? [],
     embedding: row.embedding,
     // Including one the owner left on the platform (W1.2). Without it the
     // digest's "answer these" list hands an owner complaints they already
@@ -838,7 +840,11 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
  * failing the digest over an embedding outage.
  */
 async function embedLabels(reviews: WindowReview[]): Promise<Map<string, number[]>> {
-  const labels = [...new Set(reviews.flatMap((review) => review.topics))].filter(Boolean);
+  // Only the free tail needs vectors: canonical keys merge on exact slug and
+  // never reach the semantic pass, so embedding them would be paid for nothing.
+  const labels = [
+    ...new Set(reviews.flatMap((review) => (review.themes.length > 0 ? [] : review.topics))),
+  ].filter(Boolean);
   if (labels.length === 0) return new Map();
 
   try {

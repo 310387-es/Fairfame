@@ -1,3 +1,4 @@
+import { themeLabel } from "@/reviews/taxonomy";
 import { and, eq } from "drizzle-orm";
 import { getFormatter, getTranslations } from "next-intl/server";
 import {
@@ -62,7 +63,11 @@ export async function GET(
         )
         .limit(1);
 
-      const [t, format] = await Promise.all([getTranslations("digest"), getFormatter()]);
+      const [t, tThemes, format] = await Promise.all([
+        getTranslations("digest"),
+        getTranslations("themes"),
+        getFormatter(),
+      ]);
 
       // The exclusive end printed as the day before, so a seven-day week does
       // not read as eight — the same correction the email and the page make.
@@ -77,6 +82,7 @@ export async function GET(
         scopeName: location?.name ?? "",
         period,
         t,
+        themeLabel: (key) => themeLabel(key, tThemes),
         format: {
           number: (value, maximumFractionDigits) => format.number(value, { maximumFractionDigits }),
         },

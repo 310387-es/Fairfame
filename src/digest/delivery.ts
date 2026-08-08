@@ -1,3 +1,4 @@
+import { isCanonicalTheme, THEME_NAMES } from "../reviews/taxonomy.ts";
 import { and, asc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/config.ts";
@@ -277,11 +278,25 @@ export async function sendDigestEmails(options: {
           ),
         );
 
+        /*
+          Theme keys become words *here*, not in the template.
+
+          W3.2 reached the digest, so `theme.label` is a canonical key like
+          `wait_time` wherever the reviews were analysed under the taxonomy —
+          and an email is the one surface nobody can correct after the fact.
+          The template is plain data with no request context, so the names come
+          from `THEME_NAMES`, which `tests/lib/digest-themes.test.ts` pins to
+          the catalogue the screens read.
+        */
+        const emailLocale = localeOf(recipient.locale);
+        const label = (key: string) =>
+          isCanonicalTheme(key) ? THEME_NAMES[key][emailLocale] : key;
+
         const message = renderDigestEmail({
           // The recipient's language, not the language the briefing was
           // composed in: the model wrote it in the location's locale, and a
           // team member reading it may not share that.
-          locale: localeOf(recipient.locale),
+          locale: emailLocale,
           recipientName: recipient.name,
           businessName: digest.organizationName,
           locationName: digest.locationName,
@@ -313,7 +328,7 @@ export async function sendDigestEmails(options: {
           }),
           themes:
             payload?.themes.map((theme) => ({
-              label: theme.label,
+              label: label(theme.label),
               count: theme.count,
               positive: theme.positive,
               negative: theme.negative,

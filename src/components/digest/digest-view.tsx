@@ -1,3 +1,4 @@
+import { themeLabel } from "@/reviews/taxonomy";
 import {
   ArrowRight,
   ArrowUpDown,
@@ -69,7 +70,13 @@ export async function DigestView({
    */
   record?: CompletionRecord | null;
 }) {
-  const [t, format] = await Promise.all([getTranslations("digest"), getFormatter()]);
+  const [t, tThemes, format] = await Promise.all([
+    getTranslations("digest"),
+    // Canonical theme names — W3.2 reached the digest, so `theme.label` is a
+    // key like `wait_time` wherever the reviews were analysed under it.
+    getTranslations("themes"),
+    getFormatter(),
+  ]);
   const payload = digest.payload;
 
   if (!payload) return null;
@@ -103,7 +110,11 @@ export async function DigestView({
   );
   const changes = payload.changes.map((change) => ({
     direction: change.direction,
-    text: formatChange(change, (key, values) => t(key, values)),
+    text: formatChange(
+      change,
+      (key, values) => t(key, values),
+      (key) => themeLabel(key, tThemes),
+    ),
   }));
 
   /** How many of the three mid-page panels will actually render. */
@@ -313,7 +324,7 @@ export async function DigestView({
             {payload.themes.map((theme) => (
               <SectionCard
                 key={theme.label}
-                title={theme.label}
+                title={themeLabel(theme.label, tThemes)}
                 icon={MessageSquareQuote}
                 meta={t("themeCount", { count: theme.count })}
                 action={

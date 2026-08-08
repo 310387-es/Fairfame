@@ -73,9 +73,20 @@ export function toShareableDigest(input: {
   /** "27 Temmuz – 2 Ağustos 2026", built by the caller from its own formatter. */
   period: string;
   t: ShareTranslator;
+  /**
+   * A theme key to a word, in the reader's language.
+   *
+   * Passed in rather than resolved here, for the same reason `t` and `format`
+   * are: this module is the seam between what a week *said* and how it is
+   * *written*, and it must not acquire a locale of its own. Since W3.2 reached
+   * the digest, `theme.label` is a canonical key like `wait_time` wherever the
+   * reviews were analysed under the taxonomy — so a caller that forgets this
+   * prints the identifier into a PDF.
+   */
+  themeLabel: (key: string) => string;
   format: ShareFormatter;
 }): ShareableDigest {
-  const { digest, t, format } = input;
+  const { digest, t, themeLabel, format } = input;
   const payload = digest.payload;
 
   // The quotes the payload already carries, by review id — the same map the
@@ -141,13 +152,13 @@ export function toShareableDigest(input: {
     changesTitle: t("changesTitle"),
     changes: (payload?.changes ?? []).map((change, index) => ({
       key: `${change.kind}-${index}`,
-      text: formatChange(change, t),
+      text: formatChange(change, t, themeLabel),
       direction: change.direction > 0 ? "up" : change.direction < 0 ? "down" : "flat",
     })),
     themesTitle: t("themesTitle"),
     themes: (payload?.themes ?? []).map((theme) => ({
       key: theme.label,
-      label: theme.label,
+      label: themeLabel(theme.label),
       meta: t("themeCount", { count: theme.count }),
     })),
     footer: input.scopeName,

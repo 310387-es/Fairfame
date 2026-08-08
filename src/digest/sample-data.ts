@@ -29,6 +29,16 @@ type SampleSeed = {
   sentiment: "positive" | "neutral" | "negative";
   score: number;
   topics: string[];
+  /**
+   * Canonical themes (W3.2), as `analyze_review@3` would return them.
+   *
+   * The corpus predates the taxonomy and carried only free tags, so the sample
+   * briefing — the public marketing page — showed "bekleme süresi" under an
+   * English action. Two seeds are deliberately left with none: `çalışma` and
+   * `çalışma saatleri` have no canonical key, and a corpus where every review
+   * maps cleanly would demonstrate a completeness the vocabulary does not have.
+   */
+  themes: string[];
   hasReply?: boolean;
 };
 
@@ -41,6 +51,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "negative",
     score: -0.7,
     topics: ["bekleme süresi", "personel"],
+    themes: ["wait_time", "staff"],
   },
   {
     daysAgo: 2,
@@ -50,6 +61,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.9,
     topics: ["kahve", "personel"],
+    themes: ["product_quality", "staff"],
   },
   {
     daysAgo: 2,
@@ -59,6 +71,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "negative",
     score: -0.9,
     topics: ["temizlik", "tuvalet"],
+    themes: ["cleanliness"],
   },
   {
     daysAgo: 3,
@@ -68,6 +81,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.9,
     topics: ["breakfast", "price"],
+    themes: ["food_quality", "price"],
   },
   {
     daysAgo: 4,
@@ -77,6 +91,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.5,
     topics: ["ortam", "çalışma"],
+    themes: ["ambience"],
   },
   {
     daysAgo: 5,
@@ -86,6 +101,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "negative",
     score: -0.6,
     topics: ["bekleme süresi", "kahvaltı"],
+    themes: ["wait_time", "food_quality"],
     hasReply: true,
   },
   {
@@ -96,6 +112,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.95,
     topics: ["personel"],
+    themes: ["staff"],
   },
   {
     daysAgo: 7,
@@ -105,6 +122,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "neutral",
     score: -0.2,
     topics: ["müzik", "coffee"],
+    themes: ["ambience", "product_quality"],
   },
   {
     daysAgo: 8,
@@ -114,6 +132,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.85,
     topics: ["tatlı", "fiyat"],
+    themes: ["food_quality", "price"],
   },
   {
     daysAgo: 9,
@@ -123,6 +142,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "negative",
     score: -0.85,
     topics: ["cleanliness", "toilets"],
+    themes: ["cleanliness"],
   },
   {
     daysAgo: 10,
@@ -132,6 +152,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.45,
     topics: ["bekleme süresi", "yemek"],
+    themes: ["wait_time", "food_quality"],
   },
   {
     daysAgo: 11,
@@ -141,6 +162,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.9,
     topics: ["staff"],
+    themes: ["staff"],
   },
   {
     daysAgo: 12,
@@ -150,6 +172,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "neutral",
     score: -0.1,
     topics: ["ortam", "gürültü"],
+    themes: ["ambience"],
   },
   {
     daysAgo: 13,
@@ -159,6 +182,7 @@ const SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.8,
     topics: ["kahvaltı", "çalışma saatleri"],
+    themes: ["food_quality"],
   },
 ];
 
@@ -172,6 +196,7 @@ const PRIOR_SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.9,
     topics: ["personel", "bekleme süresi"],
+    themes: ["staff", "wait_time"],
   },
   {
     daysAgo: 18,
@@ -181,6 +206,7 @@ const PRIOR_SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.7,
     topics: ["kahve", "tatlı"],
+    themes: ["product_quality", "food_quality"],
   },
   {
     daysAgo: 20,
@@ -190,6 +216,7 @@ const PRIOR_SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.9,
     topics: ["coffee", "ortam"],
+    themes: ["product_quality", "ambience"],
   },
   {
     daysAgo: 22,
@@ -199,6 +226,7 @@ const PRIOR_SEEDS: SampleSeed[] = [
     sentiment: "neutral",
     score: 0.1,
     topics: ["bekleme süresi"],
+    themes: ["wait_time"],
   },
   {
     daysAgo: 24,
@@ -208,6 +236,7 @@ const PRIOR_SEEDS: SampleSeed[] = [
     sentiment: "positive",
     score: 0.85,
     topics: ["kahvaltı"],
+    themes: ["food_quality"],
   },
 ];
 
@@ -221,6 +250,7 @@ function toReviews(seeds: SampleSeed[], now: Date): WindowReview[] {
     sentiment: seed.sentiment,
     sentimentScore: seed.score,
     topics: seed.topics,
+    themes: seed.themes,
     // No vectors: the sample must not need an embedding call to render, so
     // theme merging is left to the identical-slug pass. `personel` and `staff`
     // therefore stay separate here, which is the honest behaviour without
