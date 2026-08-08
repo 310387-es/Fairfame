@@ -989,7 +989,9 @@
     "save": "Save",
     "create": "Create survey",
     "saving": "Saving…",
-    "answerCount": "{count, plural, =1 {1 answer} other {# answers}}"
+    "answerCount": "{count, plural, =1 {1 answer} other {# answers}}",
+    "noScoreYet": "No answers yet",
+    "qrAlt": "QR code for this survey"
   },
   "survey": {
     "metaTitle": "A quick question about {location}",

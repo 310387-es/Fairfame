@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+
+/** Cited by the score group through `aria-describedby`. */
+const ERROR_ID = "survey-score-error";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { bandFor, scalePoints, type SurveyType } from "@/surveys/scoring";
@@ -239,7 +242,45 @@ export function SurveyAnswerForm({
         {/* The scale is the question's answer set, so it is a radio group. */}
         <legend className="sr-only">{labels.scaleLegend}</legend>
 
+        {/*
+          A real radio group, not eleven toggle buttons.
+
+          The comment above has said "so it is a radio group" since P4-T2 and
+          the markup was `aria-pressed` — which announces "0, toggle button, not
+          pressed" eleven times, with nothing saying the options belong to one
+          question or how many there are. The star picker on `/c/{slug}` got
+          `role="radio"` and `aria-checked` when it was built; this control,
+          which is the whole of a survey, did not.
+
+          Roving `tabIndex` and arrow keys come with the role: a radio group is
+          one tab stop, and eleven of them in a row is eleven presses of Tab to
+          get past a question somebody chose not to answer.
+        */}
         <div
+          role="radiogroup"
+          aria-label={labels.scaleLegend}
+          aria-invalid={error !== null || undefined}
+          aria-describedby={error === null ? undefined : ERROR_ID}
+          onKeyDown={(event) => {
+            const step =
+              event.key === "ArrowRight" || event.key === "ArrowDown"
+                ? 1
+                : event.key === "ArrowLeft" || event.key === "ArrowUp"
+                  ? -1
+                  : 0;
+            if (step === 0) return;
+
+            event.preventDefault();
+            // From the current answer, or from the first point when there is
+            // none — arrowing into an untouched scale should land somewhere.
+            const current = score === null ? -1 : points.indexOf(score);
+            const next = points[(current + step + points.length) % points.length];
+            if (next === undefined) return;
+
+            setScore(next);
+            setError(null);
+            event.currentTarget.querySelector<HTMLButtonElement>(`[data-point="${next}"]`)?.focus();
+          }}
           className={cn(
             "grid gap-1.5",
             // NPS is eleven buttons and has to wrap on a phone; CSAT is five and
@@ -252,7 +293,12 @@ export function SurveyAnswerForm({
             <button
               key={point}
               type="button"
-              aria-pressed={score === point}
+              role="radio"
+              data-point={point}
+              aria-checked={score === point}
+              // One tab stop for the group: focus lands on the answer if there
+              // is one, otherwise on the first point.
+              tabIndex={score === point || (score === null && index === 0) ? 0 : -1}
               aria-label={labels.scoreLabels[index] ?? String(point)}
               onClick={() => {
                 setScore(point);
@@ -276,6 +322,21 @@ export function SurveyAnswerForm({
           <span>{labels.low}</span>
           <span>{labels.high}</span>
         </div>
+
+        {/*
+          Beside the control it is about, not under the button.
+
+          "Please choose a score" sat below the submit button, two hundred
+          pixels from the scale and after the comment box — so the eye was sent
+          to the bottom of the form to be told about something at the top. The
+          group cites it through `aria-describedby`, so it is read as part of
+          the question rather than as a loose announcement.
+        */}
+        {error ? (
+          <p id={ERROR_ID} role="alert" className="mt-3 text-copy text-destructive">
+            {error}
+          </p>
+        ) : null}
       </fieldset>
 
       <div className="mt-5">
@@ -296,12 +357,6 @@ export function SurveyAnswerForm({
       <Button size="lg" className="mt-5 w-full" disabled={pending} onClick={submit}>
         {pending ? labels.submitting : labels.submit}
       </Button>
-
-      {error ? (
-        <p role="alert" className="mt-3 text-center text-copy text-destructive">
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }

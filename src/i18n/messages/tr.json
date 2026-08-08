@@ -989,7 +989,9 @@
     "save": "Kaydet",
     "create": "Anket oluştur",
     "saving": "Kaydediliyor…",
-    "answerCount": "{count, plural, =1 {1 yanıt} other {# yanıt}}"
+    "answerCount": "{count, plural, =1 {1 yanıt} other {# yanıt}}",
+    "noScoreYet": "Henüz yanıt yok",
+    "qrAlt": "Bu anket için QR kodu"
   },
   "survey": {
     "metaTitle": "{location} hakkında kısa bir soru",
