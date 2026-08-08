@@ -573,7 +573,9 @@
     },
     "closeReview": "Close",
     "searchLabel": "Search these reviews",
-    "searchPlaceholder": "Search what customers wrote"
+    "searchPlaceholder": "Search what customers wrote",
+    "replyDraft": "Draft",
+    "replySent": "Replied"
   },
   "locations": {
     "title": "Locations",

@@ -1,5 +1,6 @@
 "use client";
 
+import { CornerDownRight } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ProviderMark } from "@/components/connections/provider-mark";
@@ -59,6 +60,13 @@ export type ReviewRow = {
   /** Set only where the plan tracks deadlines and this one has slipped. */
   overdue: boolean;
   answered: boolean;
+  /** Up to two canonical themes — see the projection in the page. */
+  themes: string[];
+  /**
+   * The reply and its state, or null when none exists. `text: null` means the
+   * owner answered on the platform: we have the fact but not the words.
+   */
+  reply: { text: string | null; state: "draft" | "posted" } | null;
 };
 
 export function ReviewRows({
@@ -69,6 +77,7 @@ export function ReviewRows({
   resolvedLabel,
   showSource,
   canSelect,
+  replyLabels,
 }: {
   reviews: ReviewRow[];
   selectedId: string | null;
@@ -89,6 +98,8 @@ export function ReviewRows({
   resolvedLabel: string;
   /** Growth+ and member or above; the server enforces the same rule. */
   canSelect: boolean;
+  /** "Draft" / "Replied", translated. */
+  replyLabels: { draft: string; posted: string };
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -395,6 +406,22 @@ export function ReviewRows({
                         <span className="sr-only">{review.sourceLabel}</span>
                       </span>
                     ) : null}
+
+                    {/*
+                      What the analysis found. It sat behind a click, which for
+                      the feature this product is sold on is the wrong side of
+                      one. On the "about" line with the source rather than under
+                      the words, because it describes the review rather than
+                      continuing it.
+                    */}
+                    {review.themes.map((theme) => (
+                      <span
+                        key={theme}
+                        className="shrink-0 rounded-sm bg-surface-sunken px-1.5 py-0.5 text-meta text-ink-500"
+                      >
+                        {theme}
+                      </span>
+                    ))}
                   </div>
 
                   {/*
@@ -419,6 +446,48 @@ export function ReviewRows({
                   >
                     {review.snippet}
                   </p>
+
+                  {/*
+                    **The reply, on the row.**
+
+                    The row showed only the customer's turn, so "did we answer,
+                    and what did we say" cost a click — on the screen whose
+                    whole job is answering. Every tool in the category puts the
+                    response under the review (Birdeye, Podium and Trustpilot's
+                    console all do), and the inbox shape this row borrowed from
+                    does the same thing for a different reason: Gmail, Front and
+                    Superhuman preview the *latest* turn in a thread, not the
+                    first. I took the shape and not that rule.
+
+                    Answered was carried only by dimming, which cannot be told
+                    apart from "low priority" at a glance. It is a line you can
+                    read now.
+
+                    **A draft is not a reply.** It is waiting for somebody to
+                    approve and post it — the work still outstanding — so it is
+                    labelled and tinted apart rather than counted as done.
+                  */}
+                  {review.reply ? (
+                    <p className="flex min-w-0 items-start gap-1.5 text-copy">
+                      <CornerDownRight
+                        className="mt-0.5 size-3.5 shrink-0 text-graphic-faint"
+                        aria-hidden
+                      />
+                      <span
+                        className={cn(
+                          "shrink-0 font-semibold",
+                          review.reply.state === "draft"
+                            ? "text-state-rating-text"
+                            : "text-state-positive-text",
+                        )}
+                      >
+                        {review.reply.state === "draft" ? replyLabels.draft : replyLabels.posted}
+                      </span>
+                      {review.reply.text ? (
+                        <span className="min-w-0 truncate text-faint">{review.reply.text}</span>
+                      ) : null}
+                    </p>
+                  ) : null}
                 </div>
 
                 {/*

@@ -573,7 +573,9 @@
     },
     "closeReview": "Kapat",
     "searchLabel": "Bu yorumlarda ara",
-    "searchPlaceholder": "Müşterilerin yazdıklarında ara"
+    "searchPlaceholder": "Müşterilerin yazdıklarında ara",
+    "replyDraft": "Taslak",
+    "replySent": "Yanıtlandı"
   },
   "locations": {
     "title": "Şubeler",

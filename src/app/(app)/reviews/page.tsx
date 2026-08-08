@@ -283,6 +283,37 @@ export default async function InboxPage({
           : "low",
     overdue: review.sla === "overdue",
     answered: review.hasOwnerReply || review.reply_ !== null,
+    /*
+      What the AI found, on the row.
+
+      Two, not all of them: the analysis is this product's differentiator and it
+      was invisible until somebody opened a review, but a row that lists six
+      themes is a row nobody reads. Two is enough to see a pattern down a
+      column, and the filter bar above carries the full vocabulary with counts.
+    */
+    themes: review.topics.slice(0, 2),
+    /*
+      The reply, and its state — the thing this row most obviously lacked.
+
+      A draft is *not* a reply: it is waiting for somebody to approve and post
+      it, which is work, and a row that showed it as answered would hide the one
+      action left. So the state travels with the text and the row draws them
+      differently.
+
+      `hasOwnerReply` with no `reply_` means the owner answered on the platform
+      before or outside Revira. We have the fact but not the words — the text is
+      buried in `raw_payload` and normalising it is a connector change — so that
+      case says only that it was answered, rather than inventing a preview.
+    */
+    reply:
+      review.reply_ !== null
+        ? {
+            text: review.reply_.text,
+            state: review.reply_.status === "posted" ? ("posted" as const) : ("draft" as const),
+          }
+        : review.hasOwnerReply
+          ? { text: null, state: "posted" as const }
+          : null,
   }));
 
   return (
@@ -463,6 +494,7 @@ export default async function InboxPage({
                     // Selection belongs to the list, which is the only place
                     // more than one review exists to select.
                     canSelect={canBulk && roleAtLeast(actor.role, "member")}
+                    replyLabels={{ draft: t("replyDraft"), posted: t("replySent") }}
                     // Naming the source only helps when there is another one to
                     // tell it apart from.
                     showSource={(facets?.sources.length ?? 0) > 1}
