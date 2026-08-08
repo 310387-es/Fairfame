@@ -3,6 +3,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { getAdminDb, schema } from "../../db/client.ts";
 import { childLogger } from "../../lib/logger.ts";
 import { sendPendingEmails } from "../../notifications/email.ts";
+import { sendPendingPush } from "../../notifications/push.ts";
 import {
   IS_NEWS,
   notifyPendingReviews,
@@ -131,6 +132,8 @@ export type NotifyJobResult = {
   upgraded: number;
   emailsSent: number;
   emailsFailed: number;
+  /** Devices reached (W5-9). Zero where no VAPID key is configured. */
+  pushed: number;
 };
 
 export async function runNotify(job: Job<ReviewJob>): Promise<NotifyJobResult> {
@@ -143,6 +146,21 @@ export async function runNotify(job: Job<ReviewJob>): Promise<NotifyJobResult> {
   const created = await notifyPendingReviews({ organizationId });
   const upgraded = await upgradeUrgencyFromInsights({ organizationId });
   const emails = await sendPendingEmails({ organizationId });
+  /*
+    Push rides the same rows and the same schedule (W5-9).
+
+    After the email drain rather than before it, and the order is not
+    arbitrary: email is the channel every account has, push is the one a person
+    opts into on one device, and if this throws the email must already be sent.
+    It is guarded for the same reason — an unreachable push service must not
+    cost somebody their alert on the channel that works.
+  */
+  let pushed = 0;
+  try {
+    pushed = (await sendPendingPush({ organizationId })).sent;
+  } catch (error) {
+    log.warn({ organizationId, err: error }, "Push drain failed; email already sent");
+  }
 
   const result: NotifyJobResult = {
     organizationId,
@@ -150,9 +168,13 @@ export async function runNotify(job: Job<ReviewJob>): Promise<NotifyJobResult> {
     upgraded,
     emailsSent: emails.sent,
     emailsFailed: emails.failed,
+    pushed,
   };
 
-  if (result.created + result.upgraded + result.emailsSent + result.emailsFailed > 0) {
+  if (
+    result.created + result.upgraded + result.emailsSent + result.emailsFailed + result.pushed >
+    0
+  ) {
     log.info(result, "Notification job completed");
   }
 

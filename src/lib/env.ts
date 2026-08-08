@@ -254,6 +254,23 @@ const envSchema = z.object({
   TOKEN_VAULT_KEYS: optionalSecret,
 
   /**
+   * Web Push identity (W5-9): `npx web-push generate-vapid-keys`.
+   *
+   * Optional, and absent is the ordinary state. A deployment with no key pair
+   * simply does not offer the button — `pushConfig()` returns null and the
+   * settings card says push is not configured here. Failing at boot would take
+   * the whole app down over a channel nobody has to use, which is the same
+   * reasoning `TOKEN_VAULT_KEYS` follows for connectors it does not have.
+   *
+   * `VAPID_SUBJECT` is the contact a push service is entitled to have for the
+   * *application* — a `mailto:` or an https URL. It defaults to this
+   * deployment's own origin, which is true and reachable.
+   */
+  VAPID_PUBLIC_KEY: optionalSecret,
+  VAPID_PRIVATE_KEY: optionalSecret,
+  VAPID_SUBJECT: z.string().trim().min(1).optional(),
+
+  /**
    * Per-provider mode. `mock` keeps the MockConnector in place (the dev
    * default for every credentialed provider), `real` uses the provider's own
    * implementation, `off` hides it from the connect UI entirely.

@@ -2362,6 +2362,45 @@ export const notificationPreferences = pgTable(
 );
 
 /**
+ * A browser or phone that has agreed to receive push notifications (W5-9).
+ *
+ * Per **user**, not per organization: the subscription belongs to a device
+ * somebody is holding, and one person may work for two businesses. The
+ * organization is on the row anyway so RLS can scope it, and because a
+ * membership ending has to be able to take the subscription with it.
+ *
+ * `endpoint` is the primary identity — it is what the push service issues and
+ * what identifies the device — so it is globally unique. The same phone
+ * re-subscribing produces the same endpoint and updates rather than
+ * accumulating; a browser that loses its keys produces a new one and the old
+ * row is deleted the first time a send comes back `410 Gone`.
+ *
+ * The two keys are the device's own public key material. They are useless
+ * without a message to encrypt and cannot be used to read anything, which is
+ * why they are plain columns rather than vault entries — unlike an OAuth token,
+ * which is a credential to somebody else's system.
+ */
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    /** Last successful delivery, for pruning a device that stopped answering. */
+    lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [index("push_subscriptions_user_idx").on(table.organizationId, table.userId)],
+);
+
+/**
  * The in-app feed, and the record that an email was (or was not) sent.
  *
  * One row per user per event, not one row per event: the feed is per-person,
@@ -2408,6 +2447,15 @@ export const notifications = pgTable(
      * sender's predicate reads that way.
      */
     sendAfter: timestamp("send_after", { withTimezone: true }),
+    /**
+     * When this was pushed to a device (W5-9). Null means not yet, or never.
+     *
+     * A timestamp rather than a status enum like `email_status`, because push
+     * has no "deferred" and no "skipped" state to distinguish: either a device
+     * exists and took it, or there was nothing to send to — and the second is
+     * not a fact about the notification, it is a fact about the person.
+     */
+    pushedAt: timestamp("pushed_at", { withTimezone: true }),
     emailedAt: timestamp("emailed_at", { withTimezone: true }),
     ...timestamps,
   },
@@ -2690,6 +2738,7 @@ export type Invitation = typeof invitations.$inferSelect;
  * and `notifications` is worse than no list at all.
  */
 export const TENANT_TABLES = [
+  "push_subscriptions",
   "memberships",
   "locations",
   "connections",

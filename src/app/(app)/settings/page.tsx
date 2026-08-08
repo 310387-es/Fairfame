@@ -6,6 +6,8 @@ import { roleAtLeast } from "@/auth/permissions";
 import { requireActor } from "@/auth/session";
 import { BrandingForm } from "@/components/agency/branding-form";
 import { PreferenceForm, type PreferenceValue } from "@/components/notifications/preference-form";
+import { PushToggle } from "@/components/notifications/push-toggle";
+import { pushConfig } from "@/notifications/push";
 import { TemplateManager } from "@/components/replies/template-manager";
 import { LanguageCard } from "@/components/settings/language-card";
 import { PageHeader } from "@/components/shell/page-header";
@@ -165,6 +167,17 @@ export default async function SettingsPage() {
           <CardDescription>{tn("subtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          {/*
+            Above the per-branch rows, because it is about *this device* rather
+            than about a branch — and because somebody who came here to make
+            their phone buzz should not have to read a table first (W5-9).
+
+            The public key is resolved on the server: whether push is configured
+            at all is a deployment fact, and shipping the answer beats shipping
+            the question.
+          */}
+          <PushToggle publicKey={pushConfig()?.publicKey ?? null} />
+
           <PreferenceForm
             locationId={null}
             locationName={tn("defaultRow")}

@@ -1348,7 +1348,15 @@
       "quiet": "Sessiz saatler",
       "quietFrom": "Sessiz saat başlangıcı",
       "quietTo": "Sessiz saat bitişi",
-      "quietHelp": "E-posta bu aralık bitene kadar bekler. Uygulama içi bildirim yine anında gelir."
+      "quietHelp": "E-posta bu aralık bitene kadar bekler. Uygulama içi bildirim yine anında gelir.",
+      "push": {
+        "enable": "Bu cihazda bildir",
+        "disable": "Bu cihazda bildirmeyi bırak",
+        "offBody": "Bu sekme kapalıyken bile uyarıyı telefonunuza alın.",
+        "onBody": "Bu cihaz hazır. Sessiz saatler yine geçerlidir.",
+        "denied": "Tarayıcınız bu site için bildirimleri engellemiş. Tarayıcı ayarlarından yeniden izin verebilirsiniz.",
+        "unsupported": "Bu tarayıcı anlık bildirim alamıyor. E-posta yine çalışır."
+      }
     }
   },
   "auth": {

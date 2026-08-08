@@ -70,6 +70,11 @@ const MAY_WRITE_HEX: Record<string, string> = {
   "src/components/connections/provider-mark.tsx":
     "A brand colour is a fact about another company, not a value in our palette.",
   "src/components/brand/logo.tsx": "Our own mark. A logo's colours are the logo.",
+  "src/app/manifest.ts":
+    "The operating system reads a manifest before any stylesheet exists — it is " +
+    "what paints the splash screen and the task-switcher chrome, so a custom " +
+    "property there resolves to nothing. Copied from `--ink-900` and pinned by " +
+    "tests/lib/manifest.test.ts so the two cannot drift.",
 
   /*
     Not colours at all — hex that is *shown to a person* rather than applied to

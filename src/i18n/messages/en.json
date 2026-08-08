@@ -1348,7 +1348,15 @@
       "quiet": "Quiet hours",
       "quietFrom": "Quiet hours start",
       "quietTo": "Quiet hours end",
-      "quietHelp": "Email waits until the window ends. The in-app alert still arrives straight away."
+      "quietHelp": "Email waits until the window ends. The in-app alert still arrives straight away.",
+      "push": {
+        "enable": "Notify me on this device",
+        "disable": "Stop notifying this device",
+        "offBody": "Get the alert on your phone even when this tab is closed.",
+        "onBody": "This device is set up. Quiet hours still apply.",
+        "denied": "Your browser has blocked notifications for this site. You can allow them again in its own settings.",
+        "unsupported": "This browser cannot receive push notifications. Email still works."
+      }
     }
   },
   "auth": {
