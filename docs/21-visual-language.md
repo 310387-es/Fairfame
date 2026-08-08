@@ -100,6 +100,25 @@ can reach it and breaks wherever a value is restated by hand.** Same shape, five
 - A progress bar drawn at `percent={0}` for an *unlimited* allowance, so three requests and
   five hundred rendered the same empty track, each contradicting the number beside it.
 
+**0d. And one of those fixes was too blunt, which is its own rule.** Unifying the source labels
+was right and it made two surfaces measurably worse: "Google" became "Google Business Profile"
+on all 58 rows of the widget approval list, on every card of a published widget, and under
+every review on a hosted page — 23 characters of another company's brand, once per item, taking
+the room from the customer's words that are the entire point of all three.
+
+So the rule is not "one label". It is **one label per role**:
+
+| The source is… | Take | Why |
+| --- | --- | --- |
+| **Named once** — analytics row, filter, report table, connections card | The full name | It is being identified, and the official name is what a business matches against their own account. |
+| **Repeated per item** — widget card, hosted page, approval row | `ProviderMark`, or the short name where no SVG can be drawn | It is being *distinguished*, not introduced. The reader learned it on row one. |
+
+W4.1 had already settled this for the review queue — "thirty identical characters on every row
+of a single-source business, pushing the customer's words off the end" — and a module with a
+single answer walked straight back into it. Generalising a value is only half the job; the other
+half is knowing how many roles it has.
+
+
 ---
 
 ## 0b. Benchmark — what was borrowed, and from where
