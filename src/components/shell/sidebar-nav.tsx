@@ -127,7 +127,7 @@ export function SidebarNav() {
             /**
              * A tabbed screen keeps its parent lit (W3.1).
              *
-             * `/surveys` and `/campaigns` have no rail entry of their own, so
+             * `/surveys` and `/broadcasts` have no rail entry of their own, so
              * without this the rail highlighted nothing the moment somebody
              * opened a tab — the navigation telling the reader they were
              * nowhere. `railParentFor` is the single definition of which

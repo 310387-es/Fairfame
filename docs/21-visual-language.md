@@ -309,7 +309,7 @@ float have somewhere to go.
 that do not use it. Three screens had it above, on the reasonable-sounding argument that a
 tab strip switches *section* while the header names the *page* — but above the title the
 strip reads as chrome the title hangs off, and the page's own name comes second on its own
-screen. What settled it: `/campaigns` and `/surveys` already rendered it **below** in their
+screen. What settled it: `/broadcasts` and `/surveys` already rendered it **below** in their
 locked-plan branch, so the tab strip moved up or down the page depending on the
 organization's entitlement — one screen, two layouts, decided by billing.
 

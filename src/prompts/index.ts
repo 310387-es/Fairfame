@@ -381,9 +381,23 @@ export function digestPrompt(input: DigestPromptInput): BuiltPrompt {
   const facts = [
     `Business: ${input.businessName}. Location: ${input.locationName}. Period: ${input.periodLabel}.`,
     `Write in: ${input.locale === "tr" ? "Turkish" : "English"}.`,
+    /*
+      "Reputation score", not "pulse" — the name W3.3 settled on.
+
+      That rename covered every screen and stopped here, at the one place the
+      words are actually *written*. The model was told the number was called a
+      pulse, so it wrote "the reputation pulse dropped from 74 to 65" into the
+      headline and the summary — which is what appears in the weekly email and
+      on the public sample page, beside a tile labelled "Reputation score". One
+      number, two names, two hundred pixels apart, on the marketing surface.
+
+      The code identifier stays `pulse` by the same rule that keeps `src/digest`
+      against a `/weekly-plan` route; what a customer reads is the thing that
+      had to change.
+    */
     input.pulse === null
-      ? "Reputation pulse: not available this week."
-      : `Reputation pulse: ${input.pulse} out of 100` +
+      ? "Reputation score: not available this week."
+      : `Reputation score: ${input.pulse} out of 100` +
         (input.priorPulse === null
           ? " (no prior week to compare)."
           : `, previous week ${input.priorPulse}.`),

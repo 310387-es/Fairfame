@@ -1,6 +1,6 @@
 import { ArrowRight, Info, Minus, Quote, TrendingDown, TrendingUp } from "lucide-react";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { Badge } from "@/components/ui/badge";
@@ -55,14 +55,28 @@ function ChangeIcon({ direction }: { direction: number }) {
 
 export default async function SamplePage() {
   const locale = await getLocale();
-  const [t, tc, digest] = await Promise.all([
+  const [t, tc, format, digest] = await Promise.all([
     getTranslations({ locale, namespace: "sample" }),
     // The change sentences live in the `digest` namespace and are shared with
     // the real digest, so the two screens cannot describe the same data
     // differently.
     getTranslations({ locale, namespace: "digest" }),
+    getFormatter({ locale }),
     getSampleDigest({ locale }),
   ]);
+
+  /*
+    Locale-formatted, never `toFixed` — the rule `PulseTile` states and this
+    page broke, on the one surface a prospect sees before they trust anything.
+
+    `toFixed(1)` did two things wrong at once. It forced a decimal onto a
+    whole-number score, so a nine-point fall read "down 9.0" beside a tile
+    showing "65" — a precision the number does not have. And `toFixed` writes a
+    **dot**, always: in Turkish the rest of the product prints "9,2" and this
+    line printed "9.2", which is the punctuation mismatch `PulseTile`'s comment
+    warns about, sitting on the marketing page rather than one screen away.
+  */
+  const points = (value: number) => format.number(value, { maximumFractionDigits: 1 });
 
   const deltaLabel =
     digest.delta === null
@@ -70,8 +84,8 @@ export default async function SamplePage() {
       : digest.delta === 0
         ? t("deltaFlat")
         : digest.delta > 0
-          ? t("deltaUp", { value: digest.delta.toFixed(1) })
-          : t("deltaDown", { value: Math.abs(digest.delta).toFixed(1) });
+          ? t("deltaUp", { value: points(digest.delta) })
+          : t("deltaDown", { value: points(Math.abs(digest.delta)) });
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 md:py-16">
