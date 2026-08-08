@@ -173,6 +173,30 @@ const lastActivityAt = sql<string | Date | null>`greatest(
   (select wc.last_outbound_at from ${schema.whatsappConversations} wc where wc.contact_id = ${CONTACT_ID})
 )`;
 
+/**
+ * Whether a live local İYS permission exists, per channel — projected so the
+ * *list* can say it, not only filter on it.
+ *
+ * "May I message this person" is the first question anybody asks on a contacts
+ * screen in this product, and it was answerable only by applying a filter and
+ * seeing whether a row survived. The predicate for that filter already existed;
+ * this is the same EXISTS as a column.
+ *
+ * **Still not the send gate.** `checkSendAllowed` is, and it additionally asks
+ * the registry and re-reads the opt-out at the moment of sending. This says
+ * what is on file, which is what a screen is entitled to show.
+ */
+const consentColumn = (channel: "email" | "message") => sql<boolean>`exists (
+  select 1
+    from ${schema.consentRecords} cr
+   where cr.organization_id = ${schema.contacts.organizationId}
+     and cr.contact_ref = ${CONTACT_ID}::text
+     and cr.type = 'iys'
+     and cr.channel = ${channel}::consent_channel
+     and cr.granted_at is not null
+     and cr.revoked_at is null
+)`;
+
 /** Reviews this person actually left, not asks they were sent. */
 const reviewCount = sql<number>`(
   select count(*)::int
@@ -191,6 +215,9 @@ export type ContactRow = {
   createdAt: Date;
   lastActivityAt: Date | null;
   reviewCount: number;
+  /** A live local İYS permission is on file for this channel. */
+  emailConsent: boolean;
+  messageConsent: boolean;
   tags: ContactTag[];
 };
 
@@ -252,6 +279,8 @@ export async function listContacts(input: {
       createdAt: schema.contacts.createdAt,
       lastActivityAt,
       reviewCount: reviewCount.mapWith(Number),
+      emailConsent: consentColumn("email").mapWith(Boolean),
+      messageConsent: consentColumn("message").mapWith(Boolean),
     })
     .from(schema.contacts)
     .where(where)
@@ -329,6 +358,8 @@ export async function getContact(input: {
       updatedAt: schema.contacts.updatedAt,
       lastActivityAt,
       reviewCount: reviewCount.mapWith(Number),
+      emailConsent: consentColumn("email").mapWith(Boolean),
+      messageConsent: consentColumn("message").mapWith(Boolean),
     })
     .from(schema.contacts)
     .where(

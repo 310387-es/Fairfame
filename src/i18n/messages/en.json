@@ -910,7 +910,9 @@
     "sending": "Sending…",
     "sendNoCampaign": "No active campaign to send under. Create one on Get reviews first.",
     "sendOutcome": "{sent} sent · {failed} failed · {skipped} skipped",
-    "privateFollowUp": "Private follow-up"
+    "privateFollowUp": "Private follow-up",
+    "consentEmail": "Email OK",
+    "consentMessage": "WhatsApp OK"
   },
   "surveys": {
     "title": "Surveys",

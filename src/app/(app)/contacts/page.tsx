@@ -127,6 +127,8 @@ export default async function ContactsPage({ searchParams }: PageProps) {
     unsubscribed: row.unsubscribedAt !== null,
     tags: row.tags,
     reviewCount: row.reviewCount,
+    emailConsent: row.emailConsent,
+    messageConsent: row.messageConsent,
     // Formatted here, on the server. A formatter cannot cross the RSC boundary.
     lastActivity: row.lastActivityAt ? format.relativeTime(row.lastActivityAt, now) : null,
   }));
@@ -172,6 +174,8 @@ export default async function ContactsPage({ searchParams }: PageProps) {
               reviews: (count) => t("reviewCount", { count }),
               noActivity: t("noActivity"),
               moreTags: (count) => t("moreTags", { count }),
+              emailConsent: t("consentEmail"),
+              messageConsent: t("consentMessage"),
             }}
           />
 

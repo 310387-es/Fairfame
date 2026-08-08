@@ -910,7 +910,9 @@
     "sending": "Gönderiliyor…",
     "sendNoCampaign": "Gönderim yapılacak aktif kampanya yok. Önce Yorum talepleri'nde bir tane oluşturun.",
     "sendOutcome": "{sent} gönderildi · {failed} başarısız · {skipped} atlandı",
-    "privateFollowUp": "Özel geri bildirim"
+    "privateFollowUp": "Özel geri bildirim",
+    "consentEmail": "E-posta izinli",
+    "consentMessage": "WhatsApp izinli"
   },
   "surveys": {
     "title": "Anketler",
