@@ -31,7 +31,7 @@ export const SECTIONS: Section[] = [
     parent: "/contacts",
     tabs: [
       { key: "contacts", href: "/contacts" },
-      { key: "broadcasts", href: "/campaigns" },
+      { key: "broadcasts", href: "/broadcasts" },
     ],
   },
   {

@@ -5,7 +5,7 @@ import { railParentFor, SECTIONS, sectionFor } from "@/lib/sections";
 /**
  * Tabbed screens and the rail (W3.1).
  *
- * Demoting Campaigns and Surveys to tabs left them with no rail entry, and the
+ * Demoting Broadcasts and Surveys to tabs left them with no rail entry, and the
  * rail's active state was `pathname === href` — so opening a tab highlighted
  * nothing and the navigation told the reader they were nowhere. That is the bug
  * these hold.
@@ -21,8 +21,8 @@ describe("a tabbed screen keeps its parent lit", () => {
     expect(railParentFor("/surveys")).toBe("/get-reviews");
   });
 
-  it("lights Contacts while Campaigns is open", () => {
-    expect(railParentFor("/campaigns")).toBe("/contacts");
+  it("lights Contacts while Broadcasts is open", () => {
+    expect(railParentFor("/broadcasts")).toBe("/contacts");
   });
 
   it("keeps the parent lit one click deeper", () => {

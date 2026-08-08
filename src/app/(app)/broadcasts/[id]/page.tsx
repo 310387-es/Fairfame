@@ -88,7 +88,7 @@ export default async function BroadcastPage({ params }: PageProps) {
       <PageHeader
         title={broadcast.name}
         subtitle={`${kindLabel[broadcast.kind]} · ${channelLabel[broadcast.channel] ?? broadcast.channel}`}
-        back={{ href: "/campaigns", label: t("title") }}
+        back={{ href: "/broadcasts", label: t("title") }}
         action={
           <Badge variant={broadcast.status === "sent" ? "positive" : "secondary"}>
             {statusLabel[broadcast.status]}

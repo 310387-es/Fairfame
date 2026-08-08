@@ -820,7 +820,7 @@
     "segmentName": "Segment name",
     "segmentPlaceholder": "Regulars in Kadıköy",
     "saveSegmentSubmit": "Save segment",
-    "segmentHint": "A segment saves the filters above under a name. Campaigns can be sent to one later, and every recipient is still checked for consent before anything leaves.",
+    "segmentHint": "A segment saves the filters above under a name. Broadcasts can be sent to one later, and every recipient is still checked for consent before anything leaves.",
     "deleteSegment": "Delete the segment “{name}”",
     "cancel": "Cancel",
     "unnamed": "No name",
@@ -1070,18 +1070,18 @@
     }
   },
   "broadcasts": {
-    "title": "Campaigns",
+    "title": "Broadcasts",
     "subtitle": "Send one thing to one audience — now, or at a time you choose.",
     "locked": {
-      "title": "Campaigns are not on your plan",
+      "title": "Broadcasts are not on your plan",
       "body": "Scheduled sends to a segment are included from Growth upwards."
     },
     "empty": {
-      "title": "No campaigns yet",
-      "body": "A campaign sends a review request, a survey or a message to everyone in a segment."
+      "title": "No broadcasts yet",
+      "body": "A broadcast sends a review request, a survey or a message to everyone in a segment."
     },
-    "newBroadcast": "New campaign",
-    "noSegments": "Save a segment on Contacts first — a campaign needs an audience.",
+    "newBroadcast": "New broadcast",
+    "noSegments": "Save a segment on Contacts first — a broadcast needs an audience.",
     "name": "Name",
     "namePlaceholder": "August review push",
     "what": "What to send",
@@ -1092,7 +1092,7 @@
     "audienceSize": "{count, plural, =1 {1 person can be reached} other {# people can be reached}}",
     "audienceUnknown": "Choose a segment to see how many it reaches.",
     "channel": "Channel",
-    "campaign": "Collection campaign",
+    "campaign": "Campaign",
     "noCampaigns": "No active campaigns",
     "survey": "Survey",
     "noSurveys": "No active surveys",
@@ -1547,7 +1547,7 @@
       "starter3": "1 website widget",
       "growth1": "Up to 3 locations",
       "growth2": "AI replies, trends and surveys",
-      "growth3": "Contacts and campaigns",
+      "growth3": "Contacts and broadcasts",
       "pro1": "Up to 10 locations",
       "pro2": "Scheduled reports and benchmarking",
       "pro3": "Team workflow and SLAs",
@@ -1616,7 +1616,7 @@
   "tabs": {
     "label": "Section",
     "contacts": "Contacts",
-    "broadcasts": "Campaigns",
+    "broadcasts": "Broadcasts",
     "requests": "Review requests",
     "surveys": "Surveys",
     "locations": "Branches",

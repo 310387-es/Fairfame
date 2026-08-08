@@ -145,7 +145,7 @@ export function BroadcastForm({
         success: tf("created"),
         onSuccess: (result) => {
           close();
-          if (result && "id" in result && result.id) router.push(`/campaigns/${result.id}`);
+          if (result && "id" in result && result.id) router.push(`/broadcasts/${result.id}`);
         },
       },
     );

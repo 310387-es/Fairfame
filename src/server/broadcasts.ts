@@ -59,7 +59,7 @@ export async function createBroadcastAction(
       { minimumRole: "admin" },
     );
 
-    revalidatePath("/campaigns");
+    revalidatePath("/broadcasts");
     return { ok: true, id: created.id };
   } catch (error) {
     log.warn({ err: error }, "createBroadcast failed");
@@ -101,8 +101,8 @@ export async function sendBroadcastAction(input: { id: string }): Promise<SendBr
     // mail server look like a database outage.
     const outcome = await runBroadcast(organizationId, parsed.data.id);
 
-    revalidatePath("/campaigns");
-    revalidatePath(`/campaigns/${parsed.data.id}`);
+    revalidatePath("/broadcasts");
+    revalidatePath(`/broadcasts/${parsed.data.id}`);
 
     return {
       ok: true,
@@ -131,7 +131,7 @@ export async function cancelBroadcastAction(input: { id: string }): Promise<Acti
       { minimumRole: "admin" },
     );
 
-    revalidatePath("/campaigns");
+    revalidatePath("/broadcasts");
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "cancelBroadcast failed");

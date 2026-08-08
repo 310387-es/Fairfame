@@ -152,7 +152,7 @@ export default async function BroadcastsPage() {
           {broadcasts.map((row) => (
             <li key={row.id}>
               <Link
-                href={`/campaigns/${row.id}`}
+                href={`/broadcasts/${row.id}`}
                 className="grid gap-1.5 px-(--card-px) py-3 transition-colors hover:bg-surface-sunken focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.2fr)] sm:items-center sm:gap-3"
               >
                 <div className="flex min-w-0 flex-wrap items-center gap-2">

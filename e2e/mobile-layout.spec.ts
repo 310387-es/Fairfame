@@ -278,7 +278,7 @@ test.describe("broadcasts on a phone", () => {
    * list, and is where a grid that forgot its breakpoint would show.
    */
   test("fits the viewport, with nothing hanging off the side", async ({ page }) => {
-    await page.goto("/campaigns");
+    await page.goto("/broadcasts");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     expect(await overflowing(page)).toEqual([]);

@@ -39,7 +39,30 @@ const nextConfig: NextConfig = {
       ["/digest", "/weekly-plan"],
       ["/messages", "/conversations"],
       ["/requests", "/get-reviews"],
-      ["/broadcasts", "/campaigns"],
+      /*
+        Reversed, 8 Aug 2026 — and it must *replace* the old pair rather than
+        join it, or `/broadcasts` and `/campaigns` redirect to each other
+        forever.
+
+        W3.1 renamed `/broadcasts` to `/campaigns` for a good reason: campaign
+        is the word a marketer scans for. What it did not weigh is that
+        **`campaigns` was already taken**. The table is `campaigns`, the API
+        route is `/api/campaigns/{id}/qr`, `src/collect/campaigns.ts` owns them,
+        and `/get-reviews` calls its own objects campaigns on screen — so the
+        product had two different things one rail-click apart under one word.
+        `CLAUDE.md` recorded the collision as open and unresolved.
+
+        The broadcast screen is the side that moves, because it is the only one
+        where the word was borrowed: the code, the table, the job (`broadcast_
+        sweep`) and the folder all say broadcast already, and the Turkish copy
+        never used "kampanya" for it at all — it has said "Gönderimler" since
+        P4-T4. Renaming this screen makes route, folder, table and label agree,
+        which is the rule the rest of the codebase keeps.
+
+        A bookmark from before W3.1 now resolves to a real route rather than a
+        redirect, and one made since lands here.
+      */
+      ["/campaigns", "/broadcasts"],
       ["/insights", "/analytics"],
       ["/clients", "/agency"],
     ].flatMap(([from, to]) => [
