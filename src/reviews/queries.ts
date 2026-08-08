@@ -484,6 +484,14 @@ export type InboxRow = {
   source: string;
   url: string | null;
   rawPayload: unknown;
+  /**
+   * The earlier review this one duplicates, across sources (W5-7).
+   *
+   * Carried so the row can say "the same person also wrote this on Google"
+   * rather than being quietly hidden — nothing is removed from the queue, and
+   * no count changes. See `src/reviews/duplicates.ts`.
+   */
+  duplicateOfId: string | null;
   sentiment: Sentiment | null;
   sentimentScore: number | null;
   /** Free-text tags, in the language the customer wrote. Not a label. */
@@ -653,6 +661,7 @@ export async function listInbox(
       source: schema.reviews.source,
       url: schema.reviews.url,
       rawPayload: schema.reviews.rawPayload,
+      duplicateOfId: schema.reviews.duplicateOfId,
       status: schema.reviews.status,
       priority: schema.reviews.priority,
       slaDueAt: schema.reviews.slaDueAt,
@@ -705,6 +714,7 @@ export async function listInbox(
     source: row.source,
     url: row.url,
     rawPayload: row.rawPayload,
+    duplicateOfId: row.duplicateOfId,
     status: row.status,
     priority: row.priority,
     slaDueAt: row.slaDueAt,

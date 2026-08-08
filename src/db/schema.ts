@@ -872,6 +872,24 @@ export const reviews = pgTable(
      * sent* based on how they feel — that happens in src/collect/routing.ts,
      * before any rating exists, and remains structurally impossible.
      */
+    /**
+     * The earlier review this one duplicates, across sources (W5-7).
+     *
+     * Null for almost everything. Set by `src/reviews/duplicates.ts` when the
+     * same customer said the same thing on two platforms within a few days —
+     * which happens because a business links its own form from the same page it
+     * links its Google listing.
+     *
+     * **Nothing that computes a number reads this.** The average, the count and
+     * the digest all still see both rows, deliberately: a review that exists on
+     * Google is counted by everybody looking at Google, and a private average
+     * that disagreed with the public one would be the wrong kind of clever. It
+     * drives a badge and a filter, so nobody answers the same person twice.
+     *
+     * ON DELETE SET NULL: erasing the original leaves the other review standing
+     * on its own rather than pointing at nothing.
+     */
+    duplicateOfId: uuid("duplicate_of_id"),
     displayApprovedAt: timestamp("display_approved_at", { withTimezone: true }),
     displayApprovedByUserId: uuid("display_approved_by_user_id").references(() => users.id, {
       onDelete: "set null",

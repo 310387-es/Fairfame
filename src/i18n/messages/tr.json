@@ -581,7 +581,8 @@
     "bulkSelectAll": "Tümünü seç ({count})",
     "shortcutMove": "gezin",
     "shortcutReply": "yanıtla",
-    "shortcutDone": "tamamla"
+    "shortcutDone": "tamamla",
+    "duplicate": "Başka kaynakta da var"
   },
   "locations": {
     "title": "Şubeler",

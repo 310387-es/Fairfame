@@ -4,6 +4,7 @@ import { analyzeBatch } from "../../ai/analysis-run.ts";
 import { CONTENT_HASH_LENGTH } from "../../ai/embeddings.ts";
 import { getAdminDb, schema } from "../../db/client.ts";
 import { recordUsage, withinLimit } from "../../lib/entitlements.ts";
+import { scanForDuplicates } from "../../reviews/duplicates.ts";
 import { childLogger } from "../../lib/logger.ts";
 import { enqueueAnalyze, enqueueNotify, type ReviewJob } from "../queue.ts";
 
@@ -144,6 +145,23 @@ export async function runAnalyze(
   // analysis, so it must not consume the tenant's analysis allowance.
   if (result.analyzed > 0) {
     await recordUsage(organizationId, "ai_analyses_per_month", result.analyzed);
+  }
+
+  /*
+    Duplicate detection runs here because this is where an embedding appears
+    (W5-7). A review with no vector cannot be compared to anything, so scanning
+    anywhere earlier would be a scan that always finds nothing — and a sweep of
+    its own would be a second schedule doing the same walk five minutes later.
+
+    Never fatal to the batch: analysis is what a plan is metered for, and a
+    failure to link two rows must not lose the insights that were just written.
+  */
+  if (result.analyzed > 0) {
+    try {
+      await scanForDuplicates(organizationId);
+    } catch (error) {
+      log.warn({ organizationId, err: error }, "Duplicate scan failed; analysis kept");
+    }
   }
 
   // A full batch means there is probably more. Re-enqueue rather than looping

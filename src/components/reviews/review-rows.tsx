@@ -67,6 +67,15 @@ export type ReviewRow = {
    * owner answered on the platform: we have the fact but not the words.
    */
   reply: { text: string | null; state: "draft" | "posted" } | null;
+  /**
+   * True when this is the second copy of a review that arrived on another
+   * source (W5-7).
+   *
+   * A badge, not a hidden row. Both reviews are real on the platforms they live
+   * on, and the queue still contains both — what this stops is somebody
+   * answering the same person twice without realising.
+   */
+  duplicate: boolean;
 };
 
 export function ReviewRows({
@@ -74,6 +83,7 @@ export function ReviewRows({
   selectedId,
   unnamed,
   overdueLabel,
+  duplicateLabel,
   resolvedLabel,
   showSource,
   canSelect,
@@ -83,6 +93,8 @@ export function ReviewRows({
   selectedId: string | null;
   unnamed: string;
   overdueLabel: string;
+  /** "Also on another source" (W5-7). Precomputed: this is a client component. */
+  duplicateLabel: string;
   /**
    * Only where there is more than one source to tell apart.
    *
@@ -516,6 +528,13 @@ export function ReviewRows({
                   {review.overdue ? (
                     <span className="inline-flex items-center rounded-sm bg-state-negative-bg px-1.5 py-0.5 text-eyebrow font-semibold text-state-negative-text uppercase">
                       {overdueLabel}
+                    </span>
+                  ) : null}
+                  {/* Quiet, and after the deadline chip: this is context, not
+                      a state somebody has to clear. */}
+                  {review.duplicate ? (
+                    <span className="inline-flex items-center rounded-sm bg-surface-segmented px-1.5 py-0.5 text-eyebrow font-semibold text-ink-500 uppercase">
+                      {duplicateLabel}
                     </span>
                   ) : null}
                 </div>

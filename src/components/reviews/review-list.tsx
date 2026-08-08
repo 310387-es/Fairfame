@@ -23,6 +23,8 @@ export type InboxReview = {
   hasOwnerReply: boolean;
   /** Where the review lives on the platform, when the source gives us a link. */
   url: string | null;
+  /** The earlier review this one duplicates, across sources (W5-7). */
+  duplicateOfId: string | null;
   /**
    * What this source allows, read from its connector's declared capabilities:
    * `compose` gets a reply box, anything else gets a way out to the platform.

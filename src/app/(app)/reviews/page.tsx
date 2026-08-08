@@ -227,6 +227,7 @@ export default async function InboxPage({
       sourceLabel: sourceLabel(review.source),
       reply: view?.reply ?? "none",
       url: review.url,
+      duplicateOfId: review.duplicateOfId,
       sentiment: review.sentiment,
       topics: review.topics,
       themes: review.themes,
@@ -294,6 +295,8 @@ export default async function InboxPage({
           : "low",
     overdue: review.sla === "overdue",
     answered: review.hasOwnerReply || review.reply_ !== null,
+    // W5-7. The badge only; the row stays in the queue and no count moves.
+    duplicate: review.duplicateOfId !== null,
     /*
       What the AI found, on the row.
 
@@ -518,6 +521,7 @@ export default async function InboxPage({
                     selectedId={selected?.id ?? null}
                     unnamed={t("anonymous")}
                     overdueLabel={t("overdue")}
+                    duplicateLabel={t("duplicate")}
                     resolvedLabel={t("statusDone")}
                     // Selection belongs to the list, which is the only place
                     // more than one review exists to select.

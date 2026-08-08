@@ -581,7 +581,8 @@
     "bulkSelectAll": "Select all {count}",
     "shortcutMove": "move",
     "shortcutReply": "reply",
-    "shortcutDone": "mark done"
+    "shortcutDone": "mark done",
+    "duplicate": "Also elsewhere"
   },
   "locations": {
     "title": "Locations",
