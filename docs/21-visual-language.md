@@ -397,6 +397,32 @@ length, which is the thing a reputation product is selling.
 
 ---
 
+## 9c. What the app-wide pass covered after the list
+
+The table above is the *priority* list — the eleven surfaces ranked by frequency × weight ×
+compounding craft. What followed was a sweep of every remaining screen at 1440px and 390px,
+which is a different exercise: not "what is worth elevating" but "what is wrong". It found
+things the ranking could not, because a defect does not care how often a screen is opened.
+
+| Screen | What was wrong |
+| --- | --- |
+| `/sign-in`, `/sign-up` | Never seen — signed in all session, so they redirected. A 380px card in 1440×900 of grey, making no argument on the front door. Split layout; the panel points at `/sample` and invents nothing. |
+| `/get-reviews` | Two metric treatments 200px apart; two floating grey paragraphs; a campaign card in 520px of a 1500px page doing two jobs stacked. |
+| `/locations` | "1 locations"; "Not published" as bare text; `3.745 out of 5` announced to screen readers only. |
+| `/channels`, `/settings` | Chips of different widths in column one, so every sentence beside them began at a different x. A progress bar drawn at `percent={0}` for an *unlimited* allowance. |
+| `/analytics`, `/reviews` | Theme chips and labels drawn from the free-text tail, so a Turkish account read "bekleme süresi" beside "service, cleanliness". |
+| `/weekly-plan` | A record card at 548px under an 853px hero, because `md:grid-cols-2` reserved a track for panels that had not rendered. `Minus` drawn for both "did not move" and "there is no earlier week". |
+| `/surveys/{id}`, `/s/{code}` | "NPS —" at 28px; a card titled "Link and QR" with no QR; eleven `aria-pressed` toggle buttons under a fieldset whose comment said "so it is a radio group". |
+| `/conversations` | Nobody had a face on the screen where the people *are* the content; the card repeated the page's own title; every message read "Aug 8". |
+| `/team`, `/contacts` | A teammate as bare text; a search box crushed to seventy pixels on a phone — narrower than its own placeholder. |
+
+**The pattern worth carrying forward.** Almost none of these were taste. They were a value
+restated by hand somewhere the rule could not reach — a colour that was never a token, a
+label that was never translated, a width that was right at one breakpoint. §0c names that
+class; the guards in `tests/lib/` are the part that outlives this pass.
+
+---
+
 ## 9b. Reference implementation — the review row
 
 The highest-frequency component in the product: 65 instances per screen, on the screen with
