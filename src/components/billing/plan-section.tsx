@@ -102,26 +102,51 @@ export function PlanSection({
             prices below matter to them at all. */}
         {usage.length > 0 ? (
           <div className="flex flex-col gap-3">
-            {usage.map((row) => (
-              <Meter
-                key={row.label}
-                label={row.label}
-                // Unlimited has no proportion to draw. The bar reads empty and
-                // the figure beside it says "unlimited" in words, rather than a
-                // full or empty bar that would mean neither.
-                percent={row.limit === null ? 0 : (row.used / Math.max(row.limit, 1)) * 100}
-                value={
-                  row.limit === null
-                    ? t("unlimited", { used: row.used })
-                    : t("ofLimit", { used: row.used, limit: row.limit })
-                }
-                srLabel={
-                  row.limit === null
-                    ? t("unlimited", { used: row.used })
-                    : t("ofLimit", { used: row.used, limit: row.limit })
-                }
-              />
-            ))}
+            {usage.map((row) => {
+              const value =
+                row.limit === null
+                  ? t("unlimited", { used: row.used })
+                  : t("ofLimit", { used: row.used, limit: row.limit });
+
+              /*
+                No limit, no bar.
+
+                This drew a `Meter` at `percent={0}` for an unlimited
+                allowance, on the reasoning that an empty track is the honest
+                drawing of "no proportion to state". On screen it is not: an
+                empty track is the *same* drawing as nought per cent used, so a
+                business on three requests and a business on five hundred get an
+                identical empty bar, each contradicting the figure beside it. A
+                progress bar asserts that a maximum exists — that is what the
+                right-hand end of it means — and on an unlimited plan there
+                isn't one.
+
+                The same rule the rest of this codebase already keeps: absence
+                is not zero. `percent={0}` was exactly the `null → 0` mistake
+                `src/analytics/trends.ts` refuses to make.
+              */
+              if (row.limit === null) {
+                return (
+                  <div
+                    key={row.label}
+                    className="flex items-baseline justify-between gap-4 text-copy"
+                  >
+                    <span className="text-muted-foreground">{row.label}</span>
+                    <span className="tabular-nums">{value}</span>
+                  </div>
+                );
+              }
+
+              return (
+                <Meter
+                  key={row.label}
+                  label={row.label}
+                  percent={(row.used / Math.max(row.limit, 1)) * 100}
+                  value={value}
+                  srLabel={value}
+                />
+              );
+            })}
           </div>
         ) : null}
 

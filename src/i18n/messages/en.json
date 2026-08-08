@@ -1574,7 +1574,7 @@
       "not_live": "Not live"
     },
     "blocker": {
-      "not_connected": "Nothing is configured to send with. Set {envVar}, or connect an account.",
+      "not_connected": "Nothing is configured to send with. Connect an account — or, if you host Revira yourself, set {envVar}.",
       "connection_error": "The last attempt failed with these credentials. Reconnect to try again.",
       "no_consent_registry": "No consent registry is wired, so no commercial message may leave at all — however well this channel is configured.",
       "not_live": "This channel accepts messages and reaches nobody. Nothing sent here has ever arrived on a phone."

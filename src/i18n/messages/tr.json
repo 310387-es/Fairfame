@@ -1574,7 +1574,7 @@
       "not_live": "Canlı değil"
     },
     "blocker": {
-      "not_connected": "Gönderim için yapılandırılmış bir şey yok. {envVar} ayarlayın veya bir hesap bağlayın.",
+      "not_connected": "Gönderim için yapılandırılmış bir şey yok. Bir hesap bağlayın — Revira'yı kendiniz barındırıyorsanız {envVar} değişkenini ayarlayın.",
       "connection_error": "Bu kimlik bilgileriyle yapılan son deneme başarısız oldu. Yeniden bağlayıp tekrar deneyin.",
       "no_consent_registry": "Kayıtlı bir izin sistemi (İYS) bağlı değil; bu kanal ne kadar iyi yapılandırılmış olursa olsun hiçbir ticari mesaj çıkamaz.",
       "not_live": "Bu kanal mesajları kabul eder ama kimseye ulaşmaz. Buradan gönderilen hiçbir mesaj bugüne kadar bir telefona ulaşmadı."

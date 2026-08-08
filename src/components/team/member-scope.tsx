@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Avatar } from "@/components/ds/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -78,6 +79,15 @@ export function MemberScope({
   return (
     <div className="flex flex-col gap-3 rounded-md border border-line p-4">
       <div className="flex flex-wrap items-center gap-2">
+        {/*
+          A person is a monogram everywhere else in the product — the activity
+          timeline, the contact list, the review row, the user menu. Team was
+          the one screen where a colleague was bare text, which is the screen
+          where the people *are* the content. `Avatar` colours from a hash of
+          the name, so the same teammate is the same circle here and in the
+          timeline that records what they did.
+        */}
+        <Avatar name={member.name} className="size-6" />
         <span className="text-copy font-semibold">{member.name}</span>
         <Badge variant="secondary">{roleLabel}</Badge>
         <span className="text-meta text-faint">{member.email}</span>

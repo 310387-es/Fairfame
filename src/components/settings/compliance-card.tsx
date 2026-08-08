@@ -39,11 +39,23 @@ export async function ComplianceCard({ statuses }: { statuses: ChannelStatus[] }
       <p className="text-body text-pretty text-ink-400">{t("intro")}</p>
 
       <div className="mt-4 flex flex-col gap-1">
-        <div className="flex items-center gap-2">
+        {/*
+          The name first, its state after.
+
+          Chip-then-name put three labels of different widths in front of three
+          titles, so "İYS", "WhatsApp Business" and "SMS" each began at a
+          different x and the list read as a staircase — which is the same
+          defect the blocker list on `/channels` had. Reversing it is better
+          than aligning it: the names are what somebody scans down, and the
+          state is an annotation on each. It also matches the card header on
+          `/channels` and the rows on `/locations`, which have always read
+          name-then-state.
+        */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-body font-medium">{t("iysTitle")}</span>
           <Badge variant={registryBlocked ? "secondary" : "positive"}>
             {t(registryBlocked ? "iysMissing" : "iysReady")}
           </Badge>
-          <span className="text-body font-medium">{t("iysTitle")}</span>
         </div>
         <p className="text-body text-pretty text-ink-400">
           {t(registryBlocked ? "iysMissingBody" : "iysReadyBody")}
@@ -53,11 +65,11 @@ export async function ComplianceCard({ statuses }: { statuses: ChannelStatus[] }
       <ul className="mt-4 flex flex-col gap-3">
         {statuses.map((status) => (
           <li key={status.descriptor.key} className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-body font-medium">{status.descriptor.label}</span>
               <Badge variant={status.deliverable ? "positive" : "secondary"}>
                 {t(`mode.${status.mode}`)}
               </Badge>
-              <span className="text-body font-medium">{status.descriptor.label}</span>
             </div>
 
             <p className="text-body text-pretty text-ink-400">

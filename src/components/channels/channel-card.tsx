@@ -122,13 +122,27 @@ export function ChannelCard({
       {blockers.length === 0 ? (
         <p className="text-body text-state-positive-text">{t("ready")}</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        /*
+          A two-column list, not a flex row per blocker.
+
+          The chips are labels of different lengths — "Not connected", "No İYS
+          registry", "Not live" — so a flex row started each explanation at a
+          different x, and a card with three blockers read as a ragged staircase
+          rather than a list of three comparable facts. A grid with one shared
+          label column puts every sentence on the same left edge, which is the
+          whole reason the chips exist: they are a key down the side, and a key
+          that does not line up is just decoration.
+
+          `items-baseline` rather than `items-start`: a 10px chip and 14px prose
+          aligned by box top sit visibly off each other.
+        */
+        <ul className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 gap-y-2">
           {blockers.map((blocker) => (
-            <li key={blocker} className="flex items-start gap-2 text-body leading-relaxed">
+            <li key={blocker} className="col-span-2 grid grid-cols-subgrid items-baseline">
               <Badge variant={blocker === "connection_error" ? "negative" : "secondary"}>
                 {t(`blockerLabel.${blocker}`)}
               </Badge>
-              <span className="min-w-0 text-pretty text-muted-foreground">
+              <span className="min-w-0 text-body leading-relaxed text-pretty text-muted-foreground">
                 {t(`blocker.${blocker}`, { envVar })}
               </span>
             </li>

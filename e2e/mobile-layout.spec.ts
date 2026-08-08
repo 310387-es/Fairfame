@@ -31,6 +31,27 @@ async function overflowing(page: Page): Promise<string[]> {
         // a popover's portal) are not overflow.
         if (rect.width === 0 || rect.height === 0) return false;
         if (getComputedStyle(el).position === "fixed") return false;
+
+        /*
+          Nor is anything inside a visually-hidden container.
+
+          `.chart-fallback` — the data table every chart renders for screen
+          readers and print — is the sr-only pattern: 1px square, `overflow:
+          hidden`, `clip-path: inset(50%)`. The table inside it keeps its real
+          width, so its rect runs hundreds of pixels past the viewport while
+          being both invisible and unreachable: the dashboard measured
+          `scrollWidth === clientWidth === 390` with eight "overflowing"
+          elements, all of them in there.
+
+          The helper already exempts this category — its comment says "things
+          deliberately parked off-screen" — and only recognised the `position:
+          fixed` spelling of it. A clipping ancestor is the other spelling.
+        */
+        for (let node = el.parentElement; node !== null; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          if (style.clipPath !== "none" && node.getBoundingClientRect().width <= 1) return false;
+        }
+
         return rect.right > limit + 1;
       })
       .slice(0, 8)
@@ -335,6 +356,36 @@ test.describe("the agency console on a phone", () => {
     expect(await overflowing(page)).toEqual([]);
     expect(await scrollsSideways(page)).toBe(false);
   });
+});
+
+/**
+ * The four screens that were never in this suite at all.
+ *
+ * `/dashboard` is the first screen of the product, `/settings` holds the plan
+ * grid and the compliance card, `/channels` the two-column blocker list and
+ * `/team` the invite form and the member rows — and none of the four had ever
+ * been measured on a phone. A suite that covers the screens somebody remembered
+ * is a suite whose coverage is decided by memory, which is the same reason
+ * `tests/db/public-leakage.test.ts` enumerates its routes off disk.
+ *
+ * Found while giving all four a design pass: three of them changed layout in
+ * that pass, and nothing here would have noticed if a change had broken them.
+ */
+test.describe("the screens this suite had never measured", () => {
+  for (const { path, name } of [
+    { path: "/dashboard", name: "the dashboard" },
+    { path: "/settings", name: "settings" },
+    { path: "/channels", name: "channels" },
+    { path: "/team", name: "team" },
+  ]) {
+    test(`${name} fits the viewport, with nothing hanging off the side`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+      expect(await overflowing(page)).toEqual([]);
+      expect(await scrollsSideways(page)).toBe(false);
+    });
+  }
 });
 
 /**
