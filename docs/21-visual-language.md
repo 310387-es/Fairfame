@@ -67,6 +67,39 @@ hold.
 None of that is a taste problem. All of it is a *hierarchy* problem, which is why it reads
 as "built by engineers": every element was rendered correctly and nothing was ranked.
 
+**0c. The second half of the `cn` bug, found later: classes that were never tokens.**
+`class-merge.test.ts` proves a token that *exists* survives being merged with an ink. Nothing
+could see a `text-*` class that had never been a token at all — and Tailwind's failure mode
+for those is silence. Nine of them were live, in five files:
+
+| Class | Where | What it did |
+| --- | --- | --- |
+| `text-subtitle` | collection funnel, connections volume | Not in the scale. Inherited 13px — against the *same* statistic 200px away at a hardcoded 17px mono. |
+| `text-ink` ×7 | public SEO page `<h1>`, its rating figure, every review's body; two analytics tables | There is no `--color-ink`, only `ink-400`…`ink-900`. Internet-facing. |
+| `text-ink-700` | dashboard AI draft | A shade that does not exist. |
+
+Every one looked correct in review and generated no CSS. `design-tokens.test.ts` now enumerates
+every `text-*` class in `src` and fails on any matching neither a token nor a Tailwind utility.
+
+**The pattern behind both halves, and behind most of what follows: a rule holds wherever code
+can reach it and breaks wherever a value is restated by hand.** Same shape, five more times:
+
+- Three table-header treatments (11px medium ink-500 / `text-meta text-faint` / `text-copy
+  text-muted-foreground`) for one role → `src/components/ds/table.tsx`.
+- Three metric treatments on two screens → `Eyebrow` + `text-lead`, and `Eyebrow` gained
+  `asChild` so the one label style can be a `<dt>`, `<th>` or `<legend>` instead of being
+  retyped as four classes. Retyping was how all three happened.
+- Six hand-rolled `key.charAt(0).toUpperCase()` where `PROVIDERS` already held the label —
+  so `/analytics` compared "Google" against **"Firstparty"**, and so did the public widget and
+  the hosted review page, under the business's own name → `src/connectors/source-label.ts`.
+- Thirty-four English messages interpolating a count with no ICU plural: `Trial · {days} days
+  left` in the rail on every screen, reading "1 days left" on the day it matters most;
+  `{rating} stars and up`, a dropdown permanently reading "1 stars and up". **Turkish needed
+  no change** — it has no numeral agreement, so the locale most of this product's customers
+  read is the one that never shows the mistake → `i18n-plurals.test.ts`.
+- A progress bar drawn at `percent={0}` for an *unlimited* allowance, so three requests and
+  five hundred rendered the same empty track, each contradicting the number beside it.
+
 ---
 
 ## 0b. Benchmark — what was borrowed, and from where
