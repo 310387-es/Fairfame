@@ -8,6 +8,8 @@ import { resolveLocationScope } from "@/auth/scope";
 import { addContactTag, contactTagLabelSchema, removeContactTag } from "@/contacts/tags";
 import { createSegment, deleteSegment, segmentNameSchema } from "@/contacts/segments";
 import { parseContactFilters } from "@/contacts/filters";
+import { importContacts, messageableCount, type ImportResult } from "@/contacts/import";
+import { parseRecipientCsv } from "@/collect/csv";
 import { getContact } from "@/contacts/queries";
 import { eraseSubject, exportSubject } from "@/compliance/subject-rights";
 import { schema } from "@/db/client";
@@ -387,6 +389,99 @@ export async function eraseContactAction(input: { contactId: string }): Promise<
     return { ok: true };
   } catch (error) {
     log.warn({ err: error }, "eraseContact failed");
+    return toActionResult(error);
+  }
+}
+
+/**
+ * Imports a customer list from a CSV file (W5-13).
+ *
+ * Parsing is `parseRecipientCsv` — the header-aware reader W2.2 wrote for the
+ * review-request screen — so an Adisyo or Simpra export lands the same way here
+ * as it does there, and there is one definition of what a column called
+ * "e-posta" means.
+ *
+ * **It grants nothing.** An imported contact has no consent record and no İYS
+ * entry, because a POS export is a list of people who bought a coffee rather
+ * than a list of people who agreed to be marketed to. `checkSendAllowed`
+ * refuses them until somebody actually asks, and the screen says so before the
+ * upload rather than after the first broadcast is blocked.
+ *
+ * Admin: it writes personal data in bulk under the organization's name.
+ */
+export async function importContactsAction(input: {
+  csv: string;
+  tagLabel?: string | null;
+}): Promise<ActionResult<{ result: ImportResult; invalid: number; messageable: number }>> {
+  const parsed = z
+    .object({
+      // 2 MB of text. Five thousand rows is well under it; the ceiling is
+      // against a mis-selected file rather than against a real list.
+      csv: z.string().min(1).max(2_000_000),
+      tagLabel: z.string().trim().max(60).nullish(),
+    })
+    .safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error, "That file could not be read.");
+
+  /*
+    `allowPhoneOnly`, and it is not a detail.
+
+    The default refuses a row with no email, which is right for the caller this
+    parser was written for — a review request is sent by email. A POS export is
+    frequently phone-only, because that is what a till captures, and `contacts`
+    accepts either. Without this flag the first real Turkish café file loses
+    every customer who paid at the counter and left a number.
+  */
+  const list = parseRecipientCsv(parsed.data.csv, { allowPhoneOnly: true });
+
+  if (list.recipients.length === 0) {
+    return {
+      ok: false,
+      error: "No email addresses or phone numbers were found in that file.",
+    };
+  }
+
+  try {
+    const outcome = await withAuthenticatedTenant(
+      async (tx, actor) => {
+        const result = await importContacts(
+          tx,
+          actor.organizationId,
+          list.recipients.map((recipient) => ({
+            // Empty means the row was phone-only; `importContacts` turns that
+            // into null so the unique key stays usable.
+            email: recipient.email,
+            name: recipient.name,
+            phone: recipient.phone,
+          })),
+          {
+            tagLabel: parsed.data.tagLabel ?? null,
+            actorUserId: actor.userId,
+          },
+        );
+
+        await tx.insert(schema.auditLogs).values({
+          organizationId: actor.organizationId,
+          actorUserId: actor.userId,
+          action: "contacts.imported",
+          entity: `organization:${actor.organizationId}`,
+          // Counts, never the rows. An append-only log is the worst place for a
+          // second copy of personal data somebody may ask us to erase.
+          meta: { ...result, invalid: list.invalid.length },
+        });
+
+        return {
+          result,
+          messageable: await messageableCount(tx, actor.organizationId),
+        };
+      },
+      { minimumRole: "admin" },
+    );
+
+    revalidatePath("/contacts");
+    return { ok: true, ...outcome, invalid: list.invalid.length };
+  } catch (error) {
+    log.warn({ err: error }, "importContacts failed");
     return toActionResult(error);
   }
 }

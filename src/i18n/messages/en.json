@@ -964,7 +964,19 @@
     "sendOutcome": "{sent} sent · {failed} failed · {skipped} skipped",
     "privateFollowUp": "Private follow-up",
     "consentEmail": "Email OK",
-    "consentMessage": "WhatsApp OK"
+    "consentMessage": "WhatsApp OK",
+    "import": {
+      "action": "Import a list",
+      "title": "Import customers",
+      "description": "A CSV from your POS, your booking system, or a spreadsheet.",
+      "body": "Columns are found by their heading, in Turkish or English — e-posta, telefon, ad. Someone already on your list is updated rather than added twice.",
+      "noPermission": "Importing does not give you permission to message anybody. A list of people who bought something is not a list of people who agreed to hear from you, so nothing commercial will send to them until they say yes.",
+      "fileLabel": "CSV file",
+      "tagLabel": "Tag them (optional)",
+      "tagPlaceholder": "POS import",
+      "upload": "Import",
+      "summary": "{created} added, {updated} updated, {skipped} skipped. {messageable} of your contacts can be messaged today."
+    }
   },
   "surveys": {
     "title": "Surveys",

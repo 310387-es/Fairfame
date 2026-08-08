@@ -9,6 +9,8 @@ import { SegmentRow, type SegmentChip } from "@/components/contacts/segment-row"
 import { Pager } from "@/components/ds/pager";
 import { SectionCard } from "@/components/ds/section-card";
 import { PageHeader } from "@/components/shell/page-header";
+import { CreateSheet } from "@/components/ds/create-sheet";
+import { ImportContacts } from "@/components/contacts/import-contacts";
 import { SectionTabs } from "@/components/shell/section-tabs";
 import {
   contactFilterParams,
@@ -44,10 +46,11 @@ import { withTenant } from "@/lib/tenancy";
 type PageProps = { searchParams: Promise<RawParams> };
 
 export default async function ContactsPage({ searchParams }: PageProps) {
-  const [params, actor, t, format] = await Promise.all([
+  const [params, actor, t, ti, format] = await Promise.all([
     searchParams,
     requireActor(),
     getTranslations("contacts"),
+    getTranslations("contacts.import"),
     getFormatter(),
   ]);
 
@@ -146,7 +149,25 @@ export default async function ContactsPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      <PageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+        // Importing is an admin act — it writes personal data in bulk under the
+        // organization's name — and a sheet rather than a card, because it is a
+        // thing you *do* once a month rather than a finding to read (W5-13).
+        action={
+          roleAtLeast(actor.role, "admin") ? (
+            <CreateSheet
+              label={ti("action")}
+              title={ti("title")}
+              description={ti("description")}
+              variant="outline"
+            >
+              <ImportContacts />
+            </CreateSheet>
+          ) : null
+        }
+      />
       <SectionTabs active="contacts" />
 
       <SegmentRow

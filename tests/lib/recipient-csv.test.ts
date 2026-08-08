@@ -144,3 +144,43 @@ describe("the phone column", () => {
     expect(recipients[0]?.phone).toBeNull();
   });
 });
+
+describe("parseRecipientCsv with allowPhoneOnly (W5-13)", () => {
+  const FILE = [
+    "Ad Soyad,E-posta,Telefon",
+    "Ayşe Yılmaz,ayse@ornek.com,+905321112233",
+    "İrem Şahin,,+905445556677",
+    "Boş Satır,,",
+  ].join("\n");
+
+  it("drops a phone-only row by default, because a request needs an address", () => {
+    const parsed = parseRecipientCsv(FILE);
+
+    expect(parsed.recipients).toHaveLength(1);
+    // Reported, not silently dropped: an owner must not believe they asked
+    // somebody they did not.
+    expect(parsed.invalid).toHaveLength(2);
+  });
+
+  it("keeps a phone-only row for a contact import", () => {
+    // The defect this pins: a POS export is frequently phone-only, because that
+    // is what a till captures, and `contacts` accepts an email *or* a phone.
+    // Without the flag the first real Turkish café file loses every customer
+    // who paid at the counter and left a number.
+    const parsed = parseRecipientCsv(FILE, { allowPhoneOnly: true });
+
+    expect(parsed.recipients).toHaveLength(2);
+    expect(parsed.recipients[1]).toEqual({
+      email: "",
+      name: "İrem Şahin",
+      phone: "+905445556677",
+    });
+    // A row with neither is still nothing to key on.
+    expect(parsed.invalid).toHaveLength(1);
+  });
+
+  it("still refuses the same number twice", () => {
+    const twice = ["Telefon", "+905445556677", "+905445556677"].join("\n");
+    expect(parseRecipientCsv(twice, { allowPhoneOnly: true }).recipients).toHaveLength(1);
+  });
+});

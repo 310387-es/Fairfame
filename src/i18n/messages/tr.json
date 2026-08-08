@@ -964,7 +964,19 @@
     "sendOutcome": "{sent} gönderildi · {failed} başarısız · {skipped} atlandı",
     "privateFollowUp": "Özel geri bildirim",
     "consentEmail": "E-posta izinli",
-    "consentMessage": "WhatsApp izinli"
+    "consentMessage": "WhatsApp izinli",
+    "import": {
+      "action": "Liste yükle",
+      "title": "Müşterileri içe aktar",
+      "description": "POS'unuzdan, rezervasyon sisteminizden veya bir tablodan CSV.",
+      "body": "Sütunlar başlıklarından bulunur; Türkçe ya da İngilizce — e-posta, telefon, ad. Listenizde zaten olan biri ikinci kez eklenmez, güncellenir.",
+      "noPermission": "İçe aktarmak size ileti gönderme izni vermez. Bir şey satın almış kişilerin listesi, sizden haber almayı kabul etmiş kişilerin listesi değildir; onlar evet diyene kadar hiçbir ticari ileti gitmez.",
+      "fileLabel": "CSV dosyası",
+      "tagLabel": "Etiketle (isteğe bağlı)",
+      "tagPlaceholder": "POS aktarımı",
+      "upload": "İçe aktar",
+      "summary": "{created} eklendi, {updated} güncellendi, {skipped} atlandı. Kişilerinizin {messageable} tanesine bugün ileti gönderilebilir."
+    }
   },
   "surveys": {
     "title": "Anketler",

@@ -102,7 +102,29 @@ function looksLikePhone(value: string): boolean {
   return /^\d{10,15}$/.test(digits);
 }
 
-export function parseRecipientCsv(raw: string): CsvParseResult {
+export type CsvParseOptions = {
+  /**
+   * Accept a row that has a phone number and no email (W5-13).
+   *
+   * Off by default, which is right for the caller this was written for: a
+   * review request is sent by email, so a row with no address is a row nobody
+   * can be asked, and reporting it as invalid is the honest answer.
+   *
+   * The **contact import** is the opposite case. `contacts` requires an email
+   * *or* a phone — its own check constraint says so — and a POS export is
+   * frequently phone-only, because that is what a till captures. Dropping those
+   * rows silently discarded half of a Turkish café's customer list, which is
+   * exactly what happened the first time this feature was pointed at a real
+   * file.
+   *
+   * A flag rather than a second parser: the column detection is the hard part
+   * and there must be one implementation of what a column called "e-posta"
+   * means.
+   */
+  allowPhoneOnly?: boolean;
+};
+
+export function parseRecipientCsv(raw: string, options: CsvParseOptions = {}): CsvParseResult {
   const rows = raw
     .split(/\r?\n/)
     .map((row) => row.trim())
@@ -134,7 +156,19 @@ export function parseRecipientCsv(raw: string): CsvParseResult {
       : (cells.find((cell) => !looksLikeEmail(cell) && !looksLikePhone(cell)) ?? "");
 
     const parsed = recipientSchema.safeParse({ email, name: name || null });
+    const usablePhone = phone && looksLikePhone(phone) ? phone : null;
+
     if (!parsed.success) {
+      // A phone number with no address is a real contact and not a real
+      // recipient — see `allowPhoneOnly`.
+      if (options.allowPhoneOnly && usablePhone) {
+        const phoneKey = `tel:${usablePhone}`;
+        if (seen.has(phoneKey)) continue;
+        seen.add(phoneKey);
+        recipients.push({ email: "", name: name || null, phone: usablePhone });
+        continue;
+      }
+
       // Reported rather than dropped: silently ignoring a row means an owner
       // believes they asked somebody they did not.
       invalid.push(row);
@@ -154,7 +188,7 @@ export function parseRecipientCsv(raw: string): CsvParseResult {
       // `checkSendAllowed` is keyed on a contact we already hold. It is here so
       // the import can *fill in* a number on a contact, never so a send can
       // start from one.
-      phone: phone && looksLikePhone(phone) ? phone : null,
+      phone: usablePhone,
     });
   }
 
