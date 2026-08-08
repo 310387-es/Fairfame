@@ -242,6 +242,50 @@ describe("the design system's own rule", () => {
     ).toEqual([]);
   });
 
+  /**
+   * A brand family's shades are ours, and only the ones we declared exist.
+   *
+   * `indigo`, `amber` and `ink` are Revira's palette *and* three of Tailwind's
+   * default palette names. Where the two overlap, Tailwind's built-in shade is
+   * always there as a fallback — so `fill-amber-400` compiles, renders, and
+   * quietly paints **#fbbf24** instead of the brand's **#f5a524**, because
+   * `--color-amber-400` was never declared and nothing had to be.
+   *
+   * That is exactly what it did: on the public collection page, the star a
+   * customer taps was a different amber from every star elsewhere in the
+   * product. No test could see it — `amber-400` is a valid class, it resolves,
+   * and it is one digit away from a name we own.
+   *
+   * So within the families we claim, a shade must be one we declared. Outside
+   * them (`text-red-500` in a script, say) Tailwind's palette is nobody's
+   * brand and is left alone.
+   */
+  it("uses no undeclared shade of a brand colour family", () => {
+    const declared = declaredTokenNames();
+    const FAMILIES = ["indigo", "amber", "ink"];
+    const pattern = new RegExp(
+      `\\b(?:bg|text|fill|stroke|border|ring|from|via|to|divide|outline|accent|shadow)-` +
+        `((?:${FAMILIES.join("|")})-[0-9]+)\\b`,
+      "g",
+    );
+
+    const offenders: string[] = [];
+    for (const path of FILES) {
+      if (path in NOT_CLASS_NAMES) continue;
+      for (const match of code(path).matchAll(pattern)) {
+        if (!declared.has(match[1]!)) offenders.push(`${match[1]} (${path})`);
+      }
+    }
+
+    expect(
+      [...new Set(offenders)],
+      `These use a shade of a brand family that globals.css never declares, so ` +
+        `Tailwind's own palette silently supplies the colour and the brand value ` +
+        `is bypassed. Use the declared token — or declare the shade, if the ` +
+        `palette genuinely needs it: ${[...new Set(offenders)].join(", ")}`,
+    ).toEqual([]);
+  });
+
   /** The exemptions are documentation; they have to stay true. */
   it("has no stale NOT_CLASS_NAMES entry", () => {
     const missing = Object.keys(NOT_CLASS_NAMES).filter((path) => !FILES.includes(path));

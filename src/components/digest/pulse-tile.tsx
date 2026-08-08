@@ -56,7 +56,19 @@ export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
   const filled = score === null ? 0 : (score / 100) * SWEEP * CIRCUMFERENCE;
   const track = SWEEP * CIRCUMFERENCE;
 
-  const DeltaIcon = delta === null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
+  /*
+    No icon when there is nothing to compare against.
+
+    `Minus` was used for both `delta === null` and `delta === 0`, which are
+    different statements: one is "the score did not move", the other is "there
+    is no earlier week". Drawing the same glyph for both made a first-ever
+    briefing read "— first week measured", where the dash looks like a rendering
+    failure to anybody who has not read this file — the same misreading W3.3
+    fixed when the score itself was an em-dash. The sentence beside it already
+    says which case this is; the icon could only contradict it.
+  */
+  const DeltaIcon =
+    delta === null ? null : delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
 
   // Locale-formatted, never `toFixed`. Turkish writes a decimal comma, and
   // this tile sits one screen away from a dashboard that prints "11,2" — two
@@ -144,7 +156,7 @@ export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
       <div className="text-center">
         <p className="text-title">{t("pulse")}</p>
         <p className="mt-1 flex items-center justify-center gap-1 text-copy text-muted-foreground">
-          <DeltaIcon className="size-3.5 shrink-0" aria-hidden />
+          {DeltaIcon ? <DeltaIcon className="size-3.5 shrink-0" aria-hidden /> : null}
           {deltaLabel}
         </p>
       </div>

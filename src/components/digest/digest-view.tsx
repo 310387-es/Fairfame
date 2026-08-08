@@ -106,6 +106,11 @@ export async function DigestView({
     text: formatChange(change, (key, values) => t(key, values)),
   }));
 
+  /** How many of the three mid-page panels will actually render. */
+  const panels = [changes.length > 0, Boolean(payload.priorActionsOutcome), Boolean(record)].filter(
+    Boolean,
+  ).length;
+
   return (
     <div className="flex flex-col gap-(--grid-gap)">
       {/* The briefing and the pulse, side by side. */}
@@ -244,8 +249,17 @@ export async function DigestView({
         moves the instant somebody ticks a box. On a fresh digest they agree; on
         a three-month-old one in the archive they will not, and both are right.
       */}
-      {changes.length > 0 || payload.priorActionsOutcome || record ? (
-        <section className="grid gap-(--grid-gap) md:grid-cols-2">
+      {panels > 0 ? (
+        /*
+          Two columns only when there are two things to put in them.
+
+          `md:grid-cols-2` unconditionally meant that an account with no
+          week-on-week changes and no prior briefing — which is every account in
+          its first fortnight — got one 548px card sitting under an 853px hero
+          with the whole right-hand column empty. The card was not narrow; the
+          grid was reserving a track for something that had not rendered.
+        */
+        <section className={cn("grid gap-(--grid-gap)", panels > 1 && "md:grid-cols-2")}>
           {changes.length > 0 ? (
             <SectionCard title={t("changesTitle")} icon={ArrowUpDown}>
               <ul className="flex flex-col gap-2">
@@ -389,8 +403,19 @@ export async function DigestView({
         </section>
       ) : null}
 
+      {/*
+        Provenance, not a paragraph.
+
+        This was a bare grey sentence hanging under the last card — the same
+        orphan-prose shape `/get-reviews` had. It is a footnote about the
+        document above, and on `/weekly-plan` it is also the seam between this
+        briefing and the archive list that follows, so it gets a rule and the
+        quietest type in the scale rather than body copy's weight. No rule of its
+        own: the card above it already ends in a border, and a second hairline
+        20px below it reads as a mistake rather than as a separator.
+      */}
       {digest.generatedAt ? (
-        <p className="text-copy text-muted-foreground">
+        <p className="text-meta text-faint">
           {t("lastGenerated", { when: format.relativeTime(digest.generatedAt, new Date()) })}
         </p>
       ) : null}

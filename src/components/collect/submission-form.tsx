@@ -159,10 +159,28 @@ export function SubmissionForm({
                 onClick={() => setRating(value)}
                 className="rounded-md p-1 transition-transform hover:scale-110 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
+                {/*
+                  Two things were wrong with one line, on the screen more
+                  people see than any other in this product.
+
+                  **`amber-400` is not a token.** `--color-amber-400` does not
+                  exist, so it fell through to *Tailwind's* default amber
+                  (#fbbf24) instead of the brand's #f5a524 — the stars a
+                  customer taps were a different colour from every other star in
+                  the app, and nothing could catch it because `amber-400` is a
+                  perfectly valid class. It just is not ours.
+
+                  **And at rest they read as disabled.** `text-muted-foreground/40`
+                  is a 40% grey outline, which made the one control this entire
+                  page exists for the faintest thing on it — fainter than the
+                  submit button below, which cannot be pressed until a star is.
+                  An empty star is still an invitation, so it gets the rating
+                  colour at a strength you can see, and fills on hover.
+                */}
                 <Star
                   className={cn(
-                    "size-9",
-                    filled ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40",
+                    "size-9 transition-colors",
+                    filled ? "fill-rating text-rating" : "text-rating/45",
                   )}
                   aria-hidden
                 />
