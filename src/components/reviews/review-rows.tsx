@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ProviderMark } from "@/components/connections/provider-mark";
 import { Avatar } from "@/components/ds/avatar";
 import { Stars } from "@/components/ds/stars";
-import { SelectCheckbox } from "@/components/reviews/selection";
+import { SelectCheckbox, useSelection } from "@/components/reviews/selection";
 import { useAction } from "@/components/ui/use-action";
 import { setReviewStatusAction } from "@/server/triage";
 import { cn } from "@/lib/utils";
@@ -95,6 +95,13 @@ export function ReviewRows({
   const params = useSearchParams();
   const listRef = useRef<HTMLUListElement>(null);
   const { run } = useAction();
+  /*
+    Read here as well as in `SelectCheckbox`, because the *row* decides whether
+    to show a checkbox at all — and "anything is selected" is a property of the
+    list, not of one row.
+  */
+  const { selected } = useSelection();
+  const anySelected = selected.size > 0;
 
   const select = (id: string) => {
     const next = new URLSearchParams(params.toString());
@@ -190,6 +197,7 @@ export function ReviewRows({
     <ul ref={listRef} className="flex flex-col divide-y divide-line">
       {reviews.map((review) => {
         const active = review.id === selectedId;
+        const checked = selected.has(review.id);
 
         /*
           **The background belongs to the row, not to the link.**
@@ -208,7 +216,7 @@ export function ReviewRows({
           <li
             key={review.id}
             className={cn(
-              "relative flex items-start transition-colors",
+              "group/row relative flex items-start transition-colors",
               active ? "bg-surface-selected" : "hover:bg-surface-hover",
             )}
           >
@@ -231,12 +239,6 @@ export function ReviewRows({
                 aria-hidden
                 className="absolute inset-y-0 left-0 w-[3px] rounded-r-full bg-primary"
               />
-            ) : null}
-
-            {canSelect ? (
-              <span className="shrink-0 pt-4 pl-3">
-                <SelectCheckbox reviewId={review.id} label={review.selectLabel} />
-              </span>
             ) : null}
 
             <a
@@ -299,7 +301,51 @@ export function ReviewRows({
                   )}
                 />
 
-                <Avatar name={review.authorName} className="mt-0.5" />
+                {/*
+                  **The checkbox and the avatar share one slot.**
+
+                  A column of empty tick-boxes down every row is noise on a
+                  screen whose job is scanning, and it competes with the avatar
+                  for the same role — the thing your eye lands on at the start
+                  of a row. Gmail and Linear both solve it the same way: show
+                  the identity, swap in the control when the pointer is on the
+                  row or the row is already chosen.
+
+                  One grid cell holding both, so the swap costs no layout shift
+                  — the text never moves as the pointer crosses a row.
+
+                  **Always shown where there is no pointer.** Hover-reveal is
+                  invisible on a touch screen, so below `lg` the checkbox simply
+                  stays. It also stays once *anything* is selected: mid-selection
+                  the boxes are what you are working with, and having them
+                  vanish from every row you are not touching would make a
+                  multi-row selection impossible to see.
+                */}
+                {canSelect ? (
+                  <span className="relative mt-0.5 grid size-7 shrink-0 place-items-center">
+                    <Avatar
+                      name={review.authorName}
+                      className={cn(
+                        "col-start-1 row-start-1 transition-opacity",
+                        checked || anySelected
+                          ? "opacity-0"
+                          : "opacity-100 group-hover/row:opacity-0 max-lg:opacity-0",
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "col-start-1 row-start-1 transition-opacity",
+                        checked || anySelected
+                          ? "opacity-100"
+                          : "opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 max-lg:opacity-100",
+                      )}
+                    >
+                      <SelectCheckbox reviewId={review.id} label={review.selectLabel} />
+                    </span>
+                  </span>
+                ) : (
+                  <Avatar name={review.authorName} className="mt-0.5" />
+                )}
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">

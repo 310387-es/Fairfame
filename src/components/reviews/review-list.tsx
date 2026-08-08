@@ -221,6 +221,16 @@ export async function ReviewList({
                   canUseAi={options.canUseAi}
                   canApprove={options.canApprove}
                   maxChars={MAX_REPLY_CHARS}
+                  /*
+                    Open already when a reply is owed.
+
+                    This card is the drawer's detail, opened to answer one
+                    review — and the composer sat collapsed behind a button that
+                    could only ever be pressed. Not when the owner has already
+                    replied: that review is opened to check what was said, and a
+                    waiting cursor invites a second reply nobody asked for.
+                  */
+                  openByDefault={!review.hasOwnerReply && review.reply_ === null}
                 />
               ) : null}
 

@@ -69,7 +69,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
   return <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>;
 }
 
-function useSelection(): SelectionState {
+export function useSelection(): SelectionState {
   const value = useContext(SelectionContext);
   if (!value) throw new Error("Selection controls must be rendered inside a SelectionProvider.");
   return value;

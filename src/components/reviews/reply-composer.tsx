@@ -54,6 +54,8 @@ export type ReplyComposerProps = {
   /** False for a member — approve and post are admin-only. */
   canApprove: boolean;
   maxChars: number;
+  /** Start expanded — the caller decides, from whether a reply is owed. */
+  openByDefault?: boolean;
 };
 
 export function ReplyComposer({
@@ -62,6 +64,7 @@ export function ReplyComposer({
   canUseAi,
   canApprove,
   maxChars,
+  openByDefault = false,
 }: ReplyComposerProps) {
   const t = useTranslations("replies");
   const { run, pending } = useAction();
@@ -72,7 +75,24 @@ export function ReplyComposer({
   // previous generation, and React documents this as the supported pattern.
   const [serverText, setServerText] = useState(reply?.text ?? "");
   const [text, setText] = useState(reply?.text ?? "");
-  const [writing, setWriting] = useState(false);
+  /**
+   * Open already when the review is waiting for a reply.
+   *
+   * The composer lives in a drawer that exists to read one review and answer
+   * it, and it opened collapsed behind a "Write a reply" button — so the
+   * ordinary path cost a click that could only ever be pressed. Front and
+   * Superhuman both open with the field ready for the same reason.
+   *
+   * Conditional rather than always: an *answered* review is opened to check
+   * what was said, not to say more, and an editor with a cursor in it invites a
+   * second reply nobody asked for. `openByDefault` is the caller's judgement
+   * (`!answered`), not a preference — the composer has no idea what it is
+   * inside.
+   *
+   * Initial state only. Once somebody cancels, they meant it, and re-collapsing
+   * or re-opening on the next render would fight them.
+   */
+  const [writing, setWriting] = useState(openByDefault);
 
   if (serverText !== (reply?.text ?? "")) {
     setServerText(reply?.text ?? "");
@@ -126,6 +146,38 @@ export function ReplyComposer({
                 disabled={pending}
                 onPick={(body) => setText(body)}
               />
+
+              {/*
+                The AI draft, inside the editor — by the same argument the
+                template above it already makes: it is something you drop *into*
+                what you are writing, and it has to be reachable after you have
+                started.
+
+                It only lived in the collapsed row, which was survivable while
+                the editor opened on a button press. It stopped being survivable
+                when the drawer began opening the editor already expanded for an
+                unanswered review: the product's differentiating feature ended
+                up behind a "Cancel".
+
+                It replaces the text rather than appending, which is what
+                "draft" means and what the collapsed button always did.
+              */}
+              {canUseAi ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => run(() => draftReplyAction({ reviewId }))}
+                >
+                  {pending ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Sparkles className="size-4" aria-hidden />
+                  )}
+                  {t("draftWithAi")}
+                </Button>
+              ) : null}
 
               <span
                 className={cn(
