@@ -137,11 +137,13 @@ export function BenchmarkCard({
                 {/* Us first, so the row every other row is compared against is
                     the one the eye starts on. */}
                 <tr className="border-t border-line-soft">
-                  <th scope="row" className="text-ink py-2.5 font-semibold">
+                  <th scope="row" className="py-2.5 font-semibold text-foreground">
                     {t("benchmark.you")}
                   </th>
-                  <td className="text-ink py-2.5 text-right tabular-nums">{ourRating ?? "—"}</td>
-                  <td className="text-ink py-2.5 text-right tabular-nums">{ourReviews}</td>
+                  <td className="py-2.5 text-right text-foreground tabular-nums">
+                    {ourRating ?? "—"}
+                  </td>
+                  <td className="py-2.5 text-right text-foreground tabular-nums">{ourReviews}</td>
                   <td className="py-2.5 text-right text-faint">—</td>
                   {canManage ? <td /> : null}
                 </tr>

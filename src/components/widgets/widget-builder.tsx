@@ -1,5 +1,6 @@
 "use client";
 
+import { sourceLabel } from "@/connectors/source-label";
 import { Check, Code2, Eye, Settings2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -357,7 +358,7 @@ export function WidgetBuilder({
                   <Toggle
                     key={source}
                     id={`w-source-${source}`}
-                    label={source.charAt(0).toUpperCase() + source.slice(1)}
+                    label={sourceLabel(source)}
                     checked={filters.sources.includes(source)}
                     disabled={!canManage}
                     onChange={(checked) =>

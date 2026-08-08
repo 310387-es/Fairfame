@@ -3,6 +3,7 @@
 import { Archive, Check, Copy, Download, ExternalLink, Printer, Send } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
+import { Eyebrow } from "@/components/ds/eyebrow";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RecipientPicker } from "@/components/requests/recipient-picker";
@@ -61,7 +62,9 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
       <CardContent className="flex flex-col gap-5 py-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate font-medium">{campaign.name}</p>
+            {/* The one place 17px is genuinely right: a card's own title, above
+                `title` and well below `metric`. It named no size at all before. */}
+            <p className="truncate text-[17px] font-semibold">{campaign.name}</p>
             <p className="truncate text-body text-muted-foreground">
               {campaign.locationName} ·{" "}
               {campaign.channel === "email" ? t("channelEmail") : t("channelLink")}
@@ -73,9 +76,14 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
           </Badge>
         </div>
 
-        {/* A three-cell funnel. Micro-caps labels and mono numerals, so it reads
-            as the same kind of thing as the KPI strip on Home rather than as a
-            grey box that happens to contain numbers. */}
+        {/*
+          A three-cell funnel, drawn exactly like the one in `FunnelStrip` two
+          hundred pixels up the page. It used to be a third convention: micro-caps
+          labels over 17px **mono** numerals, against that strip's 13px sans and
+          Home's `Metric` (`text-metric`, tabular, no mono). Three renderings of
+          "a small number with a label" on one product, two of them on one screen.
+          The comment here even claimed it matched Home. It did not.
+        */}
         <dl className="grid grid-cols-3 gap-2 rounded-md bg-surface-sunken p-3 text-center">
           {(
             [
@@ -85,8 +93,10 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
             ] as const
           ).map(([key, value]) => (
             <div key={key}>
-              <dt className="text-eyebrow text-faint uppercase">{t(key)}</dt>
-              <dd className="mt-1 font-mono text-[17px] font-semibold tabular-nums">{value}</dd>
+              <Eyebrow asChild>
+                <dt>{t(key)}</dt>
+              </Eyebrow>
+              <dd className="mt-1 text-lead font-semibold tabular-nums">{value}</dd>
             </div>
           ))}
         </dl>

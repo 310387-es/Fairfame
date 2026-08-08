@@ -140,7 +140,7 @@ export function AttentionRow({ row }: { row: AttentionRowView }) {
         ) : (
           <div className="mt-1 rounded-md border border-line bg-surface-sunken px-3 py-2">
             <p className="text-meta text-faint">{t("draftLabel")}</p>
-            <p className="text-ink-700 mt-1 text-copy text-pretty">{draft}</p>
+            <p className="mt-1 text-copy text-pretty text-ink-600">{draft}</p>
             <Link
               href={row.href}
               className="mt-2 inline-flex items-center gap-1 text-meta font-semibold text-primary hover:underline"

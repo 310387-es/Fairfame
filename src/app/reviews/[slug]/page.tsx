@@ -1,3 +1,4 @@
+import { sourceLabel } from "@/connectors/source-label";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -129,7 +130,7 @@ export default async function LocationReviewsPage({ params }: PageProps) {
       <header className="border-b border-line-soft pb-6">
         {/* `text-hero`, which `globals.css` marks "public surfaces only" — this
             is a page a stranger lands on, not a card inside the app. */}
-        <h1 className="text-ink text-hero text-balance">
+        <h1 className="text-hero text-balance text-foreground">
           {page.locationName === page.organizationName
             ? page.organizationName
             : `${page.organizationName} · ${page.locationName}`}
@@ -142,7 +143,7 @@ export default async function LocationReviewsPage({ params }: PageProps) {
           <p className="mt-4 text-body text-ink-400">{t("noRatings")}</p>
         ) : (
           <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-ink text-metric font-semibold tabular-nums">
+            <span className="text-metric font-semibold text-foreground tabular-nums">
               {formatScore(aggregate.average, page.locale)}
             </span>
             <Stars
@@ -177,14 +178,16 @@ export default async function LocationReviewsPage({ params }: PageProps) {
                 ) : null}
 
                 {review.text ? (
-                  <p className="text-ink mt-2 text-copy [overflow-wrap:anywhere]">{review.text}</p>
+                  <p className="mt-2 text-copy [overflow-wrap:anywhere] text-foreground">
+                    {review.text}
+                  </p>
                 ) : null}
 
                 <p className="mt-2 flex flex-wrap items-baseline gap-x-2 text-meta text-faint">
                   {review.authorName ? (
                     <span className="font-semibold text-ink-400">{review.authorName}</span>
                   ) : null}
-                  <span>{review.source.charAt(0).toUpperCase() + review.source.slice(1)}</span>
+                  <span>{sourceLabel(review.source)}</span>
                   {review.postedAt ? <span>{formatDate(review.postedAt, page.locale)}</span> : null}
                   {review.url ? (
                     // `nofollow ugc`: third-party links a business placed on a

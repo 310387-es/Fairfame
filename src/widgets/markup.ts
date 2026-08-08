@@ -1,3 +1,4 @@
+import { sourceLabel } from "../connectors/source-label.ts";
 import type { Locale } from "../i18n/config.ts";
 import { SIZE_MESSAGE_TYPE, isBadgeLayout, type WidgetStyle } from "./config.ts";
 import type { PublicReview, WidgetContent } from "./public.ts";
@@ -88,18 +89,6 @@ function stars(rating: number, label: string): string {
 
 function formatDate(iso: string, locale: Locale): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(iso));
-}
-
-/**
- * A source key → something a human reads. "google" → "Google".
- *
- * Deliberately not a translated lookup table: these are proper nouns, they are
- * the same word in Turkish and English, and a table would need an entry for
- * every connector added later or the widget would show a blank where a brand
- * should be.
- */
-function sourceLabel(source: string): string {
-  return source.charAt(0).toUpperCase() + source.slice(1);
 }
 
 function renderCard(

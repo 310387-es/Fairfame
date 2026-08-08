@@ -204,7 +204,20 @@ export default async function LocationsPage({
       publicPage,
       // Formatted on the server: a formatter function cannot cross the RSC
       // boundary, which this codebase has learned twice already (P3-T4, P4-T2).
-      ratingLabel: rating === null ? null : t("ratingSr", { rating: format.number(rating) }),
+      // One decimal, like every other rating in the product — and like the
+      // delta nine lines below, which this file already got right. Unformatted,
+      // a stored average announces itself as "3.745 out of 5": false precision
+      // that only somebody on a screen reader ever hears, because the column
+      // beside it draws stars and shows no number at all.
+      ratingLabel:
+        rating === null
+          ? null
+          : t("ratingSr", {
+              rating: format.number(rating, {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+              }),
+            }),
       /**
        * A delta smaller than a rounding step is **no delta**, not "+0.0".
        * Printing a signed zero next to a star rating reads as a movement that

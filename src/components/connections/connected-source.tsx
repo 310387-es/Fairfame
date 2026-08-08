@@ -1,3 +1,4 @@
+import { Eyebrow } from "@/components/ds/eyebrow";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { GoLiveNote } from "@/components/connections/go-live-note";
@@ -78,8 +79,9 @@ export async function ConnectedSourceCard({
 
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-meta text-faint">{t("volumeLabel", { days: SPARKLINE_DAYS })}</p>
-          <p className="text-subtitle font-semibold text-foreground tabular-nums">
+          <Eyebrow>{t("volumeLabel", { days: SPARKLINE_DAYS })}</Eyebrow>
+          {/* `text-subtitle` was here and is not a token — see `FunnelStrip`. */}
+          <p className="mt-1 text-lead font-semibold text-foreground tabular-nums">
             {format.number(card.volumeTotal)}
           </p>
         </div>

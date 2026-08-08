@@ -1,5 +1,6 @@
 "use client";
 
+import { sourceLabel } from "@/connectors/source-label";
 import { ListChecks } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -149,7 +150,7 @@ export function ApprovalList({
                   <span className="text-meta text-faint">
                     {candidate.authorName ?? t("anonymousAuthor")}
                     <span aria-hidden> · </span>
-                    {candidate.source.charAt(0).toUpperCase() + candidate.source.slice(1)}
+                    {sourceLabel(candidate.source)}
                   </span>
                 </div>
                 {candidate.text ? (

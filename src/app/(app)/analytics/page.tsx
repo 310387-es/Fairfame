@@ -1,3 +1,4 @@
+import { sourceLabel } from "@/connectors/source-label";
 import { BarChart3, Building2, Radio, Sparkles, Users } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { isCanonicalTheme } from "@/reviews/taxonomy";
@@ -262,7 +263,7 @@ export default async function InsightsPage({ searchParams }: PageProps) {
 
   const sourceRows: ComparisonRow[] = compareBy(current, previous, (fact) => fact.source).map(
     (group) =>
-      toComparisonRow(group, group.key.charAt(0).toUpperCase() + group.key.slice(1), {
+      toComparisonRow(group, sourceLabel(group.key), {
         rating: (value) => number(value, 1),
         // The split, not the signed average (W3.3).
         sentiment: (mix) =>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+import { Th, Thead } from "@/components/ds/table";
 import { ChevronRight, Globe } from "lucide-react";
 import { Fragment, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -121,8 +123,8 @@ export function LocationsTable({ rows }: { rows: LocationTableRow[] }) {
           <col className="w-[14%]" />
         </colgroup>
 
-        <thead>
-          <tr className="border-b border-line bg-surface-sunken/50 text-left">
+        <Thead>
+          <tr>
             <Th className="w-8" srOnly>
               {t("col.expand")}
             </Th>
@@ -133,7 +135,7 @@ export function LocationsTable({ rows }: { rows: LocationTableRow[] }) {
             <Th numeric>{t("col.unanswered")}</Th>
             <Th>{t("col.publicPage")}</Th>
           </tr>
-        </thead>
+        </Thead>
 
         <tbody>
           {rows.map((row) => {
@@ -229,13 +231,22 @@ export function LocationsTable({ rows }: { rows: LocationTableRow[] }) {
                   </td>
 
                   <td className="py-2 pr-3">
+                    {/*
+                      Both states are chips, and that is the point. The
+                      unpublished one used to be grey text beside a green
+                      pill — so the column read as "one branch has a state and
+                      the other has a remark", when they are two values of one
+                      thing. The expanded row directly below already drew both
+                      as badges (`PublicPageControl`), so the table disagreed
+                      with the control it opens.
+                    */}
                     {row.publicPage.published && row.publicPage.slug ? (
-                      <span className="inline-flex items-center gap-1 text-meta text-state-positive-text">
-                        <Globe className="size-3.5" aria-hidden />
+                      <Badge variant="positive">
+                        <Globe aria-hidden />
                         {t("published")}
-                      </span>
+                      </Badge>
                     ) : (
-                      <span className="text-meta text-faint">{t("notPublished")}</span>
+                      <Badge variant="secondary">{t("notPublished")}</Badge>
                     )}
                   </td>
                 </tr>
@@ -273,31 +284,5 @@ export function LocationsTable({ rows }: { rows: LocationTableRow[] }) {
         </tbody>
       </table>
     </div>
-  );
-}
-
-function Th({
-  children,
-  numeric = false,
-  srOnly = false,
-  className,
-}: {
-  children: ReactNode;
-  numeric?: boolean;
-  srOnly?: boolean;
-  className?: string;
-}) {
-  return (
-    <th
-      scope="col"
-      className={cn(
-        "px-0 py-2 text-meta font-medium text-ink-500 first:pl-3",
-        numeric && "pr-3 text-right",
-        !numeric && "pr-3",
-        className,
-      )}
-    >
-      <span className={cn(srOnly && "sr-only")}>{children}</span>
-    </th>
   );
 }

@@ -2,6 +2,7 @@ import { Filter } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { ChartFallback } from "@/components/dashboard/chart-fallback";
 import { SectionCard } from "@/components/ds/section-card";
+import { Eyebrow } from "@/components/ds/eyebrow";
 import { funnelStages, type CollectionFunnel } from "@/collect/funnel";
 import { FUNNEL_DAYS } from "@/collect/funnel";
 import { cn } from "@/lib/utils";
@@ -58,8 +59,15 @@ export async function FunnelStrip({ funnel }: { funnel: CollectionFunnel }) {
                 key={stage.key}
                 className="rounded-md border border-line-soft bg-surface-sunken/40 px-3 py-2.5"
               >
-                <p className="text-meta text-faint">{t(`stage.${stage.key}`)}</p>
-                <p className="text-subtitle mt-0.5 font-semibold text-foreground tabular-nums">
+                {/*
+                  `text-subtitle` was here and **is not a token** — it resolves
+                  to nothing, so this number rendered at the card's inherited
+                  13px while the campaign card's identical statistic sat at a
+                  hardcoded 17px, two hundred pixels away on the same screen.
+                  Two treatments of one thing, and neither was the scale.
+                */}
+                <Eyebrow>{t(`stage.${stage.key}`)}</Eyebrow>
+                <p className="mt-1 text-lead font-semibold text-foreground tabular-nums">
                   {format.number(stage.count)}
                 </p>
 

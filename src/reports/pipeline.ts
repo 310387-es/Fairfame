@@ -1,3 +1,4 @@
+import { sourceLabel } from "../connectors/source-label.ts";
 import { and, eq, inArray } from "drizzle-orm";
 import { resolveLocationScope, withinScope } from "../auth/scope.ts";
 import type { Role } from "../auth/permissions.ts";
@@ -395,7 +396,7 @@ export function composeReport(
         groupTable(
           copy.bySource,
           compareBy(current, previous, (fact) => fact.source),
-          (key) => key.charAt(0).toUpperCase() + key.slice(1),
+          sourceLabel,
           copy.column.source,
         ),
         {

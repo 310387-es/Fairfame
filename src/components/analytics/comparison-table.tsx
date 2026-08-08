@@ -1,3 +1,4 @@
+import { Th, Thead } from "@/components/ds/table";
 import { SectionCard } from "@/components/ds/section-card";
 import { SentimentBar } from "@/components/ds/meter";
 import type { LucideIcon } from "lucide-react";
@@ -125,23 +126,20 @@ export function ComparisonTable({
         // sideways — four measures plus a name does not fit a phone.
         <div className="overflow-x-auto border-t border-line-soft">
           <table className="w-full min-w-[34rem] text-left text-copy">
-            <thead className="text-meta text-faint">
+            <Thead>
               <tr>
                 {columns.map((column, index) => (
-                  <th
-                    key={column}
-                    scope="col"
-                    className={`px-(--card-px) py-2 font-medium ${index === 0 ? "" : "text-right"}`}
-                  >
+                  // The first column names the row; the rest are quantities.
+                  <Th key={column} numeric={index !== 0}>
                     {column}
-                  </th>
+                  </Th>
                 ))}
               </tr>
-            </thead>
+            </Thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.key} className="border-t border-line-soft">
-                  <th scope="row" className="text-ink px-(--card-px) py-2.5 font-medium">
+                  <th scope="row" className="px-(--card-px) py-2.5 font-medium text-foreground">
                     {row.label}
                   </th>
                   {row.cells.map((cell, index) => (

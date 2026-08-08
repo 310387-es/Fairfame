@@ -118,7 +118,136 @@ const MAY_SIZE_BY_HAND: Record<string, string> = {
 
 const FILES = walk(ROOT);
 
+/**
+ * Files that write the *string* `text-something` without meaning a Tailwind
+ * class, so the dead-class check below has to skip them.
+ *
+ * All but one emit a stylesheet as text — `text-align`, `text-decoration` and
+ * `text-transform` are CSS properties, and they appear in exactly the surfaces
+ * that have no stylesheet to reach for (the same reason these files may write
+ * hex). `src/lib/utils.ts` is the odd one: `text-color` there is the name of a
+ * `tailwind-merge` class *group*, which is the thing doing the checking.
+ */
+const NOT_CLASS_NAMES: Record<string, string> = {
+  "src/widgets/theme.ts": "CSS properties in the widget's own stylesheet.",
+  "src/messaging/templates.ts": "CSS properties in inline email styles.",
+  "src/app/u/[token]/route.ts": "CSS properties in the unsubscribe page's <style>.",
+  "src/lib/utils.ts": "`text-color` is a tailwind-merge class group, not a class.",
+};
+
+/** Tailwind's own `text-*` utilities that are neither a token nor a palette entry. */
+const TAILWIND_TEXT_KEYWORDS = new Set([
+  // Alignment, overflow, wrapping.
+  "left",
+  "center",
+  "right",
+  "justify",
+  "start",
+  "end",
+  "ellipsis",
+  "clip",
+  "wrap",
+  "nowrap",
+  "balance",
+  "pretty",
+  // Keyword colours and the default size scale.
+  "auto",
+  "current",
+  "transparent",
+  "inherit",
+  "white",
+  "black",
+  "xs",
+  "sm",
+  "base",
+  "lg",
+  "xl",
+  "2xl",
+  "3xl",
+  "4xl",
+  "5xl",
+  "6xl",
+  "7xl",
+  "8xl",
+  "9xl",
+]);
+
+const TAILWIND_PALETTE =
+  /^(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(50|\d00)$/;
+
+/** Every `--text-*` and `--color-*` name declared inside an `@theme` block. */
+function declaredTokenNames(): Set<string> {
+  const css = readFileSync(join(ROOT, "app/globals.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const names = new Set<string>();
+
+  for (const block of css.matchAll(/@theme[^{]*\{([\s\S]*?)\n\}/g)) {
+    for (const match of block[1]!.matchAll(/^\s*--(?:text|color)-([a-z0-9-]+):/gm)) {
+      if (!match[1]!.includes("--")) names.add(match[1]!);
+    }
+  }
+
+  return names;
+}
+
 describe("the design system's own rule", () => {
+  /**
+   * The other half of the `cn` bug, and the half nothing was watching.
+   *
+   * `class-merge.test.ts` proves a token that *exists* survives being composed
+   * with an ink. It cannot see a class that was never a token at all — and
+   * Tailwind's failure mode for those is silence. `text-subtitle` is not in the
+   * scale, has never been in the scale, and was sitting on the collection
+   * funnel's numbers and the connections screen's volume figure. No build error,
+   * no warning, correct-looking markup, and the element quietly inheriting
+   * whatever its parent happened to be: **13px on `/get-reviews`, against the
+   * identical statistic two hundred pixels away at a hardcoded 17px.**
+   *
+   * It found seven more of the same kind on its first run, and the worst were
+   * public: `text-ink` — there is no `--color-ink`, only `ink-400` through
+   * `ink-900` — on the SEO page's `<h1>`, its rating figure and the body of
+   * every review a business shows the open internet, plus two analytics tables;
+   * and `text-ink-700`, a shade that does not exist, on the dashboard's AI
+   * draft. Nine dead classes in five files, every one of them looking correct
+   * in review.
+   *
+   * This is the same class of defect as the hand-typed sizes above — a value
+   * that stopped tracking the system — but arrived from the opposite direction:
+   * not a number written instead of a name, a name that was never a number.
+   */
+  it("has no text-* class that resolves to nothing", () => {
+    const tokens = declaredTokenNames();
+    const dead = new Map<string, string[]>();
+
+    for (const path of FILES) {
+      if (path in NOT_CLASS_NAMES) continue;
+
+      for (const match of code(path).matchAll(/\btext-([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\b/g)) {
+        const name = match[1]!;
+        if (tokens.has(name) || TAILWIND_TEXT_KEYWORDS.has(name) || TAILWIND_PALETTE.test(name)) {
+          continue;
+        }
+        dead.set(name, [...new Set([...(dead.get(name) ?? []), path])]);
+      }
+    }
+
+    const report = [...dead].map(([name, paths]) => `text-${name} (${paths.join(", ")})`);
+
+    expect(
+      report,
+      `These text-* classes match no token in globals.css and no Tailwind ` +
+        `utility, so they generate no CSS and the element silently inherits. ` +
+        `Use a real token — or, if the string is not a class at all (a CSS ` +
+        `property in an emitted stylesheet), add the file to NOT_CLASS_NAMES: ` +
+        `${report.join("; ")}`,
+    ).toEqual([]);
+  });
+
+  /** The exemptions are documentation; they have to stay true. */
+  it("has no stale NOT_CLASS_NAMES entry", () => {
+    const missing = Object.keys(NOT_CLASS_NAMES).filter((path) => !FILES.includes(path));
+    expect(missing, "Exempted files that no longer exist — renamed or deleted?").toEqual([]);
+  });
+
   it("keeps raw hex to the surfaces with no stylesheet", () => {
     const offenders = FILES.filter((path) => !(path in MAY_WRITE_HEX)).filter((path) =>
       /#[0-9a-fA-F]{6}\b/.test(code(path)),

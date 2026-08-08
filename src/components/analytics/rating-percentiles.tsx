@@ -1,3 +1,4 @@
+import { Eyebrow } from "@/components/ds/eyebrow";
 import { Clock, Star } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { ChartFallback } from "@/components/dashboard/chart-fallback";
@@ -159,7 +160,11 @@ export async function ResponsePercentilesCard({ times }: { times: ResponsePercen
           <dl className="grid grid-cols-3 gap-3">
             {rows.map((row) => (
               <div key={row.key}>
-                <dt className="text-meta text-faint">{row.label}</dt>
+                {/* The label above a number is `Eyebrow` everywhere in the
+                    product; this was the last `<dt>` still setting its own. */}
+                <Eyebrow asChild>
+                  <dt>{row.label}</dt>
+                </Eyebrow>
                 <dd>
                   <Metric>{wait(row.value)}</Metric>
                 </dd>

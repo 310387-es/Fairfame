@@ -1,4 +1,4 @@
-import { Send } from "lucide-react";
+import { Send, ShieldCheck } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { roleAtLeast } from "@/auth/permissions";
 import { requireActor } from "@/auth/session";
@@ -9,12 +9,30 @@ import { CampaignCard } from "@/components/requests/campaign-card";
 import { CampaignForm } from "@/components/requests/campaign-form";
 import { SectionTabs } from "@/components/shell/section-tabs";
 import { ResourcePage } from "@/components/ds/resource-page";
+import { Th, Thead } from "@/components/ds/table";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { listLocationsForActor } from "@/lib/active-location";
 import { withinLimit } from "@/lib/entitlements";
 import { qrSvg } from "@/lib/qr";
 import { withTenant } from "@/lib/tenancy";
 import { campaignUrl } from "@/lib/urls";
+
+/**
+ * How a request's state is drawn.
+ *
+ * Only the two ends are coloured. `submitted` is the outcome the whole screen
+ * exists to produce and `failed` is the only one anybody can act on; the three
+ * in between are progress, and colouring them would spend the reader's
+ * attention on the fact that an email was delivered.
+ */
+const REQUEST_TONES: Record<string, "positive" | "destructive" | "secondary"> = {
+  submitted: "positive",
+  failed: "destructive",
+  pending: "secondary",
+  sent: "secondary",
+  opened: "secondary",
+};
 
 /**
  * Requests — create collection campaigns, share their link or QR, and watch
@@ -106,14 +124,29 @@ export default async function RequestsPage() {
         empty={{ line: t("empty"), hint: t("newCampaignDescription") }}
         create={create}
       >
-        <p className="text-body text-muted-foreground">
-          {limit.limit === null
-            ? t("usageUnlimited", { used: limit.current })
-            : t("usage", { used: limit.current, limit: limit.limit })}
-        </p>
-        <p className="max-w-2xl text-body text-pretty text-muted-foreground">
-          {t("complianceNote")}
-        </p>
+        {/*
+          Two floating paragraphs used to sit here — the month's quota and the
+          no-rating-gating promise — set as plain grey body text above a card,
+          which is how a page acquires prose nobody reads. They are both real
+          content: one is a limit somebody can hit, the other is the sentence
+          that distinguishes this product from the competitors who filter by
+          rating. Neither is a paragraph; together they are one note.
+
+          The shield is the point. `complianceNote` says the option does not
+          exist here, which reads as a boast in grey and as a guarantee beside a
+          positive mark.
+        */}
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 rounded-lg border border-line-soft bg-surface-sunken/50 px-4 py-3">
+          <p className="flex max-w-2xl items-start gap-2 text-copy text-pretty text-muted-foreground">
+            <ShieldCheck aria-hidden className="mt-px size-4 shrink-0 text-positive" />
+            {t("complianceNote")}
+          </p>
+          <p className="text-copy text-faint tabular-nums">
+            {limit.limit === null
+              ? t("usageUnlimited", { used: limit.current })
+              : t("usage", { used: limit.current, limit: limit.limit })}
+          </p>
+        </div>
 
         {/* Across the top, before the campaigns: "is this working" is the
             question somebody arrives with, and it is answered over every
@@ -143,31 +176,33 @@ export default async function RequestsPage() {
           <Card>
             <CardContent className="overflow-x-auto p-0">
               <table className="w-full text-body">
-                <thead className="border-b text-left text-copy text-muted-foreground">
+                <Thead>
                   <tr>
-                    <th scope="col" className="px-4 py-2 font-medium">
-                      {t("columnRecipient")}
-                    </th>
-                    <th scope="col" className="px-4 py-2 font-medium">
-                      {t("columnCampaign")}
-                    </th>
-                    <th scope="col" className="px-4 py-2 font-medium">
-                      {t("columnStatus")}
-                    </th>
-                    <th scope="col" className="px-4 py-2 font-medium">
-                      {t("columnSent")}
-                    </th>
-                    <th scope="col" className="px-4 py-2 font-medium">
-                      {t("columnSubmitted")}
-                    </th>
+                    <Th>{t("columnRecipient")}</Th>
+                    <Th>{t("columnCampaign")}</Th>
+                    <Th>{t("columnStatus")}</Th>
+                    <Th numeric>{t("columnSent")}</Th>
+                    <Th numeric>{t("columnSubmitted")}</Th>
                   </tr>
-                </thead>
+                </Thead>
                 <tbody>
                   {requests.map((request) => (
                     <tr key={request.id} className="border-b last:border-0">
                       <td className="px-4 py-2">{request.recipient ?? t("walkIn")}</td>
                       <td className="px-4 py-2 text-muted-foreground">{request.campaignName}</td>
-                      <td className="px-4 py-2">{t(`status.${request.status}`)}</td>
+                      <td className="px-4 py-2">
+                        {/*
+                          A chip, not a word. Every other state in the product
+                          is one — a campaign's "Active" is a chip six rows up
+                          this same page — and the five values here are the one
+                          column somebody scans this table for. As plain text
+                          they read as five equal facts; the two that matter are
+                          "Review left" (it worked) and "Failed" (it did not).
+                        */}
+                        <Badge variant={REQUEST_TONES[request.status] ?? "secondary"}>
+                          {t(`status.${request.status}`)}
+                        </Badge>
+                      </td>
                       <td className="px-4 py-2 text-muted-foreground tabular-nums">
                         {request.sentAt ? format.dateTime(request.sentAt, "short") : "—"}
                       </td>

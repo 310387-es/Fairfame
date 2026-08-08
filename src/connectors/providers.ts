@@ -2,6 +2,7 @@ import { getEnv, type Env } from "../lib/env.ts";
 import { parseVaultKeys } from "../lib/vault.ts";
 import { FIRST_PARTY_PROVIDER, firstPartyCapabilities } from "./firstparty.ts";
 import { MOCK_PROVIDER, mockCapabilities } from "./mock.ts";
+import { SOURCE_LABELS } from "./source-label.ts";
 import type { Capability } from "./types.ts";
 
 /**
@@ -121,7 +122,7 @@ const DEFAULT_RATE_LIMIT: RateLimitPolicy = {
 export const PROVIDERS: Record<string, ProviderDescriptor> = {
   [MOCK_PROVIDER]: {
     key: MOCK_PROVIDER,
-    label: "Mock source",
+    label: SOURCE_LABELS.mock!,
     capabilities: mockCapabilities,
     requiresOAuth: false,
     devOnly: true,
@@ -131,7 +132,7 @@ export const PROVIDERS: Record<string, ProviderDescriptor> = {
 
   [FIRST_PARTY_PROVIDER]: {
     key: FIRST_PARTY_PROVIDER,
-    label: "First-party page",
+    label: SOURCE_LABELS.firstparty!,
     capabilities: firstPartyCapabilities,
     requiresOAuth: false,
     // A push source is never polled; the scan finds nothing and moves on.
@@ -140,7 +141,7 @@ export const PROVIDERS: Record<string, ProviderDescriptor> = {
 
   google: {
     key: "google",
-    label: "Google Business Profile",
+    label: SOURCE_LABELS.google!,
     // Full read and API replies, once access is granted (docs/03 §4).
     capabilities: { read: "full", reply: "api", realtime: false },
     requiresOAuth: true,
@@ -175,7 +176,7 @@ export const PROVIDERS: Record<string, ProviderDescriptor> = {
 
   instagram: {
     key: "instagram",
-    label: "Instagram",
+    label: SOURCE_LABELS.instagram!,
     // Comments and mentions arrive by webhook; replies only where permitted.
     capabilities: { read: "full", reply: "api", realtime: true },
     requiresOAuth: true,
@@ -200,7 +201,7 @@ export const PROVIDERS: Record<string, ProviderDescriptor> = {
 
   whatsapp: {
     key: "whatsapp",
-    label: "WhatsApp Business",
+    label: SOURCE_LABELS.whatsapp!,
     // Outbound messaging and inbound webhooks — not a review source to read.
     capabilities: { read: "none", reply: "api", realtime: true },
     // The one true messaging channel today: we send templates and free text,
@@ -234,7 +235,7 @@ export const PROVIDERS: Record<string, ProviderDescriptor> = {
    */
   fixture: {
     key: "fixture",
-    label: "Fixture provider",
+    label: SOURCE_LABELS.fixture!,
     capabilities: { read: "excerpt", reply: "none", realtime: false },
     requiresOAuth: true,
     devOnly: true,
