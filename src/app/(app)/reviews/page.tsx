@@ -568,6 +568,7 @@ export default async function InboxPage({
                   refuses the actions themselves either way. */}
               {canBulk && roleAtLeast(actor.role, "member") ? (
                 <BulkBar
+                  pageReviewIds={rows.map((row) => row.id)}
                   assignees={assignees.map((member) => ({
                     userId: member.userId,
                     name: member.name,
@@ -601,6 +602,44 @@ export default async function InboxPage({
               {/* Numbered paging is the desktop reading, and the fallback for a
                   phone that has loaded as much as one page will hold. */}
               <div className={showLoadMore ? "hidden sm:block" : undefined}>
+                {/*
+                The shortcuts, said once.
+
+                `j`/`k`/`r`/`e` have worked since W4.1 and nothing on the screen
+                mentioned them, which makes a keyboard-first queue keyboard-first
+                only for whoever read the commit. A line under the list rather
+                than a `?` overlay: the overlay is a second thing to discover,
+                and this costs one row of muted text on the screen where the
+                shortcuts apply.
+
+                `lg` and up, because a phone has no keyboard to press them with.
+              */}
+                <p className="hidden items-center gap-x-3 text-meta text-faint lg:flex">
+                  {/*
+                    The key letters are literals, not messages, and that is the
+                    point: `j` is the `j` key in every language. Putting it in
+                    the catalogue invites somebody to localise a keystroke — and
+                    the first attempt used next-intl rich tags to bold them,
+                    which broke `i18n-messages.test.ts`, a guard that renders
+                    every string with no tag handlers and was right to fail.
+                    Only the verbs are translatable, so only the verbs are keys.
+                  */}
+                  {(
+                    [
+                      ["j / k", t("shortcutMove")],
+                      ["r", t("shortcutReply")],
+                      ["e", t("shortcutDone")],
+                    ] as const
+                  ).map(([keys, label]) => (
+                    <span key={keys} className="flex items-center gap-1.5">
+                      <kbd className="rounded-sm bg-surface-sunken px-1 font-mono text-ink-500">
+                        {keys}
+                      </kbd>
+                      {label}
+                    </span>
+                  ))}
+                </p>
+
                 <Pager
                   page={currentPage}
                   pageCount={Math.max(1, Math.ceil(matching / PAGE_SIZE))}

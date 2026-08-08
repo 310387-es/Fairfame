@@ -43,6 +43,8 @@ import {
 type SelectionState = {
   selected: Set<string>;
   toggle: (id: string) => void;
+  /** Adds every id given, leaving anything already selected alone. */
+  selectAll: (ids: string[]) => void;
   clear: () => void;
 };
 
@@ -54,6 +56,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<SelectionState>(
     () => ({
       selected,
+      selectAll: (ids) => setSelected((current) => new Set([...current, ...ids])),
       toggle: (id) =>
         setSelected((current) => {
           const next = new Set(current);
@@ -100,13 +103,16 @@ export function BulkBar({
   assignees,
   templates,
   canUseAi,
+  pageReviewIds,
 }: {
   assignees: AssigneeOption[];
   templates: BulkTemplateOption[];
   canUseAi: boolean;
+  /** Every review currently rendered, so the bar can offer "select all". */
+  pageReviewIds: string[];
 }) {
   const t = useTranslations("inbox");
-  const { selected, clear } = useSelection();
+  const { selected, clear, selectAll } = useSelection();
   const [tag, setTag] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const { run: runAction, pending } = useAction();
@@ -140,6 +146,32 @@ export function BulkBar({
         <span className="text-copy font-semibold">
           {t("bulkSelected", { count: reviewIds.length })}
         </span>
+
+        {/*
+          **Select the rest of the page**, offered only once it would do
+          something.
+
+          Bulk actions became reachable and then immediately became tedious:
+          twenty rows meant twenty clicks. Gmail's answer is a header checkbox;
+          this list has none, because the row's own box is revealed on hover and
+          a permanent header tick would be the one control always shouting.
+
+          So it lives here, appearing when a selection exists and vanishing when
+          the page is fully selected — a control that cannot change anything is
+          worse than no control. It adds rather than replaces, so a selection
+          made across pages survives.
+        */}
+        {pageReviewIds.some((id) => !selected.has(id)) ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={pending}
+            onClick={() => selectAll(pageReviewIds)}
+          >
+            {t("bulkSelectAll", { count: pageReviewIds.length })}
+          </Button>
+        ) : null}
 
         <Select
           disabled={pending}

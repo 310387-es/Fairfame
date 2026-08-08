@@ -575,7 +575,11 @@
     "searchLabel": "Search these reviews",
     "searchPlaceholder": "Search what customers wrote",
     "replyDraft": "Draft",
-    "replySent": "Replied"
+    "replySent": "Replied",
+    "bulkSelectAll": "Select all {count}",
+    "shortcutMove": "move",
+    "shortcutReply": "reply",
+    "shortcutDone": "mark done"
   },
   "locations": {
     "title": "Locations",

@@ -575,7 +575,11 @@
     "searchLabel": "Bu yorumlarda ara",
     "searchPlaceholder": "Müşterilerin yazdıklarında ara",
     "replyDraft": "Taslak",
-    "replySent": "Yanıtlandı"
+    "replySent": "Yanıtlandı",
+    "bulkSelectAll": "Tümünü seç ({count})",
+    "shortcutMove": "gezin",
+    "shortcutReply": "yanıtla",
+    "shortcutDone": "tamamla"
   },
   "locations": {
     "title": "Şubeler",
