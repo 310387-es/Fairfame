@@ -18,7 +18,14 @@
  */
 
 export type SectionTab =
-  "contacts" | "broadcasts" | "requests" | "surveys" | "locations" | "connections";
+  | "contacts"
+  | "broadcasts"
+  | "requests"
+  | "surveys"
+  | "locations"
+  | "connections"
+  | "settings"
+  | "compliance";
 
 export type Section = {
   /** The rail entry that stays lit while any tab in this section is open. */
@@ -60,6 +67,27 @@ export const SECTIONS: Section[] = [
     tabs: [
       { key: "locations", href: "/locations" },
       { key: "connections", href: "/connections" },
+    ],
+  },
+  /**
+   * Settings and Compliance (positioning win 3).
+   *
+   * Compliance is a *page* rather than a card because the remediation plan
+   * wants somewhere to point at — "then put it on the pricing page" — and a
+   * claim you can only demonstrate by scrolling past a notification preferences
+   * table is not a claim. It is a tab rather than a rail entry for the reason
+   * W4.2 made Connections one: the rail is thirteen and creeps back to fifteen
+   * one good idea at a time.
+   *
+   * `/settings` is the parent because it is the one that already exists in the
+   * rail, and because compliance state is configuration — what this deployment
+   * is wired to, and what it may therefore do.
+   */
+  {
+    parent: "/settings",
+    tabs: [
+      { key: "settings", href: "/settings" },
+      { key: "compliance", href: "/compliance" },
     ],
   },
 ];

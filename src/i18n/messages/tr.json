@@ -1622,13 +1622,7 @@
     }
   },
   "compliance": {
-    "title": "Gönderim ve uyumluluk",
-    "intro": "Bir mesaj müşteriye ulaşmadan önce, izninin İYS'de — ulusal izin kayıt sisteminde — kayıtlı olması gerekir. Eksik olanları burada görebilirsiniz.",
     "iysTitle": "İYS — ulusal izin kayıt sistemi",
-    "iysReady": "Bağlı",
-    "iysMissing": "Bağlı değil",
-    "iysReadyBody": "İzinler sisteme bildiriliyor; izin vermiş kişilere ticari ileti gönderilebilir.",
-    "iysMissingBody": "Bağlı bir izin sistemi yok; bu yüzden kanal ne kadar iyi kurulmuş olursa olsun her ticari ileti reddedilir. Formunuzda alınan izin, henüz kayıtlı bir izin değildir.",
     "mode": {
       "live": "Canlı",
       "mock": "Yalnızca test",
@@ -1646,7 +1640,40 @@
         "off": "Kurulu bir SMS sağlayıcısı yok; SMS ile hiçbir şey gönderilemez."
       }
     },
-    "footer": "Bu kontrolleri atlayarak gönderim yapmanın bir yolu yok; bu bilinçli bir tercih: cezaya konu olan, kayıtlı izni olmadan gönderilen iletidir."
+    "footer": "Bu kontrolleri atlayarak gönderim yapmanın bir yolu yok; bu bilinçli bir tercih: cezaya konu olan, kayıtlı izni olmadan gönderilen iletidir.",
+    "pageTitle": "Uyumluluk",
+    "pageSubtitle": "Ne gönderebiliriz, insanlar hakkında ne tutuyoruz ve yorumları nasıl istiyoruz.",
+    "registryLive": "Ticari elektronik ileti izinleri {gateway} üzerinden İYS'ye kaydediliyor.",
+    "registryLocal": "İzinler burada tutuluyor ancak İYS'ye kaydedilmiyor: bu kurulum “{gateway}” ile yapılandırılmış. Yetkili bir hizmet sağlayıcı bağlanana kadar hiçbir ticari ileti gönderilmez.",
+    "registryNone": "hiçbiri",
+    "recorded": "Kayıtlı izin",
+    "registered": "İYS'ye işlenen",
+    "pendingUpload": "Gönderilmeyi bekleyen",
+    "overdue": "Süresi geçen",
+    "overdueBody": "{count, plural, one {# iznin} other {# iznin}} bildirimi için kanunun tanıdığı üç iş günü doldu. İzinler kuyrukta duruyor; bir sağlayıcı bağlandığında gönderilecek.",
+    "optedOutBody": "{count, plural, one {# kişi} other {# kişi}} kendisine ulaşılmamasını istedi. Liste ya da segment ne derse desin, her gönderimin dışında tutulurlar.",
+    "gatingTitle": "Yorum filtrelemesi yapmıyoruz",
+    "gatingBody": "Yorum filtrelemesi, memnun müşterilerden herkese açık yorum isteyip memnuniyetsiz olanları özel bir kanala yönlendirmektir. Google'ın politikalarına aykırıdır ve dürüst değildir. Bu ürün bunu yapamaz; bu bir ayar değil, ürünün kuruluş biçimidir.",
+    "gatingPoint1": "Yorumun nereden isteneceğine karar veren fonksiyona puan ya da duygu bilgisi hiç verilmez. Koyacak yer yoktur.",
+    "gatingPoint2": "Anketin kendine ait bir yorum hedefi yoktur; kimse cevap vermeden önce belirlenmiş bir toplama kampanyasını gösterir. 2 veren de 10 veren de aynı daveti görür.",
+    "gatingPoint3": "Bir kitle puana göre süzülemez. Kişi filtreleri ve kayıtlı segmentler puan alanı taşımaz.",
+    "kvkk": {
+      "title": "KVKK: veri dışa aktarma ve silme",
+      "body": "Herkes hakkında ne tuttuğunuzu sorabilir ve silinmesini isteyebilir. Size verdiği e-posta adresi veya telefon numarasıyla arayın.",
+      "adminOnly": "Başvuruları yanıtlamak için yönetici olmanız gerekir.",
+      "lookupLabel": "E-posta adresi veya telefon numarası",
+      "lookupPlaceholder": "ayse@ornek.com veya +905321234567",
+      "lookup": "Bul",
+      "noMatch": "Bu e-posta adresi veya telefon numarasına ait hiçbir kayıt yok.",
+      "unnamed": "İsim kaydedilmemiş",
+      "export": "Tuttuğumuz her şeyi indir",
+      "erase": "Bu kişiyi sil",
+      "eraseConfirm": "Evet, kalıcı olarak sil",
+      "eraseWarning": "Geri alınamaz. Yorumları kalır, yazar bilgisi silinir.",
+      "erased": "Silindi. Yorumları anonim olarak kalıyor."
+    },
+    "channelsTitle": "Kanallar",
+    "channelsIntro": "Bugün hangi kanallar gerçekten bir müşteriye ulaşır ve her birinin önünde ne var."
   },
   "tabs": {
     "label": "Bölüm",
@@ -1655,7 +1682,9 @@
     "requests": "Yorum talepleri",
     "surveys": "Anketler",
     "locations": "Şubeler",
-    "connections": "Bağlantılar"
+    "connections": "Bağlantılar",
+    "settings": "Ayarlar",
+    "compliance": "Uyumluluk"
   },
   "themes": {
     "staff": "Personel",

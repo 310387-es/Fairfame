@@ -1622,13 +1622,7 @@
     }
   },
   "compliance": {
-    "title": "Sending & compliance",
-    "intro": "Before any message reaches a customer, Turkish law requires their permission to be on record in İYS — the national registry. This is where you can see what is missing.",
     "iysTitle": "İYS — the national permission registry",
-    "iysReady": "Connected",
-    "iysMissing": "Not connected",
-    "iysReadyBody": "Permissions are reported to the registry, so a commercial message may go out to anybody who has given one.",
-    "iysMissingBody": "No registry is connected, so every commercial message is refused — however well a channel is set up. A permission collected on your form is not yet a registered one.",
     "mode": {
       "live": "Live",
       "mock": "Test only",
@@ -1646,7 +1640,40 @@
         "off": "No SMS provider is set up, so nothing can be sent by SMS."
       }
     },
-    "footer": "There is no way to send around these checks, and that is deliberate: a message sent without a registered permission is the one that carries a fine."
+    "footer": "There is no way to send around these checks, and that is deliberate: a message sent without a registered permission is the one that carries a fine.",
+    "pageTitle": "Compliance",
+    "pageSubtitle": "What we are allowed to send, what we hold about people, and how we ask for reviews.",
+    "registryLive": "Marketing permissions are registered with İYS through {gateway}.",
+    "registryLocal": "Permissions are recorded here but not registered with İYS: this deployment is wired to “{gateway}”. Until a licensed service provider is connected, no commercial message will be sent.",
+    "registryNone": "nothing",
+    "recorded": "Permissions on record",
+    "registered": "Registered with İYS",
+    "pendingUpload": "Waiting to be sent",
+    "overdue": "Past the deadline",
+    "overdueBody": "{count, plural, one {# permission has} other {# permissions have}} passed the three business days Turkish law allows for reporting them. They are still queued and will be sent as soon as a provider is connected.",
+    "optedOutBody": "{count, plural, one {# person has} other {# people have}} asked not to be contacted. They are excluded from every send, whatever a list or a segment says.",
+    "gatingTitle": "We do not gate reviews",
+    "gatingBody": "Review-gating means asking happy customers for a public review and routing unhappy ones somewhere private. It is against Google's policy and it is dishonest. This product cannot do it, and that is a property of how it is built rather than a setting somebody could change.",
+    "gatingPoint1": "The function that decides where a review is asked for is never given a rating or a sentiment. There is nowhere to put one.",
+    "gatingPoint2": "A survey has no review destination of its own — it points at a collection campaign, decided before anyone answers. A 2 and a 10 see the same invitation.",
+    "gatingPoint3": "An audience cannot be filtered on a score. Contact filters and saved segments carry no rating field.",
+    "kvkk": {
+      "title": "KVKK: export and erasure",
+      "body": "Anyone may ask what you hold about them, and ask you to delete it. Search by the email address or phone number they gave you.",
+      "adminOnly": "Handling subject requests needs an administrator.",
+      "lookupLabel": "Email address or phone number",
+      "lookupPlaceholder": "ayse@example.com or +905321234567",
+      "lookup": "Find",
+      "noMatch": "Nothing is held about that email address or phone number.",
+      "unnamed": "No name recorded",
+      "export": "Download everything we hold",
+      "erase": "Erase this person",
+      "eraseConfirm": "Yes, erase permanently",
+      "eraseWarning": "This cannot be undone. Their reviews stay, with the author removed.",
+      "erased": "Erased. Their reviews remain, anonymised."
+    },
+    "channelsTitle": "Channels",
+    "channelsIntro": "Which channels would actually reach a customer today, and what is stopping each one."
   },
   "tabs": {
     "label": "Section",
@@ -1655,7 +1682,9 @@
     "requests": "Review requests",
     "surveys": "Surveys",
     "locations": "Branches",
-    "connections": "Connections"
+    "connections": "Connections",
+    "settings": "Settings",
+    "compliance": "Compliance"
   },
   "themes": {
     "staff": "Staff",

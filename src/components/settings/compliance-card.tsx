@@ -1,4 +1,4 @@
-import { ShieldCheck } from "lucide-react";
+import { Radio } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { SectionCard } from "@/components/ds/section-card";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,13 @@ import type { ChannelStatus } from "@/channels/status";
  * `SMS_GATEWAY`, `CONNECTOR_WHATSAPP_MODE` and a WhatsApp Business Account
  * somebody has to apply for. None of that is discoverable from a failed send.
  *
- * **It leads with İYS, not with the channels**, because that is the one that
- * surprises people: WhatsApp can be perfectly connected and every commercial
- * message still refused. It is also the one nobody expects to be a *product*
- * requirement rather than a legal footnote — in Türkiye, sending a commercial
- * message to somebody whose permission is not in the national registry is the
- * fineable act, whether or not they said yes to your form.
+ * **It used to lead with İYS and no longer does.** That was right while this
+ * was a card on Settings and it is wrong now: the İYS state moved to the top of
+ * `/compliance`, where it is stated once with real numbers behind it, and this
+ * card sits directly underneath. Saying it twice, one card apart, is exactly
+ * the confusion the page was made to end. What is left is the per-channel half
+ * — the question only this card can answer, which is which of them would
+ * actually deliver.
  *
  * **Plain Turkish, not a status table.** The reader is a café owner, not an
  * operator; "IYS_GATEWAY=none" is the diagnostic and the sentence above it is
@@ -28,39 +29,9 @@ import type { ChannelStatus } from "@/channels/status";
 export async function ComplianceCard({ statuses }: { statuses: ChannelStatus[] }) {
   const t = await getTranslations("compliance");
 
-  // One İYS answer for the whole deployment, so it is stated once rather than
-  // repeated under every channel as if they could differ.
-  const registryBlocked = statuses.some((status) =>
-    status.blockers.includes("no_consent_registry"),
-  );
-
   return (
-    <SectionCard title={t("title")} icon={ShieldCheck} id="compliance">
-      <p className="text-body text-pretty text-ink-400">{t("intro")}</p>
-
-      <div className="mt-4 flex flex-col gap-1">
-        {/*
-          The name first, its state after.
-
-          Chip-then-name put three labels of different widths in front of three
-          titles, so "İYS", "WhatsApp Business" and "SMS" each began at a
-          different x and the list read as a staircase — which is the same
-          defect the blocker list on `/channels` had. Reversing it is better
-          than aligning it: the names are what somebody scans down, and the
-          state is an annotation on each. It also matches the card header on
-          `/channels` and the rows on `/locations`, which have always read
-          name-then-state.
-        */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-body font-medium">{t("iysTitle")}</span>
-          <Badge variant={registryBlocked ? "secondary" : "positive"}>
-            {t(registryBlocked ? "iysMissing" : "iysReady")}
-          </Badge>
-        </div>
-        <p className="text-body text-pretty text-ink-400">
-          {t(registryBlocked ? "iysMissingBody" : "iysReadyBody")}
-        </p>
-      </div>
+    <SectionCard title={t("channelsTitle")} icon={Radio} id="compliance">
+      <p className="text-body text-pretty text-ink-400">{t("channelsIntro")}</p>
 
       <ul className="mt-4 flex flex-col gap-3">
         {statuses.map((status) => (

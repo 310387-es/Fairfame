@@ -9,14 +9,13 @@ import { PreferenceForm, type PreferenceValue } from "@/components/notifications
 import { TemplateManager } from "@/components/replies/template-manager";
 import { LanguageCard } from "@/components/settings/language-card";
 import { PageHeader } from "@/components/shell/page-header";
-import { ComplianceCard } from "@/components/settings/compliance-card";
+import { SectionTabs } from "@/components/shell/section-tabs";
 import { PlanSection } from "@/components/billing/plan-section";
 import { canCheckout } from "@/billing/checkout";
 import { PLAN_CATALOG, PLAN_KEYS } from "@/lib/plans";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DEFAULT_LOCALE, isLocale } from "@/i18n/config";
 import { listLocationsForActor } from "@/lib/active-location";
-import { channelStatuses } from "@/channels/status";
 import { withTenant } from "@/lib/tenancy";
 import { DEFAULT_PREFERENCE, preferencesForUser } from "@/notifications/preferences";
 import { MAX_TEMPLATE_BODY, listReplyTemplates } from "@/replies/templates";
@@ -43,44 +42,35 @@ export default async function SettingsPage() {
     getLocale(),
   ]);
 
-  const {
-    locations,
-    preferences,
-    templates,
-    organization,
-    canWhiteLabel,
-    entitlements,
-    requests,
-    channelStatus,
-  } = await withTenant(
-    { organizationId: actor.organizationId, userId: actor.userId },
-    async (tx) => ({
-      locations: await listLocationsForActor(tx, actor),
-      preferences: await preferencesForUser(tx, actor.organizationId, actor.userId),
-      templates: await listReplyTemplates(tx, actor.organizationId),
-      organization: await tx
-        .select({
-          logo: schema.organizations.logo,
-          branding: schema.organizations.branding,
-          customDomain: schema.organizations.customDomain,
-          currency: schema.organizations.currency,
-        })
-        .from(schema.organizations)
-        .where(eq(schema.organizations.id, actor.organizationId))
-        .limit(1)
-        .then(([row]) => row ?? null),
-      canWhiteLabel: await can({ organizationId: actor.organizationId, tx }, "white_label"),
-      entitlements: await getEntitlements({ organizationId: actor.organizationId, tx }),
-      requests: await withinLimit(
-        { organizationId: actor.organizationId, tx },
-        "requests_per_month",
-      ),
-      // Why a message would not send — the İYS registry and each channel's
-      // own state. The same reader the /channels screen uses, so the two
-      // cannot disagree about whether something is set up.
-      channelStatus: await channelStatuses(tx, actor.organizationId),
-    }),
-  );
+  const { locations, preferences, templates, organization, canWhiteLabel, entitlements, requests } =
+    await withTenant(
+      { organizationId: actor.organizationId, userId: actor.userId },
+      async (tx) => ({
+        locations: await listLocationsForActor(tx, actor),
+        preferences: await preferencesForUser(tx, actor.organizationId, actor.userId),
+        templates: await listReplyTemplates(tx, actor.organizationId),
+        organization: await tx
+          .select({
+            logo: schema.organizations.logo,
+            branding: schema.organizations.branding,
+            customDomain: schema.organizations.customDomain,
+            currency: schema.organizations.currency,
+          })
+          .from(schema.organizations)
+          .where(eq(schema.organizations.id, actor.organizationId))
+          .limit(1)
+          .then(([row]) => row ?? null),
+        canWhiteLabel: await can({ organizationId: actor.organizationId, tx }, "white_label"),
+        entitlements: await getEntitlements({ organizationId: actor.organizationId, tx }),
+        requests: await withinLimit(
+          { organizationId: actor.organizationId, tx },
+          "requests_per_month",
+        ),
+        // Why a message would not send — the İYS registry and each channel's
+        // own state. The same reader the /channels screen uses, so the two
+        // cannot disagree about whether something is set up.
+      }),
+    );
 
   const branding = parseBranding(organization?.branding);
 
@@ -124,6 +114,7 @@ export default async function SettingsPage() {
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      <SectionTabs active="settings" />
 
       <PlanSection
         current={entitlements.effectivePlanKey}
@@ -148,13 +139,6 @@ export default async function SettingsPage() {
         canCheckout={canCheckout(organization?.currency ?? "TRY")}
         canManage={actor.role === "owner"}
       />
-
-      {/*
-        Above notifications, because it answers a question somebody arrives
-        with — "why did my message not send?" — rather than one they came to
-        change (P1-13, folded into W2.2).
-      */}
-      <ComplianceCard statuses={channelStatus} />
 
       <LanguageCard current={await getLocale()} />
 
