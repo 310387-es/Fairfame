@@ -322,12 +322,25 @@ export function computeThemes(facts: DashboardFacts, limit = 5): ThemeRow[] {
   const counts = new Map<string, { count: number; positive: number; negative: number }>();
 
   for (const fact of facts.current) {
-    for (const topic of fact.topics) {
-      const entry = counts.get(topic) ?? { count: 0, positive: 0, negative: 0 };
+    /*
+      Canonical themes (W3.2), not the free-text `topics` tail.
+
+      This panel is a *list of names shown to a reader*, so it is under the same
+      rule as the insight strip above it: a theme only belongs on screen if it
+      means the same thing in both languages. Reading `topics` printed whatever
+      word the customer happened to use — so a Turkish account saw "bekleme
+      süresi" on an English dashboard, and the same complaint counted twice
+      when two customers phrased it differently.
+
+      `topics` is still carried on the fact and is still the right thing to
+      count for the long tail; it is just not a label.
+    */
+    for (const theme of fact.themes) {
+      const entry = counts.get(theme) ?? { count: 0, positive: 0, negative: 0 };
       entry.count += 1;
       if (fact.sentiment === "positive") entry.positive += 1;
       if (fact.sentiment === "negative") entry.negative += 1;
-      counts.set(topic, entry);
+      counts.set(theme, entry);
     }
   }
 

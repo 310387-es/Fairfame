@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Meter } from "@/components/ds/meter";
 import { ChartFallback } from "@/components/dashboard/chart-fallback";
 import type { ThemeRow } from "@/dashboard/metrics";
+import { isCanonicalTheme } from "@/reviews/taxonomy";
 
 /**
  * What people talked about — the themes panel of the breakdown card.
@@ -16,7 +17,22 @@ import type { ThemeRow } from "@/dashboard/metrics";
  * belong to `BreakdownCard`.
  */
 export async function ThemesList({ rows }: { rows: ThemeRow[] }) {
-  const t = await getTranslations("home.themes");
+  const [t, tThemes] = await Promise.all([
+    getTranslations("home.themes"),
+    getTranslations("themes"),
+  ]);
+
+  /*
+    A canonical key becomes a word; anything else is shown as it was written.
+
+    The bars printed `row.slug` raw, so a Turkish account read "bekleme
+    süresi" on an English dashboard — the same defect the insight strip above
+    had, and the same shape `/analytics` already solved. Free tags pass through
+    rather than being dropped: a business analysed before the taxonomy existed
+    should see its old themes, not a blank panel.
+  */
+  const label = (slug: string) =>
+    isCanonicalTheme(slug) ? tThemes(slug as Parameters<typeof tThemes>[0]) : slug;
 
   const mood = (row: ThemeRow) =>
     row.dominant === "negative"
@@ -35,7 +51,7 @@ export async function ThemesList({ rows }: { rows: ThemeRow[] }) {
         {rows.map((row) => (
           <Meter
             key={row.slug}
-            label={row.slug}
+            label={label(row.slug)}
             percent={row.share * 100}
             tone={
               row.dominant === "negative"
@@ -45,7 +61,7 @@ export async function ThemesList({ rows }: { rows: ThemeRow[] }) {
                   : "neutral"
             }
             value={mood(row)}
-            srLabel={`${row.slug}: ${row.count} — ${mood(row)}`}
+            srLabel={`${label(row.slug)}: ${row.count} — ${mood(row)}`}
           />
         ))}
       </div>
@@ -53,7 +69,10 @@ export async function ThemesList({ rows }: { rows: ThemeRow[] }) {
       <ChartFallback
         caption={t("title")}
         columns={[t("title"), t("count"), t("mood")]}
-        rows={rows.map((row) => ({ key: row.slug, cells: [row.slug, row.count, mood(row)] }))}
+        rows={rows.map((row) => ({
+          key: row.slug,
+          cells: [label(row.slug), row.count, mood(row)],
+        }))}
       />
     </>
   );

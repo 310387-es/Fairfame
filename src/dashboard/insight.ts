@@ -57,7 +57,18 @@ function themeCounts(facts: readonly ReviewFact[], onlyNegative: boolean): Map<s
 
   for (const fact of facts) {
     if (onlyNegative && fact.sentiment !== "negative") continue;
-    for (const topic of fact.topics) counts.set(topic, (counts.get(topic) ?? 0) + 1);
+    /*
+      Canonical themes (W3.2), not `topics`.
+
+      `topics` is the free-text long tail in whatever language the customer
+      wrote, and this count feeds the one sentence at the top of the product's
+      home screen. On a Turkish account that printed "4 are negative about
+      bekleme süresi" into an English sentence — a translated frame around an
+      untranslated word, which is precisely the failure the canonical taxonomy
+      was built to end. A theme only earns a place in a sentence if it means
+      the same thing in both languages.
+    */
+    for (const theme of fact.themes) counts.set(theme, (counts.get(theme) ?? 0) + 1);
   }
 
   return counts;
@@ -110,7 +121,7 @@ export function composeInsight(facts: DashboardFacts): Insight {
     theme,
     themeNegatives: theme
       ? facts.current.filter(
-          (fact) => fact.sentiment === "negative" && fact.topics.includes(theme.slug),
+          (fact) => fact.sentiment === "negative" && fact.themes.includes(theme.slug),
         ).length
       : 0,
     rating,

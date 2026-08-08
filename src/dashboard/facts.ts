@@ -49,7 +49,17 @@ export type ReviewFact = {
   rating: number | null;
   sentiment: Sentiment | null;
   sentimentScore: number | null;
+  /**
+   * The free-text long tail, in whatever language the customer wrote. Useful
+   * for counting; never show one to a reader — see `themes`.
+   */
   topics: string[];
+  /**
+   * Canonical themes (W3.2), which is what a *sentence* has to be built from.
+   * Null on a review analysed before the taxonomy existed, so an empty array
+   * here means "nothing canonical", not "no themes".
+   */
+  themes: string[];
   /**
    * When this review was answered, if it was — by a reply we published or by
    * one the owner left on the platform (W1.2). The earlier of the two.
@@ -118,6 +128,7 @@ export async function loadFacts(
       sentiment: schema.reviewInsights.sentiment,
       sentimentScore: schema.reviewInsights.sentimentScore,
       topics: schema.reviewInsights.topics,
+      themes: schema.reviewInsights.themes,
       // The earliest *published* reply. `min` rather than a plain join so a
       // review with two replies yields one fact rather than two, which would
       // otherwise double-count it in every volume figure on the page.
@@ -163,6 +174,10 @@ export async function loadFacts(
       schema.reviewInsights.sentiment,
       schema.reviewInsights.sentimentScore,
       schema.reviewInsights.topics,
+      // Every selected column that is not aggregated has to be grouped, and
+      // adding one to the projection without adding it here fails at *runtime*
+      // only — the pure-function tests over fixtures never touch SQL.
+      schema.reviewInsights.themes,
     );
 
   const facts: ReviewFact[] = rows.map((row) => ({
@@ -175,6 +190,7 @@ export async function loadFacts(
     sentiment: row.sentiment,
     sentimentScore: row.sentimentScore,
     topics: row.topics ?? [],
+    themes: row.themes ?? [],
     repliedAt: row.repliedAt ? new Date(row.repliedAt) : null,
   }));
 

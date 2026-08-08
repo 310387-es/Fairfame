@@ -1,4 +1,4 @@
-import { sourceLabel } from "@/connectors/source-label";
+import { sourceShortLabel } from "@/connectors/source-label";
 import { AlertTriangle } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { AttentionRow as Row, type AttentionRowView } from "@/components/dashboard/attention-row";
@@ -66,7 +66,10 @@ export async function NeedsAttention({
     itemTypeLabel: row.itemType === "review" ? null : t(`itemType.${row.itemType}`),
     themes: row.themes.map((theme) => tThemes(theme)),
     branchName: branchNames.get(row.locationId) ?? null,
-    sourceLabel: sourceLabel(row.source),
+    // The short form: four rows of a single-source business otherwise repeat
+    // "Google Business Profile" down the column beside the words that matter
+    // (docs/21 §0d — named once takes the full name, repeated per item does not).
+    sourceLabel: sourceShortLabel(row.source),
     at: row.at.toISOString(),
     atLabel: format.relativeTime(row.at, now),
     preview: preview(row.text) ?? t("noText"),

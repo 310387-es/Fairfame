@@ -135,6 +135,7 @@ function fact(overrides: Partial<ReviewFact>): ReviewFact {
     sentiment: null,
     sentimentScore: null,
     topics: [],
+    themes: [],
     repliedAt: null,
     ...overrides,
   };
@@ -164,28 +165,30 @@ describe("the insight strip", () => {
     const insight = composeInsight(
       facts(
         [
-          fact({ sentiment: "negative", topics: ["servis"] }),
-          fact({ sentiment: "negative", topics: ["servis"] }),
-          fact({ sentiment: "negative", topics: ["servis"] }),
-          fact({ sentiment: "negative", topics: ["bekleme"] }),
-          fact({ sentiment: "negative", topics: ["bekleme"] }),
+          fact({ sentiment: "negative", themes: ["service"] }),
+          fact({ sentiment: "negative", themes: ["service"] }),
+          fact({ sentiment: "negative", themes: ["service"] }),
+          fact({ sentiment: "negative", themes: ["wait_time"] }),
+          fact({ sentiment: "negative", themes: ["wait_time"] }),
         ],
         [
-          fact({ sentiment: "negative", topics: ["servis"] }),
-          fact({ sentiment: "negative", topics: ["servis"] }),
-          fact({ sentiment: "negative", topics: ["servis"] }),
+          fact({ sentiment: "negative", themes: ["service"] }),
+          fact({ sentiment: "negative", themes: ["service"] }),
+          fact({ sentiment: "negative", themes: ["service"] }),
         ],
       ),
     );
 
-    // `servis` is larger but flat; `bekleme` is new. Reporting the perennial
+    // `service` is larger but flat; `wait_time` is new. Reporting the perennial
     // complaint every week is how a strip becomes wallpaper.
-    expect(insight.theme?.slug).toBe("bekleme");
+    expect(insight.theme?.slug).toBe("wait_time");
     expect(insight.theme?.previous).toBe(0);
   });
 
   it("will not call a single mention a trend", () => {
-    const insight = composeInsight(facts([fact({ sentiment: "negative", topics: ["otopark"] })]));
+    const insight = composeInsight(
+      facts([fact({ sentiment: "negative", themes: ["location_access"] })]),
+    );
 
     expect(insight.theme).toBeNull();
   });
@@ -195,9 +198,9 @@ describe("the insight strip", () => {
     // three were praising it.
     const insight = composeInsight(
       facts([
-        fact({ sentiment: "positive", topics: ["kahve"] }),
-        fact({ sentiment: "positive", topics: ["kahve"] }),
-        fact({ sentiment: "positive", topics: ["kahve"] }),
+        fact({ sentiment: "positive", themes: ["food_quality"] }),
+        fact({ sentiment: "positive", themes: ["food_quality"] }),
+        fact({ sentiment: "positive", themes: ["food_quality"] }),
       ]),
     );
 

@@ -1,9 +1,9 @@
+import { sourceShortLabel } from "@/connectors/source-label";
 import { Activity, CornerUpLeft, Send, Star } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { Avatar } from "@/components/ds/avatar";
 import { IconTile } from "@/components/ds/icon-tile";
 import { SectionCard } from "@/components/ds/section-card";
-import { describeProvider } from "@/connectors/capability-view";
 import type { ActivityItem, ActivityKind } from "@/dashboard/activity";
 
 /**
@@ -60,7 +60,11 @@ export async function ActivityFeed({
         <ul className="flex flex-col">
           {items.slice(0, 6).map((item) => {
             const Icon = ICONS[item.kind];
-            const source = describeProvider(item.source)?.label ?? item.source;
+            // The short form, and the raw-key fallback dropped: this line
+            // repeats down every row of the feed, inside a sentence
+            // ("New 5★ review on …"), which is the repeated-per-item case
+            // (docs/21 §0d).
+            const source = sourceShortLabel(item.source);
             const branch = branchNames.get(item.locationId) ?? null;
 
             const sentence =

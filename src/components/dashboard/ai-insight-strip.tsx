@@ -17,7 +17,13 @@ import type { Insight } from "@/dashboard/insight";
  * `dashboard/insight.ts` for why that is a feature and not a shortcut.
  */
 export async function AiInsightStrip({ insight }: { insight: Insight }) {
-  const [t, format] = await Promise.all([getTranslations("home.insight"), getFormatter()]);
+  const [t, tThemes, format] = await Promise.all([
+    getTranslations("home.insight"),
+    // Canonical theme names, the same catalogue the attention queue and the
+    // heatmap read — so one theme is one word wherever it appears.
+    getTranslations("themes"),
+    getFormatter(),
+  ]);
 
   const clauses: string[] = [];
 
@@ -27,7 +33,7 @@ export async function AiInsightStrip({ insight }: { insight: Insight }) {
     clauses.push(
       t("theme", {
         count: insight.themeNegatives,
-        theme: insight.theme.slug,
+        theme: tThemes(insight.theme.slug),
       }),
     );
   }

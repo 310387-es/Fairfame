@@ -43,6 +43,7 @@ function fact(overrides: Partial<ReviewFact> & { at: Date }): ReviewFact {
     sentiment: null,
     sentimentScore: null,
     topics: [],
+    themes: [],
     repliedAt: null,
     ...overrides,
   };
@@ -425,15 +426,15 @@ describe("themes", () => {
   it("colours a theme by how people felt, not how often they said it", () => {
     const rows = computeThemes(
       facts([
-        fact({ at: daysAgo(1), sentiment: "negative", topics: ["servis"] }),
-        fact({ at: daysAgo(2), sentiment: "negative", topics: ["servis"] }),
-        fact({ at: daysAgo(3), sentiment: "positive", topics: ["servis"] }),
-        fact({ at: daysAgo(4), sentiment: "positive", topics: ["kahve"] }),
+        fact({ at: daysAgo(1), sentiment: "negative", themes: ["service"] }),
+        fact({ at: daysAgo(2), sentiment: "negative", themes: ["service"] }),
+        fact({ at: daysAgo(3), sentiment: "positive", themes: ["service"] }),
+        fact({ at: daysAgo(4), sentiment: "positive", themes: ["food_quality"] }),
       ]),
     );
 
     // "servis, 3 mentions" means something different from "kahve, 1 mention".
-    expect(rows[0]?.slug).toBe("servis");
+    expect(rows[0]?.slug).toBe("service");
     expect(rows[0]?.dominant).toBe("negative");
     expect(rows[1]?.dominant).toBe("positive");
   });
@@ -441,8 +442,8 @@ describe("themes", () => {
   it("calls an evenly split theme mixed", () => {
     const rows = computeThemes(
       facts([
-        fact({ at: daysAgo(1), sentiment: "negative", topics: ["fiyat"] }),
-        fact({ at: daysAgo(2), sentiment: "positive", topics: ["fiyat"] }),
+        fact({ at: daysAgo(1), sentiment: "negative", themes: ["price"] }),
+        fact({ at: daysAgo(2), sentiment: "positive", themes: ["price"] }),
       ]),
     );
 
