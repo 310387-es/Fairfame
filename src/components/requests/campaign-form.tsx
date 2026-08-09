@@ -95,7 +95,7 @@ export function CampaignForm({
         <Input
           id="campaign-name"
           name="name"
-          required
+          aria-required
           maxLength={120}
           placeholder={t("namePlaceholder")}
           {...invalid("name")}
@@ -179,7 +179,7 @@ export function CampaignForm({
             id="campaign-destination-url"
             name="destinationUrl"
             type="url"
-            required
+            aria-required
             placeholder={t("destinationUrlPlaceholder")}
             {...invalid("destinationUrl")}
           />

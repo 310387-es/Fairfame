@@ -56,6 +56,10 @@ export default async function WelcomePage() {
           digestId: status.digestId,
           finished: false,
           empty: status.analysable === 0 && status.reviews === 0,
+          // So the first paint is already the right one: without it the screen
+          // renders a 0/0 bar for one frame before the first poll corrects it,
+          // which is the state A22-B1 is about (A22-B1).
+          awaitingSync: status.awaitingSync,
         }}
       />
     </Card>

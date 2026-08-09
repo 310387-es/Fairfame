@@ -7,7 +7,7 @@ import { withTenant, type TenantDatabase } from "../lib/tenancy.ts";
 import { publicBaseUrl, buildRequestUrl, buildUnsubscribeUrl } from "../lib/urls.ts";
 import { REVIEW_REQUEST_TEMPLATE, type TemplateName } from "../connectors/whatsapp/templates.ts";
 import { getEmailTransport } from "../messaging/email.ts";
-import { sendMessage } from "../messaging/outbound.ts";
+import { sendMessage, type OutboundRefusal } from "../messaging/outbound.ts";
 import { renderReviewRequestEmail } from "../messaging/templates.ts";
 import { generateRequestToken } from "./tokens.ts";
 import { isEmailRecipient, type RequestRecipient } from "./input.ts";
@@ -78,12 +78,33 @@ export type SendContext = {
   bodyOverride: string | undefined;
 };
 
+/**
+ * One recipient who did not get it, and why (A22-B3).
+ *
+ * `refusal` is the machine-readable code where there is one — every messaging
+ * send has it, because `sendMessage` returns it — so the screen can say
+ * "Kayıtlı izin yok" in the reader's language rather than showing them a
+ * provider's English sentence. `reason` is the prose behind it, which is the
+ * only thing an SMTP failure has.
+ *
+ * The two together are why the count on its own was not enough: "1 başarısız"
+ * is the same word for a mistyped address, a mail server that was down and a
+ * customer who never gave permission, and only one of the three is anything
+ * the operator can act on.
+ */
+export type DeliveryFailure = {
+  /** However they were addressed — the label the operator will recognise. */
+  address: string;
+  refusal: OutboundRefusal | null;
+  reason: string;
+};
+
 export type SendOutcome = {
   sent: number;
   failed: number;
   skipped: SkippedRecipient[];
-  /** Addresses that came back permanently undeliverable, for the UI to show. */
-  failures: { email: string; reason: string }[];
+  /** Everybody the send did not reach, each with its own reason. */
+  failures: DeliveryFailure[];
 };
 
 /** Campaign copy overrides live in a jsonb blob, so validate before trusting. */
@@ -325,8 +346,18 @@ export async function prepareRequests(
 }
 
 export type DeliveryResult =
-  | { requestId: string; email: string; ok: true }
-  | { requestId: string; email: string; ok: false; reason: string };
+  | { requestId: string; address: string; ok: true }
+  /**
+   * `refusal` is null for a transport failure, which has no code to translate
+   * — only the messaging path goes through `sendMessage` (A22-B3).
+   */
+  | {
+      requestId: string;
+      address: string;
+      ok: false;
+      refusal: OutboundRefusal | null;
+      reason: string;
+    };
 
 /**
  * Phase 2 — the actual sends. No transaction is held while these run.
@@ -375,11 +406,15 @@ export async function deliverRequests(
 
       results.push(
         result.ok
-          ? { requestId: request.requestId, email: request.address, ok: true }
+          ? { requestId: request.requestId, address: request.address, ok: true }
           : {
               requestId: request.requestId,
-              email: request.address,
+              address: request.address,
               ok: false,
+              // An SMTP rejection is the transport's own sentence and there is
+              // no code behind it. Shown as it came rather than flattened into
+              // a generic failure.
+              refusal: null,
               reason: result.reason,
             },
       );
@@ -391,8 +426,9 @@ export async function deliverRequests(
       // saying so beats a message that silently never goes.
       results.push({
         requestId: request.requestId,
-        email: request.address,
+        address: request.address,
         ok: false,
+        refusal: null,
         reason: "A messaging send needs a tenant transaction.",
       });
       continue;
@@ -428,14 +464,16 @@ export async function deliverRequests(
 
     results.push(
       outcome.ok
-        ? { requestId: request.requestId, email: request.address, ok: true }
+        ? { requestId: request.requestId, address: request.address, ok: true }
         : {
             requestId: request.requestId,
-            email: request.address,
+            address: request.address,
             ok: false,
-            // The gate's own words. "Bu kişi için kayıtlı izin yok" is a
-            // different problem from "the number was unreachable", and only one
-            // of them is the operator's to fix.
+            // The gate's own verdict, as a code the screen can translate.
+            // "Bu kişi için kayıtlı izin yok" is a different problem from "the
+            // number was unreachable", and only one is the operator's to fix —
+            // which is exactly what a single "1 failed" could not say.
+            refusal: outcome.refusal,
             reason: outcome.reason,
           },
     );
@@ -604,6 +642,10 @@ export async function sendReviewRequests(args: SendReviewRequestsArgs): Promise<
     skipped,
     failures: results
       .filter((result): result is DeliveryResult & { ok: false } => !result.ok)
-      .map((result) => ({ email: result.email, reason: result.reason })),
+      .map((result) => ({
+        address: result.address,
+        refusal: result.refusal,
+        reason: result.reason,
+      })),
   };
 }

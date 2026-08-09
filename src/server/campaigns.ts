@@ -12,7 +12,11 @@ import {
   parseRecipientList,
   sendRequestsSchema,
 } from "@/collect/input";
-import { sendReviewRequests } from "@/collect/requests";
+import {
+  sendReviewRequests,
+  type DeliveryFailure,
+  type SkippedRecipient,
+} from "@/collect/requests";
 import { EMPTY_CONTACT_FILTERS } from "@/contacts/filters";
 import { listContacts } from "@/contacts/queries";
 import { schema } from "@/db/client";
@@ -84,6 +88,21 @@ export type SendRequestsResult = ActionResult<{
   skipped: number;
   skippedNoAddress: number;
   invalid: string[];
+  /**
+   * Who did not get it, one entry each (A22-B3).
+   *
+   * The action used to compute these counts and **throw `failures` away**, so
+   * a send that reached nobody reported "0 sent · 1 failed" and kept the
+   * reason — an İYS refusal, a bounced address, a number we do not hold — in
+   * the database where the operator could not see it. A count says something
+   * went wrong; only the reason says whether it is theirs to fix.
+   */
+  failures: DeliveryFailure[];
+  /**
+   * Nobody was written to, and no row implies we meant to: an opt-out, or no
+   * address on this channel. Reported per person for the same reason.
+   */
+  skippedDetail: SkippedRecipient[];
 }>;
 
 /**
@@ -160,6 +179,8 @@ export async function sendRequestsAction(formData: FormData): Promise<SendReques
       skipped: outcome.skipped.filter((entry) => entry.reason === "unsubscribed").length,
       skippedNoAddress: outcome.skipped.filter((entry) => entry.reason === "no_address").length,
       invalid,
+      failures: outcome.failures,
+      skippedDetail: outcome.skipped,
     };
   } catch (error) {
     log.warn({ err: error }, "sendRequests failed");

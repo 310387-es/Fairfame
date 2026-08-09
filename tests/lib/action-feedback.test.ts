@@ -175,3 +175,39 @@ describe("the server side has no discarded validation left", () => {
     expect(discarding).toEqual([]);
   });
 });
+
+/**
+ * A22-B3 — the browser must not answer for us.
+ *
+ * `required` on a control inside a `useAction` form blocks the submit *before*
+ * the action runs, so the whole reporting path above never happens. Observed on
+ * the campaign form: pressing the button with an empty name moved focus and
+ * said nothing at all — the browser's own bubble is unreliable inside a dialog,
+ * and when it does appear it is neither in the product's voice nor in the
+ * product's language.
+ *
+ * `aria-required` keeps the promise to assistive technology and lets the
+ * failure come back through the one path every other failure uses, which puts
+ * a sentence under the field and moves focus to it.
+ *
+ * **A `Select` is exempt**, and deliberately: Radix renders a hidden native
+ * select whose `required` cannot fire, because these are all defaulted and can
+ * never be empty. The check therefore looks at `Input` and `Textarea` only.
+ */
+describe("validation is reported by the product, not by the browser", () => {
+  it("has no native `required` on a field inside a form that reports through useAction", () => {
+    const offenders = callsServerActions()
+      .filter(({ source }) => source.includes("useAction("))
+      .filter(({ source }) => {
+        // Each `<Input …>` / `<Textarea …>` opening tag, and whether its
+        // attributes carry a bare `required`. Deliberately naive: a regex that
+        // over-reports here costs one comment, and one that under-reports costs
+        // a silent form.
+        const tags = source.match(/<(?:Input|Textarea)\b[^>]*>/g) ?? [];
+        return tags.some((tag) => /(?:^|\s)required(?:\s|\/|>|=\{true\})/.test(tag));
+      })
+      .map(({ path }) => path);
+
+    expect(offenders).toEqual([]);
+  });
+});

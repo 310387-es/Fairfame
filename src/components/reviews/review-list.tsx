@@ -235,6 +235,10 @@ export async function ReviewList({
                   canApprove={options.canApprove}
                   maxChars={MAX_REPLY_CHARS}
                   signature={options.replySignature ?? null}
+                  // So a posted reply can say where it went, and link there
+                  // (A22-B5). Both already on the row.
+                  reviewUrl={review.url}
+                  sourceLabel={review.sourceLabel}
                   /*
                     Open already when a reply is owed.
 

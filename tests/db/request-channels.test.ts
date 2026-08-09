@@ -316,3 +316,54 @@ describe("the campaigns a send may point at", () => {
     expect(rows).toHaveLength(0);
   });
 });
+
+/**
+ * A22-B3 — a count is not a reason.
+ *
+ * The send reported "0 sent · 1 failed" and threw the reason away, so an İYS
+ * refusal, a bounced address and a number we do not hold were the same word on
+ * screen. Only one of the three is anything the operator can act on, and the
+ * one that is — "this person never gave permission" — is the one the whole
+ * compliance layer exists to state.
+ */
+describe("what comes back when it does not go out", () => {
+  it("names the gate's own refusal, per recipient", async () => {
+    setIysGateway(null);
+    const campaignId = await makeCampaign(fixture, "whatsapp");
+
+    const outcome = await sendReviewRequests({
+      organizationId: fixture.orgId,
+      actorUserId: null,
+      campaignId,
+      recipients: [{ contactId: fixture.willing, name: "İzinli Kişi" }],
+    });
+
+    expect(outcome.sent).toBe(0);
+    expect(outcome.failures).toHaveLength(1);
+
+    // A code, not prose: the screen translates it, so a Turkish owner reads a
+    // Turkish sentence rather than a provider's English one.
+    expect(outcome.failures[0]?.refusal).toBe("iys_not_configured");
+    expect(outcome.failures[0]?.address).toBeTruthy();
+  });
+
+  it("distinguishes a missing permission from a missing number", async () => {
+    setIysGateway(createLocalGateway("test"));
+    const campaignId = await makeCampaign(fixture, "whatsapp");
+
+    const outcome = await sendReviewRequests({
+      organizationId: fixture.orgId,
+      actorUserId: null,
+      campaignId,
+      recipients: [
+        { contactId: fixture.unconsented, name: "İzinsiz Kişi" },
+        { contactId: fixture.numberless, name: "Numarasız Kişi" },
+      ],
+    });
+
+    // Two people, two different problems. One is fixed by asking them; the
+    // other by putting a phone number on the record.
+    expect(outcome.failures.map((failure) => failure.refusal)).toEqual(["no_consent"]);
+    expect(outcome.skipped.map((entry) => entry.reason)).toEqual(["no_address"]);
+  });
+});

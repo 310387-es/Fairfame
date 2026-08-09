@@ -38,6 +38,16 @@ import {
  *     behind a failure, because a progress bar with no exit is how a signup
  *     ends in a closed tab.
  */
+/**
+ * How long to wait before asking again while a source is still fetching.
+ *
+ * Three seconds: a backfill lands in one write, so the answer changes in a step
+ * rather than gradually, and sixty of these is three minutes — long enough for
+ * any first sync, short enough that a genuinely empty branch is not left
+ * spinning indefinitely.
+ */
+const SYNC_POLL_MS = 3_000;
+
 export function FirstBriefingProgressView({
   locationId,
   initial,
@@ -102,11 +112,30 @@ export function FirstBriefingProgressView({
 
           setProgress(last.progress);
 
-          if (last.progress.finished) {
+          /**
+           * Waiting for a sync is not being finished (A22-B1).
+           *
+           * `stepFirstBriefing` reports `no_reviews` the moment it cannot find
+           * a week to brief on — which, seconds after connecting a source, is
+           * simply because the backfill has not landed. Treating that as the
+           * end left a new account on a dead screen with a 0/0 bar and a "press
+           * this to go to the dashboard" button, at the exact moment the
+           * product was meant to be impressing them. So it keeps asking while a
+           * connection is still fetching, and picks up on its own when the
+           * reviews appear.
+           */
+          if (last.progress.finished && !(last.progress.empty && last.progress.awaitingSync)) {
             if (last.progress.digestId) {
               router.replace(`/weekly-plan/${last.progress.digestId}`);
             }
             return last;
+          }
+
+          // Nothing to analyse yet: pause rather than hammer a query whose
+          // answer changes only when a sync writes rows.
+          if (last.progress.empty) {
+            await new Promise((resolve) => setTimeout(resolve, SYNC_POLL_MS));
+            if (cancelled) return last;
           }
 
           last = await advanceFirstBriefingAction({ locationId });
@@ -137,7 +166,16 @@ export function FirstBriefingProgressView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationId, router]);
 
-  const done = progress.finished || failed;
+  /**
+   * Still waiting for reviews to arrive, rather than working through them.
+   *
+   * `analysable === 0` alone is not enough: a branch with genuinely nothing in
+   * it also reads that way, and it deserves the honest dead end rather than a
+   * spinner that never resolves.
+   */
+  const fetching = !failed && progress.awaitingSync && progress.analysable === 0;
+
+  const done = (progress.finished && !fetching) || failed;
 
   return (
     <div className="flex flex-col items-center gap-5 py-10 text-center">
@@ -155,23 +193,39 @@ export function FirstBriefingProgressView({
       </div>
 
       <div className="w-full max-w-sm">
-        {/* The denominator is reviews *with text*, because a rating with no
-            words is nothing for analysis to do — counting it would leave the
-            bar permanently short of the end. */}
+        {/*
+          Two states, because there were two all along (A22-B1).
+
+          **Fetching**: a source is connected and its first sync has not landed,
+          so there is no denominator to draw. A real bar at "0/0" answered "how
+          many of your reviews have we read" with "none of them", which is true
+          and useless, and reads as broken.
+
+          **Analysing**: the denominator is reviews *with text*, because a
+          rating with no words is nothing for analysis to do — counting it would
+          leave the bar permanently short of the end.
+        */}
         <Meter
-          label={t("analysing")}
+          label={fetching ? t("fetching") : t("analysing")}
+          indeterminate={fetching}
           percent={progress.analysable === 0 ? 0 : (progress.analysed / progress.analysable) * 100}
-          value={`${progress.analysed}/${progress.analysable}`}
-          srLabel={t("counted", { done: progress.analysed, total: progress.analysable })}
+          value={fetching ? undefined : `${progress.analysed}/${progress.analysable}`}
+          srLabel={
+            fetching
+              ? t("fetchingLong")
+              : t("counted", { done: progress.analysed, total: progress.analysable })
+          }
         />
         <p className="mt-1.5 text-copy text-muted-foreground" aria-live="polite">
           {failed
             ? t("failed")
-            : progress.empty
-              ? t("empty")
-              : progress.finished
-                ? t("done")
-                : t("counted", { done: progress.analysed, total: progress.analysable })}
+            : fetching
+              ? t("fetchingLong")
+              : progress.empty
+                ? t("empty")
+                : progress.finished
+                  ? t("done")
+                  : t("counted", { done: progress.analysed, total: progress.analysable })}
         </p>
       </div>
 

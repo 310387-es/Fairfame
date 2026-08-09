@@ -80,7 +80,7 @@ export function InviteForm({
               id="invite-email"
               name="email"
               type="email"
-              required
+              aria-required
               placeholder={t("inviteEmailPlaceholder")}
               {...invalid("email")}
             />

@@ -715,6 +715,7 @@
     "needsAttention": "İlgi gerekiyor",
     "connect": "Bağla",
     "connectLive": "{provider} bağla",
+    "connectSample": "{provider} bağla — örnek verilerle",
     "connected": "Bağlı",
     "notLiveYet": "Yayına geçene kadar örnek veriyle çalışır",
     "missingCredentials": "Henüz API kimlik bilgisi tanımlı değil.",
@@ -847,7 +848,12 @@
     },
     "posterLabel": "Poster",
     "tableTent": "Masa kartı",
-    "printGroup": "Yazdır"
+    "printGroup": "Yazdır",
+    "skipReason": {
+      "unsubscribed": "Listeden çıkmış",
+      "no_address": "Bu kanal için adresi yok"
+    },
+    "moreUnreached": "{count, plural, =1 {ve 1 kişi daha} other {ve # kişi daha}}"
   },
   "contacts": {
     "title": "Kişiler",
@@ -1457,7 +1463,6 @@
     "editorLabel": "Yanıt metni",
     "save": "Kaydet",
     "saveFirst": "Onaylamadan önce düzenlemenizi kaydedin.",
-    "approve": "Onayla",
     "approved": "Onaylandı",
     "post": "Yanıtı gönder",
     "posted": "Gönderildi",
@@ -1487,7 +1492,12 @@
       "short": "Kısa",
       "standard": "Standart",
       "long": "Ayrıntılı"
-    }
+    },
+    "send": "Yanıtı gönder",
+    "sent": "Yanıt gönderildi.",
+    "sentTo": "{source} üzerine gönderildi.",
+    "openOn": "{source} üzerinde aç",
+    "openOnPlatform": "Platformda aç"
   },
   "sample": {
     "metaTitle": "Örnek haftalık plan — Revira",
@@ -1667,7 +1677,7 @@
     "ready": "Gönderime hazır.",
     "mode": {
       "live": "Canlı",
-      "mock": "Taklit",
+      "mock": "Örnek mod",
       "off": "Kapalı"
     },
     "blockerLabel": {
@@ -1685,7 +1695,8 @@
     "goLive": {
       "whatsapp": "WhatsApp Business hesabı, onaylı bir mesaj şablonu ve İYS kaydı gerekir.",
       "sms": "Bir SMS sağlayıcısı (BSP) gerekir; Türkiye'de bu aynı zamanda İYS entegrasyonudur."
-    }
+    },
+    "tryInSample": "Örnek modda dene"
   },
   "compliance": {
     "iysTitle": "İYS — ulusal izin kayıt sistemi",
@@ -1807,7 +1818,7 @@
     "needsLocationFirst": "Kaynak bağlamadan önce bir şube ekleyin.",
     "chooseBranch": "Şube",
     "connect": "Bağla",
-    "connectDemo": "Bağla (demo)",
+    "connectDemo": "Örnek verilerle bağla",
     "connected": "{label} bağlandı.",
     "goLive": {
       "google": "Doğrulanmış bir işletme ve onaylanmış bir Business Profile API erişim başvurusu gerekir.",
@@ -1819,6 +1830,8 @@
     "title": "Yorumlarınız okunuyor",
     "body": "Müşterilerinizin yazdıklarını okuyup bu haftanın planına dönüştürüyoruz. Yorumlarınız zaten panoda — burada yalnızca inceleme ekleniyor.",
     "analysing": "İncelenen",
+    "fetching": "Alınıyor",
+    "fetchingLong": "Bağladığınız kaynaktan yorumlarınız alınıyor…",
     "counted": "{total, plural, =1 {1 yorumun {done} tanesi} other {# yorumun {done} tanesi}}",
     "done": "İlk brifinginiz hazır.",
     "empty": "Henüz brifing çıkarılacak yorum yok. Bir kaynak bağlayın, gerisini biz yapalım.",

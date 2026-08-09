@@ -715,6 +715,7 @@
     "needsAttention": "Needs attention",
     "connect": "Connect",
     "connectLive": "Connect {provider}",
+    "connectSample": "Connect {provider} with sample data",
     "connected": "Connected",
     "notLiveYet": "On sample data until go-live",
     "missingCredentials": "No API credentials configured yet.",
@@ -847,7 +848,12 @@
     },
     "posterLabel": "Poster",
     "tableTent": "Table tent",
-    "printGroup": "Print"
+    "printGroup": "Print",
+    "skipReason": {
+      "unsubscribed": "Unsubscribed",
+      "no_address": "No address for this channel"
+    },
+    "moreUnreached": "{count, plural, =1 {and 1 more} other {and # more}}"
   },
   "contacts": {
     "title": "Contacts",
@@ -1457,7 +1463,6 @@
     "editorLabel": "Reply text",
     "save": "Save",
     "saveFirst": "Save your edit before approving.",
-    "approve": "Approve",
     "approved": "Approved",
     "post": "Post reply",
     "posted": "Posted",
@@ -1487,7 +1492,12 @@
       "short": "Short",
       "standard": "Standard",
       "long": "Detailed"
-    }
+    },
+    "send": "Send reply",
+    "sent": "Reply sent.",
+    "sentTo": "Sent to {source}.",
+    "openOn": "View on {source}",
+    "openOnPlatform": "View on the platform"
   },
   "sample": {
     "metaTitle": "A sample weekly plan — Revira",
@@ -1667,7 +1677,7 @@
     "ready": "Ready to send.",
     "mode": {
       "live": "Live",
-      "mock": "Mock",
+      "mock": "Sample mode",
       "off": "Off"
     },
     "blockerLabel": {
@@ -1685,7 +1695,8 @@
     "goLive": {
       "whatsapp": "Needs a WhatsApp Business Account, an approved message template, and İYS registration.",
       "sms": "Needs an SMS provider (BSP), which in Türkiye is also the İYS integration."
-    }
+    },
+    "tryInSample": "Try in sample mode"
   },
   "compliance": {
     "iysTitle": "İYS — the national permission registry",
@@ -1807,7 +1818,7 @@
     "needsLocationFirst": "Add a branch before connecting a source.",
     "chooseBranch": "Branch",
     "connect": "Connect",
-    "connectDemo": "Connect (demo)",
+    "connectDemo": "Connect with sample data",
     "connected": "{label} connected.",
     "goLive": {
       "google": "Needs a verified business and an approved Business Profile API access request.",
@@ -1819,6 +1830,8 @@
     "title": "Reading your reviews",
     "body": "We are reading what your customers wrote and turning it into this week's plan. Your reviews are already on the dashboard — this only adds the analysis.",
     "analysing": "Analysed",
+    "fetching": "Fetching",
+    "fetchingLong": "Fetching your reviews from the source you connected…",
     "counted": "{total, plural, =1 {{done} of 1 review} other {{done} of # reviews}}",
     "done": "Your first briefing is ready.",
     "empty": "There are no reviews to brief on yet. Connect a source and we will do this then.",

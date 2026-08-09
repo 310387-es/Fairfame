@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   connectionHealth,
@@ -7,6 +8,7 @@ import {
   STALE_INTERVALS,
   type HealthInput,
 } from "@/connections/health";
+import { PROVIDERS } from "@/connectors/providers";
 
 /**
  * Connection health (W4.2).
@@ -158,5 +160,44 @@ describe("error kinds survive being written down", () => {
       "failing",
     );
     expect(health({ status: "error", lastErrorKind: null, failureCount: 3 })).toBe("failing");
+  });
+});
+
+/**
+ * A22-B4 — the English fallback must never be what a customer reads.
+ *
+ * `GoLiveNote` and its client twin fall back to the descriptor's own note, which
+ * is written for whoever is wiring the connector. That fallback is deliberate —
+ * a provider added later says something a developer wrote rather than a raw key
+ * on the one screen somebody visits to find out why nothing is arriving — but it
+ * is a *safety net*, not a plan. A provider that ships with a note and no
+ * translation renders an English sentence under a Turkish heading, which is the
+ * product telling somebody it was not built for them.
+ *
+ * Hunting the live instance of this would have been hunting a ghost: today every
+ * provider with a note has both translations. What this does is stop the next
+ * one arriving without them.
+ */
+describe("every go-live note has been translated", () => {
+  const LOCALES = ["en", "tr"] as const;
+
+  it("has a message for each provider that carries one", () => {
+    const missing: string[] = [];
+
+    for (const descriptor of Object.values(PROVIDERS)) {
+      if (!descriptor.goLiveNote) continue;
+
+      for (const locale of LOCALES) {
+        const messages = JSON.parse(
+          readFileSync(`src/i18n/messages/${locale}.json`, "utf8"),
+        ) as Record<string, Record<string, Record<string, string>>>;
+
+        if (!messages.connections?.goLive?.[descriptor.key]) {
+          missing.push(`${locale}: connections.goLive.${descriptor.key}`);
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
   });
 });

@@ -31,6 +31,9 @@ import { archiveCampaignAction, sendRequestsAction } from "@/server/campaigns";
  * map rather than another branch, so the next channel is one line and an
  * unknown one still reads as something rather than blank.
  */
+/** Enough to read; past this a list stops being information. */
+const MAX_LISTED_FAILURES = 8;
+
 const CHANNEL_LABELS: Record<string, string> = {
   email: "channelEmail",
   whatsapp: "channelWhatsapp",
@@ -57,8 +60,26 @@ export type CampaignCardProps = {
 export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
   const t = useTranslations("requests");
   const tf = useTranslations("feedback");
+  /**
+   * The refusal vocabulary, borrowed rather than copied a fourth time.
+   *
+   * `OutboundRefusal` is one union with one set of words, and `messages` is the
+   * namespace that already spells out all nine of them as sentences. Duplicating
+   * them under `requests` would be four translations of one idea, three of which
+   * would drift.
+   */
+  const tRefusal = useTranslations("messages");
   const [copied, setCopied] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
+  /**
+   * Who did not get it, one line each (A22-B3).
+   *
+   * Held beside the summary rather than folded into it: "0 gönderildi · 1
+   * başarısız" is a fact about the batch, and the reason is a fact about a
+   * person. Concatenating the second into the first is how the reason came to
+   * be dropped in the first place.
+   */
+  const [unreached, setUnreached] = useState<{ label: string; reason: string }[]>([]);
   const { run, pending } = useAction();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -256,12 +277,29 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
               ref={formRef}
               action={(formData) => {
                 setSummary(null);
+                setUnreached([]);
                 run(() => sendRequestsAction(formData), {
                   // The summary below counts what actually went out, which is
                   // the answer; "Sent" on top of it would be noise.
                   onSuccess: (result) => {
                     if (!result) return;
                     formRef.current?.reset();
+                    setUnreached([
+                      // A refusal carries a code, so it is said in the reader's
+                      // language; a transport error carries only the provider's
+                      // own sentence, and inventing a translation for it would
+                      // be putting words in somebody else's mouth.
+                      ...result.failures.map((failure) => ({
+                        label: failure.address,
+                        reason: failure.refusal
+                          ? tRefusal(`refusal.${failure.refusal}`)
+                          : failure.reason,
+                      })),
+                      ...result.skippedDetail.map((entry) => ({
+                        label: entry.label,
+                        reason: t(`skipReason.${entry.reason}`),
+                      })),
+                    ]);
                     setSummary(
                       t("sendResult", {
                         sent: result.sent,
@@ -289,6 +327,28 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
               />
 
               {summary ? <p className="text-body text-muted-foreground">{summary}</p> : null}
+
+              {/*
+                Per recipient, capped. A café sending to thirty people wants to
+                read the list; a chain sending to two hundred wants to know the
+                shape of it without a wall of text, so the tail is counted.
+              */}
+              {unreached.length > 0 ? (
+                <ul className="space-y-0.5 text-copy text-muted-foreground">
+                  {unreached.slice(0, MAX_LISTED_FAILURES).map((entry, index) => (
+                    <li key={`${entry.label}-${index}`} className="flex gap-1.5">
+                      <span className="min-w-0 truncate text-ink-600">{entry.label}</span>
+                      <span aria-hidden>—</span>
+                      <span className="min-w-0 flex-1 truncate">{entry.reason}</span>
+                    </li>
+                  ))}
+                  {unreached.length > MAX_LISTED_FAILURES ? (
+                    <li className="text-faint">
+                      {t("moreUnreached", { count: unreached.length - MAX_LISTED_FAILURES })}
+                    </li>
+                  ) : null}
+                </ul>
+              ) : null}
 
               <Button type="submit" size="sm" disabled={pending}>
                 <Send className="size-4" aria-hidden />

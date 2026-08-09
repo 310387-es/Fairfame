@@ -33,10 +33,28 @@ export type MeterProps = {
    * a bar is a picture, and its width is not announced.
    */
   srLabel: string;
+  /**
+   * Working, with no denominator yet (A22-B1).
+   *
+   * The whole track pulses and **no fill is drawn**, which is the point: any
+   * partial width — even an animated one — is a proportion, and a reader will
+   * take 40% to mean 40% done. The welcome screen showed a real bar at "0/0"
+   * while a backfill was still arriving, and an empty track is what "we do not
+   * know yet" had been rendering as, indistinguishable from "none of it".
+   */
+  indeterminate?: boolean;
   className?: string;
 };
 
-export function Meter({ label, percent, tone = "accent", value, srLabel, className }: MeterProps) {
+export function Meter({
+  label,
+  percent,
+  tone = "accent",
+  value,
+  srLabel,
+  indeterminate = false,
+  className,
+}: MeterProps) {
   const width = Math.max(0, Math.min(100, percent));
 
   return (
@@ -46,13 +64,19 @@ export function Meter({ label, percent, tone = "accent", value, srLabel, classNa
       <span
         role="img"
         aria-label={srLabel}
-        className="h-[9px] flex-1 overflow-hidden rounded-[5px] bg-surface-sunken"
+        aria-busy={indeterminate || undefined}
+        className={cn(
+          "h-[9px] flex-1 overflow-hidden rounded-[5px]",
+          indeterminate ? cn("animate-pulse", FILLS[tone], "opacity-40") : "bg-surface-sunken",
+        )}
       >
-        <span
-          aria-hidden
-          className={cn("block h-full rounded-[5px]", FILLS[tone])}
-          style={{ width: `${width}%` }}
-        />
+        {indeterminate ? null : (
+          <span
+            aria-hidden
+            className={cn("block h-full rounded-[5px]", FILLS[tone])}
+            style={{ width: `${width}%` }}
+          />
+        )}
       </span>
 
       {/*
