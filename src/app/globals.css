@@ -700,6 +700,45 @@
    * whole or half pixels only — 13.5px was rendering differently per browser
    * for no benefit. */
 
+  /* New, and the only role above `hero`. **The marketing front door only.**
+   *
+   * `hero` (34px) is sized for a *document* — the sample digest's promise above
+   * the artefact it is promising. A landing page is a different job: its first
+   * viewport has to carry one sentence at poster scale, because the whole
+   * composition is that sentence against the briefing card below it, and 34px
+   * against a full-width card reads as a caption on the card rather than as the
+   * page's own claim.
+   *
+   * Fluid rather than fixed, which no other role in this scale is, and that is
+   * deliberate: every other role lives inside a 1280px content column at a
+   * predictable measure, while this one spans the viewport and has to survive
+   * 390px to 1920px. Clamped so it can never exceed 60px (`craft-floor`'s
+   * display ceiling is 6rem; two lines of Turkish at 60px is already the
+   * practical limit) nor drop below 36px, where it stops outranking the card.
+   *
+   * Tracking is tighter than `hero` because the size is larger — optical
+   * compensation, not a new opinion. It stays above the -0.04em floor.
+   */
+  /**
+   * Body copy on a public Persuade surface.
+   *
+   * The scale below this line is an **Operate** scale: `body` is 14px because a
+   * dashboard is dense and its content must not shout over the reader's task.
+   * A marketing page is the opposite job — somebody is deciding whether to care
+   * — and 14px across a 1152px measure reads as a settings screen, which is
+   * precisely what the first build of `/` was told it looked like.
+   *
+   * 17px, and only on `/` and its siblings. Never inside the app: putting this
+   * on a data surface undoes the density the app is tuned for.
+   */
+  --text-marketing: 1.0625rem; /* 17px — public surfaces only */
+  --text-marketing--line-height: 1.6;
+
+  --text-poster: clamp(2.25rem, 5.6vw, 4.25rem); /* 36 → 68px */
+  --text-poster--line-height: 1.04;
+  --text-poster--letter-spacing: -0.036em;
+  --text-poster--font-weight: 650;
+
   /* 32 → 34. Public surfaces only; unchanged in intent. */
   --text-hero: 2.125rem; /* 34px */
   --text-hero--line-height: 1.1;
@@ -761,4 +800,55 @@
   --text-eyebrow--line-height: 1;
   --text-eyebrow--letter-spacing: 0.08em;
   --text-eyebrow--font-weight: 600;
+}
+
+/* ===========================================================================
+ * The marketing front door (`/`)
+ *
+ * Scoped to `.marketing` rather than added globally: both rules below are
+ * decisions about a *Persuade* surface, and the app is an Operate one. A
+ * selection colour that suits a landing page is not automatically the right
+ * one behind a review queue somebody is dragging a cursor through all day.
+ * ======================================================================== */
+
+@keyframes evidence-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer components {
+  /**
+   * The page's one authored motion moment: an action's evidence opening.
+   *
+   * `docs/15` §4 says **no entrance animation on data**, and this is data — the
+   * customer's own sentences. The rule is not broken, it is read for what it
+   * says: it forbids decorating *arrival*, because a number that changes just
+   * changes. This is not arrival. It is the direct, immediate answer to a
+   * disclosure the reader pressed, and feedback on a press is the one thing
+   * motion is unambiguously for. It lasts `--duration-base` and moves two
+   * pixels; anything longer would be a flourish and would earn the objection.
+   */
+  .evidence-reveal {
+    animation: evidence-in var(--duration-base) var(--ease-out);
+  }
+
+  /* Selection is a brand surface most pages leave to the browser (the UA's
+   * default is a saturated blue that belongs to no design system). Indigo at
+   * its lightest tint keeps ink at full contrast on top of it. */
+  .marketing ::selection {
+    background: var(--indigo-100);
+    color: var(--ink-900);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evidence-reveal {
+    animation: none;
+  }
 }

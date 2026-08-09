@@ -10,3 +10,7 @@ src/db/migrations
 # Authored documentation — kept exactly as written, not machine-formatted.
 docs
 *.md
+
+# impeccable tool state — machine-written JSON (session journals, hook cache,
+# comp sidecars). Not source, and rewritten by tools that do not run prettier.
+.impeccable

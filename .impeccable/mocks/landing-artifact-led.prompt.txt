@@ -1,0 +1,7 @@
+Flat vector UI mockup of a website landing page, desktop screen, Swiss editorial interface design, strictly flat, no photography, no gradients, no drop shadows.
+Structure top to bottom:
+1. Thin dark navy bar (#0E1734) full width, small indigo rounded-square logo tile at far left, tiny grey "TR" and "Giris yap" at far right.
+2. Pale grey-white page (#F6F7FB). A dark navy headline on exactly two lines, left aligned, tight geometric sans, medium-large: "Musterileriniz ne yapmaniz gerektigini zaten yazdi."
+3. One small grey line, then a solid indigo (#3D5AF1) pill button "Ornek plani acin" beside a plain grey text link.
+4. Dominating the lower two thirds: a large white rounded card, thin light grey border, containing a small grey meta line "Kahve Nar - Kadikoy Subesi - Son 14 gun", a bold dark sentence, a short grey paragraph, a bordered square tile at the right with a huge "65" and small "/100", and beneath these three numbered rows each with a small indigo circled number 1, 2, 3 and one line of dark text.
+5. Narrow right margin column of small grey annotation text under a short indigo rule.

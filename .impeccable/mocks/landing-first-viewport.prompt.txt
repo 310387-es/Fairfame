@@ -1,0 +1,8 @@
+Flat vector UI design mockup of a website landing page, desktop screen, clean Swiss editorial interface design, no photography.
+Layout from top to bottom:
+1. Thin dark navy bar (#0E1734) across the very top, small indigo rounded-square logo tile at far left.
+2. Below it, pale grey-white page background (#F6F7FB). A very large three-line dark navy headline, left aligned, tight geometric sans-serif: "Musterileriniz ne yapmaniz gerektigini zaten yazdi."
+3. Under the headline, one short grey subtitle line, then a solid indigo (#3D5AF1) rounded rectangular button with white text "Ornek plani acin".
+4. Lower half of the frame: a wide white rounded card with a thin light grey border, holding a small grey label line, one bold dark sentence, a grey paragraph, and on its right side a bordered square tile containing a huge number "65", a small "/100", and a small label under it.
+5. In the right margin beside the white card, a narrow column of small grey annotation text under a short indigo rule.
+Generous whitespace, crisp legible typography, strictly flat, no gradients, no drop shadows, no photographs.

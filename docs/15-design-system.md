@@ -61,7 +61,9 @@ Geist everywhere, Geist Mono for numerals that need to align.
 
 | Role | Utility | Size | Used for |
 |---|---|---|---|
-| Hero | `text-hero` | 34 / 650 / −0.032em | **Public surfaces only.** Never in the app. |
+| Poster | `text-poster` | clamp(36→68) / 650 / −0.036em | **The marketing front door only** (`/`). The one fluid role in the scale, because it spans the viewport rather than a 1280px column. |
+| Hero | `text-hero` | 34 / 650 / −0.032em | **Public surfaces only.** Never in the app. Section headings on `/`. |
+| Marketing body | `text-marketing` | 17 / 1.6 | **Public surfaces only.** The scale below is an *Operate* scale; 14px body on a page whose job is persuasion reads as a settings screen. |
 | Display | `text-display` | 27 / 650 / −0.028em | The one `<h1>`. `PageHeader` owns it. Outranks a metric. |
 | Card title | `text-title` | 14.5 / 600 | Every card heading, every button. |
 | Lead | `text-lead` | 15 | A sentence that **is** the subject of its row — a review in the list. |

@@ -38,6 +38,8 @@ import { extendTailwindMerge } from "tailwind-merge";
  * merged, which is the failure mode this comment exists to stop repeating.
  */
 const FONT_SIZES = [
+  "poster",
+  "marketing",
   "hero",
   "display",
   "metric",

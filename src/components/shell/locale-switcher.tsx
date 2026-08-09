@@ -13,8 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LOCALE_LABELS, LOCALES, type Locale } from "@/i18n/config";
+import { cn } from "@/lib/utils";
 
-export function LocaleSwitcher({ locale }: { locale: Locale }) {
+export function LocaleSwitcher({ locale, className }: { locale: Locale; className?: string }) {
   const t = useTranslations("shell");
   const [pending, startTransition] = useTransition();
 
@@ -25,7 +26,9 @@ export function LocaleSwitcher({ locale }: { locale: Locale }) {
           variant="ghost"
           size="sm"
           disabled={pending}
-          className="gap-2"
+          // `className` exists for the marketing masthead, which is `--ink-900`:
+          // a ghost button inherits body ink and is invisible on it.
+          className={cn("gap-2", className)}
           aria-label={t("localeSwitcher")}
         >
           <Languages className="size-4" aria-hidden />

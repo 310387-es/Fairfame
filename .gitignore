@@ -43,3 +43,15 @@ next-env.d.ts
 e2e/.auth/
 test-results/
 playwright-report/
+
+# impeccable tool artefacts.
+#
+# The written records are kept — the surface brief, the comp approval sidecars
+# and their prompts are design documentation and belong in the repo. What is
+# ignored is the generated weight: review screenshots and the decision comps
+# run to ~22MB of PNG that nothing reads twice, and session journals and the
+# hook cache are machine state.
+.impeccable/review/
+.impeccable/mocks/*.png
+.impeccable/live/sessions/
+.impeccable/hook.cache.json
