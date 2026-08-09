@@ -29,8 +29,11 @@ Planning and design documentation for **Revira** *(provisional name)* — a revi
 | 17 | [Phase 2 Build Plan](./17-phase-2-build-plan.md) | ✅ Done — unified inbox, triage, assignment and SLA, saved views, bulk actions, team scope. |
 | 18 | [Accessibility & Mobile Verification](./18-accessibility-verification.md) | Evidence for the WCAG AA and 390px requirements: what was automated, what was checked by hand, and with which screen readers. |
 | 19 | [Phase 3 Build Plan](./19-phase-3-build-plan.md) | ✅ Done — widgets, rating badge, SEO review pages, the Insights workspace, scheduled PDF reports, competitor benchmarking. |
-| 20 | [Phase 4 Build Plan](./20-phase-4-build-plan.md) | ⏳ Planned — contacts/CRM, surveys, two-way messaging, campaigns, agency white-label. Not started. |
+| 20 | [Phase 4 Build Plan](./20-phase-4-build-plan.md) | ✅ Done — contacts/CRM, surveys, two-way messaging, broadcasts, agency white-label. |
 | 21 | [Visual Language](./21-visual-language.md) | ✅ In force — refines [15](./15-design-system.md) after judging the running app on real data at 1440px and 390px, EN and TR. Re-spaced type scale, elevation, the selection surface, and a prioritised list of what to elevate. **Read with 15; where they disagree, 21 wins.** |
+| 22 | [Post-Test Fix Plan](./22-post-test-fix-plan.md) | ✅ Done — a cold café-owner run over 73 items, worked as Waves A (stop the bleeding), B (the first five minutes) and C (trust and polish). |
+| 23 | [Build Log](./23-build-log.md) | **The decision record** — every phase and wave, with the argument behind each rule. Lived at the top of `CLAUDE.md` until that file passed the 150k-character agent limit. Read the relevant entry before reversing a decision. |
+| — | [Remediation Plan](./remediation-plan.md) | The founder audit's prioritised fix list (Waves 1–5). Unnumbered because it cuts across phases rather than following one. |
 | — | [Home — Live Dashboard](./home-live-dashboard.md) | Implementation handoff for the Home redesign: tokens, layout, the ten widgets, data notes. |
 
 Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude Code.
@@ -48,7 +51,9 @@ Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude
 - **Phase 2 — unified inbox & team workflow:** ✅ done, on the mock connector.
 - **Phase 3 — showcase & analyze:** ✅ done, on the mock connector. Live competitor data is gated on go-live.
 - **Phase 4 — engage:** ✅ done, on mock/fixtures. Outbound messaging is gated on credentials the way 1b is.
-- **Founder audit remediation:** `remediation-plan.md`. Wave 1 (the first mile) ✅, Wave 2 (the Action Digest, WhatsApp) ✅, Wave 3 W3.1 (IA + naming) ✅ — W3.2 (canonical themes) and W3.3 (metric integrity) not started. Waves 4–5 not started.
+- **Founder audit remediation:** [`remediation-plan.md`](./remediation-plan.md). Waves 1–5 ✅ — the first mile, the two bets (Action Digest + WhatsApp), IA and naming, screen richness, and the missing-features backlog. Three W5 items (more sources, Google Q&A/Posts, real competitor data) are gated on a credential obtained through a commercial relationship that does not exist yet; see [`13-go-live.md`](./13-go-live.md).
+- **Post-test fixes:** [`22-post-test-fix-plan.md`](./22-post-test-fix-plan.md). Waves A, B and C ✅, less one rename declined with its reasoning.
+- **What remains is not code.** No live platform traffic has ever run through Google, WhatsApp or Instagram, and no commercial message has ever left the machine — both gateways default to refusing. The re-test gate is open: nobody has sat down cold in front of the build and been watched.
 
 ## Stack (locked)
 
