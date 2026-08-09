@@ -8,6 +8,7 @@ import { schema } from "../db/client.ts";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/config.ts";
 import { can, recordUsage, withinLimit } from "../lib/entitlements.ts";
 import { liveReplyJoin } from "../reviews/answered.ts";
+import { PUBLIC_FEEDBACK } from "../reviews/item-kind.ts";
 import { childLogger } from "../lib/logger.ts";
 import { withTenant, type TenantDatabase } from "../lib/tenancy.ts";
 import {
@@ -249,9 +250,16 @@ async function gather(
       and(
         eq(schema.reviews.organizationId, organizationId),
         eq(schema.reviews.locationId, locationId),
-        // `posted_at` is the customer's clock, which is what a weekly window
-        // means to an owner. Falling back to ingestion time would put a review
-        // we synced late into the wrong week.
+        /**
+         * A private message is not the week's news (A22-C1).
+         *
+         * Nothing filtered it, so a WhatsApp note asking whether a black
+         * umbrella had been handed in was clustered with the complaints and
+         * printed in a weekly plan as something to act on. A briefing is about
+         * what customers said *in public* about the business; a letter to the
+         * business is correspondence, and it belongs in `/conversations`.
+         */
+        PUBLIC_FEEDBACK,
         gte(sql`coalesce(${schema.reviews.postedAt}, ${schema.reviews.createdAt})`, window.start),
         lt(sql`coalesce(${schema.reviews.postedAt}, ${schema.reviews.createdAt})`, window.end),
       ),

@@ -17,6 +17,8 @@ import { can } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
 import { getContact } from "@/contacts/queries";
 import { listConversations, listThread, windowState } from "@/messaging/messages";
+import { listDirectMessageItems } from "@/reviews/direct-messages";
+import { PlatformMessages } from "@/components/conversations/platform-messages";
 import { cn } from "@/lib/utils";
 
 /**
@@ -57,9 +59,17 @@ export default async function MessagesPage({ searchParams }: PageProps) {
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
       const org = { organizationId: actor.organizationId, tx };
-      if (!(await can(org, "messaging"))) return { unlocked: false as const };
-
       const scope = await resolveLocationScope(tx, actor.organizationId, actor.userId, actor.role);
+
+      /**
+       * Read before the entitlement is checked, and rendered whatever it says
+       * (A22-C1). A business that has not bought messaging can still be *sent* a
+       * message, and putting what somebody wrote to them behind a plan would be
+       * the same disappearance this whole item is about.
+       */
+      const platform = await listDirectMessageItems(tx, actor.organizationId, scope);
+
+      if (!(await can(org, "messaging"))) return { unlocked: false as const, platform };
       const conversations = await listConversations(tx, actor.organizationId, scope, now);
 
       /**
@@ -102,11 +112,12 @@ export default async function MessagesPage({ searchParams }: PageProps) {
 
       selected ??= conversations[0] ?? null;
 
-      if (!selected) return { unlocked: true as const, conversations, selected: null };
+      if (!selected) return { unlocked: true as const, conversations, selected: null, platform };
 
       return {
         unlocked: true as const,
         conversations,
+        platform,
         selected,
         thread: await listThread(tx, actor.organizationId, selected.contactId),
         window: await windowState(tx, actor.organizationId, selected.contactId, now),
@@ -121,6 +132,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
         <SectionCard title={t("locked.title")} icon={MessageSquare}>
           <p className="pb-(--card-py) text-body text-ink-400">{t("locked.body")}</p>
         </SectionCard>
+        <PlatformMessages items={data.platform} />
       </>
     );
   }
@@ -145,6 +157,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
         <Card>
           <EmptyState icon={MessageSquare} title={t("empty.title")} body={t("empty.body")} />
         </Card>
+        <PlatformMessages items={data.platform} />
       </>
     );
   }

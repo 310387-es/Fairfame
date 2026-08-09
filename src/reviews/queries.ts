@@ -16,6 +16,7 @@ import { schema } from "../db/client.ts";
 import type { ReviewStatus, Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import { ANSWERED, DRAFTED, liveReplyJoin, UNANSWERED } from "./answered.ts";
+import { PUBLIC_FEEDBACK } from "./item-kind.ts";
 import {
   ASSIGNEE_ME,
   ASSIGNEE_NOBODY,
@@ -387,6 +388,17 @@ function inboxPredicate(organizationId: string, locationId: string, filters: Inb
   return and(
     eq(schema.reviews.organizationId, organizationId),
     eq(schema.reviews.locationId, locationId),
+    /**
+     * A direct message is not a review, and this is the review queue (A22-C1).
+     *
+     * They sat here counted as reviews on the one screen whose header is a
+     * count of them, in a queue where answering one is deliberately not built —
+     * so the row was work nobody could do, inflating the number beside it. They
+     * are read on `/conversations` now, which is where a letter belongs; the
+     * one thing that must never happen is their disappearing, and
+     * `src/reviews/direct-messages.ts` is what stops that.
+     */
+    PUBLIC_FEEDBACK,
     filters.source ? eq(schema.reviews.source, filters.source) : undefined,
     filters.sentiment ? eq(schema.reviewInsights.sentiment, filters.sentiment) : undefined,
     // A theme is either something the model found or something a colleague put
@@ -809,6 +821,9 @@ export async function inboxFacets(
   const scope = and(
     eq(schema.reviews.organizationId, organizationId),
     eq(schema.reviews.locationId, locationId),
+    // The same rule the list applies, or a chip would promise a number the list
+    // then contradicts (A22-C1).
+    PUBLIC_FEEDBACK,
   );
 
   // Sequential, not `Promise.all`. These all run on the *same* transaction

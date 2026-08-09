@@ -5,6 +5,7 @@ import { needsAttention } from "@/dashboard/attention";
 import { hasAnyReviews, loadFacts } from "@/dashboard/facts";
 import { rangeWindow } from "@/dashboard/range";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
+import { listDirectMessageItems } from "@/reviews/direct-messages";
 import { withTenant } from "@/lib/tenancy";
 
 /**
@@ -54,6 +55,8 @@ async function addReview(
     locationId?: string;
     sentiment?: "positive" | "neutral" | "negative";
     topics?: string[];
+    itemType?: "review" | "comment" | "mention" | "dm";
+    text?: string;
     replies?: { status: "draft" | "posted" | "failed"; postedAt?: Date | null }[];
   } = {},
 ): Promise<string> {
@@ -66,8 +69,9 @@ async function addReview(
       locationId: options.locationId ?? fixture.locationId,
       source: options.source ?? "google",
       sourceReviewId: `f-${suffix}-${counter}`,
+      ...(options.itemType ? { itemType: options.itemType } : {}),
       rating: options.rating === undefined ? 4 : options.rating,
-      text: "Bir yorum.",
+      text: options.text ?? "Bir yorum.",
       postedAt: options.postedAt === undefined ? daysBefore(1) : options.postedAt,
       // Ingestion time is pinned to the window too, not left to `now()`.
       // Several facts fall back to `created_at` when a platform gave no posted
@@ -458,5 +462,83 @@ describe("telling the two empties apart", () => {
         hasAnyReviews(tx, mine.orgId, [theirs.locationId]),
       ),
     ).toBe(false);
+  });
+});
+
+/**
+ * A22-C1 — a direct message is private post, not feedback about the branch.
+ *
+ * Nothing filtered on `item_type` here, so three WhatsApp messages were inside
+ * the volume figure, inside the response-rate denominator and inside the count
+ * of people waiting for a reply — and a private note asking whether a black
+ * umbrella had been handed in was clustered into a theme and printed in a
+ * weekly plan as something to act on. `src/analytics/facts.ts` had excluded
+ * them since P3-T4 and no other reader did.
+ *
+ * Comments and mentions stay, deliberately: they are public, they carry no
+ * rating so they cannot move an average, and an Instagram comment saying the
+ * coffee was cold is the same news as a two-star review saying it.
+ */
+describe("what counts as feedback", () => {
+  it("leaves a direct message out of the volume and the response rate", async () => {
+    const fixture = await makeFixture("item-kind");
+    await addReview(fixture, { rating: 5 });
+    await addReview(fixture, { rating: null, itemType: "dm", text: "Şemsiyemi unuttum." });
+
+    const facts = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      loadFacts(tx, fixture.orgId, [fixture.locationId], WINDOW),
+    );
+
+    expect(facts.current).toHaveLength(1);
+    expect(facts.current.every((fact) => fact.itemType !== "dm")).toBe(true);
+  });
+
+  it("keeps a public comment, which is customer voice without a star", async () => {
+    const fixture = await makeFixture("item-kind-public");
+    await addReview(fixture, { rating: null, itemType: "comment" });
+    await addReview(fixture, { rating: null, itemType: "mention" });
+
+    const facts = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      loadFacts(tx, fixture.orgId, [fixture.locationId], WINDOW),
+    );
+
+    expect(facts.current).toHaveLength(2);
+  });
+
+  it("keeps the direct message reachable, on the screen where a letter belongs", async () => {
+    const fixture = await makeFixture("item-kind-reachable");
+    await addReview(fixture, { rating: null, itemType: "dm", text: "Şemsiyemi unuttum." });
+
+    const items = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      listDirectMessageItems(tx, fixture.orgId, { all: true }),
+    );
+
+    // The failure this guards against is worse than the one it fixes: taking a
+    // DM out of the review queue without somewhere to read it would make what a
+    // customer wrote disappear from the product.
+    expect(items.map((item) => item.text)).toEqual(["Şemsiyemi unuttum."]);
+  });
+
+  it("never shows another organization's direct messages", async () => {
+    const mine = await makeFixture("dm-mine");
+    const theirs = await makeFixture("dm-theirs");
+    await addReview(theirs, { rating: null, itemType: "dm" });
+
+    const items = await withTenant({ organizationId: mine.orgId }, (tx) =>
+      listDirectMessageItems(tx, mine.orgId, { all: true }),
+    );
+
+    expect(items).toEqual([]);
+  });
+
+  it("returns nothing for a member scoped to no branch", async () => {
+    const fixture = await makeFixture("dm-scope");
+    await addReview(fixture, { rating: null, itemType: "dm" });
+
+    const items = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      listDirectMessageItems(tx, fixture.orgId, { all: false, locationIds: [] }),
+    );
+
+    expect(items).toEqual([]);
   });
 });

@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import { liveReplyJoin, UNANSWERED } from "../reviews/answered.ts";
+import { PUBLIC_FEEDBACK } from "../reviews/item-kind.ts";
 import { normalizeThemes } from "../reviews/taxonomy.ts";
 import type { Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
@@ -164,6 +165,10 @@ export async function needsAttention(
         // Nobody has answered: no posted reply of ours, and none the owner left
         // on the platform (W1.2, A22-A4).
         UNANSWERED,
+        // And it is something a reply can be posted to. A DM cannot be answered
+        // from here at all, so offering one as the next thing to deal with is
+        // offering work nobody can do (A22-C1).
+        PUBLIC_FEEDBACK,
         // Cheap pre-filter so the text of every happy review stays on the
         // database side. The real ranking happens in `rankAttention`, and an
         // item with neither a low rating nor negative sentiment can never

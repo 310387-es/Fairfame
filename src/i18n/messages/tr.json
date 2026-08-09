@@ -19,7 +19,7 @@
     "closeMenu": "Menüyü kapat",
     "menu": "Menü",
     "digest": "Haftalık plan",
-    "widgets": "Site bileşenleri",
+    "widgets": "Sitedeki yorumlar",
     "insights": "Analiz",
     "contacts": "Kişiler",
     "messages": "Görüşmeler",
@@ -991,6 +991,19 @@
       "tagPlaceholder": "POS aktarımı",
       "upload": "İçe aktar",
       "summary": "{created} eklendi, {updated} güncellendi, {skipped} atlandı. Kişilerinizin {messageable} tanesine bugün ileti gönderilebilir."
+    },
+    "add": {
+      "action": "Kişi ekle",
+      "title": "Kişi ekle",
+      "description": "Tek kişi — bir isim ve e-posta ya da telefon.",
+      "body": "Karşınızdaki bir müşteri için kullanın. Liste için dosya içe aktarın.",
+      "noPermission": "Kişi eklemek bilgilerini kaydeder; mesaj gönderme izni vermez. O izin kişinin kendisinden gelir ve Revira göndermeden önce kontrol eder.",
+      "name": "İsim",
+      "email": "E-posta",
+      "phone": "Telefon",
+      "submit": "Kişi ekle",
+      "added": "Eklendi.",
+      "merged": "Bu kişi zaten kayıtlıydı — eksik bilgileri tamamlandı."
     }
   },
   "surveys": {
@@ -1143,6 +1156,11 @@
       "not_configured": "Bu kanal bu ortamda tanımlı değil.",
       "no_address": "Bu kişinin kullanılabilir bir telefon numarası yok.",
       "send_failed": "Mesaj iletilemedi."
+    },
+    "platform": {
+      "title": "Kanallarınızdan gelen mesajlar",
+      "readOnly": "Salt okunur",
+      "unnamed": "İsimsiz"
     }
   },
   "broadcasts": {
@@ -1296,7 +1314,7 @@
   },
   "team": {
     "title": "Ekip",
-    "subtitle": "Bu organizasyona kimler erişebilir ve ne yapabilir.",
+    "subtitle": "Bu işletmeye kimler erişebilir ve ne yapabilir.",
     "role": "Rol",
     "roles": {
       "owner": "Sahip",
@@ -1389,9 +1407,9 @@
     "noAccount": "Hesabınız yok mu?",
     "createOrgTitle": "Organizasyonunuzu oluşturun",
     "createOrgSubtitle": "Şubeleriniz ve yorumlarınız bu çalışma alanında yaşar.",
-    "chooseOrgTitle": "Bir organizasyon seçin",
+    "chooseOrgTitle": "Bir işletme seçin",
     "chooseOrgSubtitle": "Birden fazla çalışma alanına üyesiniz. Açmak istediğinizi seçin.",
-    "createOrgInstead": "Yeni bir organizasyon oluşturun",
+    "createOrgInstead": "Yeni bir işletme oluşturun",
     "orgName": "Organizasyon adı",
     "createOrg": "Organizasyon oluştur",
     "passwordHint": "En az 12 karakter.",
@@ -1548,7 +1566,7 @@
     "poweredBy": "Yorumlar Revira ile"
   },
   "widgets": {
-    "title": "Site bileşenleri",
+    "title": "Sitedeki yorumlar",
     "subtitle": "Yorumlarınızı kendi sitenizde gösterin.",
     "listTitle": "Bileşenleriniz",
     "limitMeta": "{limit} hakkın {used} tanesi kullanıldı",

@@ -1115,6 +1115,60 @@ describe("edge cases", () => {
     expect(row?.reviewCount).toBe(0);
   });
 
+  it("leaves a private message out of the week entirely", async () => {
+    /**
+     * A22-C1. A WhatsApp note asking whether a black umbrella had been handed
+     * in was clustered with the complaints and printed in a weekly plan as
+     * something to act on. A briefing is about what customers said in public;
+     * a letter to the business is correspondence, and it is read on
+     * `/conversations`.
+     */
+    const fixture = await makeFixture("dm-window");
+    await addReview(fixture, { rating: 5, topics: ["servis"], sentiment: "positive", score: 0.8 });
+
+    const [dm] = await getAdminDb()
+      .insert(schema.reviews)
+      .values({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        source: "whatsapp",
+        sourceReviewId: `dm-${suffix}-${counter++}`,
+        itemType: "dm",
+        authorName: "Gülşah",
+        text: "Kayıp eşya: dün siyah bir şemsiye bıraktım, bulabildiniz mi?",
+        language: "tr",
+        postedAt: new Date(WINDOW.start.getTime() + 24 * 60 * 60 * 1000),
+        rawPayload: {},
+      })
+      .returning({ id: schema.reviews.id });
+
+    await getAdminDb()
+      .insert(schema.reviewInsights)
+      .values({
+        organizationId: fixture.orgId,
+        reviewId: dm!.id,
+        sentiment: "neutral",
+        sentimentScore: 0,
+        topics: ["kayıp eşya"],
+        language: "tr",
+        promptId: "test@1",
+        model: "test",
+      });
+
+    await generateDigest({
+      organizationId: fixture.orgId,
+      locationId: fixture.locationId,
+      window: WINDOW,
+      now: NOW,
+    });
+
+    const row = await digestRow(fixture.orgId);
+
+    expect(row?.reviewCount).toBe(1);
+    const themes = (row?.payload as DigestPayload).themes.flatMap((theme) => theme.slugs);
+    expect(themes).not.toContain("kayıp eşya");
+  });
+
   it("ignores reviews outside the window", async () => {
     const fixture = await makeFixture("window");
 

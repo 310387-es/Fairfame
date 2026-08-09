@@ -12,6 +12,7 @@ import {
   MAX_TAGS_PER_CONTACT,
   removeContactTag,
 } from "@/contacts/tags";
+import { importContacts } from "@/contacts/import";
 import { contactTimeline } from "@/contacts/timeline";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { EntitlementError } from "@/lib/entitlements";
@@ -812,5 +813,76 @@ describe("timeline", () => {
     expect(events.filter((event) => event.kind === "consent_granted")).toHaveLength(0);
     const sent = events.find((event) => event.kind === "request_sent");
     expect(sent && "locationName" in sent ? sent.locationName : null).toBe("Kadıköy Şubesi");
+  });
+});
+
+/**
+ * A22-C2 — adding one person by hand.
+ *
+ * `/contacts` could only be filled from a CSV. The obvious implementation — an
+ * insert in the action — would have been a second definition of what adding a
+ * contact means, and the rule it would most easily drift from is the one that
+ * matters: **an import grants no permission**. So it is a one-row import, and
+ * these assert the properties that come with that rather than the button.
+ */
+describe("adding a contact by hand", () => {
+  it("creates the person and no permission at all", async () => {
+    const org = await makeOrg("manual-add");
+
+    await withTenant({ organizationId: org.id }, (tx) =>
+      importContacts(tx, org.id, [{ email: "yeni@ornek.com", phone: null, name: "Yeni Kişi" }]),
+    );
+
+    // By address, not by organization: `makeOrg` seeds a list of its own, and
+    // the claim here is about the row this call added.
+    const [contact] = await getAdminDb()
+      .select({ id: schema.contacts.id, name: schema.contacts.name })
+      .from(schema.contacts)
+      .where(eq(schema.contacts.email, "yeni@ornek.com"));
+
+    expect(contact?.name).toBe("Yeni Kişi");
+
+    // The whole reason this goes through the import: a contact record is not
+    // permission, and `checkSendAllowed` still has nothing to say yes to.
+    const consents = await getAdminDb()
+      .select({ id: schema.consentRecords.id })
+      .from(schema.consentRecords)
+      .where(eq(schema.consentRecords.contactRef, contact!.id));
+
+    expect(consents).toEqual([]);
+  });
+
+  it("fills a gap rather than making a second row for the same person", async () => {
+    const org = await makeOrg("manual-merge");
+
+    await withTenant({ organizationId: org.id }, (tx) =>
+      importContacts(tx, org.id, [{ email: "ayse@ornek.com", phone: null, name: null }]),
+    );
+    await withTenant({ organizationId: org.id }, (tx) =>
+      importContacts(tx, org.id, [
+        { email: "ayse@ornek.com", phone: "905321112233", name: "Ayşe" },
+      ]),
+    );
+
+    const rows = await getAdminDb()
+      .select({ name: schema.contacts.name, phone: schema.contacts.phone })
+      .from(schema.contacts)
+      .where(eq(schema.contacts.email, "ayse@ornek.com"));
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.name).toBe("Ayşe");
+    expect(rows[0]?.phone).toBe("905321112233");
+  });
+
+  it("refuses somebody with neither an address nor a number", async () => {
+    const org = await makeOrg("manual-neither");
+
+    const result = await withTenant({ organizationId: org.id }, (tx) =>
+      importContacts(tx, org.id, [{ email: null, phone: null, name: "Kimse" }]),
+    );
+
+    // Counted rather than thrown: the table's own constraint says the same
+    // thing, and turning it into a number is what lets a screen report it.
+    expect(result).toEqual({ created: 0, updated: 0, skipped: 1 });
   });
 });

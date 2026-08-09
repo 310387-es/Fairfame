@@ -1,6 +1,7 @@
 import { and, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import { liveReplyJoin } from "../reviews/answered.ts";
+import { PUBLIC_FEEDBACK } from "../reviews/item-kind.ts";
 import type { Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import type { RangeWindow } from "./range.ts";
@@ -155,6 +156,11 @@ export async function loadFacts(
       and(
         eq(schema.reviews.organizationId, organizationId),
         inArray(schema.reviews.locationId, locationIds),
+        // A direct message is private post, not feedback about the branch
+        // (A22-C1). It was in the volume, in the response rate and in the count
+        // of people waiting — `src/analytics/facts.ts` had excluded it since
+        // P3-T4 and this loader never did.
+        PUBLIC_FEEDBACK,
         gte(
           effectiveAt,
           baselineStart < window.previous.start ? baselineStart : window.previous.start,

@@ -991,6 +991,19 @@
       "tagPlaceholder": "POS import",
       "upload": "Import",
       "summary": "{created} added, {updated} updated, {skipped} skipped. {messageable} of your contacts can be messaged today."
+    },
+    "add": {
+      "action": "Add contact",
+      "title": "Add a contact",
+      "description": "One person — a name, and an email address or a phone number.",
+      "body": "Use this for somebody in front of you. For a list, import a file instead.",
+      "noPermission": "Adding somebody records their details. It does not give you permission to message them — that comes from them, and Revira checks for it before anything is sent.",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "submit": "Add contact",
+      "added": "Added.",
+      "merged": "You already had them — their details were filled in."
     }
   },
   "surveys": {
@@ -1143,6 +1156,11 @@
       "not_configured": "That channel is not configured in this environment.",
       "no_address": "That contact has no usable phone number.",
       "send_failed": "The message could not be delivered."
+    },
+    "platform": {
+      "title": "Messages from your channels",
+      "readOnly": "Read only",
+      "unnamed": "Unnamed"
     }
   },
   "broadcasts": {
