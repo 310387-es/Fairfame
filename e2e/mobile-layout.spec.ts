@@ -86,6 +86,46 @@ test.describe("the inbox on a phone", () => {
     await expect(pager).toBeHidden();
   });
 
+  /**
+   * A22-C6 — the filter block used to eat the whole first viewport.
+   *
+   * At 390px the page title was followed by search, three rows of chips and a
+   * disclosure before the first review, so the tester scrolled past all of it
+   * every time. The queues stay out — below `lg` there is no rail and those
+   * four *are* the navigation — and everything that narrows a queue folds
+   * behind one control.
+   *
+   * The assertion is where the list *starts*, not which classes are on what: a
+   * refactor may move any of this, and what must not come back is a screen
+   * whose content begins below the fold.
+   */
+  test("opens with reviews on screen, not a wall of filters", async ({ page }) => {
+    await page.goto("/reviews");
+    await expect(page.getByRole("heading").first()).toBeVisible();
+
+    const search = page.getByRole("searchbox").first();
+    await expect(search, "the filter panel starts folded on a phone").toBeHidden();
+
+    const firstRow = page.locator("main a[href*='review=']").first();
+    const box = await firstRow.boundingBox();
+    expect(box, "the list should render at least one review").not.toBeNull();
+    // Half the viewport, which is generous: it was landing at ~700 of 844.
+    expect(box!.y).toBeLessThan(PHONE.height / 2);
+  });
+
+  test("still offers every filter, one press away", async ({ page }) => {
+    await page.goto("/reviews");
+
+    await page
+      .getByText(/filtrele|^filter$/i)
+      .first()
+      .click();
+
+    // The panel is the same markup the desktop shows — the fold is CSS, so a
+    // filter that works on a laptop cannot be missing from a phone.
+    await expect(page.getByRole("searchbox").first()).toBeVisible();
+  });
+
   test("keeps the filter bar's labels readable rather than clipping them", async ({ page }) => {
     // The bug this guards: `ChipGroup`'s label column was a fixed 3.5rem, which
     // clipped the Turkish "GÖRÜNÜMLER" outright. It stacks below `sm` now, so

@@ -106,7 +106,7 @@ export async function ThemeHeatmapCard({
 
   return (
     <SectionCard title={t("title")} icon={Grid3x3} meta={t("meta")} flush>
-      <div className="relative w-full overflow-x-auto border-t border-line-soft">
+      <div className="relative w-full overflow-x-auto border-t border-line-soft scroll-shadow">
         <table className="w-full min-w-[36rem] border-separate border-spacing-0 text-copy">
           <caption className="sr-only">{t("caption")}</caption>
 

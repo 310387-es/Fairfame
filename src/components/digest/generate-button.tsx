@@ -154,7 +154,7 @@ export function GenerateDigestButton({
             : null;
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex flex-col items-start gap-1 sm:items-end">
       <Button
         type="button"
         variant="outline"
@@ -182,7 +182,7 @@ export function GenerateDigestButton({
           header's action slot stretches back across the subtitle and reads as
           part of it rather than as a note about the button above it. */}
       {note ? (
-        <p className={`max-w-[22rem] text-right text-copy ${note.tone}`}>{note.text}</p>
+        <p className={`max-w-[22rem] text-copy sm:text-right ${note.tone}`}>{note.text}</p>
       ) : null}
     </div>
   );

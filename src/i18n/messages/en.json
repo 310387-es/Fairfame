@@ -588,7 +588,8 @@
     "shortcutMove": "move",
     "shortcutReply": "reply",
     "shortcutDone": "mark done",
-    "duplicate": "Also elsewhere"
+    "duplicate": "Also elsewhere",
+    "filterToggle": "Filter"
   },
   "locations": {
     "title": "Locations",

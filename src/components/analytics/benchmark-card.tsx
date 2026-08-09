@@ -136,7 +136,7 @@ export function BenchmarkCard({
         {unverified ? null : <p className="text-meta text-faint">{t("benchmark.basis")}</p>}
 
         {rows.length > 0 ? (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scroll-shadow">
             <table className="w-full min-w-[28rem] text-left text-copy">
               <thead className="text-meta text-faint">
                 <tr>

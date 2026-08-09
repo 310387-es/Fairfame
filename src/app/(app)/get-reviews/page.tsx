@@ -211,7 +211,7 @@ export default async function RequestsPage() {
           </Card>
         ) : (
           <Card>
-            <CardContent className="overflow-x-auto p-0">
+            <CardContent className="overflow-x-auto p-0 scroll-shadow">
               <table className="w-full text-body">
                 <Thead>
                   <tr>

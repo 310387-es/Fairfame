@@ -135,6 +135,36 @@
   }
 }
 
+@utility scroll-shadow {
+  /**
+   * A wide table says it is wider than the screen (A22-C6).
+   *
+   * `overflow-x-auto` on its own scrolls and gives no sign that it does: at
+   * 390px a branch or source table simply ends mid-word at the right edge, and
+   * the reader has no reason to think a sideways swipe would reveal anything.
+   * The cafe-owner test found exactly that on Analytics and Get reviews.
+   *
+   * The classic four-layer background trick, and the reason it is worth the
+   * four lines: the two `local` gradients scroll *with* the content and the two
+   * `scroll` shadows stay pinned to the box, so a shadow is painted only where
+   * there is content beyond the edge — and it disappears on its own once you
+   * reach that end. No JavaScript, no resize observer, and nothing to keep in
+   * step with the data.
+   *
+   * `--surface` rather than white: these sit inside cards, and a white fade
+   * over a tinted card is a visible pale bar rather than a fade.
+   */
+  background:
+    linear-gradient(to right, var(--surface) 30%, transparent) left center / 2.5rem 100% no-repeat
+      local,
+    linear-gradient(to left, var(--surface) 30%, transparent) right center / 2.5rem 100% no-repeat
+      local,
+    radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.09), transparent) left center / 0.75rem
+      100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.09), transparent) right center /
+      0.75rem 100% no-repeat scroll;
+}
+
 @layer utilities {
   /**
    * A phantom gap under every labelled `Select`, and the reason it is a

@@ -588,7 +588,8 @@
     "shortcutMove": "gezin",
     "shortcutReply": "yanıtla",
     "shortcutDone": "tamamla",
-    "duplicate": "Başka kaynakta da var"
+    "duplicate": "Başka kaynakta da var",
+    "filterToggle": "Filtrele"
   },
   "locations": {
     "title": "Şubeler",
