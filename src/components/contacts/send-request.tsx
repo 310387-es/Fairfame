@@ -42,9 +42,14 @@ export function SendRequest({
   campaigns: { id: string; name: string }[];
 }) {
   const t = useTranslations("contacts");
+  // The refusal vocabulary and the skip reasons, borrowed rather than copied —
+  // see `campaign-card.tsx`: one union, one set of words.
+  const tRefusal = useTranslations("messages");
+  const tRequests = useTranslations("requests");
   const { run, pending } = useAction();
   const [campaignId, setCampaignId] = useState(campaigns[0]?.id ?? "");
   const [summary, setSummary] = useState<string | null>(null);
+  const [reason, setReason] = useState<string | null>(null);
 
   if (campaigns.length === 0) {
     // No campaign, nothing to send under. Said plainly rather than shown as a
@@ -82,6 +87,7 @@ export function SendRequest({
           formData.set("contactIds", contactId);
 
           setSummary(null);
+          setReason(null);
           void run(() => sendRequestsAction(formData), {
             onSuccess: (result) => {
               if (!result) return;
@@ -95,6 +101,30 @@ export function SendRequest({
                   skipped: result.skipped + result.skippedNoAddress,
                 }),
               );
+
+              /**
+               * And **why**, which the counts cannot say (A22-B3).
+               *
+               * An audience of one makes this sharper than the bulk screen, not
+               * softer: "0 sent · 1 failed" about a named person the reader is
+               * looking at is a screen that knows the answer and will not give
+               * it. A refusal carries a code, so it is said in their language; a
+               * transport error carries only the provider's own sentence, and
+               * inventing a translation for it would be putting words in
+               * somebody else's mouth.
+               */
+              const failure = result.failures[0];
+              const skipped = result.skippedDetail[0];
+
+              setReason(
+                failure
+                  ? failure.refusal
+                    ? tRefusal(`refusal.${failure.refusal}`)
+                    : failure.reason
+                  : skipped
+                    ? tRequests(`skipReason.${skipped.reason}`)
+                    : null,
+              );
             },
           });
         }}
@@ -104,6 +134,7 @@ export function SendRequest({
       </Button>
 
       {summary ? <p className="text-body text-muted-foreground">{summary}</p> : null}
+      {reason ? <p className="text-copy text-muted-foreground">{reason}</p> : null}
     </div>
   );
 }
