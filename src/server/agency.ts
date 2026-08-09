@@ -8,10 +8,12 @@ import { withAuthenticatedTenant } from "@/auth/session";
 import { linkClient, unlinkClient } from "@/agency/clients";
 import { parseBranding } from "@/agency/branding";
 import { schema } from "@/db/client";
+import { clearActiveLocationCookie } from "@/lib/active-location";
 import { requireFeature } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
 import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
 import { eq } from "drizzle-orm";
+import { msg } from "@/lib/validation-keys";
 
 /**
  * Agency and white-label mutations (P4-T5).
@@ -119,6 +121,11 @@ export async function switchOrganizationAction(input: {
       body: { organizationId: parsed.data.organizationId },
     });
 
+    // The branch belongs to the organization being left, so it goes with it.
+    // Without this the cookie outlives its own tenant and every screen quietly
+    // takes the fallback it was never meant to rely on.
+    await clearActiveLocationCookie();
+
     // The whole shell changes — nav, location switcher, entitlements.
     revalidatePath("/", "layout");
     return { ok: true };
@@ -133,14 +140,14 @@ const brandingInputSchema = z.object({
   primaryColor: z
     .string()
     .trim()
-    .regex(/^#[0-9a-fA-F]{6}$/, "Use a hex colour like #3d5af1.")
+    .regex(/^#[0-9a-fA-F]{6}$/, msg("hexColour"))
     .nullable(),
   logoUrl: z.string().trim().url().max(500).nullable(),
   hidePoweredBy: z.boolean(),
   customDomain: z
     .string()
     .trim()
-    .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i, "Use a hostname like reviews.example.com.")
+    .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i, msg("hostname"))
     .max(200)
     .nullable(),
 });
@@ -156,7 +163,9 @@ const brandingInputSchema = z.object({
 export async function saveBrandingAction(input: unknown): Promise<ActionResult> {
   const parsed = brandingInputSchema.safeParse(input);
   if (!parsed.success) {
-    return invalidInput(parsed.error, parsed.error.issues[0]?.message ?? "Invalid branding.");
+    // Deliberately not `issues[0].message` any more: a message is a key now,
+    // and lifting one into the summary would put "@hexColour" in a toast.
+    return invalidInput(parsed.error, "Invalid branding.");
   }
 
   const data = parsed.data;

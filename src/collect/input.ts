@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { LOCALES } from "../i18n/config.ts";
+import { msg } from "@/lib/validation-keys";
 
 /**
  * Every input that crosses into the collection module, validated in one place.
@@ -32,7 +33,7 @@ export const SENDABLE_CHANNELS = ["email", "whatsapp", "sms"] as const;
 export const createCampaignSchema = z
   .object({
     locationId: z.uuid(),
-    name: z.string().trim().min(1, "A campaign name is required.").max(120),
+    name: z.string().trim().min(1, msg("required")).max(120),
     channel: z.enum(["email", "whatsapp", "sms", "link"]).default("email"),
     destination: z.enum(["firstparty", "external"]).default("firstparty"),
     destinationUrl: z
@@ -102,7 +103,7 @@ const recipientNameSchema = z
   .transform((value) => (value == null || value === "" ? null : value));
 
 export const recipientSchema = z.object({
-  email: z.email({ message: "That is not a valid email address." }).max(254),
+  email: z.email({ message: msg("email") }).max(254),
   name: recipientNameSchema,
 });
 

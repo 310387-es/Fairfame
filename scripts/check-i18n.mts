@@ -61,8 +61,37 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
+/**
+ * Source with its comments taken out.
+ *
+ * **A doc comment is not code, and this script could not tell.** `useAction`'s
+ * own documentation shows the idiomatic call — `success: t("created")` — inside
+ * a block comment. The moment that file gained a real `useTranslations(...)`
+ * binding, the example was read as a live call and `validation.created` was
+ * reported as a key used in code and defined in no locale. It fails in the
+ * harmless direction here, but the same blindness runs the other way: a key
+ * that exists *only* in a comment counts as used, and keeps a dead string alive
+ * in both catalogues forever.
+ *
+ * Comments are replaced with whitespace rather than removed, so nothing on
+ * either side of one is joined into a token that was never written.
+ *
+ * A regex cannot parse JavaScript, and this one does not try: a `//` inside a
+ * string literal (a URL, most often) would be mistaken for a comment. That is
+ * why the string-literal alternation comes **first** — a matched string is
+ * returned untouched, so `"https://example.com"` survives and the comment after
+ * it does not. Fourth fix to this script found by using it, and each one has
+ * been a case of a pattern matching more than it meant to.
+ */
+function withoutComments(text: string): string {
+  return text.replace(
+    /("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,
+    (match, literal: string | undefined) => literal ?? match.replace(/[^\n]/g, " "),
+  );
+}
+
 const source = SOURCE_DIRS.flatMap(sourceFiles)
-  .map((file) => readFileSync(file, "utf8"))
+  .map((file) => withoutComments(readFileSync(file, "utf8")))
   .join("\n");
 
 /**
@@ -186,7 +215,7 @@ const undefinedKeys = new Set<string>();
 const dynamicNamespaces: string[] = [];
 
 for (const file of SOURCE_DIRS.flatMap(sourceFiles)) {
-  const text = readFileSync(file, "utf8");
+  const text = withoutComments(readFileSync(file, "utf8"));
 
   /**
    * One name may be bound to **several** namespaces in one file (W4.4).

@@ -84,14 +84,36 @@ async function reviewsFor(orgId: string) {
     .where(eq(schema.reviews.organizationId, orgId));
 }
 
-/** Waits for the queue to go quiet — the jobs chain, so one wait is not enough. */
+/**
+ * Waits for the queue to go quiet — the jobs chain, so one wait is not enough.
+ *
+ * **Empty once is not empty.** These jobs enqueue each other: sync enqueues
+ * analyze, analyze enqueues notify. Between a processor returning and the child
+ * it just added appearing in `wait`, there is a window in which every count
+ * reads zero and the queue is not finished. Returning there is a real race, and
+ * it produced a flake in "does not notify twice" — `first` was captured before
+ * the notify job ran, the alert then landed, and the second half of the test
+ * counted one more than it started with. Once in ~40 runs, which is the worst
+ * frequency: often enough to fail CI, rare enough to look like someone else's
+ * problem.
+ *
+ * So it waits for the queue to be empty on `QUIET_PASSES` *consecutive* polls.
+ * The window is one event-loop hop wide and this spans several hundred
+ * milliseconds of them, which is the difference between checking a condition and
+ * checking that it has settled.
+ */
+const QUIET_PASSES = 3;
+
 async function drain(timeoutMs = 25_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
+  let quiet = 0;
 
   while (Date.now() < deadline) {
     const counts = await queue.getJobCounts("wait", "active", "delayed");
     const outstanding = (counts.wait ?? 0) + (counts.active ?? 0) + (counts.delayed ?? 0);
-    if (outstanding === 0) return;
+
+    quiet = outstanding === 0 ? quiet + 1 : 0;
+    if (quiet >= QUIET_PASSES) return;
 
     await new Promise((resolve) => setTimeout(resolve, 150));
   }

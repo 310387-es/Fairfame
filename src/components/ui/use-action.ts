@@ -1,7 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useCallback, useRef, useState, useTransition } from "react";
 import { useToast } from "@/components/ui/toast";
+import { INVALID_INPUT } from "@/lib/validation-keys";
 import type { ActionResult, FieldErrors } from "@/server/action-result";
 
 /**
@@ -84,6 +86,7 @@ export function fieldErrorId(field: string): string {
 
 export function useAction(): UseAction {
   const { toast } = useToast();
+  const t = useTranslations("validation");
   const [pending, startTransition] = useTransition();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const formRef = useRef<HTMLFormElement>(null);
@@ -111,11 +114,28 @@ export function useAction(): UseAction {
           return;
         }
 
-        toast("error", options.message?.(result) ?? result.error);
+        // The server names *which* field and *what* is wrong with it; the
+        // sentence saying so is written here, because this is the first point in
+        // the round trip that knows what language the reader is in. A schema
+        // runs long before anybody knows that, and Zod's own defaults — and its
+        // `tr` locale — are a compiler's prose rather than a product's.
+        const fieldMessages = result.fieldErrors
+          ? Object.fromEntries(
+              Object.entries(result.fieldErrors).map(([field, key]) => [field, t(key)]),
+            )
+          : undefined;
+
+        const summary =
+          options.message?.(result) ??
+          (result.code === INVALID_INPUT && fieldMessages && Object.keys(fieldMessages).length > 0
+            ? t("summary")
+            : result.error);
+
+        toast("error", summary);
         options.onError?.(result);
 
-        if (!result.fieldErrors) return;
-        setFieldErrors(result.fieldErrors);
+        if (!fieldMessages) return;
+        setFieldErrors(fieldMessages);
 
         // Focus the first control the server named. Reading order rather than
         // object-key order: the fields the reader has to fix are the ones on
@@ -123,7 +143,7 @@ export function useAction(): UseAction {
         const form = formRef.current;
         if (!form) return;
 
-        const named = Object.keys(result.fieldErrors);
+        const named = Object.keys(fieldMessages);
         const controls = Array.from(
           form.querySelectorAll<HTMLElement>("input, select, textarea, [contenteditable]"),
         );
@@ -134,7 +154,7 @@ export function useAction(): UseAction {
         target?.focus();
       });
     },
-    [toast],
+    [toast, t],
   );
 
   const invalid = useCallback(

@@ -37,6 +37,29 @@ export async function writeActiveLocationCookie(locationId: string): Promise<voi
 }
 
 /**
+ * Forgets the branch, because the organization changed.
+ *
+ * A location id belongs to exactly one organization, so the moment somebody
+ * switches workspaces — an agency opening a client, anybody stepping into or
+ * out of the sample account — the cookie names a branch in a tenant they are no
+ * longer in. Nothing leaks: `resolveActiveLocation` re-checks the id against the
+ * locations the *new* tenant can see and falls back. But the fallback was
+ * incidental rather than intended, and the browser went on holding another
+ * organization's id indefinitely, which is a fact about a different tenant sat
+ * in a cookie for no reason.
+ *
+ * **Remembering a branch per organization is deliberately not built.** It would
+ * mean either a cookie per organization — an agency with thirty clients gets
+ * thirty — or a map inside one, which is a parser and an eviction rule for a
+ * convenience. Landing on the organization's first branch is a defined place to
+ * be; naming a branch in a workspace you have left is not.
+ */
+export async function clearActiveLocationCookie(): Promise<void> {
+  const store = await cookies();
+  store.delete(ACTIVE_LOCATION_COOKIE);
+}
+
+/**
  * Locations visible to the current tenant, alphabetical.
  *
  * Pass a `scope` (P2-T4) to narrow this to the locations one person may see.

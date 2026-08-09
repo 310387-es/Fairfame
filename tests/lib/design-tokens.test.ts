@@ -83,7 +83,10 @@ const MAY_WRITE_HEX: Record<string, string> = {
     predict is worse than a list they can read.
   */
   "src/components/agency/branding-form.tsx": "A placeholder: the example a customer types over.",
-  "src/server/agency.ts": 'A validation message — "Use a hex colour like #3d5af1".',
+  // `src/server/agency.ts` was exempted for the hex inside "Use a hex colour
+  // like #3d5af1" and no longer needs it: that sentence is a translated string
+  // now, so the example lives in the catalogues with the rest of the copy. The
+  // stale-exemption check is what noticed, which is the whole point of it.
   "src/connectors/mock-platform/meta.ts":
     "`(#130429)` is a Meta *error code*, not a colour. Six digits are valid hex " +
     "characters, so the check cannot tell; a reader can.",

@@ -111,20 +111,23 @@ describe("every component that runs a server action reports the result", () => {
 
 describe("a schema failure names the field", () => {
   const schema = z.object({
-    name: z.string().min(1, "Give it a name."),
-    url: z.url("That is not a web address."),
+    name: z.string().min(1),
+    url: z.url(),
     nested: z.object({ deep: z.string() }).optional(),
   });
 
   it("keys messages by the control the reader can go and fix", () => {
+    // **A key, not a sentence.** This asserted prose until the validation copy
+    // was translated: the value crossing the wire is now what went wrong, and
+    // `useAction` says it in the reader's language. `tests/lib/validation-
+    // messages.test.ts` owns the mapping and the copy; what matters here is that
+    // the message is still attached to the *control*, which is the part this
+    // file has always been about.
     const parsed = schema.safeParse({ name: "", url: "not-a-url" });
     expect(parsed.success).toBe(false);
     if (parsed.success) return;
 
-    expect(toFieldErrors(parsed.error)).toEqual({
-      name: "Give it a name.",
-      url: "That is not a web address.",
-    });
+    expect(toFieldErrors(parsed.error)).toEqual({ name: "tooShort", url: "url" });
   });
 
   it("reports a nested issue against the field it belongs to", () => {
@@ -138,7 +141,7 @@ describe("a schema failure names the field", () => {
 
   it("shows one message per field, not three", () => {
     const strict = z.object({
-      code: z.string().min(5, "Too short.").regex(/^\d+$/, "Digits only."),
+      code: z.string().min(5).regex(/^\d+$/),
     });
     const parsed = strict.safeParse({ code: "ab" });
     if (parsed.success) throw new Error("expected a failure");

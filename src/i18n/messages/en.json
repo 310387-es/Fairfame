@@ -1445,7 +1445,6 @@
     "created": "Created",
     "deleted": "Deleted",
     "sent": "Sent",
-    "updated": "Updated",
     "published": "Published",
     "unpublished": "Unpublished",
     "copied": "Copied",
@@ -1868,5 +1867,18 @@
       "body": "These reviews are generated, not yours. Switch workspaces from the menu at the top right.",
       "remove": "Delete sample"
     }
+  },
+  "validation": {
+    "summary": "Check the highlighted fields.",
+    "required": "This is required.",
+    "invalid": "That does not look right.",
+    "tooShort": "That is too short.",
+    "tooLong": "That is too long.",
+    "tooSmall": "That number is too low.",
+    "tooLarge": "That number is too high.",
+    "email": "That is not a valid email address.",
+    "url": "That is not a valid web address.",
+    "hexColour": "Use a hex colour like #3d5af1.",
+    "hostname": "Use a hostname like reviews.example.com."
   }
 }

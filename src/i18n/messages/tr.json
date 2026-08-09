@@ -1445,7 +1445,6 @@
     "created": "Oluşturuldu",
     "deleted": "Silindi",
     "sent": "Gönderildi",
-    "updated": "Güncellendi",
     "published": "Yayına alındı",
     "unpublished": "Yayından kaldırıldı",
     "copied": "Kopyalandı",
@@ -1868,5 +1867,18 @@
       "body": "Bu yorumlar üretilmiştir, size ait değildir. Sağ üstteki menüden çalışma alanı değiştirebilirsiniz.",
       "remove": "Örneği sil"
     }
+  },
+  "validation": {
+    "summary": "İşaretli alanları kontrol edin.",
+    "required": "Bu alan zorunlu.",
+    "invalid": "Bu doğru görünmüyor.",
+    "tooShort": "Bu çok kısa.",
+    "tooLong": "Bu çok uzun.",
+    "tooSmall": "Bu sayı çok küçük.",
+    "tooLarge": "Bu sayı çok büyük.",
+    "email": "Geçerli bir e-posta adresi değil.",
+    "url": "Geçerli bir web adresi değil.",
+    "hexColour": "#3d5af1 gibi bir renk kodu kullanın.",
+    "hostname": "reviews.ornek.com gibi bir alan adı kullanın."
   }
 }

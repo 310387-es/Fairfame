@@ -1,4 +1,5 @@
 import type { ZodError } from "zod";
+import { INVALID_INPUT, KEY_PREFIX, type ValidationKey } from "@/lib/validation-keys";
 import { ConnectorError } from "@/connectors/types";
 import { EntitlementError } from "@/lib/entitlements";
 import { ForbiddenError, NoActiveOrganizationError, UnauthenticatedError } from "@/auth/session";
@@ -46,10 +47,50 @@ export function toFieldErrors(error: ZodError): FieldErrors {
     const [field] = issue.path;
     if (typeof field !== "string") continue;
     if (fields[field] !== undefined) continue;
-    fields[field] = issue.message;
+    fields[field] = validationKey(issue);
   }
 
   return fields;
+}
+
+/**
+ * What went wrong with one field, as a key the reader's language can answer.
+ *
+ * **Why this is not `issue.message`.** Zod writes its defaults in English —
+ * "Too small: expected string to have >=1 characters" — and that sentence went
+ * to the screen. B3 made a silent failure speak, which was the improvement worth
+ * having at the time; it spoke English to a Turkish café owner, which is where
+ * this picks up. Zod 4 does ship a `tr` locale, and it is not the answer: it is
+ * configured process-wide, so two concurrent requests in two languages race for
+ * one setting, and its prose is a compiler's rather than a product's.
+ *
+ * The code is the durable part of an issue — `too_small` means the same thing in
+ * every version — so it is what the key is derived from, with `origin`
+ * distinguishing the two questions `too_small` answers: a string that is too
+ * short and a number that is too low are not the same sentence.
+ */
+function validationKey(issue: ZodError["issues"][number]): ValidationKey {
+  if (issue.message.startsWith(KEY_PREFIX)) {
+    return issue.message.slice(KEY_PREFIX.length) as ValidationKey;
+  }
+
+  switch (issue.code) {
+    case "invalid_type":
+      // Zod reports a missing key and a wrong type the same way. "Required" is
+      // the one a reader can act on, and the wrong type is not reachable from a
+      // form — every control posts a string.
+      return "required";
+    case "too_small":
+      return issue.origin === "number" || issue.origin === "int" ? "tooSmall" : "tooShort";
+    case "too_big":
+      return issue.origin === "number" || issue.origin === "int" ? "tooLarge" : "tooLong";
+    case "invalid_format":
+      if ("format" in issue && issue.format === "email") return "email";
+      if ("format" in issue && issue.format === "url") return "url";
+      return "invalid";
+    default:
+      return "invalid";
+  }
 }
 
 /**
@@ -65,9 +106,10 @@ export function invalidInput(
 ): {
   ok: false;
   error: string;
+  code: string;
   fieldErrors: FieldErrors;
 } {
-  return { ok: false, error: message, fieldErrors: toFieldErrors(error) };
+  return { ok: false, error: message, code: INVALID_INPUT, fieldErrors: toFieldErrors(error) };
 }
 
 export function toActionResult(error: unknown): { ok: false; error: string; code?: string } {

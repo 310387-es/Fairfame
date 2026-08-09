@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { VERTICALS } from "@/reviews/taxonomy";
+import { msg } from "@/lib/validation-keys";
 
 /**
  * Input schemas for the location server actions.
@@ -23,7 +24,7 @@ const optionalText = (max: number) =>
     .transform((value) => (value == null || value === "" ? null : value));
 
 export const createLocationSchema = z.object({
-  name: z.string().trim().min(1, "A name is required.").max(120),
+  name: z.string().trim().min(1, msg("required")).max(120),
   address: optionalText(240),
   /**
    * The business's vertical, from the closed list (W3.2).
