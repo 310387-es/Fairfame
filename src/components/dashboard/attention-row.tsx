@@ -50,6 +50,16 @@ export type AttentionRowView = {
   at: string;
   atLabel: string;
   preview: string;
+  /**
+   * Somebody has already written a reply to this one (A22-A4).
+   *
+   * The row is here because the *customer* has not heard back, which a draft
+   * does not change. What it changes is the offer: writing a second draft over
+   * a colleague's is the collision the old rule avoided by hiding the review
+   * altogether — at the cost of losing it from every list when the draft was
+   * never sent. Saying so and pointing at the existing one costs nothing.
+   */
+  drafted: boolean;
 };
 
 export function AttentionRow({ row }: { row: AttentionRowView }) {
@@ -122,7 +132,22 @@ export function AttentionRow({ row }: { row: AttentionRowView }) {
           </div>
         ) : null}
 
-        {draft === null ? (
+        {draft === null && row.drafted ? (
+          // A draft exists and has not gone out. The work left is to read it
+          // and send it, so that is the only thing offered.
+          <div className="mt-0.5 flex flex-wrap items-center gap-3">
+            <span className="text-meta font-semibold text-state-rating-text">
+              {t("draftWaiting")}
+            </span>
+            <Link
+              href={row.href}
+              className="inline-flex items-center gap-1 text-meta font-semibold text-primary hover:underline"
+            >
+              {t("editAndSend")}
+              <ArrowRight className="size-3" aria-hidden />
+            </Link>
+          </div>
+        ) : draft === null ? (
           <div className="mt-0.5 flex flex-wrap items-center gap-3">
             <Button size="sm" variant="outline" onClick={generate} disabled={pending}>
               <Sparkles className="size-3.5" aria-hidden />

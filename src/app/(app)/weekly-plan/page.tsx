@@ -14,8 +14,9 @@ import { PageHeader } from "@/components/shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { MIN_ANALYSED_REVIEWS, weekWindow } from "@/digest/metrics";
 import { describeDigest, loadDigestBundle } from "@/digest/page-data";
-import { listDigests } from "@/digest/queries";
+import { digestProgress, listDigests, windowReadiness } from "@/digest/queries";
 import {
   listLocationsForActor,
   readActiveLocationCookie,
@@ -49,7 +50,19 @@ export default async function DigestArchivePage() {
   ]);
   const cookieValue = await readActiveLocationCookie();
 
-  const { activeLocation, digests, latest } = await withTenant(
+  /**
+   * The week the button actually composes (A22-A1).
+   *
+   * `weekWindow` is the last **completed** week, which is what a weekly
+   * briefing is about — and the control used to be labelled "Compose this
+   * week", so an owner pressing it on a Thursday was told they were getting the
+   * week they are living in and got the one before. The window is resolved here
+   * and printed on the button, because the honest fix for a control that names
+   * the wrong week is to make it name the right one.
+   */
+  const target = weekWindow(new Date());
+
+  const { activeLocation, digests, latest, readiness, progress } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
       const active = resolveActiveLocation(await listLocationsForActor(tx, actor), cookieValue);
@@ -74,6 +87,14 @@ export default async function DigestArchivePage() {
         activeLocation: active,
         digests: rows,
         latest: newest ? await loadDigestBundle(tx, actor.organizationId, newest.id) : null,
+        // Both about the *target* window rather than about whatever is on
+        // screen: they describe what pressing the button would do.
+        readiness: active
+          ? await windowReadiness(tx, actor.organizationId, active.id, target)
+          : null,
+        progress: active
+          ? await digestProgress(tx, actor.organizationId, active.id, target.start)
+          : null,
       };
     },
   );
@@ -97,6 +118,24 @@ export default async function DigestArchivePage() {
     );
   }
 
+  /**
+   * A week as a reader counts one.
+   *
+   * The stored end is exclusive; printing it would make "28 July – 4 August"
+   * out of seven days. Defined once here because the button and the archive
+   * rows below must name the same week the same way — that is the whole point
+   * of putting the date on the button. **UTC** for the reason `describeDigest`
+   * spells out: the window is UTC, and formatting it in Istanbul time puts the
+   * inclusive end back on the exclusive day.
+   */
+  const periodLabel = (start: Date, end: Date) =>
+    `${format.dateTime(start, { day: "numeric", month: "short", timeZone: "UTC" })} – ${format.dateTime(
+      new Date(end.getTime() - 1),
+      { day: "numeric", month: "short", timeZone: "UTC" },
+    )}`;
+
+  const targetPeriod = periodLabel(target.start, target.end);
+
   const described =
     latest?.digest && latest.digest.status === "ready"
       ? describeDigest({
@@ -118,10 +157,24 @@ export default async function DigestArchivePage() {
         action={
           <GenerateDigestButton
             locationId={activeLocation.id}
-            label={t("generate")}
+            // Names the week and says which act it is: composing a week that
+            // has no briefing and recomposing one that does are different
+            // enough that the second needs its own word — pressing "Compose"
+            // over a plan you are reading is what the fix plan calls the #1
+            // churn bug, and it should at least say so.
+            label={t(progress?.status === "ready" ? "refreshPeriod" : "generatePeriod", {
+              period: targetPeriod,
+            })}
             composingLabel={t("composing")}
             slowLabel={t("composeSlow")}
             failedLabel={t("composeFailed")}
+            refreshFailedLabel={t("refreshFailed")}
+            refreshFailed={progress?.refreshFailed ?? false}
+            disabledReason={
+              readiness && !readiness.enough
+                ? t("tooThin", { count: MIN_ANALYSED_REVIEWS, analysed: readiness.analysedCount })
+                : null
+            }
           />
         }
       />
@@ -179,13 +232,7 @@ export default async function DigestArchivePage() {
           >
             <ul className="border-t border-line-soft">
               {digests.map((digest) => {
-                // The stored end is exclusive; a reader counting "28 July – 4
-                // August" as a week would get eight days.
-                const inclusiveEnd = new Date(digest.periodEnd.getTime() - 1);
-                const period = `${format.dateTime(digest.periodStart, {
-                  day: "numeric",
-                  month: "short",
-                })} – ${format.dateTime(inclusiveEnd, { day: "numeric", month: "short" })}`;
+                const period = periodLabel(digest.periodStart, digest.periodEnd);
 
                 const row = (
                   <DigestRow

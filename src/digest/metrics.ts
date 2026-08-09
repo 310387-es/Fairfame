@@ -14,6 +14,22 @@
 
 export type Sentiment = "positive" | "neutral" | "negative";
 
+/**
+ * Below this many analysed reviews, the week is an anecdote (W1.6).
+ *
+ * Five, which is small enough that a quiet café still gets briefings and large
+ * enough that a theme means more than one person having a bad Tuesday. The
+ * figure is a judgement rather than a derivation, and it is written down here
+ * so it can be argued with in one place rather than guessed at in three.
+ *
+ * It lives in the pure module rather than beside the pipeline that enforces it
+ * (A22-A1) because the compose button now asks the same question *before*
+ * spending a minute on an answer it would refuse, and it asks through
+ * `./queries.ts` — which exists so a screen can read a digest without importing
+ * a module that can spend money.
+ */
+export const MIN_ANALYSED_REVIEWS = 5;
+
 export type WindowReview = {
   id: string;
   rating: number | null;

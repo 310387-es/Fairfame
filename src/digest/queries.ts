@@ -1,6 +1,7 @@
-import { and, asc, desc, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
+import { MIN_ANALYSED_REVIEWS } from "./metrics.ts";
 import type { DigestPayload } from "./pipeline.ts";
 
 /**
@@ -137,7 +138,32 @@ export async function digestById(
 export type DigestProgress = {
   status: "none" | "pending" | "ready" | "failed";
   generatedAt: Date | null;
+  /**
+   * A refresh of this week is running right now (A22-A1).
+   *
+   * `status` cannot say it any more, and that is the point: a refresh leaves
+   * the published week `ready` throughout, so the button has to ask a separate
+   * question to know whether to keep watching.
+   */
+  refreshing: boolean;
+  /** The last refresh did not work. The briefing on screen is the older one. */
+  refreshFailed: boolean;
+  /**
+   * Why, in terms a screen may render.
+   *
+   * Never the stored string: `refresh_error` holds a provider's own message,
+   * which is written for whoever reads the logs and may name a model, a status
+   * code or an unterminated JSON body. The two declines are recorded as tokens
+   * precisely so they can be told apart from a genuine fault here.
+   */
+  refreshReason: "no_reviews" | "not_enough_analysed" | "error" | null;
 };
+
+function refreshReasonOf(value: string | null): DigestProgress["refreshReason"] {
+  if (value === null) return null;
+  if (value === "no_reviews" || value === "not_enough_analysed") return value;
+  return "error";
+}
 
 export async function digestProgress(
   tx: TenantDatabase,
@@ -146,7 +172,12 @@ export async function digestProgress(
   periodStart: Date,
 ): Promise<DigestProgress> {
   const [row] = await tx
-    .select({ status: schema.digests.status, generatedAt: schema.digests.generatedAt })
+    .select({
+      status: schema.digests.status,
+      generatedAt: schema.digests.generatedAt,
+      refreshStartedAt: schema.digests.refreshStartedAt,
+      refreshError: schema.digests.refreshError,
+    })
     .from(schema.digests)
     .where(
       and(
@@ -157,9 +188,75 @@ export async function digestProgress(
     )
     .limit(1);
 
-  return row
-    ? { status: row.status, generatedAt: row.generatedAt }
-    : { status: "none", generatedAt: null };
+  if (!row) {
+    return {
+      status: "none",
+      generatedAt: null,
+      refreshing: false,
+      refreshFailed: false,
+      refreshReason: null,
+    };
+  }
+
+  const refreshing = row.refreshStartedAt !== null;
+  const refreshFailed = !refreshing && row.refreshError !== null;
+
+  return {
+    status: row.status,
+    generatedAt: row.generatedAt,
+    refreshing,
+    refreshFailed,
+    refreshReason: refreshFailed ? refreshReasonOf(row.refreshError) : null,
+  };
+}
+
+/**
+ * Whether a window has enough analysed feedback to be worth composing (A22-A1).
+ *
+ * The compose button used to offer a briefing the pipeline would then decline —
+ * a minute of spinner ending in "not enough to draw a plan from", which reads
+ * as a broken feature rather than as a quiet week. Asking first turns that into
+ * a disabled control with the reason on it.
+ *
+ * It counts what `gather` gathers and what the pipeline then measures — the
+ * same `coalesce(posted_at, created_at)` window and the same "has a sentiment"
+ * test — so the two cannot disagree about what a thin week is. It deliberately
+ * does *not* try to predict the theme clustering: that needs the vectors, and a
+ * button is not the place to spend an embedding call.
+ */
+export type WindowReadiness = {
+  reviewCount: number;
+  analysedCount: number;
+  /** False when the pipeline would decline this window as an anecdote. */
+  enough: boolean;
+};
+
+export async function windowReadiness(
+  tx: TenantDatabase,
+  organizationId: string,
+  locationId: string,
+  window: { start: Date; end: Date },
+): Promise<WindowReadiness> {
+  const [row] = await tx
+    .select({
+      reviewCount: sql<number>`count(*)::int`,
+      analysedCount: sql<number>`count(${schema.reviewInsights.sentiment})::int`,
+    })
+    .from(schema.reviews)
+    .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
+    .where(
+      and(
+        eq(schema.reviews.organizationId, organizationId),
+        eq(schema.reviews.locationId, locationId),
+        gte(sql`coalesce(${schema.reviews.postedAt}, ${schema.reviews.createdAt})`, window.start),
+        lt(sql`coalesce(${schema.reviews.postedAt}, ${schema.reviews.createdAt})`, window.end),
+      ),
+    );
+
+  const reviewCount = row?.reviewCount ?? 0;
+  const analysedCount = row?.analysedCount ?? 0;
+
+  return { reviewCount, analysedCount, enough: analysedCount >= MIN_ANALYSED_REVIEWS };
 }
 
 /** Recent digests for a location, newest first — the history strip. */

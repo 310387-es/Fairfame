@@ -93,12 +93,19 @@ async function addReview(
   }
 
   if (options.reply) {
-    await getAdminDb().insert(schema.replies).values({
-      organizationId: fixture.orgId,
-      reviewId: review.id,
-      text: "Teşekkürler.",
-      status: options.reply,
-    });
+    await getAdminDb()
+      .insert(schema.replies)
+      .values({
+        organizationId: fixture.orgId,
+        reviewId: review.id,
+        text: "Teşekkürler.",
+        status: options.reply,
+        // A posted reply carries the moment it went out — `postReply` writes both
+        // together and every reader asks the timestamp, because that is the
+        // column the response-time figures are measured from (A22-A4). A fixture
+        // that set only the status described a row production cannot produce.
+        ...(options.reply === "posted" ? { postedAt: new Date() } : {}),
+      });
   }
 
   return review.id;
@@ -214,21 +221,37 @@ describe("reply state", () => {
     await addReview(fixture, { topics: ["servis"], reply: "failed" });
   });
 
-  it("counts a review with a failed reply as unanswered", async () => {
+  it("counts everything the customer has not heard back on as unanswered", async () => {
     const rows = await read(fixture, { reply: "unanswered" });
 
-    // A rejected post frees the review to be answered again, so it is still
-    // outstanding work — the reply service takes the same view.
-    expect(rows).toHaveLength(2);
+    /**
+     * Three of the four: nothing, a draft, and a failed attempt (A22-A4).
+     *
+     * A rejected post frees the review to be answered again, so it is still
+     * outstanding work — the reply service takes the same view. **And so is a
+     * draft**, which this test used to assert the opposite of: saving one took
+     * the review out of the queue, so the count of work fell because somebody
+     * started it, and a draft nobody approved kept the review out of every list
+     * in the product while the customer waited.
+     */
+    expect(rows).toHaveLength(3);
   });
 
-  it("counts a draft as answered", async () => {
+  it("counts only a posted reply as answered", async () => {
     const rows = await read(fixture, { reply: "answered" });
 
-    // Somebody is already on it; showing it as needing attention would send two
-    // people to the same review.
-    expect(rows).toHaveLength(2);
-    expect(rows.every((row) => row.reply !== null)).toBe(true);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.reply?.status).toBe("posted");
+  });
+
+  it("offers the drafted ones on their own, without taking them out of the queue", async () => {
+    // "Written and not sent" is a real question, and the answer used to be that
+    // the review had quietly left every list. A subset of unanswered, never a
+    // third state beside it.
+    const drafted = await read(fixture, { reply: "drafted" });
+
+    expect(drafted).toHaveLength(1);
+    expect(drafted[0]?.reply?.status).toBe("draft");
   });
 
   it("attaches the live reply to its row", async () => {

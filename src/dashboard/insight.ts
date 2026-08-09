@@ -1,3 +1,4 @@
+import { isNegative, needsReply } from "../reviews/answered.ts";
 import type { DashboardFacts, ReviewFact } from "./facts.ts";
 
 /**
@@ -27,21 +28,32 @@ export type EmergingTheme = {
 };
 
 export type Insight = {
-  /** Unanswered items that are negative or poorly rated. */
+  /**
+   * Negative reviews still needing a reply — **and the screen says so** (A22-A3).
+   *
+   * Deliberately narrower than the Inbox's "Needs a reply", which counts every
+   * unanswered item. Two numbers on one product both called "waiting for a
+   * reply" is what made the tester stop believing any of them, so this one is
+   * labelled for what it is and is exactly the queue its own button opens.
+   */
   waiting: number;
   /** The negative theme growing fastest, if one stands out. */
   theme: EmergingTheme | null;
-  /** Negative items carrying that theme, this period. */
+  /**
+   * How many of `waiting` carry that theme — a **subset**, not a second count.
+   *
+   * It used to be every negative review on the theme, answered or not, printed
+   * into a sentence that reads as "N of them": with 6 waiting and 7 negatives
+   * about queues, the product's home screen said "7 of 6". Derived from the
+   * same array now, so `themeNegatives <= waiting` holds by construction rather
+   * than by luck.
+   */
   themeNegatives: number;
   /** Average stars now, for the reassurance clause. */
   rating: number | null;
   /** How the rating moved, in stars. `null` with nothing to compare. */
   ratingDelta: number | null;
 };
-
-function isUnhappy(fact: ReviewFact): boolean {
-  return fact.sentiment === "negative" || (fact.rating !== null && fact.rating <= 2);
-}
 
 function averageRating(facts: readonly ReviewFact[]): number | null {
   const rated = facts.filter((fact) => fact.rating !== null);
@@ -110,20 +122,25 @@ function emergingTheme(facts: DashboardFacts): EmergingTheme | null {
 }
 
 export function composeInsight(facts: DashboardFacts): Insight {
-  const waiting = facts.current.filter((fact) => fact.repliedAt === null && isUnhappy(fact)).length;
+  /**
+   * One array, and both counts come out of it (A22-A3).
+   *
+   * The second clause used to be filtered from `facts.current` independently,
+   * which is how a sentence claiming "N of them" came to name a number larger
+   * than the one before it. Taking the subset from the same list is not a
+   * tidier way of writing the old code — it is the only way the sentence can be
+   * true.
+   */
+  const waiting = facts.current.filter((fact) => needsReply(fact) && isNegative(fact));
 
   const theme = emergingTheme(facts);
   const rating = averageRating(facts.current);
   const before = averageRating(facts.previous);
 
   return {
-    waiting,
+    waiting: waiting.length,
     theme,
-    themeNegatives: theme
-      ? facts.current.filter(
-          (fact) => fact.sentiment === "negative" && fact.themes.includes(theme.slug),
-        ).length
-      : 0,
+    themeNegatives: theme ? waiting.filter((fact) => fact.themes.includes(theme.slug)).length : 0,
     rating,
     ratingDelta:
       rating === null || before === null ? null : Math.round((rating - before) * 10) / 10,

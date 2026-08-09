@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { schema } from "../db/client.ts";
 import { generateCampaignSlug } from "../collect/tokens.ts";
@@ -340,29 +340,42 @@ export async function listAnswers(
 /**
  * The campaigns a survey or a broadcast may point at.
  *
- * **Email only.** A `link` campaign has nothing to send — the customer arrives
- * from a QR code on their own — so offering one and refusing it at send time is
- * a picker that lets somebody be wrong and then tells them off. Found by doing
- * exactly that: a broadcast aimed at a link campaign got as far as the mailer
- * before `prepareRequests` said "share its link instead".
+ * **Everything that can send, which is everything but `link`.** A link campaign
+ * has nothing to deliver — the customer arrives from a QR code on their own —
+ * so offering one and refusing it at send time is a picker that lets somebody
+ * be wrong and then tells them off. Found by doing exactly that: a broadcast
+ * aimed at a link campaign got as far as the mailer before `prepareRequests`
+ * said "share its link instead".
+ *
+ * **It filtered to `email` until A22-A2, and that was the other half of the
+ * WhatsApp bug.** A broadcast could name WhatsApp and then had no WhatsApp
+ * campaign to point at, so it pointed at an email one — and `prepareRequests`
+ * took the channel from there and emailed people who had been gated on their
+ * WhatsApp permission. The channel is now the *caller's* to state, so this can
+ * offer every sendable campaign; it returns each one's own channel so a picker
+ * can narrow to the send being described rather than pairing a WhatsApp
+ * broadcast with something labelled "E-posta".
  */
 export async function listReviewCampaigns(
   tx: TenantDatabase,
   organizationId: string,
   scope: LocationScope,
-): Promise<{ id: string; name: string; locationId: string }[]> {
-  return tx
+): Promise<
+  { id: string; name: string; locationId: string; channel: "email" | "sms" | "whatsapp" }[]
+> {
+  const rows = await tx
     .select({
       id: schema.campaigns.id,
       name: schema.campaigns.name,
       locationId: schema.campaigns.locationId,
+      channel: schema.campaigns.channel,
     })
     .from(schema.campaigns)
     .where(
       and(
         eq(schema.campaigns.organizationId, organizationId),
         eq(schema.campaigns.status, "active"),
-        eq(schema.campaigns.channel, "email"),
+        ne(schema.campaigns.channel, "link"),
         scope.all
           ? undefined
           : scope.locationIds.length === 0
@@ -371,4 +384,8 @@ export async function listReviewCampaigns(
       ),
     )
     .orderBy(schema.campaigns.name);
+
+  // `link` is excluded in SQL; the cast states what that leaves rather than
+  // widening every caller's type to a channel this list cannot contain.
+  return rows.map((row) => ({ ...row, channel: row.channel as "email" | "sms" | "whatsapp" }));
 }

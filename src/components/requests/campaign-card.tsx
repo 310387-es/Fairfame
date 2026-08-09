@@ -22,6 +22,22 @@ import { archiveCampaignAction, sendRequestsAction } from "@/server/campaigns";
  * changes.
  */
 
+/**
+ * What the card calls each channel (A22-A2).
+ *
+ * It was a ternary — email, or else "link" — which was right while those were
+ * the only two the form could produce and became a lie the moment WhatsApp and
+ * SMS could be chosen: a WhatsApp campaign introduced itself as a QR code. A
+ * map rather than another branch, so the next channel is one line and an
+ * unknown one still reads as something rather than blank.
+ */
+const CHANNEL_LABELS: Record<string, string> = {
+  email: "channelEmail",
+  whatsapp: "channelWhatsapp",
+  sms: "channelSms",
+  link: "channelLink",
+};
+
 export type CampaignCardProps = {
   campaign: {
     id: string;
@@ -77,8 +93,7 @@ export function CampaignCard({ campaign, canManage }: CampaignCardProps) {
                 `title` and well below `metric`. It named no size at all before. */}
             <p className="truncate text-[17px] font-semibold">{campaign.name}</p>
             <p className="truncate text-body text-muted-foreground">
-              {campaign.locationName} ·{" "}
-              {campaign.channel === "email" ? t("channelEmail") : t("channelLink")}
+              {campaign.locationName} · {t(CHANNEL_LABELS[campaign.channel] ?? "channelLink")}
             </p>
           </div>
           {/* Active is a state, not a control — the positive pair, not indigo. */}

@@ -6,6 +6,7 @@ import { createLocalGateway } from "@/compliance/iys-gateway";
 import { sendReviewRequests } from "@/collect/requests";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { withTenant } from "@/lib/tenancy";
+import { listReviewCampaigns } from "@/surveys/store";
 
 /**
  * Review requests on WhatsApp and SMS (W2.2).
@@ -245,5 +246,73 @@ describe("a review request by email", () => {
 
     expect(outcome.sent).toBe(1);
     expect(outcome.failed).toBe(0);
+  });
+});
+
+/**
+ * A22-A2 — which campaigns a survey or a broadcast may point at.
+ *
+ * It filtered to `channel = 'email'`, which was the other half of the WhatsApp
+ * bug: a broadcast could name WhatsApp and had nothing but email campaigns to
+ * choose from, so it picked one, and the send took its channel from there.
+ * `link` is the one that must stay out — it has nothing to deliver, and
+ * offering it is a picker that lets somebody be wrong and then tells them off.
+ */
+describe("the campaigns a send may point at", () => {
+  const everywhere = { all: true as const, locationIds: [] as string[] };
+
+  it("offers the messaging campaigns, which it used to hide", async () => {
+    const whatsappId = await makeCampaign(fixture, "whatsapp");
+    const smsId = await makeCampaign(fixture, "sms");
+
+    const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      listReviewCampaigns(tx, fixture.orgId, everywhere),
+    );
+
+    const ids = rows.map((row) => row.id);
+    expect(ids).toContain(whatsappId);
+    expect(ids).toContain(smsId);
+  });
+
+  it("carries each campaign's own channel, so a picker can narrow", async () => {
+    const whatsappId = await makeCampaign(fixture, "whatsapp");
+
+    const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      listReviewCampaigns(tx, fixture.orgId, everywhere),
+    );
+
+    expect(rows.find((row) => row.id === whatsappId)?.channel).toBe("whatsapp");
+  });
+
+  it("never offers a QR campaign, which has nothing to send", async () => {
+    const [linkCampaign] = await getAdminDb()
+      .insert(schema.campaigns)
+      .values({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        name: "Masa kartı",
+        channel: "link",
+        status: "active",
+        slug: `reqch-link-${suffix}`,
+      })
+      .returning({ id: schema.campaigns.id });
+
+    const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      listReviewCampaigns(tx, fixture.orgId, everywhere),
+    );
+
+    expect(rows.map((row) => row.id)).not.toContain(linkCampaign!.id);
+  });
+
+  it("returns nothing for a member scoped to no branch", async () => {
+    await makeCampaign(fixture, "whatsapp");
+
+    // The `src/analytics/facts.ts` rule: an empty scope is nothing, never
+    // everything — the failure that looks perfect to the admin testing it.
+    const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      listReviewCampaigns(tx, fixture.orgId, { all: false, locationIds: [] }),
+    );
+
+    expect(rows).toHaveLength(0);
   });
 });

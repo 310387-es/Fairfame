@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { withAuthenticatedTenant } from "@/auth/session";
 import { weekWindow } from "@/digest/metrics";
-import { digestProgress, setActionStatus, type DigestProgress } from "@/digest/queries";
+import {
+  digestProgress,
+  setActionStatus,
+  windowReadiness,
+  type DigestProgress,
+} from "@/digest/queries";
 import { requestDigest } from "@/jobs/client";
 import { childLogger } from "@/lib/logger";
 import { invalidInput, toActionResult, type ActionResult } from "@/server/action-result";
@@ -20,28 +25,71 @@ import { invalidInput, toActionResult, type ActionResult } from "@/server/action
 
 const log = childLogger({ module: "server/digests" });
 
-export async function generateDigestAction(input: { locationId: string }): Promise<ActionResult> {
+/**
+ * What the caller must know to tell a finished refresh from one that has not
+ * started (A22-A1).
+ *
+ * A refresh leaves the row `ready` for its whole duration — that is the fix —
+ * so "is it done" cannot be answered by the status any more. The action reports
+ * the composition time *at the moment the job was queued*, and the button waits
+ * for that to move. Without it the first poll, three seconds in, would find a
+ * ready digest that nobody had touched yet and declare success.
+ */
+export type DigestQueued = { queuedAgainst: string | null };
+
+export async function generateDigestAction(input: {
+  locationId: string;
+}): Promise<ActionResult<DigestQueued>> {
   const parsed = z.object({ locationId: z.uuid() }).safeParse(input);
   if (!parsed.success) return invalidInput(parsed.error, "Invalid location.");
 
   try {
-    const queued = await withAuthenticatedTenant(
-      async (_tx, actor) =>
-        requestDigest({
+    const outcome = await withAuthenticatedTenant(
+      async (tx, actor) => {
+        const window = weekWindow(new Date());
+
+        // Asked before the job is queued, not after a minute of spinner: the
+        // pipeline would decline this window and the owner would read the
+        // refusal as a broken button. The screen disables the control for the
+        // same reason — this is the half that a disabled control is not.
+        const readiness = await windowReadiness(
+          tx,
+          actor.organizationId,
+          parsed.data.locationId,
+          window,
+        );
+
+        if (!readiness.enough) return { refused: "not_enough_analysed" as const };
+
+        const before = await digestProgress(
+          tx,
+          actor.organizationId,
+          parsed.data.locationId,
+          window.start,
+        );
+
+        const queued = await requestDigest({
           organizationId: actor.organizationId,
           locationId: parsed.data.locationId,
           force: true,
-        }),
+        });
+
+        return { queued, queuedAgainst: before.generatedAt?.toISOString() ?? null };
+      },
       // Regenerating spends the AI allowance, so it is not a member's call.
       { minimumRole: "admin" },
     );
 
-    if (!queued) {
+    if ("refused" in outcome) {
+      return { ok: false, error: "There is not enough analysed feedback in that week yet." };
+    }
+
+    if (!outcome.queued) {
       return { ok: false, error: "Could not queue the digest. Try again shortly." };
     }
 
     revalidatePath("/", "layout");
-    return { ok: true };
+    return { ok: true, queuedAgainst: outcome.queuedAgainst };
   } catch (error) {
     log.warn({ err: error }, "generateDigest failed");
     return toActionResult(error);
@@ -60,9 +108,20 @@ export async function generateDigestAction(input: { locationId: string }): Promi
  * week, not on whatever Home happens to be rendering: during a regeneration
  * those differ, because a pending row stops being the newest ready one.
  */
+/**
+ * `DigestProgress` with the timestamp as a string.
+ *
+ * The button compares it with the one `generateDigestAction` handed back, and a
+ * comparison between two things that crossed a serialization boundary should be
+ * between two of the same thing.
+ */
+export type DigestProgressPayload = Omit<DigestProgress, "generatedAt"> & {
+  generatedAt: string | null;
+};
+
 export async function digestProgressAction(input: {
   locationId: string;
-}): Promise<ActionResult<DigestProgress>> {
+}): Promise<ActionResult<DigestProgressPayload>> {
   const parsed = z.object({ locationId: z.uuid() }).safeParse(input);
   if (!parsed.success) return invalidInput(parsed.error, "Invalid location.");
 
@@ -80,7 +139,7 @@ export async function digestProgressAction(input: {
       { minimumRole: "member" },
     );
 
-    return { ok: true, ...progress };
+    return { ok: true, ...progress, generatedAt: progress.generatedAt?.toISOString() ?? null };
   } catch (error) {
     log.warn({ err: error }, "digestProgress failed");
     return toActionResult(error);

@@ -73,6 +73,7 @@ export async function NeedsAttention({
     at: row.at.toISOString(),
     atLabel: format.relativeTime(row.at, now),
     preview: preview(row.text) ?? t("noText"),
+    drafted: row.drafted,
   }));
 
   return (

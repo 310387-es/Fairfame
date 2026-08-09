@@ -21,7 +21,19 @@ import type { ReviewStatus, Sentiment } from "../db/schema.ts";
 export const INBOX_SORTS = ["recent", "priority"] as const;
 export type InboxSort = (typeof INBOX_SORTS)[number];
 
-export const REPLY_STATES = ["unanswered", "answered"] as const;
+/**
+ * `drafted` is a **subset of `unanswered`**, not a third state (A22-A4).
+ *
+ * A review somebody has drafted a reply to has still not been answered — the
+ * customer has heard nothing — so it stays in the unanswered queue and its
+ * count. What this value buys is a way to look at just those: "what has been
+ * written and not sent" is a real question, and before it existed the only
+ * answer was that the review had quietly left every list.
+ *
+ * An older saved view or a stale link carrying an unknown value degrades to
+ * "no reply filter", which is this module's standing contract.
+ */
+export const REPLY_STATES = ["unanswered", "answered", "drafted"] as const;
 export type ReplyState = (typeof REPLY_STATES)[number];
 
 const SENTIMENTS = ["positive", "neutral", "negative"] as const;

@@ -227,6 +227,31 @@ describe("refreshPriority", () => {
     );
   });
 
+  it("does not lower the score for a draft nobody has sent", async () => {
+    /**
+     * A22-A4. `answered` was `replies.id IS NOT NULL`, so pressing "draft with
+     * AI" on the angriest review in the queue moved it 55 points *down* the
+     * queue — the answered penalty plus the lost unanswered bonus — on the
+     * strength of text no customer had seen.
+     */
+    const review = canonical(fixture.locationId, { rating: 1 });
+    await ingest(fixture, [review]);
+    const row = await readReview(fixture.orgId, review.sourceReviewId);
+
+    await getAdminDb().insert(schema.replies).values({
+      organizationId: fixture.orgId,
+      reviewId: row.id,
+      text: "Henüz gönderilmedi.",
+      status: "draft",
+    });
+
+    await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      refreshPriority(tx, fixture.orgId, [row.id]),
+    );
+
+    expect((await readReview(fixture.orgId, review.sourceReviewId)).priority).toBe(row.priority);
+  });
+
   it("lowers the score once a live reply exists, but not for a failed attempt", async () => {
     const review = canonical(fixture.locationId, { rating: 1 });
     await ingest(fixture, [review]);
@@ -247,9 +272,12 @@ describe("refreshPriority", () => {
     );
     expect((await readReview(fixture.orgId, review.sourceReviewId)).priority).toBe(row.priority);
 
+    // Status and timestamp together, as `postReply` writes them — the score
+    // asks when the reply went out, not what the column beside it says, so that
+    // a *draft* cannot sink the review it is being written for (A22-A4).
     await getAdminDb()
       .update(schema.replies)
-      .set({ status: "posted" })
+      .set({ status: "posted", postedAt: new Date() })
       .where(eq(schema.replies.id, failed!.id));
 
     await withTenant({ organizationId: fixture.orgId }, (tx) =>

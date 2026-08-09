@@ -4,6 +4,7 @@ import Link from "next/link";
 import { IconTile } from "@/components/ds/icon-tile";
 import { Button } from "@/components/ui/button";
 import type { Insight } from "@/dashboard/insight";
+import type { Range } from "@/dashboard/range";
 
 /**
  * The one line that says what to do about right now.
@@ -15,10 +16,21 @@ import type { Insight } from "@/dashboard/insight";
  *
  * The sentence is assembled from counts rather than generated — see
  * `dashboard/insight.ts` for why that is a feature and not a shortcut.
+ *
+ * **Both counts say what they count** (A22-A3). The first clause is *negative*
+ * reviews needing a reply, not every unanswered item, and the copy says
+ * "negative" — the Inbox's own "Needs a reply" is a wider number, and two
+ * different figures under the same words is what made the cafe-owner test
+ * distrust every number on the product. The second is a subset of the first, so
+ * it can never exceed it; it used to be counted independently, and printed "7
+ * of 6" on a real account. And "nothing is waiting" now says *negative*
+ * nothing, because a business with thirty unanswered five-star reviews was
+ * being told its queue was clear.
  */
-export async function AiInsightStrip({ insight }: { insight: Insight }) {
-  const [t, tThemes, format] = await Promise.all([
+export async function AiInsightStrip({ insight, range }: { insight: Insight; range: Range }) {
+  const [t, tHome, tThemes, format] = await Promise.all([
     getTranslations("home.insight"),
+    getTranslations("home"),
     // Canonical theme names, the same catalogue the attention queue and the
     // heatmap read — so one theme is one word wherever it appears.
     getTranslations("themes"),
@@ -27,7 +39,22 @@ export async function AiInsightStrip({ insight }: { insight: Insight }) {
 
   const clauses: string[] = [];
 
-  clauses.push(insight.waiting > 0 ? t("waiting", { count: insight.waiting }) : t("clear"));
+  /**
+   * The window, in the sentence (A22-A3).
+   *
+   * The strip sits under a 7/30/90 selector and said only "6 waiting", while
+   * the Inbox queue it links to counts everything ever received. Clicking
+   * through from six to nine looks like a product that cannot count; it is two
+   * honest answers to two different questions, and the only fix is for the
+   * sentence to say which question it answered.
+   */
+  const rangeLabel = tHome(`range.${range}.long`);
+
+  clauses.push(
+    insight.waiting > 0
+      ? t("waiting", { count: insight.waiting, range: rangeLabel })
+      : t("clear", { range: rangeLabel }),
+  );
 
   if (insight.theme && insight.themeNegatives > 0) {
     clauses.push(

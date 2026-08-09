@@ -21,9 +21,13 @@ import { isEmailRecipient, type RequestRecipient } from "./input.ts";
  * hundred SMTP round trips would pin a pooled connection for the duration and
  * make a slow mail server look like a database outage.
  *
- * The plan's channel scope for T1 is email. `link` campaigns send nothing (the
- * customer arrives via QR), and SMS/WhatsApp are refused until their connectors
- * and the İYS consent gate exist — see P1b-T3 and T5.
+ * **Three channels, and the caller says which** (W2.2, A22-A2). `link`
+ * campaigns send nothing — the customer arrives via QR — and email, WhatsApp
+ * and SMS all have a transport. Whether a message may actually *leave* is
+ * `checkSendAllowed`'s decision at send time, per person, with a named reason;
+ * it is not a list here saying "not built". The one asymmetry, stated again
+ * where it bites: the email path does not go through that gate, which is why
+ * the channel of a send is never taken from anything a browser sent us.
  */
 
 const log = childLogger({ module: "collect/requests" });
@@ -38,11 +42,21 @@ export class SendNotAllowedError extends Error {
   }
 }
 
+/**
+ * A channel a review request can actually be delivered on.
+ *
+ * `link` is deliberately absent: a QR campaign sends nothing, so it is not a
+ * choice a send can make. It is refused in `prepareRequests`, where the
+ * campaign is read, rather than being a fourth member here that every caller
+ * would have to remember to exclude.
+ */
+export type RequestChannel = "email" | "whatsapp" | "sms";
+
 export type PreparedRequest = {
   requestId: string;
   token: string;
-  /** How this one goes out. A single send is one channel, the campaign's. */
-  channel: "email" | "whatsapp" | "sms";
+  /** How this one goes out. One send is one channel, named by the caller. */
+  channel: RequestChannel;
   /** Always known: the gate and the message log are both keyed on the person. */
   contactId: string;
   /** The address, for the label a failure is reported under. */
@@ -104,7 +118,28 @@ function resolveLocale(...candidates: (string | null | undefined)[]): Locale {
  */
 export async function prepareRequests(
   tx: TenantDatabase,
-  args: { organizationId: string; campaignId: string; recipients: RequestRecipient[] },
+  args: {
+    organizationId: string;
+    campaignId: string;
+    recipients: RequestRecipient[];
+    /**
+     * How these go out — **named by the caller, never inferred here** (A22-A2).
+     *
+     * It used to be read off the campaign, which was wrong the moment a
+     * *broadcast* could name a channel of its own: a WhatsApp broadcast checked
+     * each recipient's WhatsApp permission, then handed the list to this
+     * function, which quietly emailed everyone who passed. Nothing failed and
+     * nothing was logged — the operator's only evidence was a screen saying
+     * "sent". The channel a send was gated on and the channel it leaves on have
+     * to be one value, so it is one value, and it is an argument.
+     *
+     * Both callers derive it server-side — `sendReviewRequests` from the
+     * campaign, the broadcast pipeline from the broadcast row. It must never
+     * come from a form: choosing `email` for a phone campaign would be a way to
+     * post around the consent gate, which only the messaging path goes through.
+     */
+    channel: RequestChannel;
+  },
 ): Promise<{ prepared: PreparedRequest[]; skipped: SkippedRecipient[]; context: SendContext }> {
   const [campaign] = await tx
     .select({
@@ -127,13 +162,15 @@ export async function prepareRequests(
 
   if (!campaign) throw new SendNotAllowedError("That campaign does not exist.", "status");
 
-  const channel = campaign.campaign.channel;
+  const channel = args.channel;
 
-  // `link` is the only channel with nothing to send: the customer arrives from
-  // a QR code on their own. Every other channel now has a transport (W2.2), and
-  // whether a message may actually leave is the gate's decision at send time,
-  // with a named reason — not a list here saying "not built".
-  if (channel === "link") {
+  // `link` is a property of the *campaign*, not of this send: it means the
+  // campaign has nothing to deliver, because the customer arrives from a QR
+  // code on their own. So it refuses whatever channel was asked for, while
+  // every other campaign can be sent on whichever channel the caller names —
+  // its own `channel` column is the default that `sendReviewRequests` reads,
+  // not a constraint on a broadcast that named one explicitly.
+  if (campaign.campaign.channel === "link") {
     throw new SendNotAllowedError(
       "A QR/link campaign has nothing to send — share its link instead.",
       "channel",
@@ -457,6 +494,39 @@ export type SendReviewRequestsArgs = {
   recipients: RequestRecipient[];
 };
 
+/**
+ * The channel a campaign sends on by default.
+ *
+ * Read here rather than passed in, because the only other place it could come
+ * from is the browser — and a caller able to say "send this one by email" could
+ * take a phone campaign around the consent gate, which the email path does not
+ * go through. `link` is refused with the same sentence `prepareRequests` uses.
+ */
+async function campaignChannel(
+  tx: TenantDatabase,
+  organizationId: string,
+  campaignId: string,
+): Promise<RequestChannel> {
+  const [row] = await tx
+    .select({ channel: schema.campaigns.channel })
+    .from(schema.campaigns)
+    .where(
+      and(eq(schema.campaigns.organizationId, organizationId), eq(schema.campaigns.id, campaignId)),
+    )
+    .limit(1);
+
+  if (!row) throw new SendNotAllowedError("That campaign does not exist.", "status");
+
+  if (row.channel === "link") {
+    throw new SendNotAllowedError(
+      "A QR/link campaign has nothing to send — share its link instead.",
+      "channel",
+    );
+  }
+
+  return row.channel;
+}
+
 /** The whole send, phases in order. Used by the server action and by tests. */
 export async function sendReviewRequests(args: SendReviewRequestsArgs): Promise<SendOutcome> {
   const { prepared, skipped, context } = await withTenant(
@@ -464,11 +534,12 @@ export async function sendReviewRequests(args: SendReviewRequestsArgs): Promise<
       organizationId: args.organizationId,
       ...(args.actorUserId ? { userId: args.actorUserId } : {}),
     },
-    (tx) =>
+    async (tx) =>
       prepareRequests(tx, {
         organizationId: args.organizationId,
         campaignId: args.campaignId,
         recipients: args.recipients,
+        channel: await campaignChannel(tx, args.organizationId, args.campaignId),
       }),
   );
 

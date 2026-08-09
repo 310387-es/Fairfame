@@ -80,9 +80,9 @@
       "outOf": "{max} üzerinden"
     },
     "insight": {
-      "waiting": "{count, plural, =1 {1 yorum yanıt bekliyor} other {# yorum yanıt bekliyor}}.",
-      "clear": "Yanıt bekleyen yorum yok.",
-      "theme": "{count, plural, =1 {1 tanesi {theme} konusunda olumsuz} other {# tanesi {theme} konusunda olumsuz}}.",
+      "waiting": "{range}: {count, plural, =1 {1 olumsuz yorum} other {# olumsuz yorum}} yanıt bekliyor.",
+      "clear": "{range}: yanıt bekleyen olumsuz yorum yok.",
+      "theme": "{count, plural, =1 {1 tanesi {theme} konusunda} other {# tanesi {theme} konusunda}}.",
       "ratingHolding": "Puanınız {rating}★ seviyesinde duruyor.",
       "ratingUp": "Puanınız yükseldi, {rating}★.",
       "ratingDown": "Puanınız {rating}★ seviyesine geriledi.",
@@ -129,7 +129,8 @@
       "drafted": "Taslak hazır — göndermeden önce okuyun.",
       "draftLabel": "Yapay zekâ taslağı",
       "editAndSend": "Düzenle ve gönder",
-      "open": "Aç"
+      "open": "Aç",
+      "draftWaiting": "Gönderilmeyi bekleyen bir taslak var"
     },
     "range": {
       "7d": {
@@ -461,7 +462,10 @@
     "noLocation": "Bir şube ekleyin; ilk haftalık özetiniz hafta tamamlandıktan sonra gelecek.",
     "noLocationAction": "Şubelere git",
     "empty": "Henüz özet yok. İlki, tam bir haftalık yorum biriktikten sonra hazırlanır.",
-    "generate": "Bu haftayı hazırla",
+    "generatePeriod": "{period} haftasını hazırla",
+    "refreshPeriod": "{period} haftasını yeniden hazırla",
+    "refreshFailed": "O hafta yeniden hazırlanamadı — aşağıdaki plan zaten elinizdeki plan. Dilediğinizde tekrar deneyebilirsiniz.",
+    "tooThin": "O hafta için en az {count} analiz edilmiş yorum gerekiyor; şu an {analysed} var.",
     "composing": "Hazırlanıyor… yaklaşık bir dakika sürer.",
     "composeSlow": "Hâlâ hazırlanıyor — beklenenden uzun sürüyor. Kendiliğinden tamamlanacak.",
     "composeFailed": "Bu özet hazırlanamadı. Saatlik tarama yeniden deneyecek.",
@@ -571,7 +575,8 @@
       "unanswered": "Yanıt bekliyor",
       "negative": "Olumsuz",
       "mine": "Bana atanan",
-      "overdue": "Süresi geçen"
+      "overdue": "Süresi geçen",
+      "drafted": "Taslak yazıldı"
     },
     "closeReview": "Kapat",
     "searchLabel": "Bu yorumlarda ara",
@@ -741,6 +746,10 @@
     "location": "Şube",
     "channel": "Nasıl soralım",
     "channelEmail": "Müşteriye e-posta",
+    "channelWhatsapp": "WhatsApp mesajı",
+    "channelSms": "SMS",
+    "channelNeedsConnection": "Önce Kanallar’dan bağlayın.",
+    "channelNotLiveNote": "Şimdi kurabilirsiniz, ancak izin kaydı ve canlı bir sağlayıcı bağlanana kadar hiçbir mesaj gitmez — her alıcı gerekçesiyle birlikte reddedilir. Uyumluluk sayfasına bakın.",
     "channelLink": "Bağlantı / QR kod",
     "destination": "Nereye bıraksınlar",
     "destinationFirstparty": "Kendi yorum sayfamız",
@@ -1207,7 +1216,8 @@
     "channelEmail": "E-posta",
     "channelSms": "SMS",
     "channelWhatsapp": "WhatsApp",
-    "channelLink": "Bağlantı"
+    "channelLink": "Bağlantı",
+    "noCampaignsForChannel": "Henüz {channel} kampanyası yok — Yorum toplayın sayfasından oluşturun."
   },
   "clients": {
     "title": "Ajans",

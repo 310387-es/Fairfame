@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { runAi } from "../ai/client.ts";
 import { LlmError } from "../ai/types.ts";
@@ -26,6 +26,7 @@ import {
   clusterThemes,
   computeChanges,
   computePulse,
+  MIN_ANALYSED_REVIEWS,
   rawPulse,
   openNegatives,
   priorWindow,
@@ -120,14 +121,14 @@ export type DigestPayload = {
 };
 
 /**
- * Below this many analysed reviews, the week is an anecdote (W1.6).
+ * Re-exported from `./metrics.ts`, which is where it now lives (A22-A1).
  *
- * Five, which is small enough that a quiet café still gets briefings and large
- * enough that a theme means more than one person having a bad Tuesday. The
- * figure is a judgement rather than a derivation, and it is written down here
- * so it can be argued with in one place rather than guessed at in three.
+ * The compose button has to know the threshold to disable itself, and it reads
+ * through `./queries.ts` — a module whose whole purpose is that a screen can
+ * read a digest without importing one that can spend money. So the number moved
+ * to the pure module both of them already import.
  */
-export const MIN_ANALYSED_REVIEWS = 5;
+export { MIN_ANALYSED_REVIEWS } from "./metrics.ts";
 
 /**
  * The reviews an action cited, by the quote numbers the prompt printed.
@@ -185,11 +186,39 @@ export type GenerateResult = {
   digestId: string;
   status: "ready" | "skipped" | "failed";
   /** Set when nothing was generated. */
-  reason?: "already_exists" | "no_reviews" | "not_enough_analysed";
+  reason?: "already_exists" | "no_reviews" | "not_enough_analysed" | "refresh_in_flight";
   pulse: number | null;
   reviewCount: number;
   actions: number;
+  /**
+   * The run was a refresh of a week already published, so nothing on screen
+   * changed unless it succeeded (A22-A1).
+   */
+  refresh?: boolean;
 };
+
+/**
+ * How long a claimed refresh is believed before another worker may take it.
+ *
+ * Composition is ~40-60s and the queue's own retries are bounded well inside
+ * this, so a claim older than ten minutes belongs to a process that died. The
+ * opposite mistake — no expiry — wedges a week forever on one crash.
+ */
+const REFRESH_CLAIM_TTL_MS = 10 * 60_000;
+
+/**
+ * Whether a stored payload is a briefing somebody could be reading.
+ *
+ * The two absences the pipeline publishes on purpose — an empty week and one
+ * too thin to compose — are `ready` rows with nothing in them, and recomposing
+ * over either is the whole point of pressing the button. A headline is the
+ * cheapest honest test: every composed digest has one and neither absence does.
+ */
+function isBriefing(payload: unknown): boolean {
+  const candidate = payload as DigestPayload | null;
+  if (!candidate || candidate.insufficient) return false;
+  return typeof candidate.headline === "string" && candidate.headline.trim().length > 0;
+}
 
 /** Reviews in a window, with their insights and whether they have a reply. */
 async function gather(
@@ -389,7 +418,11 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
 
   const prepared = await withTenant({ organizationId }, async (tx) => {
     const [existing] = await tx
-      .select({ id: schema.digests.id, status: schema.digests.status })
+      .select({
+        id: schema.digests.id,
+        status: schema.digests.status,
+        payload: schema.digests.payload,
+      })
       .from(schema.digests)
       .where(
         and(
@@ -402,6 +435,56 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
 
     if (existing && existing.status === "ready" && !args.force) {
       return { skip: "already_exists" as const, digestId: existing.id };
+    }
+
+    /**
+     * Recomposing a week somebody is already reading (A22-A1).
+     *
+     * The claim below moves the row to `pending`, and the catch at the bottom
+     * used to move it to `failed`. Both are correct for a week that has never
+     * been published and destructive for one that has: every reader filters on
+     * `ready`, so a refresh that did not work took the briefing off the screen
+     * while its payload sat untouched in the column. That was the single worst
+     * bug in the product — the owner pressed the button on the feature they
+     * pay for and it deleted the thing they pay for.
+     *
+     * So a refresh claims and reports through `refresh_started_at` /
+     * `refresh_error` instead, and the published columns are written exactly
+     * once, on success, in the same transaction that replaces the actions.
+     * That is the plan's "shadow row, swap on success" without a second row —
+     * the swap was already atomic, and the id must not move, because it is in
+     * `/weekly-plan/{id}` links, `digest_actions` and `digest_deliveries`.
+     *
+     * **What is protected is a briefing, not a row.** A `ready` row can also be
+     * a stated absence — an empty week, or one too thin to compose — and those
+     * carry nothing to lose. Onboarding depends on it: the sweep writes the
+     * empty week before anything is ingested, and the first briefing is
+     * composed over it. Treating that as a published plan would leave a new
+     * account looking at "no reviews this week" with its own reviews on screen.
+     */
+    const refreshing = existing?.status === "ready" && isBriefing(existing.payload);
+
+    if (refreshing) {
+      const staleBefore = new Date(now.getTime() - REFRESH_CLAIM_TTL_MS);
+
+      const [claimedRefresh] = await tx
+        .update(schema.digests)
+        .set({ refreshStartedAt: now, updatedAt: now })
+        .where(
+          and(
+            eq(schema.digests.id, existing.id),
+            or(
+              isNull(schema.digests.refreshStartedAt),
+              lt(schema.digests.refreshStartedAt, staleBefore),
+            ),
+          ),
+        )
+        .returning({ id: schema.digests.id });
+
+      // Somebody else is composing this week right now. Theirs will land.
+      if (!claimedRefresh) {
+        return { skip: "refresh_in_flight" as const, digestId: existing.id };
+      }
     }
 
     const reviews = await gather(tx, organizationId, locationId, window);
@@ -423,7 +506,8 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
     if (!location) throw new Error(`Location ${locationId} not found for this organization.`);
 
     // Claim the row before doing anything expensive, so two workers cannot
-    // compose the same week twice.
+    // compose the same week twice. A refresh has already claimed itself above
+    // and must not be moved off `ready`, so it only refreshes the review count.
     const [claimed] = await tx
       .insert(schema.digests)
       .values({
@@ -436,7 +520,9 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
       })
       .onConflictDoUpdate({
         target: [schema.digests.locationId, schema.digests.periodStart],
-        set: { status: "pending", reviewCount: reviews.length, updatedAt: now },
+        set: refreshing
+          ? { updatedAt: now }
+          : { status: "pending", reviewCount: reviews.length, updatedAt: now },
       })
       .returning({ id: schema.digests.id });
 
@@ -445,6 +531,7 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
     return {
       skip: null,
       digestId: claimed.id,
+      refreshing,
       reviews,
       priorReviews,
       prior,
@@ -464,9 +551,43 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
     };
   }
 
-  const { digestId, reviews, priorReviews, prior, location, priorActionsOutcome } = prepared;
+  const { digestId, refreshing, reviews, priorReviews, prior, location, priorActionsOutcome } =
+    prepared;
+
+  /**
+   * A refresh that produced nothing keeps the published week exactly as it is.
+   *
+   * Both callers below are outcomes that are perfectly good *first* answers —
+   * an empty week is news, and a week too thin to compose says so — and are
+   * destructive as *second* ones: they would write `emptyPayload` over a real
+   * briefing. The refusal is recorded where the screen can say "couldn't
+   * refresh", and the claim is released so the next attempt is not blocked.
+   */
+  const declineRefresh = async (note: string): Promise<void> => {
+    await withTenant({ organizationId }, (tx) =>
+      tx
+        .update(schema.digests)
+        .set({ refreshStartedAt: null, refreshError: note, updatedAt: now })
+        .where(eq(schema.digests.id, digestId)),
+    );
+
+    log.info({ organizationId, locationId, digestId, note }, "Digest refresh declined");
+  };
 
   if (reviews.length === 0) {
+    if (refreshing) {
+      await declineRefresh("no_reviews");
+      return {
+        digestId,
+        status: "ready",
+        reason: "no_reviews",
+        pulse: null,
+        reviewCount: 0,
+        actions: 0,
+        refresh: true,
+      };
+    }
+
     await withTenant({ organizationId }, (tx) =>
       tx
         .update(schema.digests)
@@ -532,6 +653,19 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
       { organizationId, locationId, themes: themes.length, analysedCount },
       "Digest declined: not enough analysed feedback",
     );
+
+    if (refreshing) {
+      await declineRefresh("not_enough_analysed");
+      return {
+        digestId,
+        status: "ready",
+        reason: "not_enough_analysed",
+        pulse: computePulse(reviews, { prior: rawPulse(reviews) }),
+        reviewCount: reviews.length,
+        actions: 0,
+        refresh: true,
+      };
+    }
 
     await withTenant({ organizationId }, async (tx) =>
       tx
@@ -771,6 +905,12 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
           promptId: prompt.id,
           model: response.model,
           lastError: null,
+          // The swap. Everything a reader sees moves here, in one statement,
+          // beside the actions below — and the refresh state it was composed
+          // under is cleared with it, so a week that recovered stops claiming
+          // it could not be refreshed.
+          refreshStartedAt: null,
+          refreshError: null,
           generatedAt: now,
           updatedAt: now,
         })
@@ -822,13 +962,33 @@ export async function generateDigest(args: GenerateArgs): Promise<GenerateResult
     await withTenant({ organizationId }, (tx) =>
       tx
         .update(schema.digests)
-        .set({ status: "failed", lastError: reason, updatedAt: now })
+        .set(
+          // A refresh that failed leaves the published week untouched — status,
+          // payload, actions and `generated_at` all stay as they were — and
+          // says so in its own column. Only a week that has never been
+          // published can be marked failed, because there is nothing to lose.
+          refreshing
+            ? { refreshStartedAt: null, refreshError: reason, updatedAt: now }
+            : { status: "failed", lastError: reason, updatedAt: now },
+        )
         .where(eq(schema.digests.id, digestId)),
     );
 
-    log.error({ organizationId, locationId, digestId, err: error }, "Digest generation failed");
+    log.error(
+      { organizationId, locationId, digestId, refresh: refreshing, err: error },
+      refreshing
+        ? "Digest refresh failed; the published week is unchanged"
+        : "Digest generation failed",
+    );
 
-    return { digestId, status: "failed", pulse, reviewCount: reviews.length, actions: 0 };
+    return {
+      digestId,
+      status: "failed",
+      pulse,
+      reviewCount: reviews.length,
+      actions: 0,
+      ...(refreshing ? { refresh: true } : {}),
+    };
   }
 }
 

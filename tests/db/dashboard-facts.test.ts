@@ -305,9 +305,36 @@ describe("the attention queue", () => {
     expect(rows[0]?.text).toBe("Bir yorum.");
   });
 
-  it("treats a draft as taken, so two people are not sent to one review", async () => {
+  it("keeps a drafted review, and marks it rather than hiding it", async () => {
+    /**
+     * This asserted the opposite until A22-A4, and the reasoning was real: a
+     * drafted review was hidden so two people would not be sent to the same
+     * one. The price was worse than the problem — a draft nobody approves took
+     * the review out of every work list in the product while the customer went
+     * on waiting, which is the failure mode nobody would ever notice.
+     *
+     * So the row stays, because the customer has not heard back, and it carries
+     * a flag the card reads: it offers "a draft is waiting — edit and send"
+     * instead of a button to write a second one over a colleague's.
+     */
     const fixture = await makeFixture("claimed");
     await addReview(fixture, { rating: 1, sentiment: "negative", replies: [{ status: "draft" }] });
+
+    const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      needsAttention(tx, fixture.orgId, [fixture.locationId], WINDOW, { now: NOW }),
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.drafted).toBe(true);
+  });
+
+  it("leaves a posted reply out of it, and does not mark it drafted", async () => {
+    const fixture = await makeFixture("answered-out");
+    await addReview(fixture, {
+      rating: 1,
+      sentiment: "negative",
+      replies: [{ status: "posted", postedAt: NOW }],
+    });
 
     const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
       needsAttention(tx, fixture.orgId, [fixture.locationId], WINDOW, { now: NOW }),

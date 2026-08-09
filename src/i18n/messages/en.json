@@ -80,9 +80,9 @@
       "outOf": "out of {max}"
     },
     "insight": {
-      "waiting": "{count, plural, =1 {1 review is waiting for a reply} other {# reviews are waiting for a reply}}.",
-      "clear": "Nothing is waiting for a reply.",
-      "theme": "{count, plural, =1 {1 is negative about {theme}} other {# are negative about {theme}}}.",
+      "waiting": "{range}: {count, plural, =1 {1 negative review is} other {# negative reviews are}} waiting for a reply.",
+      "clear": "{range}: no negative review is waiting for a reply.",
+      "theme": "{count, plural, =1 {1 of them is about {theme}} other {# of them are about {theme}}}.",
       "ratingHolding": "Your rating is holding at {rating}★.",
       "ratingUp": "Your rating is up, at {rating}★.",
       "ratingDown": "Your rating has slipped to {rating}★.",
@@ -129,7 +129,8 @@
       "drafted": "Draft ready — read it before it goes out.",
       "draftLabel": "AI draft",
       "editAndSend": "Edit and send",
-      "open": "Open"
+      "open": "Open",
+      "draftWaiting": "A draft is waiting to be sent"
     },
     "range": {
       "7d": {
@@ -461,7 +462,10 @@
     "noLocation": "Add a location and your first weekly digest will arrive after the week ends.",
     "noLocationAction": "Go to Locations",
     "empty": "No digests yet. The first one is composed after a full week of reviews.",
-    "generate": "Compose this week",
+    "generatePeriod": "Compose {period}",
+    "refreshPeriod": "Recompose {period}",
+    "refreshFailed": "Couldn't recompose that week — the plan below is the one you already had. Try again when you like.",
+    "tooThin": "That week needs at least {count} analysed reviews; so far it has {analysed}.",
     "composing": "Composing… this takes about a minute.",
     "composeSlow": "Still composing — this is taking longer than usual. It will finish on its own.",
     "composeFailed": "That digest could not be composed. The hourly sweep will try again.",
@@ -571,7 +575,8 @@
       "unanswered": "Needs a reply",
       "negative": "Negative",
       "mine": "Assigned to me",
-      "overdue": "Overdue"
+      "overdue": "Overdue",
+      "drafted": "Drafted"
     },
     "closeReview": "Close",
     "searchLabel": "Search these reviews",
@@ -741,6 +746,10 @@
     "location": "Location",
     "channel": "How you ask",
     "channelEmail": "Email the customer",
+    "channelWhatsapp": "WhatsApp message",
+    "channelSms": "SMS",
+    "channelNeedsConnection": "Connect it under Channels first.",
+    "channelNotLiveNote": "You can set this up now, but nothing will actually send until a consent registry and a live provider are wired — each recipient is refused with a reason. See Compliance.",
     "channelLink": "Link / QR code",
     "destination": "Where they leave it",
     "destinationFirstparty": "Our review page",
@@ -1207,7 +1216,8 @@
     "channelEmail": "Email",
     "channelSms": "SMS",
     "channelWhatsapp": "WhatsApp",
-    "channelLink": "Link"
+    "channelLink": "Link",
+    "noCampaignsForChannel": "No {channel} campaign yet — create one under Get reviews."
   },
   "clients": {
     "title": "Agency",

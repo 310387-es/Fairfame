@@ -37,6 +37,11 @@ import { audienceSizeAction, createBroadcastAction } from "@/server/broadcasts";
 
 export type BroadcastFormOption = { id: string; name: string };
 
+/** A collection campaign, with the channel it was set up to send on. */
+export type BroadcastCampaignOption = BroadcastFormOption & {
+  channel: "email" | "sms" | "whatsapp";
+};
+
 type Kind = "review_request" | "survey" | "message";
 
 /**
@@ -64,7 +69,7 @@ export function BroadcastForm({
   templates,
 }: {
   segments: BroadcastFormOption[];
-  campaigns: BroadcastFormOption[];
+  campaigns: BroadcastCampaignOption[];
   surveys: BroadcastFormOption[];
   templates: { name: string; variables: string[] }[];
 }) {
@@ -76,7 +81,7 @@ export function BroadcastForm({
   const [kind, setKind] = useState<Kind>("review_request");
   const [picked, setPicked] = useState<"email" | "sms" | "whatsapp">("email");
   const [segmentId, setSegmentId] = useState(segments[0]?.id ?? "");
-  const [campaignId, setCampaignId] = useState(campaigns[0]?.id ?? "");
+  const [pickedCampaign, setPickedCampaign] = useState(campaigns[0]?.id ?? "");
   const [surveyId, setSurveyId] = useState(surveys[0]?.id ?? "");
   const [templateName, setTemplateName] = useState(templates[0]?.name ?? "");
   const [values, setValues] = useState<Record<string, string>>({});
@@ -95,6 +100,24 @@ export function BroadcastForm({
    */
   const allowed = CHANNELS[kind];
   const channel = allowed.includes(picked) ? picked : allowed[0]!;
+
+  /**
+   * The campaigns that match the channel being described (A22-A2).
+   *
+   * The picker used to be handed email campaigns only, whatever the channel —
+   * which is how a WhatsApp broadcast came to point at an email campaign and
+   * then, because `prepareRequests` read the channel off the campaign, emailed
+   * everyone it had gated on their WhatsApp permission. The send channel is
+   * stated explicitly now, so this cannot recur; narrowing here is the other
+   * half, so a WhatsApp broadcast is not offered something labelled "E-posta".
+   *
+   * Derived rather than corrected from an effect, like `channel` above: the
+   * mismatched pairing never exists for a frame.
+   */
+  const channelCampaigns = campaigns.filter((campaign) => campaign.channel === channel);
+  const campaignId = channelCampaigns.some((campaign) => campaign.id === pickedCampaign)
+    ? pickedCampaign
+    : (channelCampaigns[0]?.id ?? "");
 
   useEffect(() => {
     if (!segmentId) return;
@@ -227,18 +250,25 @@ export function BroadcastForm({
       {kind === "review_request" ? (
         <div className="grid gap-1.5">
           <Label htmlFor="broadcast-campaign">{t("campaign")}</Label>
-          <Select value={campaignId} onValueChange={setCampaignId}>
+          <Select value={campaignId} onValueChange={setPickedCampaign}>
             <SelectTrigger id="broadcast-campaign">
               <SelectValue placeholder={t("noCampaigns")} />
             </SelectTrigger>
             <SelectContent>
-              {campaigns.map((campaign) => (
+              {channelCampaigns.map((campaign) => (
                 <SelectItem key={campaign.id} value={campaign.id}>
                   {campaign.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {/* Named for the channel, because "no campaigns" is wrong and
+              unhelpful when the business has several — just not on this one. */}
+          {channelCampaigns.length === 0 ? (
+            <p className="text-meta text-faint">
+              {t("noCampaignsForChannel", { channel: channelLabel[channel] })}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
