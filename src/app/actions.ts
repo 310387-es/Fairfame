@@ -66,7 +66,16 @@ export async function adoptLocaleAction(): Promise<void> {
   const session = await getSession();
   if (!session) return;
 
-  const resolved = await localeForUser(session.user.id, (await headers()).get("accept-language"));
+  const incoming = await headers();
+
+  const resolved = await localeForUser(
+    session.user.id,
+    incoming.get("accept-language"),
+    // Whatever the deployment's edge knows about where they are (A22-C3).
+    // Absent everywhere that does not add one, which is the local and
+    // self-hosted case, and there the behaviour is exactly what it was.
+    countryHeader(incoming),
+  );
   if (!resolved) return;
 
   await writeLocaleCookie(resolved);
@@ -90,4 +99,15 @@ export async function setActiveLocationAction(locationId: string): Promise<void>
 
   await writeActiveLocationCookie(locationId);
   revalidatePath("/", "layout");
+}
+
+/**
+ * The country an edge proxy claims the request came from.
+ *
+ * Two de-facto standards and nothing clever. This is a **hint** that seeds a
+ * first paint — the toggle beside it overrides it in one click — so a missing
+ * or unknown value is an ordinary answer rather than a problem to solve.
+ */
+function countryHeader(incoming: Awaited<ReturnType<typeof headers>>): string | null {
+  return incoming.get("x-vercel-ip-country") ?? incoming.get("cf-ipcountry");
 }

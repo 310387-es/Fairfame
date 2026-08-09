@@ -56,6 +56,12 @@ export function BenchmarkCard({
 }) {
   const t = useTranslations("insights");
   const tf = useTranslations("feedback");
+  /**
+   * Nothing measured, so nothing shown. A dash is the same thing the table
+   * already renders for a competitor whose listing could not be read, so the
+   * shape of the row does not change — only the claim it makes.
+   */
+  const figures = unverified ? { ourRating: null, ourReviews: "—" } : { ourRating, ourReviews };
   const [name, setName] = useState("");
   const [ref, setRef] = useState("");
   const { run, pending } = useAction();
@@ -101,17 +107,33 @@ export function BenchmarkCard({
           honesty was never in the redness. `role="note"` so it is announced as
           an aside rather than left as an unlabelled paragraph.
         */}
+        {/*
+          **The numbers are gone, not disclaimed** (A22-C5).
+
+          They were rendered with the note above them, which is honest and is
+          not enough: a table of ratings against a named rival gets read, and
+          possibly repeated, whatever sits above it. `COMPETITOR_SOURCE`
+          defaults to `none` and `fixtures` is what a developer sees, so in a
+          trial this was the product showing a business an invented comparison
+          with somebody real.
+
+          **The card stays**, which is a deliberate departure from the fix
+          plan's "hide it entirely". A business that added three competitors and
+          finds the feature simply gone has been told nothing — the failure this
+          whole wave is about. So the names they entered stay, the figures do
+          not, and one sentence says which.
+        */}
         {unverified ? (
           <p
             role="note"
             className="flex items-start gap-2 rounded-md border border-line bg-surface-sunken px-3 py-2.5 text-copy text-ink-600"
           >
             <Info className="mt-0.5 size-4 shrink-0 text-graphic-faint" aria-hidden />
-            <span>{t("benchmark.unverified")}</span>
+            <span>{t("benchmark.notAvailable")}</span>
           </p>
         ) : null}
 
-        <p className="text-meta text-faint">{t("benchmark.basis")}</p>
+        {unverified ? null : <p className="text-meta text-faint">{t("benchmark.basis")}</p>}
 
         {rows.length > 0 ? (
           <div className="overflow-x-auto">
@@ -141,9 +163,11 @@ export function BenchmarkCard({
                     {t("benchmark.you")}
                   </th>
                   <td className="py-2.5 text-right text-foreground tabular-nums">
-                    {ourRating ?? "—"}
+                    {figures.ourRating ?? "—"}
                   </td>
-                  <td className="py-2.5 text-right text-foreground tabular-nums">{ourReviews}</td>
+                  <td className="py-2.5 text-right text-foreground tabular-nums">
+                    {figures.ourReviews}
+                  </td>
                   <td className="py-2.5 text-right text-faint">—</td>
                   {canManage ? <td /> : null}
                 </tr>
@@ -154,21 +178,21 @@ export function BenchmarkCard({
                       {row.name}
                     </th>
                     <td className="py-2.5 text-right text-ink-400 tabular-nums">
-                      {row.theirRating ?? "—"}
+                      {unverified ? "—" : (row.theirRating ?? "—")}
                     </td>
                     <td className="py-2.5 text-right text-ink-400 tabular-nums">
-                      {row.theirReviews ?? "—"}
+                      {unverified ? "—" : (row.theirReviews ?? "—")}
                     </td>
                     <td
                       className={`py-2.5 text-right tabular-nums ${
-                        row.ahead === null
+                        unverified || row.ahead === null
                           ? "text-faint"
                           : row.ahead
                             ? "text-primary"
                             : "text-destructive"
                       }`}
                     >
-                      {row.gap ?? "—"}
+                      {unverified ? "—" : (row.gap ?? "—")}
                     </td>
                     {canManage ? (
                       <td className="py-2.5 text-right">

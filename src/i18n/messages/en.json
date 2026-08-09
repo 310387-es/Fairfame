@@ -77,7 +77,8 @@
       "down": "down",
       "flat": "unchanged",
       "percentagePoints": "{value} pp",
-      "outOf": "out of {max}"
+      "outOf": "out of {max}",
+      "fromTo": "{from} → {to} on the period before"
     },
     "insight": {
       "waiting": "{range}: {count, plural, =1 {1 negative review is} other {# negative reviews are}} waiting for a reply.",
@@ -330,7 +331,6 @@
     },
     "benchmark": {
       "title": "Against competitors",
-      "unverified": "These competitor figures are sample data, not real listings. The connector that reads a competitor's public rating arrives at go-live — until then this shows how the comparison will look, not how you are doing.",
       "basis": "A listing shows an all-time rating, so your side is all-time too. The date range above does not apply to this table.",
       "who": "Business",
       "you": "You",
@@ -343,7 +343,8 @@
       "add": "Add",
       "adding": "Adding…",
       "remove": "Remove {name}",
-      "locked": "Competitor benchmarking is not part of this plan."
+      "locked": "Competitor benchmarking is not part of this plan.",
+      "notAvailable": "Competitor ratings are not available in this deployment yet, so no figures are shown. Your own numbers are above; theirs need a live listing source."
     },
     "locked": {
       "title": "Insights is not part of this plan",

@@ -77,7 +77,8 @@
       "down": "azaldı",
       "flat": "değişmedi",
       "percentagePoints": "{value} yüzde puan",
-      "outOf": "{max} üzerinden"
+      "outOf": "{max} üzerinden",
+      "fromTo": "Önceki döneme göre {from} → {to}"
     },
     "insight": {
       "waiting": "{range}: {count, plural, =1 {1 olumsuz yorum} other {# olumsuz yorum}} yanıt bekliyor.",
@@ -330,7 +331,6 @@
     },
     "benchmark": {
       "title": "Rakiplere karşı",
-      "unverified": "Buradaki rakip verileri örnek verilerdir, gerçek kayıtlar değil. Bir rakibin herkese açık puanını okuyan bağlayıcı go-live ile geliyor; o zamana kadar bu tablo karşılaştırmanın nasıl görüneceğini gösterir, nasıl gittiğinizi değil.",
       "basis": "Bir kayıt, tüm zamanların puanını gösterir; bu yüzden sizin tarafınız da tüm zamanlardır. Yukarıdaki tarih aralığı bu tabloya uygulanmaz.",
       "who": "İşletme",
       "you": "Siz",
@@ -343,7 +343,8 @@
       "add": "Ekle",
       "adding": "Ekleniyor…",
       "remove": "{name} kaydını kaldır",
-      "locked": "Rakip karşılaştırması bu pakete dahil değil."
+      "locked": "Rakip karşılaştırması bu pakete dahil değil.",
+      "notAvailable": "Rakip puanları bu kurulumda henüz alınamıyor; bu yüzden hiçbir rakam gösterilmiyor. Kendi sayılarınız yukarıda — rakiplerinki için canlı bir listeleme kaynağı gerekir."
     },
     "locked": {
       "title": "İçgörüler bu pakete dahil değil",

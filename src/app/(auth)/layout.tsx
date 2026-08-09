@@ -2,6 +2,8 @@ import { ArrowRight } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { LocaleSwitcher } from "@/components/shell/locale-switcher";
+import { getLocale } from "@/i18n/locale";
 
 /**
  * The pre-authentication screens.
@@ -32,15 +34,33 @@ import { Logo } from "@/components/brand/logo";
  * than as marketing bolted onto it.
  */
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
-  const [t, tSample] = await Promise.all([
+  const [t, tSample, locale] = await Promise.all([
     getTranslations("app"),
     // Borrowed on purpose — see above.
     getTranslations("sample"),
+    getLocale(),
   ]);
 
   return (
     <div className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <div className="flex flex-col items-center justify-center px-4 py-12">
+      <div className="relative flex flex-col items-center justify-center px-4 py-12">
+        {/*
+          **The language toggle belongs in front of the door** (A22-C3).
+
+          It lived only in the application shell, so somebody who signed up in
+          the wrong language read every screen of onboarding — the whole first
+          five minutes, and the screens that decide whether they stay — before
+          reaching a control that could change it. A Turkish café owner on a
+          phone that shipped in English is the ordinary case, not the edge one.
+
+          `setLocaleAction` already tolerated having no session: it writes the
+          cookie, and remembers the choice against the person only once there is
+          one. So the same control works here with nothing to change.
+        */}
+        <div className="absolute top-4 right-4">
+          <LocaleSwitcher locale={locale} />
+        </div>
+
         <Logo className="mb-8 [&>span:last-child]:text-xl" markClassName="size-8" />
         <div className="w-full max-w-sm">{children}</div>
 

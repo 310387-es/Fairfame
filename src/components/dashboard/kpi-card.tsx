@@ -172,9 +172,30 @@ export async function KpiCard({ kpi }: { kpi: Kpi }) {
       </div>
 
       {magnitude === null ? (
-        // No comparison rather than a fabricated one: a first period, or a
-        // previous period with nothing in it, has no honest delta.
-        <p className="mt-2 text-meta text-faint">{t("noComparison")}</p>
+        /*
+          **The transition, when a percentage would be theatre** (A22-C5).
+
+          One review last month and seven this month is not "+600%" — that is
+          the same headline two-to-fourteen would produce, and one more review
+          would move it another hundred points. `percentChange` withholds it
+          below `MIN_PERCENT_BASE`, and what a café owner can actually use is
+          the pair: **1 → 7**. Small numbers are their own best description.
+
+          Only for counts, and only when both sides exist. A first period has
+          nothing to compare against and says so instead.
+        */
+        kpi.unit === "count" && kpi.value !== null && kpi.previous !== null ? (
+          <p className="mt-2 text-meta text-faint tabular-nums">
+            {t("fromTo", {
+              from: format.number(kpi.previous),
+              to: format.number(kpi.value),
+            })}
+          </p>
+        ) : (
+          // No comparison rather than a fabricated one: a first period, or a
+          // previous period with nothing in it, has no honest delta.
+          <p className="mt-2 text-meta text-faint">{t("noComparison")}</p>
+        )
       ) : null}
 
       <TrendSparkline

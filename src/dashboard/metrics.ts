@@ -115,8 +115,24 @@ function responseRate(facts: readonly ReviewFact[]): number | null {
  * From zero there is no percentage — 0 → 5 is not "500% up", it is "five where
  * there were none" — so the delta is withheld rather than invented.
  */
+/**
+ * Below this many in the previous period, a percentage is theatre (A22-C5).
+ *
+ * The real case: one review last month, seven this month, and the dashboard
+ * said **+600%**. That is arithmetically true and tells a café owner nothing —
+ * it is the same headline they would get from two reviews becoming fourteen,
+ * and one more review next month would move it another hundred points. A
+ * business reading it either believes something enormous has happened or stops
+ * believing the number, and the second is what the tester did.
+ *
+ * Five, matching `MIN_ANALYSED_REVIEWS`: the same judgement about when a
+ * handful of reviews stops being anecdote, made in the same product, and there
+ * is no reason for this product to hold two opinions about what "a few" means.
+ */
+export const MIN_PERCENT_BASE = 5;
+
 function percentChange(value: number, previous: number): number | null {
-  if (previous === 0) return null;
+  if (previous < MIN_PERCENT_BASE) return null;
   return round(((value - previous) / previous) * 100, 1);
 }
 

@@ -11,6 +11,7 @@ import {
   computeSources,
   computeThemes,
   isImprovement,
+  MIN_PERCENT_BASE,
 } from "@/dashboard/metrics";
 import { rangeWindow, SPARKLINE_BUCKETS } from "@/dashboard/range";
 import { computePulse, rawPulse } from "@/digest/metrics";
@@ -145,17 +146,48 @@ describe("volume", () => {
     expect(kpis.volume.value).toBe(3);
   });
 
-  it("reports a count as a percentage change", () => {
+  it("reports a count as a percentage change, off a base worth dividing by", () => {
+    const before = Array.from({ length: 6 }, (_, index) => fact({ at: daysAgo(40 + index) }));
+    const now = Array.from({ length: 9 }, (_, index) => fact({ at: daysAgo(1 + index) }));
+
+    const kpis = computeKpis(facts(now, before), WINDOW);
+
+    expect(kpis.volume.value).toBe(9);
+    expect(kpis.volume.delta).toBe(50);
+  });
+
+  /**
+   * A22-C5 — a percentage off a handful is theatre.
+   *
+   * One review last month and seven this month is not "+600%": it is the same
+   * headline two-to-fourteen would print, and one more review would move it
+   * another hundred points. The pair — 1 → 7 — is what a café owner can use,
+   * and the KPI already carries `previous` for the card to render it.
+   */
+  it("withholds the percentage below a base worth dividing by", () => {
     const kpis = computeKpis(
       facts(
-        [fact({ at: daysAgo(1) }), fact({ at: daysAgo(2) }), fact({ at: daysAgo(3) })],
-        [fact({ at: daysAgo(40) }), fact({ at: daysAgo(41) })],
+        Array.from({ length: 7 }, (_, index) => fact({ at: daysAgo(1 + index) })),
+        [fact({ at: daysAgo(40) })],
       ),
       WINDOW,
     );
 
-    expect(kpis.volume.value).toBe(3);
-    expect(kpis.volume.delta).toBe(50);
+    expect(kpis.volume.value).toBe(7);
+    expect(kpis.volume.previous).toBe(1);
+    // Withheld, not zero: the card shows "1 → 7" where the percentage was.
+    expect(kpis.volume.delta).toBeNull();
+  });
+
+  it("still reports one at the threshold, so the rule has an edge rather than a fade", () => {
+    const before = Array.from({ length: MIN_PERCENT_BASE }, (_, index) =>
+      fact({ at: daysAgo(40 + index) }),
+    );
+    const now = Array.from({ length: MIN_PERCENT_BASE * 2 }, (_, index) =>
+      fact({ at: daysAgo(1 + index) }),
+    );
+
+    expect(computeKpis(facts(now, before), WINDOW).volume.delta).toBe(100);
   });
 
   it("withholds the delta when the previous period was empty", () => {

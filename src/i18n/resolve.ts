@@ -37,9 +37,34 @@ export type LocaleSources = {
   user?: string | null;
   /** `organizations.locale`, what the business is run in. */
   organization?: string | null;
+  /**
+   * An ISO country code, where the deployment's edge provides one (A22-C3).
+   *
+   * Above `Accept-Language` deliberately. A café owner in Kadıköy on a phone
+   * that shipped with an English locale is a Turkish speaker running a Turkish
+   * business, and the header says only what a browser was configured with —
+   * often by nobody. The country is a fact about where they are.
+   *
+   * It is a *hint*, never a decision: it seeds the first paint, and the toggle
+   * on the sign-in screen overrides it in one click. Absent on any deployment
+   * whose proxy does not add one, where behaviour is exactly what it was.
+   */
+  country?: string | null;
   /** The raw `Accept-Language` header. */
   header?: string | null;
 };
+
+/**
+ * The launch market, and nothing else.
+ *
+ * `TR` → Turkish. Every other country returns null rather than English: a
+ * visitor from France is not an English speaker, and their browser's header is
+ * a far better guess than a continent is. Mapping the world to two languages
+ * from an IP would be inventing confidence we do not have.
+ */
+export function localeForCountry(country: string | null | undefined): Locale | null {
+  return country?.trim().toUpperCase() === "TR" ? "tr" : null;
+}
 
 /**
  * The precedence, as a pure function so the order is testable without a
@@ -48,6 +73,9 @@ export type LocaleSources = {
 export function resolveLocale(sources: LocaleSources): Locale {
   if (isLocale(sources.user)) return sources.user;
   if (isLocale(sources.organization)) return sources.organization;
+
+  const fromCountry = localeForCountry(sources.country);
+  if (fromCountry) return fromCountry;
 
   const fromHeader = parseAcceptLanguage(sources.header);
   if (fromHeader) return fromHeader;
@@ -88,6 +116,7 @@ export function parseAcceptLanguage(header: string | null | undefined): Locale |
 export async function localeForUser(
   userId: string,
   header: string | null | undefined,
+  country?: string | null,
 ): Promise<Locale | null> {
   const db = getAdminDb();
 
@@ -97,7 +126,7 @@ export async function localeForUser(
     .where(eq(schema.users.id, userId))
     .limit(1);
 
-  if (!user) return parseAcceptLanguage(header);
+  if (!user) return localeForCountry(country) ?? parseAcceptLanguage(header);
   if (isLocale(user.locale)) return user.locale;
 
   const organizationLocale = user.organizationId
@@ -111,7 +140,7 @@ export async function localeForUser(
 
   if (isLocale(organizationLocale)) return organizationLocale;
 
-  return parseAcceptLanguage(header);
+  return localeForCountry(country) ?? parseAcceptLanguage(header);
 }
 
 /** Stores the choice against the person, so it follows them to another device. */
