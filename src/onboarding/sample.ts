@@ -154,6 +154,10 @@ export async function fillSampleWorkspace(
         spanDays: SAMPLE_SPAN_DAYS,
         // No drip: see SAMPLE_BACKFILL.
         dripIntervalMinutes: null,
+        // The sample café gets a café's reviews (A22-C7): coffee and pastries
+        // rather than lentil soup and a valet, which is what one shared corpus
+        // used to produce for every trade in the product.
+        vertical: SAMPLE_LOCATION.category,
       },
     });
 

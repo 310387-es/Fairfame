@@ -109,6 +109,102 @@ describe("corpus generation", () => {
     expect(new Set(corpus.map((r) => r.id)).size).toBe(corpus.length);
   });
 
+  /**
+   * A22-C7 — the demo is about the reader's trade.
+   *
+   * One corpus served every business, so picking **Kafe** during onboarding
+   * produced complaints about dry chicken, lentil soup and the valet. The
+   * sample workspace is the first thing a new account sees and the strongest
+   * argument the product makes; whether it looks like *their* business is not
+   * decoration.
+   *
+   * Asserted on the words rather than on the theme keys, because the words are
+   * what gives the wrong trade away — a corpus could carry `food_quality` and
+   * still be perfectly good café writing.
+   */
+  describe("by kind of business", () => {
+    const forVertical = (vertical: string) =>
+      generateCorpus({
+        locationId: LOCATION_ID,
+        count: 60,
+        until: new Date("2026-08-01T00:00:00Z"),
+        vertical,
+      });
+
+    it("gives a café coffee rather than somebody else's dinner", () => {
+      const reviews = forVertical("cafe");
+      const text = reviews.map((review) => review.comment).join(" ");
+
+      /*
+        Whole words, and the reason is a bug this test had for one run: a bare
+        `includes("vale")` matched **tuvaletler** — Turkish for toilets, in a
+        perfectly good sentence about cleanliness — so the check failed for a
+        word it was not about. A substring test on a four-letter stem passes and
+        fails for the wrong reasons in both directions.
+      */
+      const mentions = (word: string) => new RegExp(`(^|[^\\p{L}])${word}`, "iu").test(text);
+
+      // The two the tester actually read on a café's demo.
+      expect(mentions("tavuk"), "dry chicken belongs to a restaurant").toBe(false);
+      expect(mentions("çorba"), "lentil soup belongs to a restaurant").toBe(false);
+      // And the third, asserted where it actually lives: a café has no valet
+      // because it has no parking theme at all.
+      expect(new Set(reviews.flatMap((review) => review.themes)).has("parking")).toBe(false);
+    });
+
+    it("never puts a room or a stock room in a café", () => {
+      const themes = new Set(forVertical("cafe").flatMap((review) => review.themes));
+
+      expect(themes.has("room_comfort")).toBe(false);
+      expect(themes.has("stock_availability")).toBe(false);
+      expect(themes.has("treatment_outcome")).toBe(false);
+    });
+
+    it("gives a shop stock and products, and no food at all", () => {
+      const reviews = forVertical("retail");
+      const themes = new Set(reviews.flatMap((review) => review.themes));
+
+      expect(themes.has("food_quality")).toBe(false);
+      // With sixty reviews over seven themes, both of a vertical's own themes
+      // appearing is near-certain — and their absence would mean the pool never
+      // reached them, which is the failure worth catching.
+      expect(themes.has("product_quality")).toBe(true);
+      expect(themes.has("stock_availability")).toBe(true);
+    });
+
+    it("gives a clinic no ambience talk and no menu", () => {
+      const themes = new Set(forVertical("clinic").flatMap((review) => review.themes));
+
+      expect(themes.has("food_quality")).toBe(false);
+      expect(themes.has("treatment_outcome")).toBe(true);
+    });
+
+    it("falls back to what is true of any business when the kind is unknown", () => {
+      // Not "everything": a demo that says nothing specific is better than one
+      // that confidently describes the wrong trade.
+      const themes = new Set(
+        [
+          ...forVertical("wedding-djs"),
+          ...generateCorpus({
+            locationId: LOCATION_ID,
+            count: 60,
+            until: new Date("2026-08-01T00:00:00Z"),
+          }),
+        ].flatMap((review) => review.themes),
+      );
+
+      expect(themes.has("food_quality")).toBe(false);
+      expect(themes.has("room_comfort")).toBe(false);
+      expect(themes.has("staff")).toBe(true);
+    });
+
+    it("stays deterministic per vertical, so dedup is still testable", () => {
+      expect(forVertical("cafe").map((r) => r.comment)).toEqual(
+        forVertical("cafe").map((r) => r.comment),
+      );
+    });
+  });
+
   it("covers both launch languages", () => {
     const languages = new Set(corpus.map((r) => r.language));
     expect(languages).toContain("tr");

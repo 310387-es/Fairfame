@@ -43,9 +43,68 @@ export const THEMES = [
   "staff",
   "ambience",
   "parking",
+  "product_quality",
+  "stock_availability",
+  "room_comfort",
+  "treatment_outcome",
 ] as const;
 
 export type Theme = (typeof THEMES)[number];
+
+/**
+ * Which of those a business of a given kind actually gets reviewed on (A22-C7).
+ *
+ * The corpus was one list for everybody, so picking **Kafe** during onboarding
+ * produced complaints about dry chicken, lentil soup and the valet — a demo
+ * that reads as somebody else's restaurant. The sample workspace is the first
+ * thing a new account sees and the strongest argument the product makes, so
+ * whether it looks like *their* business is not decoration.
+ *
+ * Kept beside the phrases rather than derived from `CANONICAL_THEMES`, and that
+ * is deliberate: this list is bounded by what there is *writing* for. A theme
+ * the taxonomy offers but this bank has no sentences for would produce an empty
+ * review, so the constraint here is the corpus, not the vocabulary. Where the
+ * two agree they agree because somebody wrote the lines.
+ */
+const VERTICAL_THEMES: Record<string, readonly Theme[]> = {
+  cafe: ["service", "food_quality", "cleanliness", "price", "wait_time", "staff", "ambience"],
+  restaurant: [
+    "service",
+    "food_quality",
+    "cleanliness",
+    "price",
+    "wait_time",
+    "staff",
+    "ambience",
+    "parking",
+  ],
+  hotel: ["service", "cleanliness", "price", "staff", "ambience", "room_comfort", "food_quality"],
+  retail: [
+    "service",
+    "staff",
+    "price",
+    "cleanliness",
+    "wait_time",
+    "product_quality",
+    "stock_availability",
+  ],
+  clinic: ["service", "staff", "wait_time", "price", "cleanliness", "treatment_outcome"],
+  services: ["service", "staff", "wait_time", "price", "cleanliness"],
+};
+
+/** Universal only — the honest answer for a business we know nothing about. */
+const DEFAULT_THEMES: readonly Theme[] = [
+  "service",
+  "cleanliness",
+  "price",
+  "wait_time",
+  "staff",
+  "ambience",
+];
+
+function themesFor(vertical: string | null | undefined): readonly Theme[] {
+  return (vertical && VERTICAL_THEMES[vertical]) || DEFAULT_THEMES;
+}
 export type Sentiment = "positive" | "neutral" | "negative";
 
 const TR_NAMES = [
@@ -142,45 +201,48 @@ const PHRASES: Record<
       en: ["Spotless throughout, including the restrooms.", "Clearly a lot of care about hygiene."],
     },
     neutral: {
-      tr: ["Temizlik idare ederdi.", "Masalar biraz geç toplandı ama sorun değildi."],
-      en: ["Cleanliness was acceptable.", "Tables were cleared a bit slowly but it was fine."],
+      tr: ["Temizlik idare ederdi.", "Ortalık biraz geç toplandı ama sorun değildi."],
+      en: ["Cleanliness was acceptable.", "Tidying was a little slow but it was fine."],
     },
     negative: {
-      tr: ["Masamız yapış yapıştı, silmelerini istemek zorunda kaldık.", "Tuvaletler kirliydi."],
-      en: ["Our table was sticky and had to be wiped twice.", "The restrooms needed attention."],
+      tr: ["Yerler kirliydi, kimse ilgilenmiyordu.", "Tuvaletler kirliydi."],
+      en: [
+        "The floors were dirty and nobody seemed to be on it.",
+        "The restrooms needed attention.",
+      ],
     },
   },
   price: {
     positive: {
-      tr: ["Fiyat performans açısından gayet iyi.", "Porsiyonlar büyük, fiyatlar makul."],
-      en: ["Great value for what you get.", "Portions are generous for the price."],
+      tr: [
+        "Fiyat performans açısından gayet iyi.",
+        "Ödediğim paranın karşılığını fazlasıyla aldım.",
+      ],
+      en: ["Great value for what you get.", "Well worth what I paid."],
     },
     neutral: {
       tr: ["Fiyatlar piyasa ortalamasında.", "Ne ucuz ne pahalı."],
       en: ["Prices are about what you'd expect.", "Neither cheap nor expensive."],
     },
     negative: {
-      tr: ["Bu porsiyon için fiyat çok yüksek.", "Aldığınız şeye göre pahalı."],
-      en: ["Overpriced for the portion size.", "Expensive for what it is."],
+      tr: ["Bu kalite için fiyat çok yüksek.", "Aldığınız şeye göre pahalı."],
+      en: ["Overpriced for what it is.", "Expensive for what you actually get."],
     },
   },
   wait_time: {
     positive: {
-      tr: ["Hiç beklemeden masa bulduk.", "Rezervasyonumuz dakikasında hazırdı."],
-      en: ["We were seated immediately.", "Our reservation was ready right on time."],
+      tr: ["Hiç beklemeden işimiz görüldü.", "Randevumuz dakikasında başladı."],
+      en: ["We were seen straight away.", "Our appointment started right on time."],
     },
     neutral: {
       tr: ["Kısa bir bekleme oldu ama makuldü.", "10 dakika bekledik, sorun değil."],
       en: ["Short wait, nothing unreasonable.", "Waited about ten minutes."],
     },
     negative: {
-      tr: [
-        "Rezervasyonumuz olmasına rağmen 40 dakika bekledik.",
-        "Cumartesi akşamı kuyruk çok uzundu.",
-      ],
+      tr: ["Randevumuz olmasına rağmen 40 dakika bekledik.", "Cumartesi kuyruk çok uzundu."],
       en: [
-        "Waited forty minutes despite having a reservation.",
-        "The queue on Saturday evening was unmanageable.",
+        "Waited forty minutes despite having an appointment.",
+        "The queue on Saturday was unmanageable.",
       ],
     },
   },
@@ -235,7 +297,241 @@ const PHRASES: Record<
       en: ["No parking at all — we circled for fifteen minutes.", "The car park is far too tight."],
     },
   },
+  product_quality: {
+    positive: {
+      tr: ["Aldığım ürün beklediğimden çok daha kaliteli çıktı.", "Kumaşı ve dikişi çok iyi."],
+      en: [
+        "The quality is well above what I expected for the price.",
+        "Solidly made — it has held up.",
+      ],
+    },
+    neutral: {
+      tr: ["Ürün fena değil, fiyatına göre normal.", "Beklediğim gibiydi, ne fazlası ne eksiği."],
+      en: ["The product is fine for what it costs.", "About what I expected, no more."],
+    },
+    negative: {
+      tr: ["İki hafta içinde bozuldu, kalitesi çok düşük.", "Ürün resimdekiyle aynı değildi."],
+      en: ["It broke within a fortnight — poor quality.", "Not the same as the item pictured."],
+    },
+  },
+  stock_availability: {
+    positive: {
+      tr: ["Aradığım her beden vardı, çok rahat seçtim.", "Rafta bulamadığımı depodan çıkardılar."],
+      en: [
+        "Every size I wanted was on the shelf.",
+        "They found my size in the back without a fuss.",
+      ],
+    },
+    neutral: {
+      tr: ["Bazı bedenler yoktu ama alternatif önerdiler.", "Çeşit biraz sınırlıydı."],
+      en: [
+        "A couple of sizes were out, but they suggested alternatives.",
+        "Choice was a bit limited.",
+      ],
+    },
+    negative: {
+      tr: [
+        "Vitrindeki ürünün hiçbir bedeni yoktu, boşuna gittim.",
+        "Rafların yarısı boştu, aradığımı bulamadım.",
+      ],
+      en: [
+        "Nothing in the window was actually in stock in my size.",
+        "Half the shelves were bare — a wasted trip.",
+      ],
+    },
+  },
+  room_comfort: {
+    positive: {
+      tr: ["Oda geniş ve sessizdi, yatak çok rahattı.", "Klima ve duş kusursuz çalışıyordu."],
+      en: [
+        "The room was quiet and the bed genuinely comfortable.",
+        "Air conditioning and shower both faultless.",
+      ],
+    },
+    neutral: {
+      tr: ["Oda idare ederdi, biraz küçüktü.", "Yatak normaldi, uyumakta zorlanmadım."],
+      en: ["The room was adequate, if small.", "Bed was fine — I slept well enough."],
+    },
+    negative: {
+      tr: [
+        "Odadan koridor sesi geliyordu, sabaha kadar uyuyamadık.",
+        "Klima çalışmıyordu ve oda çok havasızdı.",
+      ],
+      en: [
+        "Corridor noise came straight through — we barely slept.",
+        "The air conditioning did not work and the room was stuffy.",
+      ],
+    },
+  },
+  treatment_outcome: {
+    positive: {
+      tr: [
+        "Şikayetim ilk seansta geçti, çok memnun kaldım.",
+        "Tedavi tam anlatıldığı gibi sonuç verdi.",
+      ],
+      en: [
+        "My symptoms cleared after the first session.",
+        "The treatment did exactly what they said it would.",
+      ],
+    },
+    neutral: {
+      tr: ["Kısmen fayda gördüm, kontrole tekrar gideceğim.", "Sonuç şimdilik ortalama."],
+      en: [
+        "Some improvement so far — I have a follow-up booked.",
+        "Results are middling at this stage.",
+      ],
+    },
+    negative: {
+      tr: [
+        "İki seans sonunda hiçbir değişiklik olmadı.",
+        "Tedavi sonrası şikayetim daha da arttı.",
+      ],
+      en: ["Two sessions in and nothing has changed.", "I felt worse afterwards than before."],
+    },
+  },
 };
+
+/**
+ * Sentences that are only wrong because of the *kind* of business (A22-C7).
+ *
+ * A café's food is coffee and a pastry, not a lentil soup and a dry chicken; a
+ * shop's cleanliness is about the fitting rooms rather than a sticky table. So
+ * the bank above stays the general one and this overrides the handful of themes
+ * whose wording gives the wrong business away. Everything not named here — a
+ * rude greeting, a forty-minute wait, an overcharge — genuinely reads the same
+ * everywhere, and duplicating it per vertical would be six copies to keep in
+ * step for no gain.
+ */
+/**
+ * Tables, reservations and portions — true of a restaurant and a café, and of
+ * nothing else in the product.
+ *
+ * These lines *were* in the universal bank, which is how a shop's demo came to
+ * say "portions are generous for the price" and a clinic's "we found a table
+ * without waiting". Only reading the generated corpus caught it: every theme
+ * key was right, and the sentences underneath were somebody else's trade.
+ */
+const HOSPITALITY: Partial<typeof PHRASES> = {
+  price: {
+    positive: {
+      tr: ["Fiyat performans açısından gayet iyi.", "Porsiyonlar büyük, fiyatlar makul."],
+      en: ["Great value for what you get.", "Portions are generous for the price."],
+    },
+    neutral: {
+      tr: ["Fiyatlar piyasa ortalamasında.", "Ne ucuz ne pahalı."],
+      en: ["Prices are about what you'd expect.", "Neither cheap nor expensive."],
+    },
+    negative: {
+      tr: ["Bu porsiyon için fiyat çok yüksek.", "Aldığınız şeye göre pahalı."],
+      en: ["Overpriced for the portion size.", "Expensive for what it is."],
+    },
+  },
+  wait_time: {
+    positive: {
+      tr: ["Hiç beklemeden masa bulduk.", "Rezervasyonumuz dakikasında hazırdı."],
+      en: ["We were seated immediately.", "Our reservation was ready right on time."],
+    },
+    neutral: {
+      tr: ["Kısa bir bekleme oldu ama makuldü.", "10 dakika bekledik, sorun değil."],
+      en: ["Short wait, nothing unreasonable.", "Waited about ten minutes."],
+    },
+    negative: {
+      tr: [
+        "Rezervasyonumuz olmasına rağmen 40 dakika bekledik.",
+        "Cumartesi akşamı kuyruk çok uzundu.",
+      ],
+      en: [
+        "Waited forty minutes despite having a reservation.",
+        "The queue on Saturday evening was unmanageable.",
+      ],
+    },
+  },
+  cleanliness: {
+    positive: {
+      tr: ["Mekan tertemizdi, tuvaletler bile kusursuzdu.", "Hijyene çok dikkat ediliyor."],
+      en: ["Spotless throughout, including the restrooms.", "Clearly a lot of care about hygiene."],
+    },
+    neutral: {
+      tr: ["Temizlik idare ederdi.", "Masalar biraz geç toplandı ama sorun değildi."],
+      en: ["Cleanliness was acceptable.", "Tables were cleared a bit slowly but it was fine."],
+    },
+    negative: {
+      tr: ["Masamız yapış yapıştı, silmelerini istemek zorunda kaldık.", "Tuvaletler kirliydi."],
+      en: ["Our table was sticky and had to be wiped twice.", "The restrooms needed attention."],
+    },
+  },
+};
+
+const VERTICAL_PHRASES: Record<string, Partial<typeof PHRASES>> = {
+  restaurant: HOSPITALITY,
+  cafe: {
+    ...HOSPITALITY,
+    food_quality: {
+      positive: {
+        tr: [
+          "Kahve çekirdeği taze, filtre kahve gerçekten iyi demlenmiş.",
+          "Cheesecake ev yapımı gibiydi, kahvenin yanına tam oturdu.",
+        ],
+        en: [
+          "The beans are fresh and the filter coffee is properly brewed.",
+          "Pastries taste home-made — the cheesecake especially.",
+        ],
+      },
+      neutral: {
+        tr: ["Kahve normaldi, ne iyi ne kötü.", "Tatlılar ortalamaydı."],
+        en: ["The coffee was fine, nothing special.", "Pastries were average."],
+      },
+      negative: {
+        tr: [
+          "Latte ılık geldi ve sütü fazla köpüklüydü.",
+          "Kruvasan bayattı, dünden kalma gibiydi.",
+        ],
+        en: ["The latte arrived lukewarm and over-foamed.", "The croissant was stale."],
+      },
+    },
+  },
+  retail: {
+    cleanliness: {
+      positive: {
+        tr: ["Mağaza tertemiz, kabinler bile düzenliydi.", "Raflar toplu ve temiz."],
+        en: ["The shop is spotless, fitting rooms included.", "Shelves are tidy and clean."],
+      },
+      neutral: {
+        tr: ["Temizlik idare ederdi.", "Kabinler biraz dağınıktı ama sorun değil."],
+        en: ["Cleanliness was acceptable.", "The fitting rooms were a little untidy."],
+      },
+      negative: {
+        tr: ["Kabinlerde yerde kıyafetler duruyordu.", "Mağaza tozluydu, raflar dağınıktı."],
+        en: ["Clothes were left on the fitting-room floor.", "Dusty shelves and a messy floor."],
+      },
+    },
+  },
+  clinic: {
+    cleanliness: {
+      positive: {
+        tr: ["Klinik tertemizdi, hijyene çok dikkat ediliyor.", "Bekleme salonu bile pırıl pırıl."],
+        en: [
+          "The clinic is immaculate and hygiene is clearly taken seriously.",
+          "Even the waiting room is spotless.",
+        ],
+      },
+      neutral: {
+        tr: ["Temizlik yeterliydi.", "Bekleme alanı biraz kalabalıktı ama temizdi."],
+        en: ["Cleanliness was adequate.", "The waiting area was busy but clean."],
+      },
+      negative: {
+        tr: ["Bekleme salonu temiz değildi.", "Muayene odası derli toplu değildi."],
+        en: ["The waiting room was not clean.", "The consulting room was untidy."],
+      },
+    },
+  },
+};
+
+/** The bank for one theme, with the vertical's own wording where there is any. */
+function phrasesFor(vertical: string | null | undefined, theme: Theme) {
+  const override = vertical ? VERTICAL_PHRASES[vertical]?.[theme] : undefined;
+  return override ?? PHRASES[theme];
+}
 
 const OWNER_REPLIES = {
   positive: {
@@ -303,6 +599,14 @@ export type CorpusOptions = {
   /** Marks generated ids, so drip batches never collide with the backfill. */
   batchTag?: string;
   /**
+   * What kind of business this is — `locations.category` (A22-C7).
+   *
+   * Decides which themes the corpus draws on and, for a handful of them, how
+   * they are worded. Absent means the universal set: a demo that says nothing
+   * specific is better than one that confidently describes the wrong trade.
+   */
+  vertical?: string | null;
+  /**
    * Random backwards scatter applied to each timestamp, in milliseconds.
    *
    * Harmless across a long backfill, but it must be 0 for a short drip batch:
@@ -327,7 +631,10 @@ export function generateCorpus(options: CorpusOptions): MockReviewPayload[] {
     seed = "",
     batchTag = "bf",
     jitterMs = 3_600_000,
+    vertical = null,
   } = options;
+
+  const pool = themesFor(vertical);
   const random = rng(hashSeed(`${locationId}:${seed}:${batchTag}`));
   const shortId = hashSeed(locationId).toString(36).slice(0, 6);
 
@@ -339,15 +646,15 @@ export function generateCorpus(options: CorpusOptions): MockReviewPayload[] {
     const sentiment = sentimentForRating(rating);
 
     // One or two themes per review, so recurring themes emerge across the set.
-    const primary = pick(random, THEMES);
+    const primary = pick(random, pool);
     const themes: Theme[] = [primary];
     if (random() < 0.45) {
-      const secondary = pick(random, THEMES);
+      const secondary = pick(random, pool);
       if (secondary !== primary) themes.push(secondary);
     }
 
     const comment = themes
-      .map((theme) => pick(random, PHRASES[theme][sentiment][language]))
+      .map((theme) => pick(random, phrasesFor(vertical, theme)[sentiment][language]))
       .join(" ");
 
     // Spread backwards from `until`, newest first.
