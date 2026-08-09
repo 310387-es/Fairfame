@@ -528,6 +528,16 @@ async function dispatch(
       organizationId,
       campaignId: broadcast.campaignId as string,
       recipients: requestRecipients,
+      /**
+       * The broadcast's channel, stated (A22-A2).
+       *
+       * This is the fix for the divergence: the gate above asked about *this*
+       * channel, so this is the channel the requests must be written and sent
+       * on. It used to be inferred from the campaign, and every campaign a
+       * broadcast could point at was an email one — so a WhatsApp broadcast
+       * gated on WhatsApp consent and then emailed whoever passed.
+       */
+      channel: broadcast.channel as "email" | "whatsapp" | "sms",
     }),
   );
 

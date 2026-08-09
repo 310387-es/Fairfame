@@ -208,6 +208,58 @@ export async function approveReplyAction(input: { replyId: string }): Promise<Ac
   }
 }
 
+/**
+ * Approve **and** post, in one press (A22-B5).
+ *
+ * The two-step exists for a real reason and it is not the owner's reason: a
+ * member drafts, an admin signs off, and the signature is a distinct
+ * accountable act. But an owner replying to their own café's one-star review is
+ * both people, and the product made them press *Onayla* and then *Yanıtı
+ * gönder* — two buttons for one intention, with a state in between that means
+ * nothing to them and a real chance of stopping there. The tester did.
+ *
+ * So the two-step survives exactly where it means something — a member's draft
+ * still needs an admin — and an admin gets one button. One action rather than
+ * two calls from the browser, because "approved but not posted" is a state
+ * nobody chose and a partial failure would leave the reader in it.
+ */
+export async function sendReplyAction(input: { replyId: string }): Promise<ActionResult> {
+  const parsed = replyIdSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error, "Invalid reply.");
+
+  try {
+    const outcome = await withAuthenticatedTenant(
+      async (tx, actor) => {
+        const approved = await approveReply({
+          tx,
+          organizationId: actor.organizationId,
+          actorUserId: actor.userId,
+          replyId: parsed.data.replyId,
+        });
+
+        // Already approved by somebody else is not an error here: the intent is
+        // "send this", and `approveReply` refuses a wrong status rather than
+        // silently re-approving, so reaching this line means it is postable.
+        void approved;
+
+        return postReply({
+          tx,
+          organizationId: actor.organizationId,
+          actorUserId: actor.userId,
+          replyId: parsed.data.replyId,
+        });
+      },
+      { minimumRole: "admin" },
+    );
+
+    revalidatePath("/", "layout");
+    return outcome.ok ? { ok: true } : { ok: false, error: outcome.reason };
+  } catch (error) {
+    log.warn({ err: error }, "sendReply failed");
+    return toReplyResult(error);
+  }
+}
+
 export async function postReplyAction(input: { replyId: string }): Promise<ActionResult> {
   const parsed = replyIdSchema.safeParse(input);
   if (!parsed.success) return invalidInput(parsed.error, "Invalid reply.");

@@ -109,7 +109,9 @@ export default async function BroadcastsPage() {
           form: (
             <BroadcastForm
               segments={segments.map(({ id, name }) => ({ id, name }))}
-              campaigns={campaigns.map(({ id, name }) => ({ id, name }))}
+              // The channel travels with each campaign, so the picker can show
+              // the ones that match the send being described (A22-A2).
+              campaigns={campaigns.map(({ id, name, channel }) => ({ id, name, channel }))}
               surveys={surveys
                 .filter((survey) => survey.status === "active")
                 .map(({ id, name }) => ({ id, name }))}

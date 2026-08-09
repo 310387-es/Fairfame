@@ -1871,6 +1871,19 @@ export const digests = pgTable(
     model: text("model"),
     lastError: text("last_error"),
     generatedAt: timestamp("generated_at", { withTimezone: true }),
+    /**
+     * A refresh of an already-published week, claimed and reported apart from
+     * the briefing itself (A22-A1).
+     *
+     * `status` used to carry both meanings, so recomposing a ready digest moved
+     * it to `pending` and a failure moved it to `failed` — every reader filters
+     * on `ready`, so the owner's plan vanished while its payload sat intact in
+     * the column beside it. The published columns are now written once, on
+     * success; these two hold everything about the attempt.
+     */
+    refreshStartedAt: timestamp("refresh_started_at", { withTimezone: true }),
+    /** Why the last refresh failed. The briefing on the row is still good. */
+    refreshError: text("refresh_error"),
     ...timestamps,
   },
   (table) => [

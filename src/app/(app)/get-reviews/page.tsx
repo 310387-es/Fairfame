@@ -2,6 +2,7 @@ import { Send, ShieldCheck } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { roleAtLeast } from "@/auth/permissions";
 import { requireActor } from "@/auth/session";
+import { channelStatuses } from "@/channels/status";
 import { listCampaigns, listRecentRequests } from "@/collect/campaigns";
 import { loadCollectionFunnel } from "@/collect/funnel";
 import { FunnelStrip } from "@/components/requests/funnel-strip";
@@ -49,13 +50,16 @@ export default async function RequestsPage() {
     requireActor(),
   ]);
 
-  const { locations, campaigns, requests, funnel, limit } = await withTenant(
+  const { locations, campaigns, requests, funnel, limit, channels } = await withTenant(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => ({
       locations: await listLocationsForActor(tx, actor),
       campaigns: await listCampaigns(tx, actor.organizationId),
       requests: await listRecentRequests(tx, actor.organizationId, 25),
       funnel: await loadCollectionFunnel(tx, actor.organizationId),
+      // What a campaign may actually be created on. Read here rather than in
+      // the form, which is a client component and cannot ask the gate.
+      channels: await channelStatuses(tx, actor.organizationId),
       limit: await withinLimit(
         { organizationId: actor.organizationId, tx },
         "requests_per_month",
@@ -94,7 +98,26 @@ export default async function RequestsPage() {
           label: t("newCampaign"),
           title: t("newCampaign"),
           description: t("newCampaignDescription"),
-          form: <CampaignForm locations={locations} />,
+          form: (
+            <CampaignForm
+              locations={locations}
+              // Only the two that carry a message. Email needs no provisioning
+              // and `link` sends nothing, so neither has a status to report.
+              messagingChannels={channels
+                .filter(
+                  (
+                    status,
+                  ): status is (typeof channels)[number] & {
+                    descriptor: { key: "whatsapp" | "sms" };
+                  } => status.descriptor.key === "whatsapp" || status.descriptor.key === "sms",
+                )
+                .map((status) => ({
+                  channel: status.descriptor.key,
+                  connected: !status.blockers.includes("not_connected"),
+                  deliverable: status.deliverable,
+                }))}
+            />
+          ),
         };
 
   return (
@@ -188,7 +211,7 @@ export default async function RequestsPage() {
           </Card>
         ) : (
           <Card>
-            <CardContent className="overflow-x-auto p-0">
+            <CardContent className="overflow-x-auto p-0 scroll-shadow">
               <table className="w-full text-body">
                 <Thead>
                   <tr>

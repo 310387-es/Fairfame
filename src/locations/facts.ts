@@ -1,7 +1,9 @@
 import { and, eq, gte, lt, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
+// A direct message is private post, not a branch's feedback (A22-C1).
 import { liveReplyJoin, UNANSWERED } from "../reviews/answered.ts";
+import { PUBLIC_FEEDBACK } from "../reviews/item-kind.ts";
 import { normalizeThemes, type CanonicalTheme } from "../reviews/taxonomy.ts";
 
 /**
@@ -74,7 +76,9 @@ export async function loadLocationFacts(
         rating: sql<number | null>`avg(${schema.reviews.rating})`,
       })
       .from(schema.reviews)
-      .where(and(eq(schema.reviews.organizationId, organizationId), gte(at, since)))
+      .where(
+        and(eq(schema.reviews.organizationId, organizationId), PUBLIC_FEEDBACK, gte(at, since)),
+      )
       .groupBy(schema.reviews.locationId),
 
     await tx
@@ -84,7 +88,14 @@ export async function loadLocationFacts(
         rating: sql<number | null>`avg(${schema.reviews.rating})`,
       })
       .from(schema.reviews)
-      .where(and(eq(schema.reviews.organizationId, organizationId), gte(at, before), lt(at, since)))
+      .where(
+        and(
+          eq(schema.reviews.organizationId, organizationId),
+          PUBLIC_FEEDBACK,
+          gte(at, before),
+          lt(at, since),
+        ),
+      )
       .groupBy(schema.reviews.locationId),
 
     /**
@@ -101,7 +112,7 @@ export async function loadLocationFacts(
       })
       .from(schema.reviews)
       .leftJoin(schema.replies, liveReplyJoin)
-      .where(and(eq(schema.reviews.organizationId, organizationId), UNANSWERED))
+      .where(and(eq(schema.reviews.organizationId, organizationId), PUBLIC_FEEDBACK, UNANSWERED))
       .groupBy(schema.reviews.locationId),
 
     await tx
@@ -111,7 +122,9 @@ export async function loadLocationFacts(
       })
       .from(schema.reviews)
       .innerJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
-      .where(and(eq(schema.reviews.organizationId, organizationId), gte(at, since))),
+      .where(
+        and(eq(schema.reviews.organizationId, organizationId), PUBLIC_FEEDBACK, gte(at, since)),
+      ),
   ];
 
   const previousBy = new Map(previous.map((row) => [row.locationId, row]));

@@ -231,5 +231,30 @@ export async function recordFirstResponse(
       ),
     );
 
+  /**
+   * Answering closes it — but only from `open` (A22-B5).
+   *
+   * The tester posted a reply and the review still said **Açık**, so the screen
+   * disagreed with what he had just done. `reviews.status` is deliberately not
+   * derived from reply state — the schema says so, and it is right: a review can
+   * be `done` because somebody phoned the customer, and it can carry a posted
+   * reply and still be open work because a promised refund has not happened.
+   *
+   * What resolves the two is *which* status. `open` is the arrival default that
+   * nobody chose; `in_progress` and `ignored` are somebody's explicit decision,
+   * and overwriting those would be the product arguing with a person who knows
+   * something it does not. So the default advances and a choice is left alone.
+   */
+  await tx
+    .update(schema.reviews)
+    .set({ status: "done", updatedAt: at })
+    .where(
+      and(
+        eq(schema.reviews.organizationId, organizationId),
+        eq(schema.reviews.id, reviewId),
+        eq(schema.reviews.status, "open"),
+      ),
+    );
+
   await refreshPriority(tx, organizationId, [reviewId]);
 }

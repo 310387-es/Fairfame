@@ -156,6 +156,21 @@ export type OnboardingStatus = {
   digestId: string | null;
   /** True when there is nothing left to wait for. */
   done: boolean;
+  /**
+   * A source is connected and its first sync has not finished (A22-B1).
+   *
+   * The distinction the welcome screen could not make: "there is nothing to
+   * brief on" and "the reviews have not arrived yet" both read as `analysable =
+   * 0`, so a brand-new account watched a **0/0** bar and was told its branch was
+   * empty while the backfill was still running. One is a dead end and the other
+   * is a wait, and only the second is worth showing a spinner for.
+   *
+   * `first_synced_at` is the right column rather than `last_synced_at`: it is
+   * null exactly once, before the first sync of a connection ever completes,
+   * which is precisely the window this describes. It is also what W1.3 reads to
+   * decide a backfill is history rather than news.
+   */
+  awaitingSync: boolean;
 };
 
 export async function onboardingStatus(
@@ -213,6 +228,20 @@ export async function onboardingStatus(
     .orderBy(sql`${schema.digests.periodStart} desc`)
     .limit(1);
 
+  // Any connection on this branch whose first sync has not landed. `count`
+  // rather than a boolean so a chain connecting two sources reads as one wait.
+  const [syncing] = await tx
+    .select({ pending: sql<number>`count(*)::int`.mapWith(Number) })
+    .from(schema.connections)
+    .where(
+      and(
+        eq(schema.connections.organizationId, organizationId),
+        eq(schema.connections.locationId, locationId),
+        eq(schema.connections.status, "active"),
+        isNull(schema.connections.firstSyncedAt),
+      ),
+    );
+
   return {
     locationId,
     reviews: total?.reviews ?? 0,
@@ -220,6 +249,7 @@ export async function onboardingStatus(
     analysed: counts?.analysed ?? 0,
     digestId: digest?.id ?? null,
     done: digest !== undefined,
+    awaitingSync: (syncing?.pending ?? 0) > 0,
   };
 }
 

@@ -67,3 +67,46 @@ describe("Accept-Language", () => {
     expect(parseAcceptLanguage("en;;;")).toBe("en");
   });
 });
+
+/**
+ * A22-C3 — where somebody is, above what their browser was configured with.
+ *
+ * The tester's case: a café owner in Kadıköy on a phone that shipped in
+ * English, signing up and reading the whole of onboarding in a language they
+ * had not chosen. The header says what a browser was set to, often by nobody;
+ * the country is a fact about where they are, and this product's launch market
+ * is one country.
+ *
+ * It is a **hint** and sits below anything a person actually chose — which is
+ * the other half of the fix, a toggle on the sign-in screen itself.
+ */
+describe("the country hint", () => {
+  it("prefers Turkish for a Turkish visitor with an English browser", () => {
+    expect(resolveLocale({ country: "TR", header: "en-US,en;q=0.9" })).toBe("tr");
+  });
+
+  it("never overrides a person's own preference", () => {
+    expect(resolveLocale({ user: "en", country: "TR", header: "tr-TR" })).toBe("en");
+  });
+
+  it("never overrides the business's language", () => {
+    expect(resolveLocale({ organization: "en", country: "TR" })).toBe("en");
+  });
+
+  it("leaves every other country to the header", () => {
+    // A visitor from France is not an English speaker, and their browser is a
+    // far better guess than a continent is. Mapping the world to two languages
+    // from an IP would be inventing confidence we do not have.
+    expect(resolveLocale({ country: "FR", header: "tr-TR,tr;q=0.9" })).toBe("tr");
+    expect(resolveLocale({ country: "DE", header: "en-GB" })).toBe("en");
+  });
+
+  it("changes nothing where no proxy supplies one", () => {
+    expect(resolveLocale({ country: null, header: "en-US" })).toBe("en");
+    expect(resolveLocale({ header: "en-US" })).toBe("en");
+  });
+
+  it("is not case- or whitespace-sensitive, because a header is not ours", () => {
+    expect(resolveLocale({ country: " tr ", header: "en-US" })).toBe("tr");
+  });
+});

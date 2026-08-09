@@ -4,7 +4,7 @@ import { schema } from "../db/client.ts";
 import type { ReviewStatus, Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
 import { addOpenHours, parseBusinessHours, type WeekSchedule } from "../locations/opening-hours.ts";
-import { answeredAt, liveReplyJoin } from "./answered.ts";
+import { answeredAt, liveReplyJoin, needsReply } from "./answered.ts";
 
 /**
  * The derived half of inbox triage (P2-T1).
@@ -326,16 +326,35 @@ export async function refreshPriority(
       rating: schema.reviews.rating,
       priority: schema.reviews.priority,
       sentiment: schema.reviewInsights.sentiment,
-      replyId: schema.replies.id,
-      ownerRepliedAt: schema.reviews.ownerRepliedAt,
+      /**
+       * The same expression the dashboard and Insights loaders use (A22-A4).
+       *
+       * It was `replies.id`, which made **saving a draft sink the review 55
+       * points** — the whole answered penalty plus the unanswered bonus — so
+       * starting work on the angriest review in the queue pushed it down the
+       * queue. `min(posted_at)` counts only a reply that went out, and `least`
+       * folds in the one the owner left on the platform.
+       *
+       * Aggregated rather than read off the joined row, which the new rule
+       * makes necessary: a review with a draft *and* a posted reply joins twice
+       * and would otherwise produce two conflicting priorities for one id.
+       */
+      repliedAt: sql<Date | null>`least(min(${schema.replies.postedAt}), ${schema.reviews.ownerRepliedAt})`,
     })
     .from(schema.reviews)
     .leftJoin(schema.reviewInsights, eq(schema.reviewInsights.reviewId, schema.reviews.id))
-    // The same join every "is it answered" question uses: a rejected attempt
-    // leaves the review unanswered, so it must not sink in the queue.
+    // A rejected attempt leaves the review unanswered, so it must not sink in
+    // the queue — one join condition, shared with every other reader.
     .leftJoin(schema.replies, liveReplyJoin)
     .where(
       and(eq(schema.reviews.organizationId, organizationId), inArray(schema.reviews.id, unique)),
+    )
+    .groupBy(
+      schema.reviews.id,
+      schema.reviews.rating,
+      schema.reviews.priority,
+      schema.reviews.ownerRepliedAt,
+      schema.reviewInsights.sentiment,
     );
 
   const changed = rows
@@ -345,8 +364,9 @@ export async function refreshPriority(
         rating: row.rating,
         sentiment: row.sentiment,
         // A reply the owner left on Google answers the customer just as well as
-        // one we posted, so it must sink the review the same way (W1.2).
-        answered: row.replyId !== null || row.ownerRepliedAt !== null,
+        // one we posted, so it must sink the review the same way (W1.2) — and a
+        // draft answers nobody, so it must not (A22-A4).
+        answered: !needsReply({ repliedAt: row.repliedAt ? new Date(row.repliedAt) : null }),
       }),
       previous: row.priority,
     }))

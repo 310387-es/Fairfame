@@ -59,7 +59,7 @@ export function CreateWidget({ locations }: { locations: { id: string; name: str
         <Input
           id="widget-name"
           name="name"
-          required
+          aria-required
           maxLength={80}
           placeholder={t("namePlaceholder")}
           {...invalid("name")}

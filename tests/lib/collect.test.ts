@@ -183,6 +183,36 @@ describe("campaign input", () => {
   });
 });
 
+/**
+ * A22-B3 — an empty name has to come back as an answer.
+ *
+ * The form carried a native `required`, which blocks the submit before the
+ * action runs: pressing the button on an empty name moved focus and said
+ * nothing at all. The attribute is `aria-required` now, so the schema is what
+ * refuses — and a refusal is only useful if it names the field, because that is
+ * what puts the sentence under the right control and the cursor in it.
+ */
+describe("the campaign form's own validation", () => {
+  it("refuses an empty name, against the field", () => {
+    const parsed = createCampaignSchema.safeParse({
+      locationId: "0b3ff2e0-0d59-4c1e-8f2a-2c0f2a0c4b11",
+      name: "",
+    });
+
+    if (parsed.success) throw new Error("expected a failure");
+    expect(parsed.error.issues.map((issue) => issue.path[0])).toContain("name");
+  });
+
+  it("refuses whitespace, which is what a stray keystroke leaves", () => {
+    const parsed = createCampaignSchema.safeParse({
+      locationId: "0b3ff2e0-0d59-4c1e-8f2a-2c0f2a0c4b11",
+      name: "   ",
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+});
+
 describe("recipient parsing", () => {
   it("reads newline, comma and semicolon separated lists", () => {
     const { recipients, invalid } = parseRecipientList(

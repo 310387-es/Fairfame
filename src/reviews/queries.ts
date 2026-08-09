@@ -15,7 +15,8 @@ import { z } from "zod";
 import { schema } from "../db/client.ts";
 import type { ReviewStatus, Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
-import { ANSWERED, liveReplyJoin, UNANSWERED } from "./answered.ts";
+import { ANSWERED, DRAFTED, liveReplyJoin, UNANSWERED } from "./answered.ts";
+import { PUBLIC_FEEDBACK } from "./item-kind.ts";
 import {
   ASSIGNEE_ME,
   ASSIGNEE_NOBODY,
@@ -387,6 +388,17 @@ function inboxPredicate(organizationId: string, locationId: string, filters: Inb
   return and(
     eq(schema.reviews.organizationId, organizationId),
     eq(schema.reviews.locationId, locationId),
+    /**
+     * A direct message is not a review, and this is the review queue (A22-C1).
+     *
+     * They sat here counted as reviews on the one screen whose header is a
+     * count of them, in a queue where answering one is deliberately not built —
+     * so the row was work nobody could do, inflating the number beside it. They
+     * are read on `/conversations` now, which is where a letter belongs; the
+     * one thing that must never happen is their disappearing, and
+     * `src/reviews/direct-messages.ts` is what stops that.
+     */
+    PUBLIC_FEEDBACK,
     filters.source ? eq(schema.reviews.source, filters.source) : undefined,
     filters.sentiment ? eq(schema.reviewInsights.sentiment, filters.sentiment) : undefined,
     // A theme is either something the model found or something a colleague put
@@ -465,12 +477,16 @@ function inboxPredicate(organizationId: string, locationId: string, filters: Inb
     filters.postedFrom ? sql`${schema.reviews.postedAt} >= ${filters.postedFrom}` : undefined,
     filters.postedTo ? sql`${schema.reviews.postedAt} < ${filters.postedTo}` : undefined,
     // One definition, shared with the chips and with `slaState` — see
-    // `src/inbox/answered.ts`. A reply the owner left on the platform counts.
+    // `src/reviews/answered.ts`. A reply the owner left on the platform counts;
+    // a draft nobody has posted does not (A22-A4), and `drafted` is the way to
+    // look at exactly those without taking them out of the queue.
     filters.reply === "unanswered"
       ? UNANSWERED
       : filters.reply === "answered"
         ? ANSWERED
-        : undefined,
+        : filters.reply === "drafted"
+          ? DRAFTED
+          : undefined,
   );
 }
 
@@ -766,6 +782,14 @@ export type FacetCounts = {
   themeCoverage: { analysed: number; withThemes: number };
   statuses: { value: ReviewStatus; count: number }[];
   unanswered: number;
+  /**
+   * Of the unanswered, how many already have something written (A22-A4).
+   *
+   * A **subset of `unanswered`**, never a number to add to it — the customer
+   * has not heard back either way. It is the difference between "nobody has
+   * looked at these" and "somebody has, and nobody sent it".
+   */
+  drafted: number;
   /** Past its deadline and still open or in progress. */
   overdue: number;
   /** Assigned to the reader. Zero when there is no reader. */
@@ -797,6 +821,9 @@ export async function inboxFacets(
   const scope = and(
     eq(schema.reviews.organizationId, organizationId),
     eq(schema.reviews.locationId, locationId),
+    // The same rule the list applies, or a chip would promise a number the list
+    // then contradicts (A22-C1).
+    PUBLIC_FEEDBACK,
   );
 
   // Sequential, not `Promise.all`. These all run on the *same* transaction
@@ -892,13 +919,22 @@ export async function inboxFacets(
     .where(scope)
     .groupBy(schema.reviews.status);
 
-  // One pass for the four scalars. They all read the same rows, and the quick
-  // filters they feed are shown together — four round trips to render one row
-  // of chips would be three too many.
+  // One pass for the scalars. They all read the same rows, and the quick
+  // filters they feed are shown together — five round trips to render one row
+  // of chips would be four too many.
+  //
+  // **The `replies` join is gone** (A22-A4). It was here only so `UNANSWERED`
+  // had a column to read, and it made `count(*)` count a review with two
+  // replies twice — so `total`, `overdue`, `unassigned` and `mine` were all
+  // quietly inflated for any business that has ever redrafted. The predicates
+  // ask about the review now, so the join is not merely unnecessary, it was
+  // wrong.
   const totals = await tx
     .select({
       total: sql<number>`count(*)::int`.mapWith(Number),
       unanswered: sql<number>`count(*) filter (where ${UNANSWERED})::int`.mapWith(Number),
+      // Written and not sent — a subset of `unanswered`, never added to it.
+      drafted: sql<number>`count(*) filter (where ${DRAFTED})::int`.mapWith(Number),
       // Exactly the predicate the `overdue` filter uses. A chip that promises
       // 129 and shows 124 is worse than no chip at all.
       overdue: sql<number>`count(*) filter (
@@ -917,7 +953,6 @@ export async function inboxFacets(
       )::int`.mapWith(Number),
     })
     .from(schema.reviews)
-    .leftJoin(schema.replies, liveReplyJoin)
     .where(scope);
 
   const sentimentOrder: Sentiment[] = ["negative", "neutral", "positive"];
@@ -940,6 +975,7 @@ export async function inboxFacets(
       (left, right) => STATUS_ORDER.indexOf(left.value) - STATUS_ORDER.indexOf(right.value),
     ),
     unanswered: totals[0]?.unanswered ?? 0,
+    drafted: totals[0]?.drafted ?? 0,
     overdue: totals[0]?.overdue ?? 0,
     mine: totals[0]?.mine ?? 0,
     unassigned: totals[0]?.unassigned ?? 0,

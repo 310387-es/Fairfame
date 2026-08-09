@@ -81,9 +81,27 @@ export function ChannelCard({
               {t("disconnect")}
             </Button>
           ) : (
+            /**
+             * **"Bağla" promised something this cannot do** (A22-B4).
+             *
+             * Connecting genuinely works — a row is written, the mock client
+             * answers, a conversation round-trips — and no message reaches a
+             * phone, because no channel in this product is live. A button
+             * reading "Connect" over that is the same lie A22-B2 fixed on the
+             * sources screen, and it is worse here: the thing being connected
+             * is permission to write to customers.
+             *
+             * **Relabelled rather than disabled**, deliberately. Disabling it
+             * would leave a pre-go-live deployment — which is every deployment
+             * — with no way to exercise the messaging path at all, and the
+             * blockers listed below already say exactly what is missing and
+             * whose job each one is. Same trade as the campaign form's channel
+             * picker: offer it, and say what it is.
+             */
             <Button
               type="button"
               size="sm"
+              variant={mode === "live" ? "default" : "outline"}
               disabled={pending || mode === "off"}
               onClick={() =>
                 void run(() => connectChannelAction({ channel }), {
@@ -91,7 +109,7 @@ export function ChannelCard({
                 })
               }
             >
-              {t("connect")}
+              {mode === "live" ? t("connect") : t("tryInSample")}
             </Button>
           )
         ) : null

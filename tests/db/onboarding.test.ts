@@ -279,6 +279,78 @@ describe("progress", () => {
   });
 });
 
+/**
+ * A22-B1 — "not here yet" is not "there is nothing".
+ *
+ * Both read as `analysable = 0`, so the welcome screen drew a **0/0** bar and
+ * told a brand-new account its branch was empty — seconds after it connected a
+ * source whose backfill was still arriving. One is a wait worth a spinner and
+ * the other is a dead end worth a sentence, and the difference is a column.
+ */
+describe("waiting for the first sync", () => {
+  async function connect(
+    org: { id: string; locationId: string },
+    firstSyncedAt: Date | null,
+  ): Promise<void> {
+    await getAdminDb().insert(schema.connections).values({
+      organizationId: org.id,
+      locationId: org.locationId,
+      provider: "mock",
+      status: "active",
+      config: {},
+      firstSyncedAt,
+    });
+  }
+
+  it("says a connected source has not finished fetching", async () => {
+    const fresh = await makeOrg("syncing");
+    await connect(fresh, null);
+
+    const status = await withTenant({ organizationId: fresh.id }, (tx) =>
+      onboardingStatus(tx, fresh.id, fresh.locationId, NOW),
+    );
+
+    // The state the screen could not see: nothing to count, and more coming.
+    expect(status.analysable).toBe(0);
+    expect(status.awaitingSync).toBe(true);
+  });
+
+  it("stops saying so once the first sync has landed", async () => {
+    const synced = await makeOrg("synced");
+    await connect(synced, new Date(NOW.getTime() - 60_000));
+
+    const status = await withTenant({ organizationId: synced.id }, (tx) =>
+      onboardingStatus(tx, synced.id, synced.locationId, NOW),
+    );
+
+    // A branch that really has nothing must reach the honest dead end rather
+    // than spin for ever — `first_synced_at` is what ends the wait.
+    expect(status.awaitingSync).toBe(false);
+  });
+
+  it("does not wait on a branch with no source at all", async () => {
+    const bare = await makeOrg("nosource");
+
+    const status = await withTenant({ organizationId: bare.id }, (tx) =>
+      onboardingStatus(tx, bare.id, bare.locationId, NOW),
+    );
+
+    expect(status.awaitingSync).toBe(false);
+  });
+
+  it("never reports another organization's pending sync", async () => {
+    const mine = await makeOrg("sync-mine");
+    const theirs = await makeOrg("sync-theirs");
+    await connect(theirs, null);
+
+    const status = await withTenant({ organizationId: mine.id }, (tx) =>
+      onboardingStatus(tx, mine.id, mine.locationId, NOW),
+    );
+
+    expect(status.awaitingSync).toBe(false);
+  });
+});
+
 describe("the sample workspace", () => {
   it("is flagged, and nothing else is", async () => {
     await markSample(recent.id);

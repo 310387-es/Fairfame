@@ -19,7 +19,7 @@
     "closeMenu": "Menüyü kapat",
     "menu": "Menü",
     "digest": "Haftalık plan",
-    "widgets": "Site bileşenleri",
+    "widgets": "Sitedeki yorumlar",
     "insights": "Analiz",
     "contacts": "Kişiler",
     "messages": "Görüşmeler",
@@ -77,12 +77,13 @@
       "down": "azaldı",
       "flat": "değişmedi",
       "percentagePoints": "{value} yüzde puan",
-      "outOf": "{max} üzerinden"
+      "outOf": "{max} üzerinden",
+      "fromTo": "Önceki döneme göre {from} → {to}"
     },
     "insight": {
-      "waiting": "{count, plural, =1 {1 yorum yanıt bekliyor} other {# yorum yanıt bekliyor}}.",
-      "clear": "Yanıt bekleyen yorum yok.",
-      "theme": "{count, plural, =1 {1 tanesi {theme} konusunda olumsuz} other {# tanesi {theme} konusunda olumsuz}}.",
+      "waiting": "{range}: {count, plural, =1 {1 olumsuz yorum} other {# olumsuz yorum}} yanıt bekliyor.",
+      "clear": "{range}: yanıt bekleyen olumsuz yorum yok.",
+      "theme": "{count, plural, =1 {1 tanesi {theme} konusunda} other {# tanesi {theme} konusunda}}.",
       "ratingHolding": "Puanınız {rating}★ seviyesinde duruyor.",
       "ratingUp": "Puanınız yükseldi, {rating}★.",
       "ratingDown": "Puanınız {rating}★ seviyesine geriledi.",
@@ -129,7 +130,8 @@
       "drafted": "Taslak hazır — göndermeden önce okuyun.",
       "draftLabel": "Yapay zekâ taslağı",
       "editAndSend": "Düzenle ve gönder",
-      "open": "Aç"
+      "open": "Aç",
+      "draftWaiting": "Gönderilmeyi bekleyen bir taslak var"
     },
     "range": {
       "7d": {
@@ -329,7 +331,6 @@
     },
     "benchmark": {
       "title": "Rakiplere karşı",
-      "unverified": "Buradaki rakip verileri örnek verilerdir, gerçek kayıtlar değil. Bir rakibin herkese açık puanını okuyan bağlayıcı go-live ile geliyor; o zamana kadar bu tablo karşılaştırmanın nasıl görüneceğini gösterir, nasıl gittiğinizi değil.",
       "basis": "Bir kayıt, tüm zamanların puanını gösterir; bu yüzden sizin tarafınız da tüm zamanlardır. Yukarıdaki tarih aralığı bu tabloya uygulanmaz.",
       "who": "İşletme",
       "you": "Siz",
@@ -342,7 +343,8 @@
       "add": "Ekle",
       "adding": "Ekleniyor…",
       "remove": "{name} kaydını kaldır",
-      "locked": "Rakip karşılaştırması bu pakete dahil değil."
+      "locked": "Rakip karşılaştırması bu pakete dahil değil.",
+      "notAvailable": "Rakip puanları bu kurulumda henüz alınamıyor; bu yüzden hiçbir rakam gösterilmiyor. Kendi sayılarınız yukarıda — rakiplerinki için canlı bir listeleme kaynağı gerekir."
     },
     "locked": {
       "title": "İçgörüler bu pakete dahil değil",
@@ -461,7 +463,10 @@
     "noLocation": "Bir şube ekleyin; ilk haftalık özetiniz hafta tamamlandıktan sonra gelecek.",
     "noLocationAction": "Şubelere git",
     "empty": "Henüz özet yok. İlki, tam bir haftalık yorum biriktikten sonra hazırlanır.",
-    "generate": "Bu haftayı hazırla",
+    "generatePeriod": "{period} haftasını hazırla",
+    "refreshPeriod": "{period} haftasını yeniden hazırla",
+    "refreshFailed": "O hafta yeniden hazırlanamadı — aşağıdaki plan zaten elinizdeki plan. Dilediğinizde tekrar deneyebilirsiniz.",
+    "tooThin": "O hafta için en az {count} analiz edilmiş yorum gerekiyor; şu an {analysed} var.",
     "composing": "Hazırlanıyor… yaklaşık bir dakika sürer.",
     "composeSlow": "Hâlâ hazırlanıyor — beklenenden uzun sürüyor. Kendiliğinden tamamlanacak.",
     "composeFailed": "Bu özet hazırlanamadı. Saatlik tarama yeniden deneyecek.",
@@ -571,7 +576,8 @@
       "unanswered": "Yanıt bekliyor",
       "negative": "Olumsuz",
       "mine": "Bana atanan",
-      "overdue": "Süresi geçen"
+      "overdue": "Süresi geçen",
+      "drafted": "Taslak yazıldı"
     },
     "closeReview": "Kapat",
     "searchLabel": "Bu yorumlarda ara",
@@ -582,7 +588,8 @@
     "shortcutMove": "gezin",
     "shortcutReply": "yanıtla",
     "shortcutDone": "tamamla",
-    "duplicate": "Başka kaynakta da var"
+    "duplicate": "Başka kaynakta da var",
+    "filterToggle": "Filtrele"
   },
   "locations": {
     "title": "Şubeler",
@@ -710,6 +717,7 @@
     "needsAttention": "İlgi gerekiyor",
     "connect": "Bağla",
     "connectLive": "{provider} bağla",
+    "connectSample": "{provider} bağla — örnek verilerle",
     "connected": "Bağlı",
     "notLiveYet": "Yayına geçene kadar örnek veriyle çalışır",
     "missingCredentials": "Henüz API kimlik bilgisi tanımlı değil.",
@@ -741,6 +749,10 @@
     "location": "Şube",
     "channel": "Nasıl soralım",
     "channelEmail": "Müşteriye e-posta",
+    "channelWhatsapp": "WhatsApp mesajı",
+    "channelSms": "SMS",
+    "channelNeedsConnection": "Önce Kanallar’dan bağlayın.",
+    "channelNotLiveNote": "Şimdi kurabilirsiniz, ancak izin kaydı ve canlı bir sağlayıcı bağlanana kadar hiçbir mesaj gitmez — her alıcı gerekçesiyle birlikte reddedilir. Uyumluluk sayfasına bakın.",
     "channelLink": "Bağlantı / QR kod",
     "destination": "Nereye bıraksınlar",
     "destinationFirstparty": "Kendi yorum sayfamız",
@@ -838,7 +850,12 @@
     },
     "posterLabel": "Poster",
     "tableTent": "Masa kartı",
-    "printGroup": "Yazdır"
+    "printGroup": "Yazdır",
+    "skipReason": {
+      "unsubscribed": "Listeden çıkmış",
+      "no_address": "Bu kanal için adresi yok"
+    },
+    "moreUnreached": "{count, plural, =1 {ve 1 kişi daha} other {ve # kişi daha}}"
   },
   "contacts": {
     "title": "Kişiler",
@@ -976,6 +993,19 @@
       "tagPlaceholder": "POS aktarımı",
       "upload": "İçe aktar",
       "summary": "{created} eklendi, {updated} güncellendi, {skipped} atlandı. Kişilerinizin {messageable} tanesine bugün ileti gönderilebilir."
+    },
+    "add": {
+      "action": "Kişi ekle",
+      "title": "Kişi ekle",
+      "description": "Tek kişi — bir isim ve e-posta ya da telefon.",
+      "body": "Karşınızdaki bir müşteri için kullanın. Liste için dosya içe aktarın.",
+      "noPermission": "Kişi eklemek bilgilerini kaydeder; mesaj gönderme izni vermez. O izin kişinin kendisinden gelir ve Revira göndermeden önce kontrol eder.",
+      "name": "İsim",
+      "email": "E-posta",
+      "phone": "Telefon",
+      "submit": "Kişi ekle",
+      "added": "Eklendi.",
+      "merged": "Bu kişi zaten kayıtlıydı — eksik bilgileri tamamlandı."
     }
   },
   "surveys": {
@@ -1128,6 +1158,11 @@
       "not_configured": "Bu kanal bu ortamda tanımlı değil.",
       "no_address": "Bu kişinin kullanılabilir bir telefon numarası yok.",
       "send_failed": "Mesaj iletilemedi."
+    },
+    "platform": {
+      "title": "Kanallarınızdan gelen mesajlar",
+      "readOnly": "Salt okunur",
+      "unnamed": "İsimsiz"
     }
   },
   "broadcasts": {
@@ -1207,7 +1242,8 @@
     "channelEmail": "E-posta",
     "channelSms": "SMS",
     "channelWhatsapp": "WhatsApp",
-    "channelLink": "Bağlantı"
+    "channelLink": "Bağlantı",
+    "noCampaignsForChannel": "Henüz {channel} kampanyası yok — Yorum toplayın sayfasından oluşturun."
   },
   "clients": {
     "title": "Ajans",
@@ -1280,7 +1316,7 @@
   },
   "team": {
     "title": "Ekip",
-    "subtitle": "Bu organizasyona kimler erişebilir ve ne yapabilir.",
+    "subtitle": "Bu işletmeye kimler erişebilir ve ne yapabilir.",
     "role": "Rol",
     "roles": {
       "owner": "Sahip",
@@ -1373,9 +1409,9 @@
     "noAccount": "Hesabınız yok mu?",
     "createOrgTitle": "Organizasyonunuzu oluşturun",
     "createOrgSubtitle": "Şubeleriniz ve yorumlarınız bu çalışma alanında yaşar.",
-    "chooseOrgTitle": "Bir organizasyon seçin",
+    "chooseOrgTitle": "Bir işletme seçin",
     "chooseOrgSubtitle": "Birden fazla çalışma alanına üyesiniz. Açmak istediğinizi seçin.",
-    "createOrgInstead": "Yeni bir organizasyon oluşturun",
+    "createOrgInstead": "Yeni bir işletme oluşturun",
     "orgName": "Organizasyon adı",
     "createOrg": "Organizasyon oluştur",
     "passwordHint": "En az 12 karakter.",
@@ -1447,7 +1483,6 @@
     "editorLabel": "Yanıt metni",
     "save": "Kaydet",
     "saveFirst": "Onaylamadan önce düzenlemenizi kaydedin.",
-    "approve": "Onayla",
     "approved": "Onaylandı",
     "post": "Yanıtı gönder",
     "posted": "Gönderildi",
@@ -1477,7 +1512,12 @@
       "short": "Kısa",
       "standard": "Standart",
       "long": "Ayrıntılı"
-    }
+    },
+    "send": "Yanıtı gönder",
+    "sent": "Yanıt gönderildi.",
+    "sentTo": "{source} üzerine gönderildi.",
+    "openOn": "{source} üzerinde aç",
+    "openOnPlatform": "Platformda aç"
   },
   "sample": {
     "metaTitle": "Örnek haftalık plan — Revira",
@@ -1528,7 +1568,7 @@
     "poweredBy": "Yorumlar Revira ile"
   },
   "widgets": {
-    "title": "Site bileşenleri",
+    "title": "Sitedeki yorumlar",
     "subtitle": "Yorumlarınızı kendi sitenizde gösterin.",
     "listTitle": "Bileşenleriniz",
     "limitMeta": "{limit} hakkın {used} tanesi kullanıldı",
@@ -1657,7 +1697,7 @@
     "ready": "Gönderime hazır.",
     "mode": {
       "live": "Canlı",
-      "mock": "Taklit",
+      "mock": "Örnek mod",
       "off": "Kapalı"
     },
     "blockerLabel": {
@@ -1675,7 +1715,8 @@
     "goLive": {
       "whatsapp": "WhatsApp Business hesabı, onaylı bir mesaj şablonu ve İYS kaydı gerekir.",
       "sms": "Bir SMS sağlayıcısı (BSP) gerekir; Türkiye'de bu aynı zamanda İYS entegrasyonudur."
-    }
+    },
+    "tryInSample": "Örnek modda dene"
   },
   "compliance": {
     "iysTitle": "İYS — ulusal izin kayıt sistemi",
@@ -1797,7 +1838,7 @@
     "needsLocationFirst": "Kaynak bağlamadan önce bir şube ekleyin.",
     "chooseBranch": "Şube",
     "connect": "Bağla",
-    "connectDemo": "Bağla (demo)",
+    "connectDemo": "Örnek verilerle bağla",
     "connected": "{label} bağlandı.",
     "goLive": {
       "google": "Doğrulanmış bir işletme ve onaylanmış bir Business Profile API erişim başvurusu gerekir.",
@@ -1809,6 +1850,8 @@
     "title": "Yorumlarınız okunuyor",
     "body": "Müşterilerinizin yazdıklarını okuyup bu haftanın planına dönüştürüyoruz. Yorumlarınız zaten panoda — burada yalnızca inceleme ekleniyor.",
     "analysing": "İncelenen",
+    "fetching": "Alınıyor",
+    "fetchingLong": "Bağladığınız kaynaktan yorumlarınız alınıyor…",
     "counted": "{total, plural, =1 {1 yorumun {done} tanesi} other {# yorumun {done} tanesi}}",
     "done": "İlk brifinginiz hazır.",
     "empty": "Henüz brifing çıkarılacak yorum yok. Bir kaynak bağlayın, gerisini biz yapalım.",

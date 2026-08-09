@@ -1,5 +1,8 @@
 import type { Sentiment } from "../db/schema.ts";
 import { TRAILING_DAYS, type RangeWindow } from "../dashboard/range.ts";
+// The one definition of "still needs a reply" (A22-A3), shared with Home so
+// the response rate here and the one on the dashboard cannot mean two things.
+import { needsReply } from "../reviews/answered.ts";
 import type { InsightFact } from "./facts.ts";
 
 /**
@@ -381,7 +384,7 @@ function measureGroup(
   const responded = (source: readonly InsightFact[]) =>
     source.length === 0
       ? null
-      : round(source.filter((fact) => fact.repliedAt !== null).length / source.length, 3);
+      : round(source.filter((fact) => !needsReply(fact)).length / source.length, 3);
 
   return {
     key,
@@ -695,7 +698,7 @@ export type ResponsePercentiles = {
 
 export function responsePercentiles(facts: readonly InsightFact[]): ResponsePercentiles {
   const waits = facts
-    .filter((fact) => fact.repliedAt !== null)
+    .filter((fact) => !needsReply(fact))
     // Clamped, not dropped: a reply timestamped before its review is clock
     // skew, and dropping it would quietly shrink the denominator.
     .map((fact) =>

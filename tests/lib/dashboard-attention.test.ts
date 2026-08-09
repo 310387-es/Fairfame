@@ -35,6 +35,7 @@ function row(overrides: Partial<AttentionRow>): AttentionRow {
     themes: [],
     locationId: "branch-1",
     url: null,
+    drafted: false,
     urgency: 0,
     ...overrides,
   };
@@ -148,7 +149,7 @@ function facts(current: ReviewFact[], previous: ReviewFact[] = []): DashboardFac
 }
 
 describe("the insight strip", () => {
-  it("counts only unhappy items that nobody answered", () => {
+  it("counts only negative items that nobody answered", () => {
     const insight = composeInsight(
       facts([
         fact({ rating: 1, sentiment: "negative" }),
@@ -159,6 +160,64 @@ describe("the insight strip", () => {
 
     // Answered complaints are done, and happy customers are not work.
     expect(insight.waiting).toBe(1);
+  });
+
+  /**
+   * A22-A3 — the second clause is a subset of the first, in the arithmetic.
+   *
+   * The strip reads "6 negative reviews are waiting for a reply. 7 of them are
+   * about queues." — which is what a real account showed, because the two
+   * numbers were counted over different sets: the first over unanswered
+   * negatives, the second over *every* negative on the theme. The plan's test
+   * for this item is one inequality, and it has to hold for every input rather
+   * than for a chosen fixture.
+   */
+  it("never says more are about a theme than are waiting", () => {
+    const insight = composeInsight(
+      facts([
+        // Three on the theme, and two of them already answered — the exact
+        // shape that produced "more of them than there are".
+        fact({ sentiment: "negative", themes: ["wait_time"], repliedAt: hoursAgo(2) }),
+        fact({ sentiment: "negative", themes: ["wait_time"], repliedAt: hoursAgo(3) }),
+        fact({ sentiment: "negative", themes: ["wait_time"] }),
+        fact({ sentiment: "negative", themes: ["cleanliness"] }),
+        fact({ sentiment: "negative", themes: ["cleanliness"] }),
+      ]),
+    );
+
+    expect(insight.themeNegatives).toBeLessThanOrEqual(insight.waiting);
+    // Not merely capped — the subset is a real count of a real queue.
+    expect(insight.theme?.slug).toBe("wait_time");
+    expect(insight.themeNegatives).toBe(1);
+  });
+
+  it("holds the inequality when the theme is entirely answered", () => {
+    // The degenerate case the cap would hide: a theme whose every mention has
+    // been dealt with contributes nothing to a sentence about who is waiting.
+    const insight = composeInsight(
+      facts([
+        fact({ sentiment: "negative", themes: ["wait_time"], repliedAt: hoursAgo(2) }),
+        fact({ sentiment: "negative", themes: ["wait_time"], repliedAt: hoursAgo(3) }),
+        fact({ sentiment: "negative", themes: ["cleanliness"] }),
+      ]),
+    );
+
+    expect(insight.themeNegatives).toBe(0);
+    expect(insight.themeNegatives).toBeLessThanOrEqual(insight.waiting);
+  });
+
+  it("does not count a low-rated review nobody has analysed", () => {
+    /**
+     * The narrowing this item chose, pinned so it is a decision rather than a
+     * drift. `waiting` is exactly the queue its own button opens
+     * (`?sentiment=negative&reply=unanswered`), and `sentiment` and `rating`
+     * are combined with AND in the URL, so "negative *or* one star" could not
+     * be linked to. The one-star review with no analysis is the attention
+     * queue's job, on the same screen.
+     */
+    const insight = composeInsight(facts([fact({ rating: 1, sentiment: null })]));
+
+    expect(insight.waiting).toBe(0);
   });
 
   it("names the negative theme that grew, not the biggest one", () => {

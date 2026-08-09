@@ -191,7 +191,20 @@ export function LocationDetail({
                   }
                 >
                   <Link2 className="size-4" aria-hidden />
-                  {pending ? t("connecting") : ts("connectLive", { provider: source.label })}
+                  {/*
+                    **"Connect Google" is what it said, and no Google was
+                    involved** (A22-B2). This branch is the one taken when the
+                    provider resolves to `mock`: the button connects a fixture,
+                    which is correct here and is not what the words promised.
+                    The reader found out afterwards, from a sentence beside a
+                    button they had already pressed.
+
+                    The distinction is now in the label rather than only in the
+                    prose next to it, in the same words the sample workspace
+                    uses ("örnek veri") — so the two ways into fake data are
+                    recognisably the same offer.
+                  */}
+                  {pending ? t("connecting") : ts("connectSample", { provider: source.label })}
                 </Button>
               )}
 

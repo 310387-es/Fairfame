@@ -124,7 +124,7 @@ export function ComparisonTable({
       ) : (
         // Scrolls inside its own container rather than pushing the page
         // sideways — four measures plus a name does not fit a phone.
-        <div className="overflow-x-auto border-t border-line-soft">
+        <div className="overflow-x-auto border-t border-line-soft scroll-shadow">
           <table className="w-full min-w-[34rem] text-left text-copy">
             <Thead>
               <tr>

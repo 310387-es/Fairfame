@@ -70,12 +70,21 @@ export async function GET(
       ]);
 
       // The exclusive end printed as the day before, so a seven-day week does
-      // not read as eight — the same correction the email and the page make.
+      // not read as eight — the same correction the email and the page make,
+      // and in UTC for the same reason they do (see `describeDigest`): the
+      // window is UTC, so an Istanbul-time subtraction lands back on the
+      // exclusive day and the PDF an owner prints disagrees with the email.
       const inclusiveEnd = new Date(digest.periodEnd.getTime() - 1);
       const period = `${format.dateTime(digest.periodStart, {
         day: "numeric",
         month: "long",
-      })} – ${format.dateTime(inclusiveEnd, { day: "numeric", month: "long", year: "numeric" })}`;
+        timeZone: "UTC",
+      })} – ${format.dateTime(inclusiveEnd, {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      })}`;
 
       const shareable = toShareableDigest({
         digest,

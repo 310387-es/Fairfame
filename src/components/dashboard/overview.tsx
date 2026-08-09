@@ -114,7 +114,7 @@ export async function Overview({
     // sentence, see whether the trend is holding, answer what is waiting, and
     // only then look at the breakdowns.
     <div className="flex flex-col gap-(--grid-gap)">
-      <AiInsightStrip insight={insight} />
+      <AiInsightStrip insight={insight} range={window.range} />
 
       {/* The chart carries the four KPIs in its own header now, so this row is
           "how it is going" beside "what needs doing". On a phone the queue comes

@@ -44,6 +44,17 @@ export const mockConfigSchema = z.object({
   dripIntervalMinutes: z.number().int().min(1).max(10_080).nullable().default(null),
   /** Varies the corpus without changing the location. */
   seed: z.string().max(64).default(""),
+  /**
+   * `locations.category`, so the demo is about the reader's trade (A22-C7).
+   *
+   * Copied into the config at connect time rather than read at fetch time,
+   * because this connector's whole contract is that its output is a pure
+   * function of (location id, config, clock) — a database read here would make
+   * the corpus depend on something the caller cannot see. The cost is that
+   * changing a branch's category later does not rewrite reviews already
+   * ingested, which is right: they are history, not a live view.
+   */
+  vertical: z.string().max(32).nullable().default(null),
   /** Deterministic failure injection for exercising retry and error paths. */
   simulate: z
     .object({
@@ -106,6 +117,7 @@ function dripReviews(config: MockConfig, now: Date): MockReviewPayload[] {
       until: new Date(current * intervalMs),
       spanDays: 1,
       seed: config.seed,
+      vertical: config.vertical,
       batchTag: `drip${current}`,
       // Exactly on the bucket boundary. Any backwards jitter could land the
       // review before the stored cursor, and it would never be ingested.
@@ -185,6 +197,7 @@ export function createMockConnector(identity: {
         spanDays: config.spanDays,
         seed: config.seed,
         batchTag: "bf",
+        vertical: config.vertical,
       });
 
       const all = [...backfill, ...dripReviews(config, now)];

@@ -1,4 +1,4 @@
-import { AlarmClock, CheckCheck, Inbox, ThumbsDown, UserRound } from "lucide-react";
+import { AlarmClock, CheckCheck, Inbox, PenLine, ThumbsDown, UserRound } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Eyebrow } from "@/components/ds/eyebrow";
@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 export type ViewCounts = {
   total: number;
   unanswered: number;
+  /** Written and not sent — a subset of `unanswered` (A22-A4). */
+  drafted: number;
   negative: number;
   mine: number;
   overdue: number;
@@ -72,6 +74,26 @@ export async function ViewsRail({
       state: queue({ reply: "unanswered" as const }),
       count: counts.unanswered,
     },
+    /**
+     * Drafted, and only when there are any (A22-A4).
+     *
+     * A draft used to take the review out of "Needs a reply" altogether, which
+     * is how work written and never sent disappeared. It counts as unanswered
+     * again — so this is a *subset* of the queue above it, not a sixth
+     * competing question, and it earns its line only on a team that actually
+     * drafts. W4.1 settled the rail at five entries; a permanent "0" would be
+     * the sixth for nothing.
+     */
+    ...(counts.drafted > 0
+      ? [
+          {
+            key: "drafted",
+            icon: PenLine,
+            state: queue({ reply: "drafted" as const }),
+            count: counts.drafted,
+          },
+        ]
+      : []),
     {
       key: "negative",
       icon: ThumbsDown,

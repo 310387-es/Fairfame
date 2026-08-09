@@ -170,7 +170,7 @@ export async function connectSourceAction(input: {
         firstSource = prior === undefined;
 
         const [location] = await tx
-          .select({ id: schema.locations.id })
+          .select({ id: schema.locations.id, category: schema.locations.category })
           .from(schema.locations)
           .where(eq(schema.locations.id, parsed.data.locationId))
           .limit(1);
@@ -189,6 +189,11 @@ export async function connectSourceAction(input: {
                   locationId: parsed.data.locationId,
                   backfillCount: 40,
                   dripIntervalMinutes: 60,
+                  // So a café's demo is about coffee (A22-C7). Copied in here
+                  // rather than read at fetch time, because the mock's contract
+                  // is that its output is a pure function of its config — see
+                  // `mockConfigSchema`.
+                  vertical: location.category,
                 },
         });
 

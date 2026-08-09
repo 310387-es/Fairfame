@@ -3,6 +3,7 @@ import {
   CheckCheck,
   ChevronRight,
   Search,
+  SlidersHorizontal,
   ThumbsDown,
   UserRound,
   X,
@@ -130,6 +131,25 @@ export async function InboxFilterBar({
    * what is angry, work their own queue, catch what is late. Everything below is
    * the full taxonomy, for when the shortcut is not what you meant.
    */
+  /**
+   * How many of the folded axes are narrowing the list right now (A22-C6).
+   *
+   * Deliberately not `hasActiveFilters`: that counts the quick chips too, which
+   * stay visible above, and a badge that counted a control the reader can see
+   * would be answering a question nobody asked. These are the ones the panel
+   * hides.
+   */
+  const narrowed = [
+    filters.query,
+    filters.sentiment,
+    filters.source,
+    filters.canonical,
+    filters.theme,
+    filters.reply,
+    filters.status.length > 0 ? "status" : null,
+    filters.rating.length > 0 ? "rating" : null,
+  ].filter(Boolean).length;
+
   const quickFilters = [
     {
       key: "unanswered",
@@ -249,53 +269,98 @@ export async function InboxFilterBar({
         silently drop the sentiment you had selected. The sort travels too — not
         a filter, but losing it here would still be a surprise.
       */}
-      <form method="get" action="/reviews" role="search" className="flex min-w-0 gap-2">
-        {[...inboxFilterParams({ ...filters, query: null }).entries()].map(([key, value]) => (
-          <input key={`${key}:${value}`} type="hidden" name={key} value={value} />
-        ))}
+      {/*
+        **Everything but the queues, folded away on a phone** (A22-C6).
 
-        <div className="relative min-w-0 flex-1 sm:max-w-96">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-graphic-faint"
-            aria-hidden
-          />
-          <Input
-            type="search"
-            name="q"
-            defaultValue={filters.query ?? ""}
-            aria-label={t("searchLabel")}
-            placeholder={t("searchPlaceholder")}
-            className="pl-8"
-          />
-        </div>
-      </form>
+        On a 390px screen this bar filled the entire first viewport: search,
+        three rows of chips and a disclosure stood between the page title and
+        the first review. The tester scrolled past all of it every time, and
+        "Yanıt bekliyor" appeared twice on the way — once as a quick chip and
+        again in the reply row.
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        {facets.statuses.length > 0 ? (
-          <ChipGroup layout="inline" label={t("filterStatus")}>
-            {facets.statuses.map((entry) => (
-              <Chip
-                key={entry.value}
-                href={hrefFor(filters, "status", entry.value)}
-                active={filters.status.includes(entry.value)}
-                count={entry.count}
-              >
-                {statusLabel[entry.value]}
-              </Chip>
-            ))}
-          </ChipGroup>
+        **The quick chips stay outside**, and that is the whole design: below
+        `lg` the queues rail is hidden, so those four *are* the navigation. What
+        folds is everything that describes a subject or narrows a queue, which
+        is what somebody opens deliberately rather than lands on.
+
+        A checkbox rather than `<details>`, and rather than `useState`. This bar
+        is a server component rendering links and works with scripts off — a
+        `useState` here would be the one control on the screen that did not. And
+        `<details>` cannot be "closed on a phone, open on a desktop": the UA
+        hides its content when closed whatever CSS says, and `open` is an
+        attribute, not a breakpoint. The checkbox is the one mechanism where the
+        *panel's* visibility is mine to write, so `lg:flex` can simply win.
+      */}
+      <input
+        type="checkbox"
+        id="inbox-filters"
+        className="peer sr-only"
+        aria-label={t("filterToggle")}
+      />
+
+      <label
+        htmlFor="inbox-filters"
+        className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border border-line px-2.5 py-1.5 text-copy font-semibold text-ink-500 transition-colors select-none peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50 hover:text-foreground lg:hidden"
+      >
+        <SlidersHorizontal className="size-3.5" aria-hidden />
+        {t("filterToggle")}
+        {/* A collapsed panel must not hide the fact that it is doing something.
+            The count is of the axes inside it, not of the queue chips above. */}
+        {narrowed > 0 ? (
+          <span className="rounded-full bg-surface-selected px-1.5 font-mono text-meta text-indigo-700">
+            {narrowed}
+          </span>
         ) : null}
+      </label>
 
-        {facets.sentiments.length > 0 ? (
-          <ChipGroup layout="inline" label={t("filterSentiment")}>
-            {facets.sentiments.map((entry) => (
-              <Chip
-                key={entry.value}
-                href={hrefFor(filters, "sentiment", entry.value)}
-                active={filters.sentiment === entry.value}
-                count={entry.count}
-              >
-                {/*
+      <div className="hidden flex-col gap-3 peer-checked:flex lg:flex">
+        <form method="get" action="/reviews" role="search" className="flex min-w-0 gap-2">
+          {[...inboxFilterParams({ ...filters, query: null }).entries()].map(([key, value]) => (
+            <input key={`${key}:${value}`} type="hidden" name={key} value={value} />
+          ))}
+
+          <div className="relative min-w-0 flex-1 sm:max-w-96">
+            <Search
+              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-graphic-faint"
+              aria-hidden
+            />
+            <Input
+              type="search"
+              name="q"
+              defaultValue={filters.query ?? ""}
+              aria-label={t("searchLabel")}
+              placeholder={t("searchPlaceholder")}
+              className="pl-8"
+            />
+          </div>
+        </form>
+
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          {facets.statuses.length > 0 ? (
+            <ChipGroup layout="inline" label={t("filterStatus")}>
+              {facets.statuses.map((entry) => (
+                <Chip
+                  key={entry.value}
+                  href={hrefFor(filters, "status", entry.value)}
+                  active={filters.status.includes(entry.value)}
+                  count={entry.count}
+                >
+                  {statusLabel[entry.value]}
+                </Chip>
+              ))}
+            </ChipGroup>
+          ) : null}
+
+          {facets.sentiments.length > 0 ? (
+            <ChipGroup layout="inline" label={t("filterSentiment")}>
+              {facets.sentiments.map((entry) => (
+                <Chip
+                  key={entry.value}
+                  href={hrefFor(filters, "sentiment", entry.value)}
+                  active={filters.sentiment === entry.value}
+                  count={entry.count}
+                >
+                  {/*
                   A dot in the sentiment's own colour.
 
                   Positive, neutral and negative are three different things and
@@ -310,42 +375,42 @@ export async function InboxFilterBar({
                   carries *selected*, and two colour systems on one control is
                   how a filter bar stops being readable.
                 */}
-                <span
-                  aria-hidden
-                  className={cn(
-                    "size-1.5 shrink-0 rounded-full",
-                    entry.value === "positive"
-                      ? "bg-sentiment-positive"
-                      : entry.value === "negative"
-                        ? "bg-sentiment-negative"
-                        : "bg-sentiment-neutral",
-                  )}
-                />
-                {sentimentLabel[entry.value]}
-              </Chip>
-            ))}
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "size-1.5 shrink-0 rounded-full",
+                      entry.value === "positive"
+                        ? "bg-sentiment-positive"
+                        : entry.value === "negative"
+                          ? "bg-sentiment-negative"
+                          : "bg-sentiment-neutral",
+                    )}
+                  />
+                  {sentimentLabel[entry.value]}
+                </Chip>
+              ))}
+            </ChipGroup>
+          ) : null}
+
+          <ChipGroup layout="inline" label={t("filterReply")}>
+            <Chip
+              href={hrefFor(filters, "reply", "unanswered")}
+              active={filters.reply === "unanswered"}
+              count={facets.unanswered}
+            >
+              {t("filterUnanswered")}
+            </Chip>
+            <Chip
+              href={hrefFor(filters, "reply", "answered")}
+              active={filters.reply === "answered"}
+              count={facets.total - facets.unanswered}
+            >
+              {t("filterAnswered")}
+            </Chip>
           </ChipGroup>
-        ) : null}
+        </div>
 
-        <ChipGroup layout="inline" label={t("filterReply")}>
-          <Chip
-            href={hrefFor(filters, "reply", "unanswered")}
-            active={filters.reply === "unanswered"}
-            count={facets.unanswered}
-          >
-            {t("filterUnanswered")}
-          </Chip>
-          <Chip
-            href={hrefFor(filters, "reply", "answered")}
-            active={filters.reply === "answered"}
-            count={facets.total - facets.unanswered}
-          >
-            {t("filterAnswered")}
-          </Chip>
-        </ChipGroup>
-      </div>
-
-      {/*
+        {/*
         **The long tail, folded away.**
 
         This bar was six rows of chips — status, source, sentiment, reply,
@@ -367,50 +432,50 @@ export async function InboxFilterBar({
         computed, so arriving from a digest link on a theme never shows an empty
         bar with a mysteriously short list underneath.
       */}
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        <details
-          open={
-            Boolean(filters.source) ||
-            Boolean(filters.canonical) ||
-            Boolean(filters.theme) ||
-            Boolean(filters.query)
-          }
-          className="group/more"
-        >
-          <summary className="inline-flex w-fit cursor-pointer list-none items-center gap-1 rounded-sm py-0.5 text-meta font-semibold text-ink-500 transition-colors select-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
-            <ChevronRight
-              className="size-3 transition-transform group-open/more:rotate-90"
-              aria-hidden
-            />
-            {t("filterMore")}
-          </summary>
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+          <details
+            open={
+              Boolean(filters.source) ||
+              Boolean(filters.canonical) ||
+              Boolean(filters.theme) ||
+              Boolean(filters.query)
+            }
+            className="group/more"
+          >
+            <summary className="inline-flex w-fit cursor-pointer list-none items-center gap-1 rounded-sm py-0.5 text-meta font-semibold text-ink-500 transition-colors select-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+              <ChevronRight
+                className="size-3 transition-transform group-open/more:rotate-90"
+                aria-hidden
+              />
+              {t("filterMore")}
+            </summary>
 
-          <div className="flex flex-col gap-2 pt-2">
-            {/* Only offered when there is more than one source to choose between. */}
-            {facets.sources.length > 1 ? (
-              <ChipGroup label={t("filterSource")}>
-                {facets.sources.map((source) => (
-                  <Chip
-                    key={source.value}
-                    href={hrefFor(filters, "source", source.value)}
-                    active={filters.source === source.value}
-                    count={source.count}
-                  >
-                    {/*
+            <div className="flex flex-col gap-2 pt-2">
+              {/* Only offered when there is more than one source to choose between. */}
+              {facets.sources.length > 1 ? (
+                <ChipGroup label={t("filterSource")}>
+                  {facets.sources.map((source) => (
+                    <Chip
+                      key={source.value}
+                      href={hrefFor(filters, "source", source.value)}
+                      active={filters.source === source.value}
+                      count={source.count}
+                    >
+                      {/*
                       The provider's mark — the same drawn geometry the review
                       row and the Connections screen use. A source is the one
                       filter with a real-world identity attached, and "Google
                       Business Profile" as plain text beside "First-party page"
                       made two very different things look like two words.
                     */}
-                    <ProviderMark provider={source.value} size={14} />
-                    {sourceLabels[source.value] ?? source.value}
-                  </Chip>
-                ))}
-              </ChipGroup>
-            ) : null}
+                      <ProviderMark provider={source.value} size={14} />
+                      {sourceLabels[source.value] ?? source.value}
+                    </Chip>
+                  ))}
+                </ChipGroup>
+              ) : null}
 
-            {/*
+              {/*
         Canonical themes first, and its own row (W3.2). These are keys with one
         meaning across languages — what can be trended, compared and translated
         — while the row below is the customer's own words. Showing `wait_time`
@@ -421,7 +486,7 @@ export async function InboxFilterBar({
         column is nullable with no backfill, so an account analysed before the
         taxonomy simply does not have this row yet.
       */}
-            {/*
+              {/*
         Hidden rather than shown thin, when most reviews predate the taxonomy.
 
         The counts are only as complete as the column behind them, and there is
@@ -436,72 +501,82 @@ export async function InboxFilterBar({
         would read as a bug to whoever just turned the taxonomy on, and the
         fix — re-analyse — is not something they could guess.
       */}
-            {themesReliable && facets.canonicalThemes.length > 0 ? (
-              <ChipGroup label={t("filterCanonical")}>
-                {facets.canonicalThemes.map((theme) => (
-                  <Chip
-                    key={theme.value}
-                    href={hrefFor(filters, "canonical", theme.value)}
-                    active={filters.canonical === theme.value}
-                    count={theme.count}
-                  >
-                    {label(theme.value)}
-                  </Chip>
-                ))}
-              </ChipGroup>
-            ) : null}
+              {themesReliable && facets.canonicalThemes.length > 0 ? (
+                <ChipGroup label={t("filterCanonical")}>
+                  {facets.canonicalThemes.map((theme) => (
+                    <Chip
+                      key={theme.value}
+                      href={hrefFor(filters, "canonical", theme.value)}
+                      active={filters.canonical === theme.value}
+                      count={theme.count}
+                    >
+                      {label(theme.value)}
+                    </Chip>
+                  ))}
+                </ChipGroup>
+              ) : null}
 
-            {!themesReliable && facets.themeCoverage.analysed > 0 ? (
-              <ChipGroup label={t("filterCanonical")}>
-                <span className="text-copy text-muted-foreground">
-                  {t("themesPending", {
-                    done: facets.themeCoverage.withThemes,
-                    total: facets.themeCoverage.analysed,
-                  })}
-                </span>
-              </ChipGroup>
-            ) : null}
+              {!themesReliable && facets.themeCoverage.analysed > 0 ? (
+                <ChipGroup label={t("filterCanonical")}>
+                  <span className="text-copy text-muted-foreground">
+                    {t("themesPending", {
+                      done: facets.themeCoverage.withThemes,
+                      total: facets.themeCoverage.analysed,
+                    })}
+                  </span>
+                </ChipGroup>
+              ) : null}
 
-            {facets.themes.length > 0 ? (
-              <ChipGroup label={t("filterTag")}>
-                {facets.themes.map((theme) => (
-                  <Chip
-                    key={theme.value}
-                    href={hrefFor(filters, "theme", theme.value)}
-                    active={filters.theme === theme.value}
-                    count={theme.count}
-                  >
-                    {theme.value}
-                  </Chip>
-                ))}
-                {/*
+              {facets.themes.length > 0 ? (
+                <ChipGroup label={t("filterTag")}>
+                  {facets.themes.map((theme) => (
+                    <Chip
+                      key={theme.value}
+                      href={hrefFor(filters, "theme", theme.value)}
+                      active={filters.theme === theme.value}
+                      count={theme.count}
+                    >
+                      {theme.value}
+                    </Chip>
+                  ))}
+                  {/*
             A theme linked from a digest may sit outside the top twelve. Showing
             it as an active chip means the filter never looks like it did
             nothing.
           */}
-                {filters.theme && !facets.themes.some((theme) => theme.value === filters.theme) ? (
-                  <Chip href={hrefFor(filters, "theme", filters.theme)} active>
-                    {filters.theme}
-                  </Chip>
-                ) : null}
-              </ChipGroup>
-            ) : null}
+                  {filters.theme &&
+                  !facets.themes.some((theme) => theme.value === filters.theme) ? (
+                    <Chip href={hrefFor(filters, "theme", filters.theme)} active>
+                      {filters.theme}
+                    </Chip>
+                  ) : null}
+                </ChipGroup>
+              ) : null}
 
-            {/* A search arriving from the palette has to be visible and removable.
+              {/* A search arriving from the palette has to be visible and removable.
               Without a chip the list looks arbitrarily short and the only way
               back is the browser's back button. */}
-            {filters.query ? (
-              <ChipGroup label={t("filterSearch")}>
-                <Chip href={hrefFor(filters, "query", filters.query)} active>
-                  {filters.query}
-                </Chip>
-              </ChipGroup>
-            ) : null}
-          </div>
-        </details>
-
-        {trailing ? <div className="shrink-0">{trailing}</div> : null}
+              {filters.query ? (
+                <ChipGroup label={t("filterSearch")}>
+                  <Chip href={hrefFor(filters, "query", filters.query)} active>
+                    {filters.query}
+                  </Chip>
+                </ChipGroup>
+              ) : null}
+            </div>
+          </details>
+        </div>
       </div>
+
+      {/*
+        Outside the fold, because it is not a filter (A22-C6).
+
+        The result count and the sort describe what is *already* on screen — how
+        many matched, and in what order — so hiding them behind "Filtrele" would
+        take away the answer along with the controls. It sat inside for one
+        revision and read as a bug: the list said nothing about its own length.
+      */}
+      {trailing ? <div className="shrink-0">{trailing}</div> : null}
     </div>
   );
 }

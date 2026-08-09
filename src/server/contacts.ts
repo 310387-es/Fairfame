@@ -409,6 +409,86 @@ export async function eraseContactAction(input: { contactId: string }): Promise<
  *
  * Admin: it writes personal data in bulk under the organization's name.
  */
+/**
+ * Adds one person by hand (A22-C2).
+ *
+ * `/contacts` could only be filled from a CSV, so a café owner who wanted to
+ * add the regular sitting in front of them had to build a file. The obvious
+ * fix — an insert here — would have been a *second* definition of what adding a
+ * contact means, and the one it would most easily drift from is the rule that
+ * matters: **an import grants no permission**. So this is a one-row import. The
+ * matching, the gap-filling and the "no consent record, no İYS entry" are all
+ * `importContacts`, unchanged.
+ */
+export async function addContactAction(input: {
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+}): Promise<ActionResult<{ result: ImportResult }>> {
+  const parsed = z
+    .object({
+      name: z.string().trim().max(120).nullish(),
+      // Emptied fields arrive as "" from a form; both become null, and the
+      // refusal below is what a row with neither gets.
+      email: z.string().trim().max(320).nullish(),
+      phone: z.string().trim().max(40).nullish(),
+    })
+    .safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error, "Check the details and try again.");
+
+  const email = parsed.data.email?.trim() || null;
+  const phone = parsed.data.phone?.trim() || null;
+
+  if (!email && !phone) {
+    return {
+      ok: false,
+      error: "Add an email address or a phone number — a contact needs one of them.",
+      fieldErrors: { email: "An email address or a phone number is required." },
+    };
+  }
+
+  if (email && !z.email().safeParse(email).success) {
+    return {
+      ok: false,
+      error: "That email address is not valid.",
+      fieldErrors: { email: "That email address is not valid." },
+    };
+  }
+
+  try {
+    const outcome = await withAuthenticatedTenant(
+      async (tx, actor) => {
+        const result = await importContacts(
+          tx,
+          actor.organizationId,
+          [{ email, phone, name: parsed.data.name?.trim() || null }],
+          { actorUserId: actor.userId },
+        );
+
+        await tx.insert(schema.auditLogs).values({
+          organizationId: actor.organizationId,
+          actorUserId: actor.userId,
+          action: "contacts.added",
+          entity: `organization:${actor.organizationId}`,
+          // Counts, never the row — the same rule the import follows, for the
+          // same reason: an append-only log is the worst place for a second
+          // copy of personal data somebody may ask us to erase.
+          meta: result,
+        });
+
+        return result;
+      },
+      { minimumRole: "admin" },
+    );
+
+    revalidatePath("/contacts");
+    return { ok: true, result: outcome };
+  } catch (error) {
+    log.warn({ err: error }, "addContact failed");
+    return toActionResult(error);
+  }
+}
+
 export async function importContactsAction(input: {
   csv: string;
   tagLabel?: string | null;

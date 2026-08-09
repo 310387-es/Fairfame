@@ -4,6 +4,9 @@ import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { loadFacts } from "@/dashboard/facts";
 import { rangeWindow } from "@/dashboard/range";
 import { needsAttention } from "@/dashboard/attention";
+import { composeInsight } from "@/dashboard/insight";
+import { computeResponseDistribution } from "@/dashboard/metrics";
+import { needsReply } from "@/reviews/answered";
 import { inboxFacets, listInbox } from "@/reviews/queries";
 import { refreshPriority } from "@/reviews/workflow";
 import { withTenant } from "@/lib/tenancy";
@@ -40,6 +43,8 @@ const OWNER_REPLIED_AT = new Date(POSTED_AT.getTime() + 2 * 60 * 60 * 1000);
 
 /** Answered on the platform. Everything must treat it as answered. */
 let answeredInGoogle: string;
+/** Drafted and never sent — still unanswered, and still outstanding work. */
+let drafted: string;
 /** Identical in every other way, and answered by nobody. The control. */
 let untouched: string;
 
@@ -209,6 +214,173 @@ describe("Home", () => {
   });
 });
 
+/**
+ * A22-A3 — "waiting for a reply" means one thing across the product.
+ *
+ * W1.2 unified *answered*; it left "waiting" alone, and four surfaces went on
+ * counting different sets under the same two words: the Home strip counted
+ * unanswered complaints, its second clause counted every complaint on a theme
+ * whether answered or not, the response card counted every unanswered item, and
+ * the Inbox counted a fourth thing again. The tester read them side by side and
+ * stopped believing all four.
+ *
+ * The rule now: **every count of "waiting" is `needsReply`, and any narrower one
+ * is a subset that says on screen what it narrowed to.** Asserted across
+ * surfaces, in the spirit of the rest of this file — a unit test of the
+ * predicate passes happily while one caller goes on asking its own question.
+ */
+describe("what is waiting for a reply", () => {
+  it("agrees between the Inbox chip and Home's facts", async () => {
+    const window = rangeWindow("30d", new Date());
+
+    const [facets, facts] = await Promise.all([
+      read((tx) => inboxFacets(tx, fixture.orgId, fixture.locationId, {})),
+      read((tx) => loadFacts(tx, fixture.orgId, [fixture.locationId], window)),
+    ]);
+
+    const waiting = facts.current.filter(needsReply);
+
+    // Both fixtures fall inside 30 days, so the two populations are the same
+    // here and the counts must be identical — the SQL predicate and the fact
+    // predicate are two implementations of one rule.
+    expect(waiting.map((fact) => fact.reviewId)).toEqual([untouched]);
+    expect(waiting).toHaveLength(facets.unanswered);
+  });
+
+  it("keeps the Home strip's count inside the Inbox's, and never above it", async () => {
+    const window = rangeWindow("30d", new Date());
+
+    const [facets, facts] = await Promise.all([
+      read((tx) => inboxFacets(tx, fixture.orgId, fixture.locationId, {})),
+      read((tx) => loadFacts(tx, fixture.orgId, [fixture.locationId], window)),
+    ]);
+
+    const insight = composeInsight(facts);
+
+    // The strip is deliberately narrower — negatives only — and the copy says
+    // so. What it may never be is *larger* than the queue it is drawn from.
+    expect(insight.waiting).toBeLessThanOrEqual(facets.unanswered);
+    expect(insight.themeNegatives).toBeLessThanOrEqual(insight.waiting);
+  });
+
+  it("counts the same review the response distribution calls unanswered", async () => {
+    const window = rangeWindow("30d", new Date());
+    const facts = await read((tx) => loadFacts(tx, fixture.orgId, [fixture.locationId], window));
+
+    const unanswered = computeResponseDistribution(facts).find(
+      (bucket) => bucket.key === "unanswered",
+    );
+
+    // The card and the chip were the two numbers a manager compares first.
+    expect(unanswered?.count).toBe(facts.current.filter(needsReply).length);
+  });
+});
+
+/**
+ * A22-A4 — a draft is not an answer.
+ *
+ * Observed in the cafe-owner run: pressing "draft with AI" took the queue from
+ * 47 to 46. Nothing had been sent, so the customer was exactly as unanswered as
+ * a second earlier — the count of outstanding work fell because somebody
+ * *started* it, which is the one thing a work queue must never do. Worse, a
+ * draft nobody approves then keeps the review out of every list in the product
+ * while the customer waits.
+ *
+ * A separate fixture, because the whole file's other assertions rest on two
+ * reviews and this one adds a third.
+ */
+describe("a saved draft", () => {
+  beforeAll(async () => {
+    drafted = await addReview({});
+    await getAdminDb().insert(schema.replies).values({
+      organizationId: fixture.orgId,
+      reviewId: drafted,
+      text: "Bunu henüz göndermedik.",
+      status: "draft",
+    });
+  });
+
+  it("leaves the review in the unanswered queue", async () => {
+    const page = await read((tx) =>
+      listInbox(tx, fixture.orgId, fixture.locationId, { reply: "unanswered" }),
+    );
+
+    expect(page.rows.map((row) => row.id)).toContain(drafted);
+  });
+
+  it("does not move the chip that counts outstanding work", async () => {
+    const facets = await read((tx) => inboxFacets(tx, fixture.orgId, fixture.locationId, {}));
+
+    // Two unanswered: the untouched one and the drafted one. Before this, the
+    // draft silently took the second out.
+    expect(facets.unanswered).toBe(2);
+    // And it is reported as a subset, so a screen can say "one of these has
+    // been written" without adding it to anything.
+    expect(facets.drafted).toBe(1);
+    expect(facets.drafted).toBeLessThanOrEqual(facets.unanswered);
+  });
+
+  it("is reachable on its own, which is what the queue is for", async () => {
+    const page = await read((tx) =>
+      listInbox(tx, fixture.orgId, fixture.locationId, { reply: "drafted" }),
+    );
+
+    expect(page.rows.map((row) => row.id)).toEqual([drafted]);
+  });
+
+  it("is not counted as answered", async () => {
+    const page = await read((tx) =>
+      listInbox(tx, fixture.orgId, fixture.locationId, { reply: "answered" }),
+    );
+
+    expect(page.rows.map((row) => row.id)).toEqual([answeredInGoogle]);
+  });
+
+  it("does not sink the review in the triage queue", async () => {
+    await read((tx) => refreshPriority(tx, fixture.orgId, [drafted, untouched]));
+
+    const rows = await getAdminDb()
+      .select({ id: schema.reviews.id, priority: schema.reviews.priority })
+      .from(schema.reviews)
+      .where(inArray(schema.reviews.id, [drafted, untouched]));
+
+    const scored = new Map(rows.map((row) => [row.id, row.priority]));
+
+    // Identical reviews, one of them drafted. Starting on the angriest review
+    // in the queue used to push it 55 points down the queue.
+    expect(scored.get(drafted)).toBe(scored.get(untouched));
+  });
+
+  it("stays in Home's attention queue, marked rather than hidden", async () => {
+    const window = rangeWindow("30d", new Date());
+    const rows = await read((tx) =>
+      needsAttention(tx, fixture.orgId, [fixture.locationId], window, { limit: 10 }),
+    );
+
+    const row = rows.find((candidate) => candidate.reviewId === drafted);
+
+    // Hiding it was the old rule, and its price was a draft nobody sent taking
+    // the review out of every work list in the product.
+    expect(row).toBeDefined();
+    expect(row?.drafted).toBe(true);
+    expect(rows.find((candidate) => candidate.reviewId === untouched)?.drafted).toBe(false);
+  });
+
+  it("counts as unanswered on Home, exactly as the Inbox does", async () => {
+    const window = rangeWindow("30d", new Date());
+
+    const [facets, facts] = await Promise.all([
+      read((tx) => inboxFacets(tx, fixture.orgId, fixture.locationId, {})),
+      read((tx) => loadFacts(tx, fixture.orgId, [fixture.locationId], window)),
+    ]);
+
+    // The disagreement A22-A3 left standing: the facts loader always knew a
+    // draft was not a reply, and the Inbox did not. On the tester's real data
+    // that was 4 against 6.
+    expect(facts.current.filter(needsReply)).toHaveLength(facets.unanswered);
+  });
+});
+
 describe("the SLA breach sweep", () => {
   it("does not claim a review the owner already answered", async () => {
     await subscribeToPlanWith(fixture.orgId, ["sla_tracking"]);
@@ -217,10 +389,12 @@ describe("the SLA breach sweep", () => {
 
     // Emailing a manager about a review their own owner answered in Google is
     // the version of this bug that makes the product argue with somebody who
-    // was right. Exactly one of the two is a genuine breach.
-    expect(result.reviews).toBe(1);
+    // was right. The platform-answered one is not a breach; the untouched one
+    // and the *drafted* one both are — a deadline is about when the customer
+    // hears back, and nobody has sent the draft (A22-A4).
+    expect(result.reviews).toBe(2);
 
-    const [claimed] = await getAdminDb()
+    const claimed = await getAdminDb()
       .select({ id: schema.reviews.id })
       .from(schema.reviews)
       .where(
@@ -230,6 +404,6 @@ describe("the SLA breach sweep", () => {
         ),
       );
 
-    expect(claimed?.id).toBe(untouched);
+    expect(claimed.map((row) => row.id).sort()).toEqual([untouched, drafted].sort());
   });
 });

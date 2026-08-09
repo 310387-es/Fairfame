@@ -6,6 +6,7 @@ import { createLocalGateway } from "@/compliance/iys-gateway";
 import { sendReviewRequests } from "@/collect/requests";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { withTenant } from "@/lib/tenancy";
+import { listReviewCampaigns } from "@/surveys/store";
 
 /**
  * Review requests on WhatsApp and SMS (W2.2).
@@ -245,5 +246,124 @@ describe("a review request by email", () => {
 
     expect(outcome.sent).toBe(1);
     expect(outcome.failed).toBe(0);
+  });
+});
+
+/**
+ * A22-A2 — which campaigns a survey or a broadcast may point at.
+ *
+ * It filtered to `channel = 'email'`, which was the other half of the WhatsApp
+ * bug: a broadcast could name WhatsApp and had nothing but email campaigns to
+ * choose from, so it picked one, and the send took its channel from there.
+ * `link` is the one that must stay out — it has nothing to deliver, and
+ * offering it is a picker that lets somebody be wrong and then tells them off.
+ */
+describe("the campaigns a send may point at", () => {
+  const everywhere = { all: true as const, locationIds: [] as string[] };
+
+  it("offers the messaging campaigns, which it used to hide", async () => {
+    const whatsappId = await makeCampaign(fixture, "whatsapp");
+    const smsId = await makeCampaign(fixture, "sms");
+
+    const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      listReviewCampaigns(tx, fixture.orgId, everywhere),
+    );
+
+    const ids = rows.map((row) => row.id);
+    expect(ids).toContain(whatsappId);
+    expect(ids).toContain(smsId);
+  });
+
+  it("carries each campaign's own channel, so a picker can narrow", async () => {
+    const whatsappId = await makeCampaign(fixture, "whatsapp");
+
+    const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      listReviewCampaigns(tx, fixture.orgId, everywhere),
+    );
+
+    expect(rows.find((row) => row.id === whatsappId)?.channel).toBe("whatsapp");
+  });
+
+  it("never offers a QR campaign, which has nothing to send", async () => {
+    const [linkCampaign] = await getAdminDb()
+      .insert(schema.campaigns)
+      .values({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        name: "Masa kartı",
+        channel: "link",
+        status: "active",
+        slug: `reqch-link-${suffix}`,
+      })
+      .returning({ id: schema.campaigns.id });
+
+    const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      listReviewCampaigns(tx, fixture.orgId, everywhere),
+    );
+
+    expect(rows.map((row) => row.id)).not.toContain(linkCampaign!.id);
+  });
+
+  it("returns nothing for a member scoped to no branch", async () => {
+    await makeCampaign(fixture, "whatsapp");
+
+    // The `src/analytics/facts.ts` rule: an empty scope is nothing, never
+    // everything — the failure that looks perfect to the admin testing it.
+    const rows = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      listReviewCampaigns(tx, fixture.orgId, { all: false, locationIds: [] }),
+    );
+
+    expect(rows).toHaveLength(0);
+  });
+});
+
+/**
+ * A22-B3 — a count is not a reason.
+ *
+ * The send reported "0 sent · 1 failed" and threw the reason away, so an İYS
+ * refusal, a bounced address and a number we do not hold were the same word on
+ * screen. Only one of the three is anything the operator can act on, and the
+ * one that is — "this person never gave permission" — is the one the whole
+ * compliance layer exists to state.
+ */
+describe("what comes back when it does not go out", () => {
+  it("names the gate's own refusal, per recipient", async () => {
+    setIysGateway(null);
+    const campaignId = await makeCampaign(fixture, "whatsapp");
+
+    const outcome = await sendReviewRequests({
+      organizationId: fixture.orgId,
+      actorUserId: null,
+      campaignId,
+      recipients: [{ contactId: fixture.willing, name: "İzinli Kişi" }],
+    });
+
+    expect(outcome.sent).toBe(0);
+    expect(outcome.failures).toHaveLength(1);
+
+    // A code, not prose: the screen translates it, so a Turkish owner reads a
+    // Turkish sentence rather than a provider's English one.
+    expect(outcome.failures[0]?.refusal).toBe("iys_not_configured");
+    expect(outcome.failures[0]?.address).toBeTruthy();
+  });
+
+  it("distinguishes a missing permission from a missing number", async () => {
+    setIysGateway(createLocalGateway("test"));
+    const campaignId = await makeCampaign(fixture, "whatsapp");
+
+    const outcome = await sendReviewRequests({
+      organizationId: fixture.orgId,
+      actorUserId: null,
+      campaignId,
+      recipients: [
+        { contactId: fixture.unconsented, name: "İzinsiz Kişi" },
+        { contactId: fixture.numberless, name: "Numarasız Kişi" },
+      ],
+    });
+
+    // Two people, two different problems. One is fixed by asking them; the
+    // other by putting a phone number on the record.
+    expect(outcome.failures.map((failure) => failure.refusal)).toEqual(["no_consent"]);
+    expect(outcome.skipped.map((entry) => entry.reason)).toEqual(["no_address"]);
   });
 });

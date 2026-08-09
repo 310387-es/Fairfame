@@ -15,6 +15,7 @@ import {
   listDigests,
   RECORD_DIGESTS,
   setActionStatus,
+  windowReadiness,
 } from "@/digest/queries";
 import { currentPeriod } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
@@ -372,7 +373,13 @@ describe("progress", () => {
 
     // Distinct from `pending`: nothing is running, so a watcher should not wait
     // for something that was never queued.
-    expect(progress).toEqual({ status: "none", generatedAt: null });
+    expect(progress).toEqual({
+      status: "none",
+      generatedAt: null,
+      refreshing: false,
+      refreshFailed: false,
+      refreshReason: null,
+    });
   });
 
   it("reports a claimed row as pending before it is composed", async () => {
@@ -1108,6 +1115,60 @@ describe("edge cases", () => {
     expect(row?.reviewCount).toBe(0);
   });
 
+  it("leaves a private message out of the week entirely", async () => {
+    /**
+     * A22-C1. A WhatsApp note asking whether a black umbrella had been handed
+     * in was clustered with the complaints and printed in a weekly plan as
+     * something to act on. A briefing is about what customers said in public;
+     * a letter to the business is correspondence, and it is read on
+     * `/conversations`.
+     */
+    const fixture = await makeFixture("dm-window");
+    await addReview(fixture, { rating: 5, topics: ["servis"], sentiment: "positive", score: 0.8 });
+
+    const [dm] = await getAdminDb()
+      .insert(schema.reviews)
+      .values({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        source: "whatsapp",
+        sourceReviewId: `dm-${suffix}-${counter++}`,
+        itemType: "dm",
+        authorName: "Gülşah",
+        text: "Kayıp eşya: dün siyah bir şemsiye bıraktım, bulabildiniz mi?",
+        language: "tr",
+        postedAt: new Date(WINDOW.start.getTime() + 24 * 60 * 60 * 1000),
+        rawPayload: {},
+      })
+      .returning({ id: schema.reviews.id });
+
+    await getAdminDb()
+      .insert(schema.reviewInsights)
+      .values({
+        organizationId: fixture.orgId,
+        reviewId: dm!.id,
+        sentiment: "neutral",
+        sentimentScore: 0,
+        topics: ["kayıp eşya"],
+        language: "tr",
+        promptId: "test@1",
+        model: "test",
+      });
+
+    await generateDigest({
+      organizationId: fixture.orgId,
+      locationId: fixture.locationId,
+      window: WINDOW,
+      now: NOW,
+    });
+
+    const row = await digestRow(fixture.orgId);
+
+    expect(row?.reviewCount).toBe(1);
+    const themes = (row?.payload as DigestPayload).themes.flatMap((theme) => theme.slugs);
+    expect(themes).not.toContain("kayıp eşya");
+  });
+
   it("ignores reviews outside the window", async () => {
     const fixture = await makeFixture("window");
 
@@ -1133,6 +1194,190 @@ describe("edge cases", () => {
     expect((await digestRow(fixture.orgId))?.reviewCount).toBe(1);
   });
 
+  /**
+   * A22-A1 — the regeneration must not be able to destroy the briefing.
+   *
+   * Observed in the cafe-owner test: pressing "Compose this week" on a ready
+   * digest claimed the row (`status = 'pending'`), the model call failed, and
+   * the catch wrote `status = 'failed'` over a perfectly good published week.
+   * The payload survived untouched in the column — 5.4KB, three actions — and
+   * every reader filters on `status = 'ready'`, so the owner's plan simply
+   * vanished. The worst possible outcome for the feature the product is sold on.
+   */
+  describe("a refresh never destroys the published briefing", () => {
+    async function publish(label: string): Promise<Fixture> {
+      const fixture = await makeFixture(label);
+      await padToThreshold(fixture);
+      await addReview(fixture, {
+        rating: 2,
+        text: "Servis çok yavaştı, yarım saat bekledik.",
+        topics: ["servis"],
+        sentiment: "negative",
+        score: -0.8,
+        axis: 0,
+      });
+
+      await generateDigest({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        window: WINDOW,
+        now: NOW,
+      });
+
+      return fixture;
+    }
+
+    it("keeps the ready row, its payload and its actions when the model fails", async () => {
+      const fixture = await publish("refresh-fail");
+      const before = await digestRow(fixture.orgId);
+
+      setLlmProviderForTesting(
+        createStubProvider({ simulate: { failures: 99, retryable: false } }),
+      );
+      const result = await generateDigest({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        window: WINDOW,
+        now: NOW,
+        force: true,
+      });
+      setLlmProviderForTesting(createStubProvider());
+
+      expect(result.status).toBe("failed");
+
+      const after = await digestRow(fixture.orgId);
+      expect(after?.status).toBe("ready");
+      expect(after?.payload).toEqual(before?.payload);
+      expect(after?.generatedAt?.toISOString()).toBe(before?.generatedAt?.toISOString());
+      expect(await actionRows(fixture.orgId)).toHaveLength(3);
+
+      // The page reads through here, and it is what actually went blank.
+      const view = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+        latestDigest(tx, fixture.orgId, fixture.locationId),
+      );
+      expect(view?.payload?.headline).toBe((before?.payload as DigestPayload).headline);
+    });
+
+    it("reports the failed refresh without hiding the briefing", async () => {
+      const fixture = await publish("refresh-note");
+
+      setLlmProviderForTesting(
+        createStubProvider({ simulate: { failures: 99, retryable: false } }),
+      );
+      await generateDigest({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        window: WINDOW,
+        now: NOW,
+        force: true,
+      });
+      setLlmProviderForTesting(createStubProvider());
+
+      // "Couldn't refresh, retrying" needs something to render from, and the
+      // claim must be released or the next attempt would think one is running.
+      const row = await digestRow(fixture.orgId);
+      expect(row?.refreshError).toBeTruthy();
+      expect(row?.refreshStartedAt).toBeNull();
+
+      const progress = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+        digestProgress(tx, fixture.orgId, fixture.locationId, WINDOW.start),
+      );
+      expect(progress.status).toBe("ready");
+      expect(progress.refreshFailed).toBe(true);
+    });
+
+    it("clears the failed-refresh note once a refresh succeeds", async () => {
+      const fixture = await publish("refresh-recover");
+
+      setLlmProviderForTesting(
+        createStubProvider({ simulate: { failures: 99, retryable: false } }),
+      );
+      await generateDigest({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        window: WINDOW,
+        now: NOW,
+        force: true,
+      });
+      setLlmProviderForTesting(createStubProvider());
+
+      await generateDigest({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        window: WINDOW,
+        now: NOW,
+        force: true,
+      });
+
+      const row = await digestRow(fixture.orgId);
+      expect(row?.status).toBe("ready");
+      expect(row?.refreshError).toBeNull();
+      expect(await actionRows(fixture.orgId)).toHaveLength(3);
+    });
+
+    it("still composes over a stated absence, which is not a briefing", async () => {
+      // Onboarding's case: the sweep writes the empty week before anything is
+      // ingested, and the first briefing is composed over it. A `ready` row is
+      // not automatically something to protect.
+      const fixture = await makeFixture("refresh-over-empty");
+
+      await generateDigest({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        window: WINDOW,
+        now: NOW,
+      });
+      expect((await digestRow(fixture.orgId))?.reviewCount).toBe(0);
+
+      await padToThreshold(fixture);
+      await addReview(fixture, {
+        rating: 2,
+        topics: ["servis"],
+        sentiment: "negative",
+        score: -0.7,
+      });
+
+      const result = await generateDigest({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        window: WINDOW,
+        now: NOW,
+        force: true,
+      });
+
+      expect(result.reason).toBeUndefined();
+      expect((await digestRow(fixture.orgId))?.payload).toHaveProperty("headline");
+      expect(await actionRows(fixture.orgId)).toHaveLength(3);
+    });
+
+    it("does not blank a published week that has become too thin to recompose", async () => {
+      const fixture = await publish("refresh-thin");
+      const before = await digestRow(fixture.orgId);
+
+      // The refusal path (W1.6) wrote `emptyPayload` over the row, which is
+      // right for a week that never had a briefing and destructive for one that
+      // does. Simulated by deleting the analysis the themes were drawn from.
+      await getAdminDb()
+        .delete(schema.reviewInsights)
+        .where(eq(schema.reviewInsights.organizationId, fixture.orgId));
+
+      const result = await generateDigest({
+        organizationId: fixture.orgId,
+        locationId: fixture.locationId,
+        window: WINDOW,
+        now: NOW,
+        force: true,
+      });
+
+      expect(result.reason).toBe("not_enough_analysed");
+
+      const after = await digestRow(fixture.orgId);
+      expect(after?.status).toBe("ready");
+      expect(after?.payload).toEqual(before?.payload);
+      expect(await actionRows(fixture.orgId)).toHaveLength(3);
+    });
+  });
+
   it("records a failure rather than leaving the row pending", async () => {
     const fixture = await makeFixture("fail");
     await padToThreshold(fixture);
@@ -1154,6 +1399,81 @@ describe("edge cases", () => {
     const row = await digestRow(fixture.orgId);
     expect(row?.status).toBe("failed");
     expect(row?.lastError).toBeTruthy();
+  });
+});
+
+/**
+ * A22-A1 — the button asks before it spends a minute saying no.
+ *
+ * The pipeline's refusal is right and arrives too late to be useful: a spinner
+ * that ends in "not enough to draw a plan from" reads as a broken feature. The
+ * same question, asked of the same rows, is what disables the control instead.
+ */
+describe("window readiness", () => {
+  it("agrees with the pipeline about a week too thin to compose", async () => {
+    const fixture = await makeFixture("readiness-thin");
+    await addReview(fixture, { rating: 2, topics: ["servis"], sentiment: "negative", score: -0.7 });
+
+    const readiness = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      windowReadiness(tx, fixture.orgId, fixture.locationId, WINDOW),
+    );
+
+    expect(readiness).toEqual({ reviewCount: 1, analysedCount: 1, enough: false });
+
+    const result = await generateDigest({
+      organizationId: fixture.orgId,
+      locationId: fixture.locationId,
+      window: WINDOW,
+      now: NOW,
+    });
+
+    expect(result.reason).toBe("not_enough_analysed");
+  });
+
+  it("counts only reviews that have been analysed", async () => {
+    const fixture = await makeFixture("readiness-unanalysed");
+    await padToThreshold(fixture);
+    // Ingested but not yet through the AI queue: present in the week, and no
+    // use to a briefing until it has a sentiment.
+    await addReview(fixture, { rating: 5, text: "Harika bir yer." });
+
+    const readiness = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      windowReadiness(tx, fixture.orgId, fixture.locationId, WINDOW),
+    );
+
+    expect(readiness.reviewCount).toBe(MIN_ANALYSED_REVIEWS + 1);
+    expect(readiness.analysedCount).toBe(MIN_ANALYSED_REVIEWS);
+    expect(readiness.enough).toBe(true);
+  });
+
+  it("ignores weeks either side of the one asked about", async () => {
+    const fixture = await makeFixture("readiness-window");
+    await padToThreshold(fixture);
+    await addReview(fixture, {
+      rating: 1,
+      topics: ["servis"],
+      sentiment: "negative",
+      score: -0.9,
+      postedAt: new Date(WINDOW.end.getTime() + 3600_000),
+    });
+
+    const readiness = await withTenant({ organizationId: fixture.orgId }, (tx) =>
+      windowReadiness(tx, fixture.orgId, fixture.locationId, WINDOW),
+    );
+
+    expect(readiness.reviewCount).toBe(MIN_ANALYSED_REVIEWS);
+  });
+
+  it("never counts another organization's week", async () => {
+    const mine = await makeFixture("readiness-mine");
+    const theirs = await makeFixture("readiness-theirs");
+    await padToThreshold(theirs);
+
+    const readiness = await withTenant({ organizationId: mine.orgId }, (tx) =>
+      windowReadiness(tx, mine.orgId, theirs.locationId, WINDOW),
+    );
+
+    expect(readiness).toEqual({ reviewCount: 0, analysedCount: 0, enough: false });
   });
 });
 

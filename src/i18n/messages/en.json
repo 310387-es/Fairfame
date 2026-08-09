@@ -77,12 +77,13 @@
       "down": "down",
       "flat": "unchanged",
       "percentagePoints": "{value} pp",
-      "outOf": "out of {max}"
+      "outOf": "out of {max}",
+      "fromTo": "{from} → {to} on the period before"
     },
     "insight": {
-      "waiting": "{count, plural, =1 {1 review is waiting for a reply} other {# reviews are waiting for a reply}}.",
-      "clear": "Nothing is waiting for a reply.",
-      "theme": "{count, plural, =1 {1 is negative about {theme}} other {# are negative about {theme}}}.",
+      "waiting": "{range}: {count, plural, =1 {1 negative review is} other {# negative reviews are}} waiting for a reply.",
+      "clear": "{range}: no negative review is waiting for a reply.",
+      "theme": "{count, plural, =1 {1 of them is about {theme}} other {# of them are about {theme}}}.",
       "ratingHolding": "Your rating is holding at {rating}★.",
       "ratingUp": "Your rating is up, at {rating}★.",
       "ratingDown": "Your rating has slipped to {rating}★.",
@@ -129,7 +130,8 @@
       "drafted": "Draft ready — read it before it goes out.",
       "draftLabel": "AI draft",
       "editAndSend": "Edit and send",
-      "open": "Open"
+      "open": "Open",
+      "draftWaiting": "A draft is waiting to be sent"
     },
     "range": {
       "7d": {
@@ -329,7 +331,6 @@
     },
     "benchmark": {
       "title": "Against competitors",
-      "unverified": "These competitor figures are sample data, not real listings. The connector that reads a competitor's public rating arrives at go-live — until then this shows how the comparison will look, not how you are doing.",
       "basis": "A listing shows an all-time rating, so your side is all-time too. The date range above does not apply to this table.",
       "who": "Business",
       "you": "You",
@@ -342,7 +343,8 @@
       "add": "Add",
       "adding": "Adding…",
       "remove": "Remove {name}",
-      "locked": "Competitor benchmarking is not part of this plan."
+      "locked": "Competitor benchmarking is not part of this plan.",
+      "notAvailable": "Competitor ratings are not available in this deployment yet, so no figures are shown. Your own numbers are above; theirs need a live listing source."
     },
     "locked": {
       "title": "Insights is not part of this plan",
@@ -461,7 +463,10 @@
     "noLocation": "Add a location and your first weekly digest will arrive after the week ends.",
     "noLocationAction": "Go to Locations",
     "empty": "No digests yet. The first one is composed after a full week of reviews.",
-    "generate": "Compose this week",
+    "generatePeriod": "Compose {period}",
+    "refreshPeriod": "Recompose {period}",
+    "refreshFailed": "Couldn't recompose that week — the plan below is the one you already had. Try again when you like.",
+    "tooThin": "That week needs at least {count} analysed reviews; so far it has {analysed}.",
     "composing": "Composing… this takes about a minute.",
     "composeSlow": "Still composing — this is taking longer than usual. It will finish on its own.",
     "composeFailed": "That digest could not be composed. The hourly sweep will try again.",
@@ -571,7 +576,8 @@
       "unanswered": "Needs a reply",
       "negative": "Negative",
       "mine": "Assigned to me",
-      "overdue": "Overdue"
+      "overdue": "Overdue",
+      "drafted": "Drafted"
     },
     "closeReview": "Close",
     "searchLabel": "Search these reviews",
@@ -582,7 +588,8 @@
     "shortcutMove": "move",
     "shortcutReply": "reply",
     "shortcutDone": "mark done",
-    "duplicate": "Also elsewhere"
+    "duplicate": "Also elsewhere",
+    "filterToggle": "Filter"
   },
   "locations": {
     "title": "Locations",
@@ -710,6 +717,7 @@
     "needsAttention": "Needs attention",
     "connect": "Connect",
     "connectLive": "Connect {provider}",
+    "connectSample": "Connect {provider} with sample data",
     "connected": "Connected",
     "notLiveYet": "On sample data until go-live",
     "missingCredentials": "No API credentials configured yet.",
@@ -741,6 +749,10 @@
     "location": "Location",
     "channel": "How you ask",
     "channelEmail": "Email the customer",
+    "channelWhatsapp": "WhatsApp message",
+    "channelSms": "SMS",
+    "channelNeedsConnection": "Connect it under Channels first.",
+    "channelNotLiveNote": "You can set this up now, but nothing will actually send until a consent registry and a live provider are wired — each recipient is refused with a reason. See Compliance.",
     "channelLink": "Link / QR code",
     "destination": "Where they leave it",
     "destinationFirstparty": "Our review page",
@@ -838,7 +850,12 @@
     },
     "posterLabel": "Poster",
     "tableTent": "Table tent",
-    "printGroup": "Print"
+    "printGroup": "Print",
+    "skipReason": {
+      "unsubscribed": "Unsubscribed",
+      "no_address": "No address for this channel"
+    },
+    "moreUnreached": "{count, plural, =1 {and 1 more} other {and # more}}"
   },
   "contacts": {
     "title": "Contacts",
@@ -976,6 +993,19 @@
       "tagPlaceholder": "POS import",
       "upload": "Import",
       "summary": "{created} added, {updated} updated, {skipped} skipped. {messageable} of your contacts can be messaged today."
+    },
+    "add": {
+      "action": "Add contact",
+      "title": "Add a contact",
+      "description": "One person — a name, and an email address or a phone number.",
+      "body": "Use this for somebody in front of you. For a list, import a file instead.",
+      "noPermission": "Adding somebody records their details. It does not give you permission to message them — that comes from them, and Revira checks for it before anything is sent.",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "submit": "Add contact",
+      "added": "Added.",
+      "merged": "You already had them — their details were filled in."
     }
   },
   "surveys": {
@@ -1128,6 +1158,11 @@
       "not_configured": "That channel is not configured in this environment.",
       "no_address": "That contact has no usable phone number.",
       "send_failed": "The message could not be delivered."
+    },
+    "platform": {
+      "title": "Messages from your channels",
+      "readOnly": "Read only",
+      "unnamed": "Unnamed"
     }
   },
   "broadcasts": {
@@ -1207,7 +1242,8 @@
     "channelEmail": "Email",
     "channelSms": "SMS",
     "channelWhatsapp": "WhatsApp",
-    "channelLink": "Link"
+    "channelLink": "Link",
+    "noCampaignsForChannel": "No {channel} campaign yet — create one under Get reviews."
   },
   "clients": {
     "title": "Agency",
@@ -1447,7 +1483,6 @@
     "editorLabel": "Reply text",
     "save": "Save",
     "saveFirst": "Save your edit before approving.",
-    "approve": "Approve",
     "approved": "Approved",
     "post": "Post reply",
     "posted": "Posted",
@@ -1477,7 +1512,12 @@
       "short": "Short",
       "standard": "Standard",
       "long": "Detailed"
-    }
+    },
+    "send": "Send reply",
+    "sent": "Reply sent.",
+    "sentTo": "Sent to {source}.",
+    "openOn": "View on {source}",
+    "openOnPlatform": "View on the platform"
   },
   "sample": {
     "metaTitle": "A sample weekly plan — Revira",
@@ -1657,7 +1697,7 @@
     "ready": "Ready to send.",
     "mode": {
       "live": "Live",
-      "mock": "Mock",
+      "mock": "Sample mode",
       "off": "Off"
     },
     "blockerLabel": {
@@ -1675,7 +1715,8 @@
     "goLive": {
       "whatsapp": "Needs a WhatsApp Business Account, an approved message template, and İYS registration.",
       "sms": "Needs an SMS provider (BSP), which in Türkiye is also the İYS integration."
-    }
+    },
+    "tryInSample": "Try in sample mode"
   },
   "compliance": {
     "iysTitle": "İYS — the national permission registry",
@@ -1797,7 +1838,7 @@
     "needsLocationFirst": "Add a branch before connecting a source.",
     "chooseBranch": "Branch",
     "connect": "Connect",
-    "connectDemo": "Connect (demo)",
+    "connectDemo": "Connect with sample data",
     "connected": "{label} connected.",
     "goLive": {
       "google": "Needs a verified business and an approved Business Profile API access request.",
@@ -1809,6 +1850,8 @@
     "title": "Reading your reviews",
     "body": "We are reading what your customers wrote and turning it into this week's plan. Your reviews are already on the dashboard — this only adds the analysis.",
     "analysing": "Analysed",
+    "fetching": "Fetching",
+    "fetchingLong": "Fetching your reviews from the source you connected…",
     "counted": "{total, plural, =1 {{done} of 1 review} other {{done} of # reviews}}",
     "done": "Your first briefing is ready.",
     "empty": "There are no reviews to brief on yet. Connect a source and we will do this then.",

@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import { liveReplyJoin, UNANSWERED } from "../reviews/answered.ts";
+import { PUBLIC_FEEDBACK } from "../reviews/item-kind.ts";
 import { normalizeThemes } from "../reviews/taxonomy.ts";
 import type { Sentiment } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
@@ -43,6 +44,14 @@ export type AttentionRow = {
    * same word on every row.
    */
   locationId: string;
+  /**
+   * Somebody has written a reply and it has not gone out (A22-A4).
+   *
+   * The row is still here, because the customer has still not heard back. This
+   * is what lets the card say "a draft is waiting" instead of offering to write
+   * a second one over the top of a colleague's.
+   */
+  drafted: boolean;
   /** Why it is here, highest first. See `scoreUrgency`. */
   urgency: number;
 };
@@ -125,6 +134,18 @@ export async function needsAttention(
       themes: schema.reviewInsights.themes,
       locationId: schema.reviews.locationId,
       url: schema.reviews.url,
+      /**
+       * Whether somebody has already written something (A22-A4).
+       *
+       * The row stays in the queue — the customer has not heard back, which is
+       * the only thing this queue is about — but it says so, which is the
+       * concern the old rule was trying to serve. It *hid* a drafted review
+       * instead, on the reasoning that surfacing it would send two people to
+       * the same review; the price was that a draft nobody ever approves takes
+       * the review out of every work list in the product while the customer
+       * goes on waiting. Marking it costs one boolean and loses nothing.
+       */
+      drafted: sql<boolean>`bool_or(${schema.replies.postedAt} is null and ${schema.replies.status} <> 'failed')`,
     })
     .from(schema.reviews)
     .leftJoin(
@@ -141,17 +162,28 @@ export async function needsAttention(
         inArray(schema.reviews.locationId, locationIds),
         gte(effectiveAt, window.start),
         lt(effectiveAt, window.end),
-        // Unanswered: no live reply at all, and none the owner left on the
-        // platform (W1.2). A draft counts as answered here on purpose —
-        // someone is already on it, and surfacing it again would send two
-        // people to the same review.
+        // Nobody has answered: no posted reply of ours, and none the owner left
+        // on the platform (W1.2, A22-A4).
         UNANSWERED,
+        // And it is something a reply can be posted to. A DM cannot be answered
+        // from here at all, so offering one as the next thing to deal with is
+        // offering work nobody can do (A22-C1).
+        PUBLIC_FEEDBACK,
         // Cheap pre-filter so the text of every happy review stays on the
         // database side. The real ranking happens in `rankAttention`, and an
         // item with neither a low rating nor negative sentiment can never
         // score above zero there.
         or(eq(schema.reviewInsights.sentiment, "negative"), lt(schema.reviews.rating, 4)),
       ),
+    )
+    // One row per review: `bool_or` is an aggregate, and a review with two
+    // replies would otherwise appear in the queue twice.
+    .groupBy(
+      schema.reviews.id,
+      schema.reviews.postedAt,
+      schema.reviews.createdAt,
+      schema.reviewInsights.sentiment,
+      schema.reviewInsights.themes,
     )
     .orderBy(desc(effectiveAt))
     // Enough to rank meaningfully without reading a whole quarter of text.
@@ -160,6 +192,7 @@ export async function needsAttention(
   return rankAttention(
     rows.map((row) => ({
       ...row,
+      drafted: row.drafted ?? false,
       at: new Date(row.at),
       // Through the same normaliser every other reader uses, so a value the
       // model invented cannot reach a chip here while being dropped elsewhere.

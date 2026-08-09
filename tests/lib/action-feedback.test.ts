@@ -175,3 +175,85 @@ describe("the server side has no discarded validation left", () => {
     expect(discarding).toEqual([]);
   });
 });
+
+/**
+ * A22-B3 — the browser must not answer for us.
+ *
+ * `required` on a control inside a `useAction` form blocks the submit *before*
+ * the action runs, so the whole reporting path above never happens. Observed on
+ * the campaign form: pressing the button with an empty name moved focus and
+ * said nothing at all — the browser's own bubble is unreliable inside a dialog,
+ * and when it does appear it is neither in the product's voice nor in the
+ * product's language.
+ *
+ * `aria-required` keeps the promise to assistive technology and lets the
+ * failure come back through the one path every other failure uses, which puts
+ * a sentence under the field and moves focus to it.
+ *
+ * **A `Select` is exempt**, and deliberately: Radix renders a hidden native
+ * select whose `required` cannot fire, because these are all defaulted and can
+ * never be empty. The check therefore looks at `Input` and `Textarea` only.
+ */
+describe("validation is reported by the product, not by the browser", () => {
+  it("has no native `required` on a field inside a form that reports through useAction", () => {
+    const offenders = callsServerActions()
+      .filter(({ source }) => source.includes("useAction("))
+      .filter(({ source }) => {
+        // Each `<Input …>` / `<Textarea …>` opening tag, and whether its
+        // attributes carry a bare `required`. Deliberately naive: a regex that
+        // over-reports here costs one comment, and one that under-reports costs
+        // a silent form.
+        const tags = source.match(/<(?:Input|Textarea)\b[^>]*>/g) ?? [];
+        return tags.some((tag) => /(?:^|\s)required(?:\s|\/|>|=\{true\})/.test(tag));
+      })
+      .map(({ path }) => path);
+
+    expect(offenders).toEqual([]);
+  });
+});
+
+/**
+ * A22-B3 — a result that carries a reason must not be reduced to a count.
+ *
+ * Two components call `sendRequestsAction`, and both showed "0 sent · 1 failed"
+ * while the İYS refusal behind it stayed in the database. The action returns the
+ * reasons now; what this pins is that both call sites actually *read* them,
+ * because a returned field nobody renders is the same screen as before.
+ */
+describe("every send reports why, not only how many", () => {
+  const SENDERS = [
+    "src/components/requests/campaign-card.tsx",
+    "src/components/contacts/send-request.tsx",
+  ];
+
+  it("is asserted over every component that sends review requests", () => {
+    // The list is the point: a third sender added later has to appear here to
+    // be checked, which is the moment somebody notices it needs the reasons.
+    const found = callsServerActions()
+      .filter(({ source }) => source.includes("sendRequestsAction"))
+      .map(({ path }) => path)
+      .sort();
+
+    expect(found).toEqual([...SENDERS].sort());
+  });
+
+  /**
+   * A mention-check, and it says so.
+   *
+   * It proves each sender *reaches for* the reasons; it cannot prove the string
+   * reaches the screen — that is a browser's question, and the two senders are
+   * verified there by hand. What it does catch is the regression that actually
+   * happened: an action grew the fields and a call site went on rendering three
+   * integers.
+   */
+  it("reads the per-recipient reason rather than only the counts", () => {
+    const missing = SENDERS.filter((path) => {
+      const source = readFileSync(path, "utf8");
+      // Both halves: the refusals the gate names, and the people no row was
+      // ever created for.
+      return !source.includes("result.failures") || !source.includes("result.skippedDetail");
+    });
+
+    expect(missing).toEqual([]);
+  });
+});

@@ -120,7 +120,20 @@ export function AvailableSource({
               </Select>
             ) : null}
 
-            <Button size="sm" onClick={connect} disabled={pending}>
+            {/*
+              A sample connection is not the same offer as a real one, and the
+              button has to look like it (A22-B2). It was a full-weight primary
+              button reading "Bağla (demo)" — the parenthesis carried the whole
+              distinction, at the same visual weight as connecting a real
+              Google account. Outline, and named for what it does, in the same
+              words the sample workspace uses.
+            */}
+            <Button
+              size="sm"
+              variant={card.canAuthorize ? "default" : "outline"}
+              onClick={connect}
+              disabled={pending}
+            >
               {card.canAuthorize ? t("connect") : t("connectDemo")}
             </Button>
           </div>

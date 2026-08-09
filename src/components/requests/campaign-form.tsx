@@ -40,11 +40,33 @@ import type { LocationOption } from "@/lib/active-location";
 /** Stands in for "" on the language select, which Radix will not accept. */
 const LOCALE_DEFAULT = "default";
 
-export function CampaignForm({ locations }: { locations: LocationOption[] }) {
+/**
+ * Whether a messaging channel can be chosen here (A22-A2).
+ *
+ * `connected` is the only thing that decides availability. `deliverable` is
+ * deliberately *not* — it is false everywhere today, because no İYS registry
+ * and no live provider are wired, and hiding WhatsApp until they are would
+ * leave the product with no path at all for the thing it is sold on. So the
+ * option is offered with the truth beside it: set it up now, and every send
+ * will be refused with a reason until the rest exists.
+ */
+export type MessagingChannelOption = {
+  channel: "whatsapp" | "sms";
+  connected: boolean;
+  deliverable: boolean;
+};
+
+export function CampaignForm({
+  locations,
+  messagingChannels,
+}: {
+  locations: LocationOption[];
+  messagingChannels: MessagingChannelOption[];
+}) {
   const t = useTranslations("requests");
   const tf = useTranslations("feedback");
   const [external, setExternal] = useState(false);
-  const [emailChannel, setEmailChannel] = useState(true);
+  const [channel, setChannel] = useState("email");
   const { close } = useCreateSheet();
   const { run, pending, fieldErrors, formRef, invalid } = useAction();
 
@@ -61,7 +83,7 @@ export function CampaignForm({ locations }: { locations: LocationOption[] }) {
           onSuccess: () => {
             formRef.current?.reset();
             setExternal(false);
-            setEmailChannel(true);
+            setChannel("email");
             close();
           },
         });
@@ -73,7 +95,7 @@ export function CampaignForm({ locations }: { locations: LocationOption[] }) {
         <Input
           id="campaign-name"
           name="name"
-          required
+          aria-required
           maxLength={120}
           placeholder={t("namePlaceholder")}
           {...invalid("name")}
@@ -102,19 +124,35 @@ export function CampaignForm({ locations }: { locations: LocationOption[] }) {
 
       <div className="space-y-2">
         <Label htmlFor="campaign-channel">{t("channel")}</Label>
-        <Select
-          name="channel"
-          defaultValue="email"
-          onValueChange={(next) => setEmailChannel(next === "email")}
-        >
+        <Select name="channel" value={channel} onValueChange={setChannel}>
           <SelectTrigger id="campaign-channel">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="email">{t("channelEmail")}</SelectItem>
+            {/*
+              WhatsApp and SMS, at last (A22-A2). The column has accepted them
+              since P1b-T1, `prepareRequests` has routed them through the
+              consent gate since W2.2, and this select offered two options — so
+              the product's whole messaging path was unreachable from the one
+              screen that creates the thing that uses it.
+            */}
+            {messagingChannels.map((option) => (
+              <SelectItem key={option.channel} value={option.channel} disabled={!option.connected}>
+                {option.channel === "whatsapp" ? t("channelWhatsapp") : t("channelSms")}
+                {option.connected ? "" : ` — ${t("channelNeedsConnection")}`}
+              </SelectItem>
+            ))}
             <SelectItem value="link">{t("channelLink")}</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Said before the campaign is created, not after forty refusals. */}
+        {messagingChannels.some(
+          (option) => option.channel === channel && option.connected && !option.deliverable,
+        ) ? (
+          <p className="text-meta text-faint">{t("channelNotLiveNote")}</p>
+        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -141,7 +179,7 @@ export function CampaignForm({ locations }: { locations: LocationOption[] }) {
             id="campaign-destination-url"
             name="destinationUrl"
             type="url"
-            required
+            aria-required
             placeholder={t("destinationUrlPlaceholder")}
             {...invalid("destinationUrl")}
           />
@@ -163,8 +201,13 @@ export function CampaignForm({ locations }: { locations: LocationOption[] }) {
         </Select>
       </div>
 
-      {/* Copy overrides only make sense for a channel that sends something. */}
-      {emailChannel ? (
+      {/*
+        Copy overrides are an *email* affordance, not a "does it send" one. A
+        WhatsApp template is approved by Meta word for word and `deliverRequests`
+        deliberately ignores these for it, so offering a subject and a body for a
+        WhatsApp campaign would be two fields that quietly do nothing.
+      */}
+      {channel === "email" ? (
         <>
           <div className="space-y-2">
             <Label htmlFor="campaign-subject">{t("subject")}</Label>

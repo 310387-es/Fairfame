@@ -58,8 +58,16 @@ export function isOptOut(text: string | null): boolean {
 export type InboundOutcome = {
   /** Messages matched to a known contact. */
   matched: number;
-  /** Messages from numbers we do not hold — logged, never stored. */
+  /** Messages we could not attribute to a business at all — never stored. */
   unknown: number;
+  /**
+   * People recorded because they wrote to us first (A22-C2).
+   *
+   * Counted apart from `matched`: "a customer we already knew replied" and "a
+   * stranger just started a conversation" are different events, and only the
+   * second one added a row to somebody's contact list.
+   */
+  created: number;
   optOuts: number;
   statuses: number;
   /**
@@ -93,6 +101,79 @@ async function resolveContact(
   return row ? { organizationId: row.organizationId, contactId: row.id } : null;
 }
 
+/**
+ * Which business this message was sent *to* (A22-C2).
+ *
+ * `channel_connections.external_id` is the WhatsApp phone number id — the
+ * account Meta says received it — so the tenant is a lookup rather than a
+ * guess. That distinction is the whole reason this function exists instead of
+ * an inference: putting a stranger's phone number into the wrong business's
+ * contact list is the worst thing this codebase could do, and a webhook has no
+ * session to check it against. Unresolvable means we do not know, and not
+ * knowing means nothing is written.
+ *
+ * Admin-scoped and deliberately narrow, exactly as `resolveContact` is: one
+ * column out, and the caller re-enters `withTenant` before touching anything.
+ */
+async function resolveReceivingOrganization(phoneNumberId: string | null): Promise<string | null> {
+  if (!phoneNumberId) return null;
+
+  const [row] = await getAdminDb()
+    .select({ organizationId: schema.channelConnections.organizationId })
+    .from(schema.channelConnections)
+    .where(
+      and(
+        eq(schema.channelConnections.channel, "whatsapp"),
+        eq(schema.channelConnections.externalId, phoneNumberId),
+      ),
+    )
+    .limit(1);
+
+  return row?.organizationId ?? null;
+}
+
+/**
+ * Records the person who just wrote to us, granting nothing (A22-C2).
+ *
+ * The old behaviour dropped the message entirely, on the reasoning that
+ * recording it "would create a contact nobody consented to give us". That
+ * conflates two things this product is unusually careful to keep apart: holding
+ * a record, and having permission to send. A customer who writes to a café's
+ * WhatsApp has handed over their number *on purpose*, and the café never seeing
+ * the message is a worse outcome for both of them than the record existing.
+ *
+ * So the contact is created exactly as a CSV import creates one — a phone
+ * number and nothing else. **No consent record, no İYS entry**, so
+ * `checkSendAllowed` still refuses any commercial message to them, and the only
+ * thing now possible is the thing they asked for: a reply, inside Meta's own
+ * 24-hour service window.
+ */
+async function createContactForInbound(
+  organizationId: string,
+  phone: string,
+): Promise<string | null> {
+  return withTenant({ organizationId }, async (tx) => {
+    const [row] = await tx
+      .insert(schema.contacts)
+      .values({ organizationId, phone })
+      .onConflictDoNothing()
+      .returning({ id: schema.contacts.id });
+
+    if (row) return row.id;
+
+    // A race, or a number that differs only in formatting from one we hold.
+    const [existing] = await tx
+      .select({ id: schema.contacts.id })
+      .from(schema.contacts)
+      .where(
+        and(eq(schema.contacts.organizationId, organizationId), eq(schema.contacts.phone, phone)),
+      )
+      .limit(1);
+
+    return existing?.id ?? null;
+  });
+}
+
 export async function recordInboundEvents(
   events: WebhookEvents,
   now = new Date(),
@@ -100,6 +181,7 @@ export async function recordInboundEvents(
   const outcome: InboundOutcome = {
     matched: 0,
     unknown: 0,
+    created: 0,
     optOuts: 0,
     statuses: 0,
     duplicates: 0,
@@ -112,12 +194,32 @@ export async function recordInboundEvents(
       continue;
     }
 
-    const found = await resolveContact(phone);
+    let found = await resolveContact(phone);
+
     if (!found) {
-      // A message from a number we hold no contact for. Nothing is stored:
-      // recording it would create a contact nobody consented to give us.
-      outcome.unknown += 1;
-      continue;
+      /**
+       * A number we hold no contact for (A22-C2).
+       *
+       * The message used to be dropped here, so a customer writing to a café's
+       * WhatsApp for the first time reached nobody. They are recorded now —
+       * with a phone number and no permission of any kind — but **only when we
+       * can say which business they wrote to**. `phone_number_id` is the
+       * account Meta says received it; without it there is no honest answer,
+       * and an inference would be a stranger's number in somebody else's
+       * contact list.
+       */
+      const organizationId = await resolveReceivingOrganization(events.phoneNumberId);
+      const contactId = organizationId
+        ? await createContactForInbound(organizationId, phone)
+        : null;
+
+      if (!organizationId || !contactId) {
+        outcome.unknown += 1;
+        continue;
+      }
+
+      found = { organizationId, contactId };
+      outcome.created += 1;
     }
 
     outcome.matched += 1;

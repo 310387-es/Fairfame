@@ -10,6 +10,7 @@ import { Pager } from "@/components/ds/pager";
 import { SectionCard } from "@/components/ds/section-card";
 import { PageHeader } from "@/components/shell/page-header";
 import { CreateSheet } from "@/components/ds/create-sheet";
+import { AddContact } from "@/components/contacts/add-contact";
 import { ImportContacts } from "@/components/contacts/import-contacts";
 import { SectionTabs } from "@/components/shell/section-tabs";
 import {
@@ -46,11 +47,12 @@ import { withTenant } from "@/lib/tenancy";
 type PageProps = { searchParams: Promise<RawParams> };
 
 export default async function ContactsPage({ searchParams }: PageProps) {
-  const [params, actor, t, ti, format] = await Promise.all([
+  const [params, actor, t, ti, ta, format] = await Promise.all([
     searchParams,
     requireActor(),
     getTranslations("contacts"),
     getTranslations("contacts.import"),
+    getTranslations("contacts.add"),
     getFormatter(),
   ]);
 
@@ -157,14 +159,27 @@ export default async function ContactsPage({ searchParams }: PageProps) {
         // thing you *do* once a month rather than a finding to read (W5-13).
         action={
           roleAtLeast(actor.role, "admin") ? (
-            <CreateSheet
-              label={ti("action")}
-              title={ti("title")}
-              description={ti("description")}
-              variant="outline"
-            >
-              <ImportContacts />
-            </CreateSheet>
+            <div className="flex flex-wrap items-center gap-2">
+              {/*
+                Adding one person is the common act and importing a file is the
+                occasional one, so the primary button is the one an owner
+                reaches for (A22-C2). Until now only the file existed, and
+                somebody who wanted to add the regular in front of them had to
+                build a CSV.
+              */}
+              <CreateSheet label={ta("action")} title={ta("title")} description={ta("description")}>
+                <AddContact />
+              </CreateSheet>
+
+              <CreateSheet
+                label={ti("action")}
+                title={ti("title")}
+                description={ti("description")}
+                variant="outline"
+              >
+                <ImportContacts />
+              </CreateSheet>
+            </div>
           ) : null
         }
       />

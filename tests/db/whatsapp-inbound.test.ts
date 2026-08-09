@@ -44,6 +44,33 @@ async function makeOrgWithContact(label: string, phone: string) {
   return { orgId: org.id, contactId: contact!.id };
 }
 
+/** The phone number id the fixtures are addressed to. */
+const FIXTURE_PHONE_ID = "106540352242922";
+
+/**
+ * An organization that owns the number the message was sent *to*, and no
+ * contact for whoever sent it. `external_id` is what makes the tenant a lookup
+ * rather than a guess (A22-C2).
+ */
+async function makeOrgWithChannel(label: string, phoneNumberId: string) {
+  const [org] = await getAdminDb()
+    .insert(schema.organizations)
+    .values({ name: `WA ${label} ${suffix}`, slug: `wa-${label}-${suffix}` })
+    .returning({ id: schema.organizations.id });
+  if (!org) throw new Error("organization insert returned nothing");
+  orgIds.push(org.id);
+
+  await getAdminDb().insert(schema.channelConnections).values({
+    organizationId: org.id,
+    channel: "whatsapp",
+    status: "active",
+    externalId: phoneNumberId,
+    displayName: "WhatsApp Business",
+  });
+
+  return { orgId: org.id };
+}
+
 async function conversation(orgId: string) {
   const [row] = await getAdminDb()
     .select()
@@ -69,20 +96,6 @@ describe("an inbound message", () => {
     expect(row?.waId).toBe(FIXTURE_PHONE);
     // Never touched by an inbound event — only an outbound send writes it.
     expect(row?.lastOutboundAt).toBeNull();
-  });
-
-  it("stores nothing for a number we hold no contact for", async () => {
-    // Recording it would create a contact nobody consented to give us.
-    const outcome = await recordInboundEvents(events("inbound-text"));
-
-    expect(outcome.unknown + outcome.matched).toBe(1);
-    const rows = await getAdminDb()
-      .select({ id: schema.contacts.id })
-      .from(schema.contacts)
-      .where(eq(schema.contacts.phone, FIXTURE_PHONE));
-
-    // Only the contact the previous test created; the handler added none.
-    expect(rows.length).toBeLessThanOrEqual(1);
   });
 
   it("refreshes the window on a second message", async () => {
@@ -271,5 +284,71 @@ describe("tenant derivation", () => {
     // another's account.
     expect(await conversation(mine.orgId)).toBeDefined();
     expect(await conversation(theirs.orgId)).toBeUndefined();
+  });
+});
+
+/**
+ * A22-C2 — somebody writing in for the first time.
+ *
+ * Its own group because every other fixture in this file deliberately shares
+ * `FIXTURE_PHONE`, and the case here is precisely a number no contact holds —
+ * so the shared one is cleared first rather than a second fixture being
+ * invented that would drift from the payload.
+ */
+describe("a message from a number we do not hold", () => {
+  async function forgetFixturePhone() {
+    await getAdminDb().delete(schema.contacts).where(eq(schema.contacts.phone, FIXTURE_PHONE));
+  }
+
+  /**
+   * A22-C2 — a stranger writing in is recorded, and granted nothing.
+   *
+   * This used to drop the message entirely, on the reasoning that recording it
+   * "would create a contact nobody consented to give us". That conflates two
+   * things the product is otherwise careful to keep apart: holding a record,
+   * and having permission to send. A customer who writes to a café's WhatsApp
+   * handed over their number on purpose, and the café never seeing the message
+   * is the worse outcome for both of them.
+   *
+   * What must not change is the second half — see the consent assertion below.
+   */
+  it("records somebody who wrote to us first, when we can say which business", async () => {
+    await forgetFixturePhone();
+    const fixture = await makeOrgWithChannel("unknown-number", FIXTURE_PHONE_ID);
+
+    const outcome = await recordInboundEvents(events("inbound-text"));
+
+    expect(outcome.created).toBe(1);
+
+    const [contact] = await getAdminDb()
+      .select({ id: schema.contacts.id, organizationId: schema.contacts.organizationId })
+      .from(schema.contacts)
+      .where(eq(schema.contacts.phone, FIXTURE_PHONE));
+
+    expect(contact?.organizationId).toBe(fixture.orgId);
+
+    // The whole point: a record, and no permission. `checkSendAllowed` still
+    // refuses every commercial message to them.
+    const consents = await getAdminDb()
+      .select({ id: schema.consentRecords.id })
+      .from(schema.consentRecords)
+      .where(eq(schema.consentRecords.contactRef, contact!.id));
+
+    expect(consents).toEqual([]);
+  });
+
+  it("stores nothing when it cannot say which business was written to", async () => {
+    await forgetFixturePhone();
+    await getAdminDb()
+      .delete(schema.channelConnections)
+      .where(eq(schema.channelConnections.externalId, FIXTURE_PHONE_ID));
+
+    // No channel connection carries this `phone_number_id`, so there is no
+    // honest answer to "whose contact is this" — and an inference would be a
+    // stranger's number in somebody else's contact list.
+    const outcome = await recordInboundEvents(events("inbound-text"));
+
+    expect(outcome.created).toBe(0);
+    expect(outcome.unknown).toBe(1);
   });
 });

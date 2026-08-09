@@ -126,6 +126,16 @@ export type FirstBriefingProgress = {
   finished: boolean;
   /** No reviews to brief on, so waiting would never end. */
   empty: boolean;
+  /**
+   * A source is connected and still fetching (A22-B1).
+   *
+   * `empty` and this together are what the screen needs to tell "nothing to
+   * brief on" from "not here yet": with both true it keeps waiting and says so,
+   * with only `empty` it stops. Before this the two were the same state, so a
+   * new account met a motionless **0/0** bar and a message saying its branch
+   * had nothing in it, seconds after connecting a source that did.
+   */
+  awaitingSync: boolean;
 };
 
 /**
@@ -160,6 +170,7 @@ export async function onboardingProgressAction(input: {
         // so, or the screen would navigate away mid-batch.
         finished: false,
         empty: false,
+        awaitingSync: status.awaitingSync,
       },
     };
   } catch (error) {
@@ -207,6 +218,7 @@ export async function advanceFirstBriefingAction(input: {
         digestId: step.status === "ready" ? step.digestId : status.digestId,
         finished: step.status !== "analysing",
         empty: step.status === "no_reviews",
+        awaitingSync: status.awaitingSync,
       },
     };
   } catch (error) {

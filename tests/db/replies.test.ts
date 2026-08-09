@@ -514,6 +514,79 @@ describe("the state machine", () => {
   });
 });
 
+/**
+ * A22-B5 — answering a review closes it, and nothing else does.
+ *
+ * The tester posted a reply and the row still said **Açık**, so the screen
+ * disagreed with what he had just done. `reviews.status` is deliberately not
+ * derived from reply state — a review can be `done` because somebody phoned the
+ * customer, and it can carry a posted reply and still be open work because a
+ * promised refund has not happened. What resolves those two is *which* status
+ * moves: `open` is the arrival default nobody chose; everything else is a
+ * person's decision, and overwriting one would be the product arguing with
+ * somebody who knows something it does not.
+ */
+describe("what posting does to the review", () => {
+  async function postedReview(label: string, status?: "in_progress" | "ignored") {
+    const fixture = await makeFixture(label);
+    const reviewId = await addReview(fixture);
+
+    if (status) {
+      await getAdminDb()
+        .update(schema.reviews)
+        .set({ status })
+        .where(eq(schema.reviews.id, reviewId));
+    }
+
+    const reply = await act(fixture, (tx) =>
+      draftReplyForReview({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        reviewId,
+      }),
+    );
+
+    await act(fixture, (tx) =>
+      approveReply({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        replyId: reply.id,
+      }),
+    );
+    await act(fixture, (tx) =>
+      postReply({
+        tx,
+        organizationId: fixture.orgId,
+        actorUserId: fixture.userId,
+        replyId: reply.id,
+      }),
+    );
+
+    const [row] = await getAdminDb()
+      .select({ status: schema.reviews.status })
+      .from(schema.reviews)
+      .where(eq(schema.reviews.id, reviewId));
+
+    return row?.status;
+  }
+
+  it("closes a review that nobody had touched", async () => {
+    expect(await postedReview("post-closes")).toBe("done");
+  });
+
+  it("leaves work somebody said was in progress", async () => {
+    // The refund case, and the reason this is not simply derived from the
+    // reply: the reply went out and the promise behind it has not been kept.
+    expect(await postedReview("post-keeps-progress", "in_progress")).toBe("in_progress");
+  });
+
+  it("leaves a review somebody deliberately ignored", async () => {
+    expect(await postedReview("post-keeps-ignored", "ignored")).toBe("ignored");
+  });
+});
+
 describe("entitlements and usage", () => {
   it("meters each draft against the monthly allowance", async () => {
     const fixture = await makeFixture("metered");

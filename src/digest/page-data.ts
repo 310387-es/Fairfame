@@ -107,7 +107,7 @@ export function describeDigest(input: {
    */
   formatDate: (
     value: Date,
-    options: { day: "numeric"; month: "short"; year?: "numeric" },
+    options: { day: "numeric"; month: "short"; year?: "numeric"; timeZone?: "UTC" },
   ) => string;
   formatNumber: (value: number, maximumFractionDigits?: number) => string;
   /** The archive's rows omit the year; the detail page's title carries it. */
@@ -115,15 +115,29 @@ export function describeDigest(input: {
 }): DigestDescription {
   const { digest, locationName, t, formatDate, formatNumber, withYear = true } = input;
 
-  // The stored end is exclusive; a reader counting "28 July – 4 August" as a
-  // week would get eight days.
+  /**
+   * The stored end is exclusive; a reader counting "28 July – 4 August" as a
+   * week would get eight days.
+   *
+   * **In UTC, which is not a detail** (A22-A1). A digest window is UTC and
+   * Monday-aligned by definition — `weekWindow` says so, and it has to be, or a
+   * chain's branches would have incomparable weeks. The app formats in
+   * `Europe/Istanbul`, so subtracting a millisecond from Monday 00:00 UTC lands
+   * at 02:59 on the Monday *in Turkish time* and prints the exclusive end
+   * anyway: every period on every screen read as eight days, while the weekly
+   * email — which already formats in UTC — printed seven for the same digest.
+   * Two labels for one week, which is the number-trust failure this wave is
+   * about, on the product's headline feature.
+   */
   const inclusiveEnd = new Date(digest.periodEnd.getTime() - 1);
   const period = `${formatDate(digest.periodStart, {
     day: "numeric",
     month: "short",
+    timeZone: "UTC",
   })} – ${formatDate(inclusiveEnd, {
     day: "numeric",
     month: "short",
+    timeZone: "UTC",
     ...(withYear ? ({ year: "numeric" } as const) : {}),
   })}`;
 

@@ -294,7 +294,10 @@ export default async function InboxPage({
           ? "medium"
           : "low",
     overdue: review.sla === "overdue",
-    answered: review.hasOwnerReply || review.reply_ !== null,
+    // Posted, or answered on the platform — **not** merely drafted (A22-A4).
+    // The row dims what is done, and dimming a review nobody has written back
+    // to is the visual half of the bug the counts had.
+    answered: review.hasOwnerReply || review.reply_?.status === "posted",
     // W5-7. The badge only; the row stays in the queue and no count moves.
     duplicate: review.duplicateOfId !== null,
     /*
@@ -494,6 +497,7 @@ export default async function InboxPage({
                     counts={{
                       total: facets?.total ?? matching,
                       unanswered: facets?.unanswered ?? 0,
+                      drafted: facets?.drafted ?? 0,
                       negative:
                         facets?.sentiments.find((entry) => entry.value === "negative")?.count ?? 0,
                       mine: facets?.mine ?? 0,

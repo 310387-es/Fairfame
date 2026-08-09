@@ -132,12 +132,17 @@ async function addReview(fixture: Fixture, spec: ReviewSpec = {}): Promise<strin
   }
 
   if (spec.reply) {
-    await getAdminDb().insert(schema.replies).values({
-      organizationId: fixture.orgId,
-      reviewId: review.id,
-      text: "Teşekkürler.",
-      status: spec.reply,
-    });
+    await getAdminDb()
+      .insert(schema.replies)
+      .values({
+        organizationId: fixture.orgId,
+        reviewId: review.id,
+        text: "Teşekkürler.",
+        status: spec.reply,
+        // `postReply` writes the status and the timestamp together, and every
+        // reader asks the timestamp (A22-A4).
+        ...(spec.reply === "posted" ? { postedAt: new Date() } : {}),
+      });
   }
 
   return review.id;
@@ -735,9 +740,11 @@ describe("the review that was already there", () => {
 
     expect(await ids(fixture, { reply: "unanswered" })).toEqual([id]);
 
+    // Both columns, as `postReply` writes them: "answered" is measured from the
+    // moment the reply went out, not from the status beside it (A22-A4).
     await getAdminDb()
       .update(schema.replies)
-      .set({ status: "posted" })
+      .set({ status: "posted", postedAt: new Date() })
       .where(eq(schema.replies.reviewId, id));
 
     expect(await ids(fixture, { reply: "unanswered" })).toEqual([]);

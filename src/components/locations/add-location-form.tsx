@@ -50,7 +50,7 @@ export function AddLocationForm() {
         <Input
           id="name"
           name="name"
-          required
+          aria-required
           placeholder={t("namePlaceholder")}
           {...invalid("name")}
         />

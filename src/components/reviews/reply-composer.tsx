@@ -3,6 +3,7 @@
 import { useAction } from "@/components/ui/use-action";
 import {
   Check,
+  ExternalLink,
   ChevronDown,
   Loader2,
   PenLine,
@@ -37,11 +38,11 @@ import {
   type ReplyTone,
 } from "@/replies/style";
 import {
-  approveReplyAction,
   discardReplyAction,
   draftReplyAction,
   postReplyAction,
   saveReplyAction,
+  sendReplyAction,
   writeReplyAction,
 } from "@/server/replies";
 
@@ -104,6 +105,17 @@ export type ReplyComposerProps = {
   openByDefault?: boolean;
   /** This branch's configured sign-off, or null when it has none (W5-12). */
   signature?: string | null;
+  /**
+   * Where the review lives on its own platform, when it has a public address.
+   *
+   * Used only to confirm a send: "posted to Google" with a link is the evidence
+   * that the reply left the building, which is the one thing pressing the
+   * button could not tell you (A22-B5). An Instagram DM and a first-party
+   * submission have no such page, and the confirmation says so without a link.
+   */
+  reviewUrl?: string | null;
+  /** The platform's own name, for that sentence. */
+  sourceLabel?: string;
 };
 
 export function ReplyComposer({
@@ -114,6 +126,8 @@ export function ReplyComposer({
   maxChars,
   openByDefault = false,
   signature = null,
+  reviewUrl = null,
+  sourceLabel,
 }: ReplyComposerProps) {
   const t = useTranslations("replies");
   const { run, pending } = useAction();
@@ -168,13 +182,43 @@ export function ReplyComposer({
   const over = text.length > maxChars;
   const signed = signature !== null && appendSignature(text, signature) === text.trimEnd();
 
+  const draft = (next: ReplyStyle) => run(() => draftReplyAction({ reviewId, style: next }));
+
+  /**
+   * What a successful send says (A22-B5).
+   *
+   * "It worked" was the whole of the old feedback, and the question somebody
+   * actually has after pressing it is *did it reach Google*. Named, because a
+   * reply posted to the wrong place is the failure this sentence rules out.
+   */
+  const sent = sourceLabel ? t("sentTo", { source: sourceLabel }) : t("sent");
+
   const draftControls = canUseAi ? (
     <DraftControls
       pending={pending}
       style={style}
-      onStyleChange={setStyle}
+      /**
+       * Choosing a tone rewrites the draft (A22-B3).
+       *
+       * It used to set state and stop, so somebody who had a draft, thought
+       * "too formal" and picked *Samimi* watched nothing happen — the button
+       * beside the menu still said "Regenerate", and pressing it was a second
+       * step nobody was told about. Silence after a deliberate choice is the
+       * bug this whole wave is about.
+       *
+       * **Only when a draft already exists.** With an empty editor the button
+       * still reads "Draft with AI" and the chosen stance is simply what it
+       * will use — generating on the way past would spend a model call on a
+       * menu the reader was still making their mind up in. One deliberate
+       * choice, one generation, and the previous draft is kept for the "no, the
+       * other one was better" that follows.
+       */
+      onStyleChange={(next) => {
+        setStyle(next);
+        if (reply !== null && !posted && !approved) draft(next);
+      }}
       label={reply === null ? t("draftWithAi") : t("regenerate")}
-      onDraft={() => run(() => draftReplyAction({ reviewId, style }))}
+      onDraft={() => draft(style)}
     />
   ) : null;
 
@@ -219,6 +263,26 @@ export function ReplyComposer({
           </span>
         </p>
         <p className="text-body leading-relaxed whitespace-pre-line">{reply.text}</p>
+
+        {/*
+          **Where it went** (A22-B5).
+
+          The panel said "posted" and stopped, so the one question left after
+          pressing send — did this reach Google — was answered by going to look.
+          A first-party submission and an Instagram DM have no public page, so
+          the link is conditional and the sentence is not.
+        */}
+        {reviewUrl ? (
+          <a
+            href={reviewUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex items-center gap-1 text-copy font-medium text-primary hover:underline"
+          >
+            {sourceLabel ? t("openOn", { source: sourceLabel }) : t("openOnPlatform")}
+            <ExternalLink className="size-3.5" aria-hidden />
+          </a>
+        ) : null}
       </div>
     );
   }
@@ -400,6 +464,21 @@ export function ReplyComposer({
               {t("save")}
             </Button>
 
+            {/*
+              **One press, for somebody who is both people** (A22-B5).
+
+              Approve and post are two accountable acts when a member drafts and
+              an admin signs off. They are one intention when the owner of the
+              café is answering their own one-star review, and the product made
+              them press twice through a state — "approved, not sent" — that
+              means nothing to them and that the tester stopped at.
+
+              So an unapproved draft gets *Yanıtı gönder*, which does both on the
+              server in one transaction; an already-approved one still gets the
+              plain post, because somebody else's signature is on it and this is
+              only the second half. A member sees neither, and drafts for review
+              exactly as before.
+            */}
             {canApprove && !approved ? (
               <Button
                 type="button"
@@ -408,10 +487,10 @@ export function ReplyComposer({
                 // for text nobody signed off on.
                 disabled={pending || dirty}
                 title={dirty ? t("saveFirst") : undefined}
-                onClick={() => run(() => approveReplyAction({ replyId: reply.id }))}
+                onClick={() => run(() => sendReplyAction({ replyId: reply.id }), { success: sent })}
               >
-                <Check className="size-4" aria-hidden />
-                {t("approve")}
+                <Send className="size-4" aria-hidden />
+                {t("send")}
               </Button>
             ) : null}
 
@@ -420,7 +499,7 @@ export function ReplyComposer({
                 type="button"
                 size="sm"
                 disabled={pending}
-                onClick={() => run(() => postReplyAction({ replyId: reply.id }))}
+                onClick={() => run(() => postReplyAction({ replyId: reply.id }), { success: sent })}
               >
                 <Send className="size-4" aria-hidden />
                 {t("post")}

@@ -632,6 +632,17 @@ describe("delivery and conversion", () => {
  * gate, per recipient, at send time.
  */
 describe("a review-request broadcast on WhatsApp", () => {
+  async function requestRows(): Promise<{ id: string; channel: string }[]> {
+    return getAdminDb()
+      .select({ id: schema.reviewRequests.id, channel: schema.reviewRequests.channel })
+      .from(schema.reviewRequests)
+      .where(eq(schema.reviewRequests.organizationId, alpha.orgId));
+  }
+
+  async function requestIds(): Promise<Set<string>> {
+    return new Set((await requestRows()).map((row) => row.id));
+  }
+
   async function queueWhatsApp(): Promise<string> {
     const [row] = await getAdminDb()
       .insert(schema.broadcasts)
@@ -667,6 +678,75 @@ describe("a review-request broadcast on WhatsApp", () => {
         scheduledAt: null,
       }).success,
     ).toBe(true);
+  });
+
+  /**
+   * A22-A2 — what it was gated on is what it goes out on.
+   *
+   * The bug: `prepareRequests` read the channel off the *campaign*, and every
+   * campaign a broadcast could point at was an email one, because
+   * `listReviewCampaigns` filtered to `channel = 'email'`. So a WhatsApp
+   * broadcast checked each recipient's **WhatsApp** consent, and then emailed
+   * whoever passed. Nothing failed, nothing was logged, and the operator's
+   * evidence that they had run a WhatsApp campaign was a screen saying "sent".
+   *
+   * Asserted on `review_requests.channel`, which is the row a regulator would
+   * be shown, rather than on the transport — a send that went out over the
+   * wrong channel is wrong even when it arrives.
+   */
+  it("sends on the broadcast's channel, never the campaign's", async () => {
+    setIysGateway(createLocalGateway("test"));
+
+    const phone = `9053${Math.floor(Math.random() * 900000 + 100000)}`;
+    await getAdminDb()
+      .update(schema.contacts)
+      .set({ phone })
+      .where(eq(schema.contacts.id, alpha.ayse));
+
+    // A permission for the channel the broadcast names, so she passes the gate
+    // and the send actually reaches `prepareRequests`. Without this the gate
+    // refuses her first and the divergence never gets a chance to happen.
+    // İYS knows three channels and WhatsApp is a `message` — `consentChannelFor`
+    // in the gate is the mapping.
+    await withTenant({ organizationId: alpha.orgId }, (tx) =>
+      recordIysConsent({
+        tx,
+        organizationId: alpha.orgId,
+        contactRef: alpha.ayse,
+        channel: "message",
+        source: "web_form",
+        proofRef: "test",
+      }),
+    );
+
+    const before = await requestIds();
+    const broadcastId = await queueWhatsApp();
+    await runBroadcast(alpha.orgId, broadcastId);
+
+    const created = (await requestRows()).filter((row) => !before.has(row.id));
+
+    // The fixture already holds email requests, so the claim is about the rows
+    // *this run* wrote: a WhatsApp broadcast may not produce an email send.
+    expect(created.length).toBeGreaterThan(0);
+    expect(created.map((row) => row.channel)).toEqual(created.map(() => "whatsapp"));
+
+    // Left as it was found — both the number and the permission. The next test
+    // asserts that a WhatsApp send is *refused*, and a stray `message` consent
+    // record would make it succeed, which is the fixture telling a true story
+    // about the wrong scenario.
+    await getAdminDb()
+      .update(schema.contacts)
+      .set({ phone: null })
+      .where(eq(schema.contacts.id, alpha.ayse));
+    await getAdminDb()
+      .delete(schema.consentRecords)
+      .where(
+        and(
+          eq(schema.consentRecords.organizationId, alpha.orgId),
+          eq(schema.consentRecords.contactRef, alpha.ayse),
+          eq(schema.consentRecords.channel, "message"),
+        ),
+      );
   });
 
   it("abandons with a reason when nobody in the audience has a number", async () => {

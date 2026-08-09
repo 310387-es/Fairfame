@@ -1,5 +1,10 @@
 import type { Sentiment } from "../db/schema.ts";
 import { computePulse, rawPulse } from "../digest/metrics.ts";
+// The one definition of "still needs a reply" (A22-A3). Every count on this
+// page that used to write `repliedAt === null` inline asks it instead, so the
+// response rate, the distribution's terminal bucket and the branch table's
+// column cannot drift from the Inbox's queue or from each other.
+import { needsReply } from "../reviews/answered.ts";
 import type { DashboardFacts, ReviewFact } from "./facts.ts";
 import {
   chartBuckets,
@@ -100,7 +105,7 @@ function volume(facts: readonly ReviewFact[]): number {
 function responseRate(facts: readonly ReviewFact[]): number | null {
   if (facts.length === 0) return null;
 
-  const answered = facts.filter((fact) => fact.repliedAt !== null).length;
+  const answered = facts.filter((fact) => !needsReply(fact)).length;
   return round((answered / facts.length) * 100, 1);
 }
 
@@ -110,8 +115,24 @@ function responseRate(facts: readonly ReviewFact[]): number | null {
  * From zero there is no percentage — 0 → 5 is not "500% up", it is "five where
  * there were none" — so the delta is withheld rather than invented.
  */
+/**
+ * Below this many in the previous period, a percentage is theatre (A22-C5).
+ *
+ * The real case: one review last month, seven this month, and the dashboard
+ * said **+600%**. That is arithmetically true and tells a café owner nothing —
+ * it is the same headline they would get from two reviews becoming fourteen,
+ * and one more review next month would move it another hundred points. A
+ * business reading it either believes something enormous has happened or stops
+ * believing the number, and the second is what the tester did.
+ *
+ * Five, matching `MIN_ANALYSED_REVIEWS`: the same judgement about when a
+ * handful of reviews stops being anecdote, made in the same product, and there
+ * is no reason for this product to hold two opinions about what "a few" means.
+ */
+export const MIN_PERCENT_BASE = 5;
+
 function percentChange(value: number, previous: number): number | null {
-  if (previous === 0) return null;
+  if (previous < MIN_PERCENT_BASE) return null;
   return round(((value - previous) / previous) * 100, 1);
 }
 
@@ -415,7 +436,7 @@ function median(values: number[]): number | null {
 export function computeResponseTimes(facts: DashboardFacts): ResponseTimes {
   const waits = (items: readonly ReviewFact[]) =>
     items
-      .filter((fact) => fact.repliedAt !== null)
+      .filter((fact) => !needsReply(fact))
       .map((fact) => ((fact.repliedAt as Date).getTime() - fact.at.getTime()) / HOUR_MS)
       // A reply timestamped before the review it answers is a clock skew, not a
       // negative wait. Clamped rather than dropped, so the count still matches.
@@ -473,13 +494,16 @@ export function computeResponseDistribution(facts: DashboardFacts): ResponseBuck
   const add = (key: ResponseBucketKey) => counts.set(key, (counts.get(key) ?? 0) + 1);
 
   for (const fact of facts.current) {
-    if (fact.repliedAt === null) {
+    if (needsReply(fact)) {
       add("unanswered");
       continue;
     }
 
     // Clamped for the same clock-skew reason `computeResponseTimes` clamps.
-    const hours = Math.max(0, (fact.repliedAt.getTime() - fact.at.getTime()) / HOUR_MS);
+    // The cast is what `needsReply` costs: a named predicate is opaque to the
+    // narrowing a literal `=== null` would have given, and one assertion beside
+    // the guard is a better trade than four copies of the rule.
+    const hours = Math.max(0, ((fact.repliedAt as Date).getTime() - fact.at.getTime()) / HOUR_MS);
 
     if (hours < 1) add("under_hour");
     else if (hours <= 24) add("under_day");
@@ -536,7 +560,7 @@ export function computeBranches(facts: DashboardFacts, locationIds: string[]): B
     const previousRating = averageRating(previous);
 
     const waits = current
-      .filter((fact) => fact.repliedAt !== null)
+      .filter((fact) => !needsReply(fact))
       .map((fact) =>
         Math.max(0, ((fact.repliedAt as Date).getTime() - fact.at.getTime()) / HOUR_MS),
       );
@@ -549,7 +573,7 @@ export function computeBranches(facts: DashboardFacts, locationIds: string[]): B
       // Percent, matching the volume KPI's own delta — and null from zero, for
       // the reason `percentChange` withholds it: 0 → 5 is not "500% up".
       volumeDelta: percentChange(current.length, previous.length),
-      unanswered: current.filter((fact) => fact.repliedAt === null).length,
+      unanswered: current.filter(needsReply).length,
       medianResponseHours: (() => {
         const value = median(waits);
         return value === null ? null : Math.round(value * 10) / 10;
