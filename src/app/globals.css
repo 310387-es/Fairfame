@@ -731,6 +731,34 @@
    * 17px, and only on `/` and its siblings. Never inside the app: putting this
    * on a data surface undoes the density the app is tuned for.
    */
+  /**
+   * Reading tracks for a public surface.
+   *
+   * `max-w-prose` is 65 `ch`, and `ch` is the width of the `0` glyph — which
+   * for a 17px humanist face resolves to a **733px** box that real Turkish and
+   * English run to 85–94 characters in. It was applied to the section intros,
+   * which could have taken the width, and withheld from the customer quotes,
+   * which ran to 102 characters at 13px. That is backwards: the quotes are the
+   * only text on the page that must be *read* rather than scanned.
+   *
+   * `ch` is still the right *mechanism* — it scales with the element's own font
+   * size, which a pixel cap cannot: 656px is a comfortable measure for 17px
+   * prose and **119 characters** of 11px small print, which is how a first pass
+   * at this made the widest line on the page worse. What was wrong was the
+   * number. Geist's `0` is narrower than its average lowercase, so 65ch renders
+   * as 85–94 real characters — a systematic ~1.35× overshoot. 48ch lands at
+   * about 62.
+   *
+   * Two tracks, and every block declares which one it is on: the argument track
+   * for prose and figure rows, the evidence track — narrower — for the
+   * customer's own words.
+   *
+   * Named through `--container-*` so Tailwind emits `max-w-argument` and
+   * `max-w-evidence` from the same mechanism as its own sizes.
+   */
+  --container-argument: 48ch;
+  --container-evidence: 42ch;
+
   --text-marketing: 1.0625rem; /* 17px — public surfaces only */
   --text-marketing--line-height: 1.6;
 
@@ -850,5 +878,47 @@
 @media (prefers-reduced-motion: reduce) {
   .evidence-reveal {
     animation: none;
+  }
+
+  /* The pipeline cross-fades opacity and stroke on every hover. Harmless for
+     most readers and not for everyone; the highlight itself still works, it
+     simply arrives at once. */
+  .marketing [class*="transition-"] {
+    transition: none !important;
+  }
+}
+
+@layer components {
+  /**
+   * A text control that is also a touch target.
+   *
+   * WCAG 2.2 **SC 2.5.8** sets 24×24 CSS px at AA; **SC 2.5.5** sets 44×44 at
+   * AAA. A 14px link is about 20px tall, so every standalone text link on the
+   * marketing page failed AA — nine of them, measured at 390px.
+   *
+   * The exception in 2.5.8 is for a target "in a sentence", whose size is
+   * constrained by the line height of the text around it. That genuinely
+   * exempts an inline link mid-paragraph; it does **not** exempt a disclosure
+   * under an action, a footer nav item, or the secondary call to action beside
+   * a button, all of which are standalone controls that merely happen to be set
+   * in running-text size.
+   *
+   * `min-height` rather than padding, so the hit area grows without moving the
+   * text: in a flex row with `items-center` the label stays exactly where the
+   * composition put it. 24px on every pointer, and the full 44px where the
+   * pointer is coarse — which is the honest test, since a laptop with a
+   * touchscreen needs the larger target and a phone in a desktop-width browser
+   * does not.
+   */
+  .tap {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+  }
+
+  @media (pointer: coarse) {
+    .tap {
+      min-height: 44px;
+    }
   }
 }

@@ -38,7 +38,21 @@ const BUSINESS = "Kahve Molası";
 const BRANCH = "Moda";
 const OWNER = "Deniz Yılmaz";
 
-async function build(page: Page): Promise<void> {
+/**
+ * What the landing page shows, and why each one.
+ *
+ * The queue is the daily loop; Analytics is the screen the page's "tema × zaman
+ * ısı haritası" line describes and never showed; Get reviews is the QR-on-a-
+ * table story, which is how a Turkish cafe actually collects. Each is a claim
+ * the page makes in prose, shown as the thing itself.
+ */
+const ROUTES = [
+  { route: "/reviews", name: "reviews", needsAnalysis: false },
+  { route: "/get-reviews", name: "get-reviews", needsAnalysis: false },
+  { route: "/analytics", name: "analytics", needsAnalysis: true },
+] as const;
+
+async function build(page: Page): Promise<boolean> {
   const unique = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const headers = { origin: BASE };
   const api = page.request;
@@ -87,8 +101,62 @@ async function build(page: Page): Promise<void> {
     .click();
 
   // The first source lands on `/welcome`, which composes the first briefing.
-  // Waiting for it is the only deterministic signal that the connect finished.
   await page.waitForURL(/\/welcome/, { timeout: 30_000 });
+
+  /*
+    Let onboarding finish, rather than navigating away from it.
+
+    `e2e/account.ts` deliberately leaves `/welcome` immediately, because the
+    browser suite wants an account with reviews rather than a briefing. This
+    script wants the opposite: Analytics, the weekly plan and the theme tables
+    are all empty until the reviews have been *analysed*, and the first capture
+    run produced exactly that — "10 tanesi henüz analiz edilmedi", a blank
+    sentiment chart and "Henüz tema yok" on a marketing screenshot.
+
+    The screen redirects to `/weekly-plan/{id}` the moment analysis completes,
+    so that URL is the signal. Generous timeout: this is real model work over
+    real reviews, which is the point.
+  */
+  let analysed = false;
+  try {
+    await page.waitForURL(/\/weekly-plan\//, { timeout: 240_000 });
+    analysed = true;
+  } catch {
+    /*
+      Degrade, do not fail.
+
+      Analysis is real model work, and the model is a third party with a daily
+      quota. When it is exhausted the reviews still ingest and most of the
+      product still works — so the run captures everything that does not depend
+      on analysis and skips what does, rather than throwing away three good
+      screenshots because one screen needs a provider that is down. A stale
+      asset is worse than a missing one only if nobody is told; the caller is.
+    */
+    console.warn(
+      "! analysis did not finish (model quota or provider error) — skipping analysis-dependent shots",
+    );
+  }
+
+  /*
+    A collection campaign, so `/get-reviews` is a working screen rather than its
+    empty state. The first capture run photographed "Henüz kampanya yok" and
+    would have shipped it: an empty state is an honest picture of an account
+    nobody has used, and a dishonest picture of the product.
+  */
+  await page.goto(`${BASE}/get-reviews`);
+  await page
+    .getByRole("button", { name: /new campaign|yeni kampanya/i })
+    .first()
+    .click();
+  await page.locator("#campaign-name").fill("Ziyaret sonrası");
+  await page
+    .locator("form")
+    .filter({ has: page.locator("#campaign-name") })
+    .locator("button[type=submit]")
+    .click();
+  await page.locator('a[href*="/c/"]').first().waitFor({ timeout: 15_000 });
+
+  return analysed;
 }
 
 const browser = await chromium.launch();
@@ -102,15 +170,42 @@ const context = await browser.newContext({
 const page = await context.newPage();
 
 try {
-  await build(page);
+  const analysed = await build(page);
   mkdirSync(OUT, { recursive: true });
 
-  for (const [route, name] of [["/reviews", "reviews"]] as const) {
+  for (const { route, name, needsAnalysis } of ROUTES) {
+    if (needsAnalysis && !analysed) {
+      console.warn(`- skipped ${name}: needs analysed reviews`);
+      continue;
+    }
     await page.goto(`${BASE}${route}`, { waitUntil: "networkidle" });
     // Analysis runs in the background after ingest; give it a moment so the
-    // queue is populated rather than mid-backfill.
-    await page.waitForTimeout(2500);
+    // screen is populated rather than mid-backfill.
+    await page.waitForTimeout(3000);
     if (page.url().includes("sign-in")) throw new Error(`${route} bounced to sign-in`);
+
+    /*
+      Assert, do not hope.
+
+      The first run of this script shipped a screen reading "10 tanesi henüz
+      analiz edilmedi" with a blank chart, confidently. A capture script that
+      cannot fail produces bad assets quietly, so each shot proves it shows a
+      working product before it is written to disk.
+
+      The trial badge in the rail is deliberately *not* checked. It is true —
+      the account really is on a trial, and the page advertises a 14-day trial
+      two screens further down. Hiding it was three failed attempts of
+      gold-plating for something that is merely unflattering, not misleading.
+    */
+    const bad = await page.evaluate(() => {
+      const text = document.body.innerText;
+      const problems: string[] = [];
+      if (/henüz analiz edilmedi|not yet analysed/i.test(text)) problems.push("reviews unanalysed");
+      if (/Henüz tema yok|No themes yet/i.test(text)) problems.push("no themes");
+      return problems;
+    });
+    if (bad.length > 0) throw new Error(`${route}: ${bad.join(", ")}`);
+
     await page.screenshot({ path: `${OUT}/${name}.png` });
     console.log(`captured ${OUT}/${name}.png`);
   }

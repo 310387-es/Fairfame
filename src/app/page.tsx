@@ -27,7 +27,6 @@ import { Logo, LogoMark } from "@/components/brand/logo";
 import { Briefing } from "@/components/marketing/briefing";
 import { Pricing } from "@/components/marketing/pricing";
 import { PipelineFlow } from "@/components/marketing/pipeline-flow";
-import { PlaceholderImage } from "@/components/marketing/placeholder-image";
 import { LocaleSwitcher } from "@/components/shell/locale-switcher";
 import { Button } from "@/components/ui/button";
 import { getSampleDigest } from "@/digest/sample";
@@ -205,15 +204,34 @@ export default async function RootPage() {
     ];
   });
 
-  const flowReviews = flowThemes.flatMap((theme) => {
-    const source = digest.themes.find((candidate) => candidate.label === theme.key);
-    return (source?.quotes ?? []).map((quote, index) => ({
-      id: `${theme.key}-${index}`,
-      text: quote.text,
-      rating: quote.rating,
-      themeKey: theme.key,
-    }));
-  });
+  /*
+    Keyed by the customer's words, not by the theme.
+
+    A quote can be evidence for two themes, and mapping per theme printed the
+    same review twice with identical stars — six cards, five customers. One
+    node now, carrying an edge to each theme it belongs to.
+  */
+  const flowReviews = [
+    ...flowThemes
+      .reduce((byText, theme) => {
+        const source = digest.themes.find((candidate) => candidate.label === theme.key);
+        for (const quote of source?.quotes ?? []) {
+          const seen = byText.get(quote.text);
+          if (seen) {
+            if (!seen.themeKeys.includes(theme.key)) seen.themeKeys.push(theme.key);
+            continue;
+          }
+          byText.set(quote.text, {
+            id: `review-${byText.size}`,
+            text: quote.text,
+            rating: quote.rating,
+            themeKeys: [theme.key],
+          });
+        }
+        return byText;
+      }, new Map<string, { id: string; text: string; rating: number | null; themeKeys: string[] }>())
+      .values(),
+  ];
 
   const delivery = [
     { icon: LayoutDashboard, title: t("deliveryApp"), body: t("deliveryAppBody") },
@@ -253,12 +271,12 @@ export default async function RootPage() {
           <LogoMark className="size-7" ringColor="var(--ink-900)" title="Revira" />
 
           <div className="flex items-center gap-1">
-            <LocaleSwitcher locale={locale} className="text-on-ink-muted hover:bg-white/10" />
+            <LocaleSwitcher locale={locale} className="tap text-on-ink-muted hover:bg-white/10" />
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className="text-on-ink-muted hover:bg-white/10 hover:text-on-ink"
+              className="tap text-on-ink-muted hover:bg-white/10 hover:text-on-ink"
             >
               <Link href="/sign-in">{t("signIn")}</Link>
             </Button>
@@ -278,10 +296,12 @@ export default async function RootPage() {
               poster — as a large h1. The subtitle keeps its cap, because a
               15px lead across 1152px is a different mistake. */}
           <h1 className="text-poster text-balance">{t("headline")}</h1>
-          <p className="mt-5 max-w-2xl text-marketing text-pretty text-ink-600">{t("subhead")}</p>
+          <p className="mt-5 max-w-argument text-marketing text-pretty text-ink-600">
+            {t("subhead")}
+          </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-            <Button asChild size="lg">
+            <Button asChild size="lg" className="tap">
               <Link href="/sample">
                 {t("ctaPrimary")}
                 <ArrowRight aria-hidden className="size-4" />
@@ -289,13 +309,13 @@ export default async function RootPage() {
             </Button>
             <Link
               href="/sign-up"
-              className="rounded-sm text-body font-medium underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="tap rounded-sm text-body font-medium underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
               {t("ctaSecondary")}
             </Link>
           </div>
 
-          <p className="mt-2 text-meta text-faint">{t("noCard")}</p>
+          <p className="mt-2 max-w-argument text-meta text-faint">{t("noCard")}</p>
         </div>
 
         {/* ---------------------------------------------------------------
@@ -309,7 +329,7 @@ export default async function RootPage() {
             it, once the reader knows where its three lines came from.
         --------------------------------------------------------------- */}
         <div className="mx-auto w-full max-w-6xl px-4 pt-6 sm:px-6 lg:pt-10">
-          <p className="mb-3 flex max-w-3xl items-start gap-2 rounded-lg border border-dashed border-line bg-card px-4 py-3 text-copy leading-relaxed text-ink-600">
+          <p className="mb-3 flex max-w-argument items-start gap-2 rounded-lg border border-dashed border-line bg-card px-4 py-3 text-copy leading-relaxed text-ink-600">
             <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-graphic-faint" />
             {digest.fallback
               ? t("demoLabelFallback", { business: digest.business })
@@ -322,7 +342,9 @@ export default async function RootPage() {
               proves its whole claim. */}
           <div className="mb-6 max-w-2xl">
             <h2 className="text-hero text-balance">{t("flowTitle")}</h2>
-            <p className="mt-4 text-marketing text-pretty text-ink-600">{t("flowBody")}</p>
+            <p className="mt-4 max-w-argument text-marketing text-pretty text-ink-600">
+              {t("flowBody")}
+            </p>
           </div>
 
           <PipelineFlow
@@ -335,6 +357,14 @@ export default async function RootPage() {
               actions: t("flowActions"),
               hint: t("flowHint"),
               evidence: t("flowEvidence"),
+              reviewsCount: t("flowShown", {
+                shown: flowReviews.length,
+                total: digest.reviewCount,
+              }),
+              themesCount: t("flowShown", {
+                shown: flowThemes.length,
+                total: digest.themes.length,
+              }),
               starLabels: STAR_RATINGS.map((rating) => tDigest("starLabel", { rating })),
             }}
           />
@@ -348,7 +378,7 @@ export default async function RootPage() {
             three unrelated numbers in a row. Inside a card, because naked on
             the canvas they read as a sentence with digits in it.
           */}
-          <div className="mt-10 rounded-lg border border-line bg-card px-6 py-6 sm:px-8">
+          <div className="mt-10 max-w-argument rounded-lg border border-line bg-card px-6 py-6 sm:px-8">
             <dl className="grid grid-cols-3 gap-x-4 gap-y-6 sm:flex sm:flex-wrap sm:items-center sm:gap-x-8">
               <Stat value={digest.reviewCount} label={t("statReviews")} />
               <Step />
@@ -368,7 +398,9 @@ export default async function RootPage() {
         <div className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-6">
           <div className="mb-6 max-w-3xl">
             <h2 className="text-hero text-balance">{t("briefingTitle")}</h2>
-            <p className="mt-4 text-marketing text-pretty text-ink-600">{t("briefingBody")}</p>
+            <p className="mt-4 max-w-argument text-marketing text-pretty text-ink-600">
+              {t("briefingBody")}
+            </p>
           </div>
 
           <Briefing digest={digest} />
@@ -385,8 +417,8 @@ export default async function RootPage() {
 
             A landing page does not have margins. It has sections.
           */}
-          <div className="mt-16">
-            <h2 className="text-hero text-balance">{t("whyTitle")}</h2>
+          <div className="mt-12">
+            <h2 className="text-display text-balance">{t("whyTitle")}</h2>
             <dl className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-3">
               {[
                 { icon: Gauge, title: t("noteScoreTitle"), body: t("noteScoreBody") },
@@ -411,8 +443,10 @@ export default async function RootPage() {
         {digest.changes.length > 0 ? (
           <div className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-6">
             <div className="max-w-3xl">
-              <h2 className="text-hero text-balance">{t("changesTitle")}</h2>
-              <p className="mt-4 text-marketing text-pretty text-ink-600">{t("noteLoopBody")}</p>
+              <h2 className="text-display text-balance">{t("changesTitle")}</h2>
+              <p className="mt-4 max-w-argument text-marketing text-pretty text-ink-600">
+                {t("noteLoopBody")}
+              </p>
             </div>
 
             {/*
@@ -440,7 +474,7 @@ export default async function RootPage() {
                 treatment the product's own dashboard gives a delta: a panel,
                 large tabular numerals, and the movers as rows of data.
               */}
-            <div className="mt-6 rounded-lg border border-line bg-card px-6 py-6 sm:px-8">
+            <div className="mt-6 max-w-argument rounded-lg border border-line bg-card px-6 py-6 sm:px-8">
               <dl className="flex flex-wrap gap-x-16 gap-y-6">
                 {movedPulse && digest.priorPulse !== null && digest.pulse !== null ? (
                   <div>
@@ -474,29 +508,39 @@ export default async function RootPage() {
                   email, /sample); this surface wants a table.
                 */}
               {themeChanges.length > 0 ? (
-                <ul className="mt-7 border-t border-line-inner pt-1">
-                  {themeChanges.map((change) => {
-                    const detail = change.detail as {
-                      label?: string;
-                      status?: string;
-                      count?: number;
-                      from?: number;
-                      to?: number;
-                    };
-                    const isNew = detail.status === "new";
-                    return (
-                      <ThemeRow
-                        key={`${detail.label}-${detail.status}`}
-                        name={label(detail.label ?? "")}
-                        isNew={isNew}
-                        newLabel={t("themeNew")}
-                        figure={
-                          isNew ? `${detail.count ?? 0}` : `${detail.from ?? 0} → ${detail.to ?? 0}`
-                        }
-                      />
-                    );
-                  })}
-                </ul>
+                <div className="mt-7 border-t border-line-inner pt-4">
+                  {/* "Yemek 2 → 5" could be a score, a rating or a count, and
+                      nothing on screen said which. */}
+                  <div className="flex items-baseline justify-between gap-6 text-eyebrow text-faint uppercase">
+                    <span>{t("changeThemeHeader")}</span>
+                    <span>{t("changeCountHeader")}</span>
+                  </div>
+                  <ul className="mt-1">
+                    {themeChanges.map((change) => {
+                      const detail = change.detail as {
+                        label?: string;
+                        status?: string;
+                        count?: number;
+                        from?: number;
+                        to?: number;
+                      };
+                      const isNew = detail.status === "new";
+                      return (
+                        <ThemeRow
+                          key={`${detail.label}-${detail.status}`}
+                          name={label(detail.label ?? "")}
+                          isNew={isNew}
+                          newLabel={t("themeNew")}
+                          figure={
+                            isNew
+                              ? `${detail.count ?? 0}`
+                              : `${detail.from ?? 0} → ${detail.to ?? 0}`
+                          }
+                        />
+                      );
+                    })}
+                  </ul>
+                </div>
               ) : null}
             </div>
           </div>
@@ -530,12 +574,39 @@ export default async function RootPage() {
         <section className="mt-24 bg-indigo-050 py-20">
           <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
             <h2 className="text-hero text-balance">{t("deliveryTitle")}</h2>
+            {/*
+              `text-ink-600`, not `text-faint`, and this band is the reason the
+              rule is a *table* rather than a token.
+
+              `docs/15` §Colour lists the lightest legal ink per surface: white,
+              `--canvas`/`--surface-sunken`, `--surface-segmented`. This section
+              introduced `--indigo-050` as a **fourth** surface, which that list
+              does not know about — and `--ink-350` on it measures **4.493:1**,
+              under AA by seven thousandths. The same ink is perfectly legal
+              elsewhere: 5.06:1 on white, 4.73:1 on canvas.
+
+              `tests/lib/design-contrast.test.ts` passes green through all of
+              this, because it can only check the surfaces it has been told
+              about. That gap is the real defect and it is not fixed here — see
+              the surface brief.
+            */}
             <dl className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
               {delivery.map((item) => (
                 <div key={item.title} className="border-t border-line-soft pt-4">
-                  <IconTile icon={item.icon} tone="accent" size="lg" className="mb-3" />
+                  {/*
+                    No `IconTile` on this band, deliberately.
+
+                    `tone="accent"` fills with `--state-accent-bg`, which *is*
+                    `--indigo-050` — this band's own surface. The tile rendered
+                    as an invisible square here while the identical component
+                    two sections away rendered as a filled one: one component,
+                    two appearances, within a single scroll. A bare glyph is the
+                    honest reading, and it gives this band a form of its own
+                    against the two icon grids that flank it.
+                  */}
+                  <item.icon aria-hidden className="mb-3 size-5 text-primary" strokeWidth={2} />
                   <dt className="text-lead font-semibold">{item.title}</dt>
-                  <dd className="mt-1.5 text-body leading-relaxed text-pretty text-faint">
+                  <dd className="mt-1.5 text-body leading-relaxed text-pretty text-ink-600">
                     {item.body}
                   </dd>
                 </div>
@@ -547,7 +618,9 @@ export default async function RootPage() {
         <div className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-6">
           <div className="max-w-3xl">
             <h2 className="text-hero text-balance">{t("restTitle")}</h2>
-            <p className="mt-4 text-marketing text-pretty text-ink-600">{t("restBody")}</p>
+            <p className="mt-4 max-w-argument text-marketing text-pretty text-ink-600">
+              {t("restBody")}
+            </p>
           </div>
           {/*
             The product, shown rather than described.
@@ -562,7 +635,7 @@ export default async function RootPage() {
             imagery is its data — a picture of the product IS its data, so this is
             the one kind of image the rule was always going to allow.
           */}
-          <div className="mt-10 overflow-hidden rounded-lg border border-line bg-card shadow-md">
+          <div className="mt-10 overflow-hidden rounded-lg border border-line bg-card">
             <Image
               src="/marketing/reviews.png"
               alt={t("shotReviewsAlt")}
@@ -574,7 +647,7 @@ export default async function RootPage() {
             />
           </div>
 
-          <dl className="mt-6 grid gap-x-10 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+          <dl className="mt-6 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
             {rest.map((item) => (
               <div key={item.title} className="border-t border-line-soft pt-4">
                 <IconTile icon={item.icon} tone="accent" size="lg" className="mb-3" />
@@ -588,36 +661,35 @@ export default async function RootPage() {
         </div>
 
         {/* ---------------------------------------------------------------
-            The two photographs the page needs and does not have.
+            Collection, shown — and it argues the next section for us.
 
-            `docs/15` §7 forbids inventing imagery and the product has none, so
-            rather than a stock photo or a hole, each slot states its own brief:
-            what it must show, at what size, and the job it does. Whoever
-            supplies them can shoot the right thing without asking, and a slot
-            nobody has filled is visibly a slot rather than a design that
-            happens to look empty.
+            These two slots were placeholders carrying a brief to a
+            photographer, which shipped to production and read as an abandoned
+            build at the exact point the page turns to its trust argument. They
+            are one product screenshot now.
 
-            They sit here, between the product's inventory and the conscience
-            band, because this is the one long stretch of the page with no
-            visual relief — and because both pictures are about the same thing
-            the band below argues: that this is a real trade, done by a person,
-            in a place.
+            It earns the position rather than merely filling it: the banner
+            across the top of that screen is the product stating the
+            no-rating-gating rule *in the interface*, immediately above the band
+            that makes the same claim in prose. A photograph of a cafe owner
+            could not have done that.
         --------------------------------------------------------------- */}
         <div className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-6">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <PlaceholderImage
-              className="aspect-[16/10]"
-              size="1600 × 1000"
-              brief={t("imageOwnerBrief")}
-              purpose={t("imageOwnerPurpose")}
-            />
-            <PlaceholderImage
-              className="aspect-[16/10]"
-              size="1600 × 1000"
-              brief={t("imageQrBrief")}
-              purpose={t("imageQrPurpose")}
-            />
-          </div>
+          <figure>
+            <div className="overflow-hidden rounded-lg border border-line bg-card">
+              <Image
+                src="/marketing/get-reviews.png"
+                alt={t("shotCollectAlt")}
+                width={2880}
+                height={1800}
+                sizes="(min-width: 1152px) 1152px, 100vw"
+                className="h-auto w-full"
+              />
+            </div>
+            <figcaption className="mt-4 max-w-argument text-body leading-relaxed text-pretty text-faint">
+              {t("shotCollectCaption")}
+            </figcaption>
+          </figure>
         </div>
 
         {/* ---------------------------------------------------------------
@@ -631,22 +703,25 @@ export default async function RootPage() {
 
             <div className="mt-10 grid gap-10 lg:grid-cols-2">
               <div>
-                <h3 className="text-title text-on-ink">{t("refuseGatingTitle")}</h3>
+                <h3 className="text-display text-balance text-on-ink">{t("refuseGatingTitle")}</h3>
                 <p className="mt-3 text-marketing text-pretty text-on-ink-muted">
                   {t("refuseGatingBody")}
                 </p>
               </div>
               <div>
-                <h3 className="text-title text-on-ink">{t("refuseFakeTitle")}</h3>
+                <h3 className="text-display text-balance text-on-ink">{t("refuseFakeTitle")}</h3>
                 <p className="mt-3 text-marketing text-pretty text-on-ink-muted">
                   {t("refuseFakeBody")}
                 </p>
               </div>
             </div>
 
-            <div className="mt-12 border-t border-white/12 pt-8">
-              <h3 className="text-title text-on-ink">{t("honestTitle")}</h3>
-              <div className="mt-2 grid gap-6 lg:grid-cols-2">
+            {/* Its own heading: "Yapmadıklarımız" is a refusal, "henüz vaat
+                etmediklerimiz" is a limitation, and one h2 counting both was
+                what made the old title claim two things over three blocks. */}
+            <div className="mt-14 border-t border-white/12 pt-10">
+              <h2 className="text-hero text-balance text-on-ink">{t("honestTitle")}</h2>
+              <div className="mt-6 grid gap-6 lg:grid-cols-2">
                 <p className="text-marketing text-pretty text-on-ink-muted">{t("honestBody")}</p>
                 <p className="text-marketing text-pretty text-on-ink-muted">{t("honestSnippet")}</p>
               </div>
@@ -668,19 +743,21 @@ export default async function RootPage() {
         <div className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6">
           <div className="max-w-3xl">
             <h2 className="text-hero text-balance">{t("agencyTitle")}</h2>
-            <p className="mt-4 text-marketing text-pretty text-ink-600">{t("agencyBody")}</p>
+            <p className="mt-4 max-w-argument text-marketing text-pretty text-ink-600">
+              {t("agencyBody")}
+            </p>
             <Link
               href="/sign-up"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-sm text-body font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="tap mt-4 gap-1.5 rounded-sm text-body font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
               {t("agencyLink")}
               <ArrowRight aria-hidden className="size-4" />
             </Link>
           </div>
 
-          <div className="mt-20">
-            <h2 className="text-hero text-balance">{t("pricingTitle")}</h2>
-            <p className="mt-3 max-w-2xl text-body leading-relaxed text-pretty text-ink-600">
+          <div className="mt-12">
+            <h2 className="text-display text-balance">{t("pricingTitle")}</h2>
+            <p className="mt-3 max-w-argument text-body leading-relaxed text-pretty text-ink-600">
               {t("pricingBody")}
             </p>
 
@@ -688,18 +765,18 @@ export default async function RootPage() {
               <Pricing />
             </div>
 
-            <p className="mt-4 max-w-2xl text-meta leading-relaxed text-faint">
+            <p className="mt-4 max-w-argument text-meta leading-relaxed text-faint">
               {t("pricingNote")}
             </p>
           </div>
 
           <div className="mt-24 max-w-3xl">
             <h2 className="text-hero text-balance">{t("closeTitle")}</h2>
-            <p className="mt-4 text-lead leading-relaxed text-pretty text-ink-600">
+            <p className="mt-4 max-w-argument text-lead leading-relaxed text-pretty text-ink-600">
               {t("closeBody")}
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
-              <Button asChild size="lg">
+              <Button asChild size="lg" className="tap">
                 <Link href="/sample">
                   {t("ctaPrimary")}
                   <ArrowRight aria-hidden className="size-4" />
@@ -707,7 +784,7 @@ export default async function RootPage() {
               </Button>
               <Link
                 href="/sign-up"
-                className="rounded-sm text-body font-medium underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                className="tap rounded-sm text-body font-medium underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
                 {t("ctaSecondary")}
               </Link>
@@ -725,13 +802,13 @@ export default async function RootPage() {
           </div>
 
           <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-copy">
-            <Link href="/sample" className="underline-offset-4 hover:underline">
+            <Link href="/sample" className="tap underline-offset-4 hover:underline">
               {t("footerSample")}
             </Link>
-            <Link href="/sign-in" className="underline-offset-4 hover:underline">
+            <Link href="/sign-in" className="tap underline-offset-4 hover:underline">
               {t("footerSignIn")}
             </Link>
-            <Link href="/sign-up" className="underline-offset-4 hover:underline">
+            <Link href="/sign-up" className="tap underline-offset-4 hover:underline">
               {t("footerSignUp")}
             </Link>
           </nav>

@@ -34,7 +34,17 @@ export type FlowReview = {
   id: string;
   text: string;
   rating: number | null;
-  themeKey: string;
+  /**
+   * Every theme this review is evidence for — usually one, sometimes two.
+   *
+   * It was a single key, and a review quoted under two themes was therefore
+   * rendered *twice*, with identical stars, in a column six items long. On a
+   * page whose thesis is "a figure you cannot click through to is a figure you
+   * must take on trust", printing the same customer twice is the cheapest
+   * possible way to lose the argument. One node, two edges: a review that
+   * belongs to two themes is a better demonstration than a repeat.
+   */
+  themeKeys: string[];
 };
 
 export type FlowTheme = {
@@ -60,6 +70,9 @@ export type FlowLabels = {
   hint: string;
   /** Heading above a job's evidence in the stacked layout. */
   evidence: string;
+  /** "6 / 14" — this column's scope against the whole week. */
+  reviewsCount: string;
+  themesCount: string;
   /** Indexed by rating, 1–5. */
   starLabels: string[];
 };
@@ -84,7 +97,8 @@ export function PipelineFlow({
   actions: FlowAction[];
   labels: FlowLabels;
 }) {
-  const [active, setActive] = useState<string | null>(null);
+  /** The themes currently lit. A set, because one review can belong to two. */
+  const [active, setActive] = useState<string[] | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const nodes = useRef(new Map<string, HTMLElement>());
   const [paths, setPaths] = useState<{ d: string; theme: string }[]>([]);
@@ -125,11 +139,13 @@ export function PipelineFlow({
     };
 
     const edges: Edge[] = [
-      ...reviews.map((review) => ({
-        from: `review-${review.id}`,
-        to: `theme-${review.themeKey}`,
-        theme: review.themeKey,
-      })),
+      ...reviews.flatMap((review) =>
+        review.themeKeys.map((key) => ({
+          from: `review-${review.id}`,
+          to: `theme-${key}`,
+          theme: key,
+        })),
+      ),
       ...actions.map((action) => ({
         from: `theme-${action.themeKey}`,
         to: `action-${action.position}`,
@@ -165,14 +181,14 @@ export function PipelineFlow({
     void document.fonts.ready.then(measure);
   }, [measure]);
 
-  const dim = (theme: string) => active !== null && active !== theme;
+  /** Lit when this node shares any theme with the active set. */
+  const lit = (keys: string[]) => active === null || keys.some((key) => active.includes(key));
 
-  const nodeProps = (theme: string) => ({
-    onMouseEnter: () => setActive(theme),
+  const nodeProps = (keys: string[]) => ({
+    onMouseEnter: () => setActive(keys),
     onMouseLeave: () => setActive(null),
-    onFocus: () => setActive(theme),
+    onFocus: () => setActive(keys),
     onBlur: () => setActive(null),
-    "aria-pressed": active === theme,
     /*
       Non-selected nodes fade, and the selected set additionally takes an
       indigo ring — never colour or opacity alone (docs/15 §1.3, WCAG 1.4.1).
@@ -182,12 +198,36 @@ export function PipelineFlow({
     */
     className: cn(
       "group/node w-full rounded-lg border bg-card p-3 text-left transition-[opacity,box-shadow,border-color] duration-(--duration-base) ease-(--ease-out) focus-visible:outline-none",
-      dim(theme) ? "border-line opacity-45" : "border-line opacity-100",
-      active === theme && "border-indigo-100 shadow-[var(--elevation-selected)]",
+      lit(keys) ? "border-line opacity-100" : "border-line opacity-45",
+      active !== null && lit(keys) && "border-indigo-100 shadow-[var(--elevation-selected)]",
     ),
   });
 
-  const reviewsFor = (theme: string) => reviews.filter((review) => review.themeKey === theme);
+  const reviewsFor = (theme: string) =>
+    reviews.filter((review) => review.themeKeys.includes(theme));
+
+  /*
+    In the stacked layout, each customer appears once.
+
+    The wide graph solved this with one node and two edges — a review belonging
+    to two themes is drawn once and lights from either. Stacking has no edges,
+    so the same quote was printed in full under two different jobs, with the
+    same stars, a few hundred pixels apart. That is the duplication this
+    component was rewritten to remove, reintroduced in the branch nobody
+    measured.
+
+    First job that cites a review keeps it. A later job shows whatever is still
+    unseen, which for this corpus is always at least one quote — and if it ever
+    were not, showing nothing is still better than showing the reader the same
+    sentence twice and asking them to believe it is evidence for two things.
+  */
+  const claimed = new Set<string>();
+  const unseenReviewsFor = (theme: string) =>
+    reviewsFor(theme).filter((review) => {
+      if (claimed.has(review.id)) return false;
+      claimed.add(review.id);
+      return true;
+    });
 
   return (
     <>
@@ -207,45 +247,48 @@ export function PipelineFlow({
         that is the entire point.
       */}
       <ol className="flex flex-col gap-4 lg:hidden">
-        {actions.map((action) => (
-          <li key={action.position} className="rounded-lg border border-line bg-card p-4">
-            <div className="flex gap-3">
-              <span
-                aria-hidden
-                className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-meta font-semibold text-white"
-              >
-                {action.position}
-              </span>
-              <div className="min-w-0">
-                <p className="text-body leading-relaxed text-pretty">{action.text}</p>
-                <p className="mt-1 text-meta text-faint">{action.themeLabel}</p>
+        {actions.map((action) => {
+          const unseen = unseenReviewsFor(action.themeKey);
+          return (
+            <li key={action.position} className="rounded-lg border border-line bg-card p-4">
+              <div className="flex gap-3">
+                <span
+                  aria-hidden
+                  className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-meta font-semibold text-white"
+                >
+                  {action.position}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-body leading-relaxed text-pretty">{action.text}</p>
+                  <p className="mt-1 text-meta text-faint">{action.themeLabel}</p>
+                </div>
               </div>
-            </div>
 
-            {reviewsFor(action.themeKey).length > 0 ? (
-              <div className="mt-4 border-t border-line-soft pt-3">
-                <p className="text-eyebrow text-faint uppercase">{labels.evidence}</p>
-                <ul className="mt-2 flex flex-col gap-3">
-                  {reviewsFor(action.themeKey).map((review) => (
-                    <li key={review.id}>
-                      {review.rating === null ? null : (
-                        <Stars
-                          rating={review.rating}
-                          size="sm"
-                          srLabel={labels.starLabels[review.rating] ?? ""}
-                          className="mb-1"
-                        />
-                      )}
-                      <p className="text-copy leading-relaxed text-pretty text-ink-600 italic">
-                        {review.text}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </li>
-        ))}
+              {unseen.length > 0 ? (
+                <div className="mt-4 border-t border-line-soft pt-3">
+                  <p className="text-eyebrow text-faint uppercase">{labels.evidence}</p>
+                  <ul className="mt-2 flex flex-col gap-3">
+                    {unseen.map((review) => (
+                      <li key={review.id}>
+                        {review.rating === null ? null : (
+                          <Stars
+                            rating={review.rating}
+                            size="sm"
+                            srLabel={labels.starLabels[review.rating] ?? ""}
+                            className="mb-1"
+                          />
+                        )}
+                        <p className="text-copy leading-relaxed text-pretty text-ink-600 italic">
+                          {review.text}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
       </ol>
 
       <div ref={containerRef} className="relative hidden lg:block">
@@ -269,7 +312,7 @@ export function PipelineFlow({
                  what an edge is. */
                 active === null
                   ? "stroke-graphic-faint opacity-70"
-                  : active === path.theme
+                  : active.includes(path.theme)
                     ? "stroke-indigo-600 opacity-100"
                     : "stroke-graphic-faint opacity-20",
               )}
@@ -278,13 +321,13 @@ export function PipelineFlow({
         </svg>
 
         <div className="relative grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,1.1fr)] lg:gap-x-14">
-          <Column title={labels.reviews}>
+          <Column title={labels.reviews} count={labels.reviewsCount}>
             {reviews.map((review) => (
               <li key={review.id}>
                 <button
                   type="button"
                   ref={register(`review-${review.id}`)}
-                  {...nodeProps(review.themeKey)}
+                  {...nodeProps(review.themeKeys)}
                 >
                   <span className="sr-only">{labels.hint}</span>
                   {review.rating === null ? null : (
@@ -303,13 +346,13 @@ export function PipelineFlow({
             ))}
           </Column>
 
-          <Column title={labels.themes}>
+          <Column title={labels.themes} count={labels.themesCount}>
             {themes.map((theme) => (
               <li key={theme.key}>
                 <button
                   type="button"
                   ref={register(`theme-${theme.key}`)}
-                  {...nodeProps(theme.key)}
+                  {...nodeProps([theme.key])}
                 >
                   <span className="sr-only">{labels.hint}</span>
                   <span className="text-title">{theme.label}</span>
@@ -336,7 +379,7 @@ export function PipelineFlow({
                 <button
                   type="button"
                   ref={register(`action-${action.position}`)}
-                  {...nodeProps(action.themeKey)}
+                  {...nodeProps([action.themeKey])}
                 >
                   <span className="sr-only">{labels.hint}</span>
                   <span className="flex gap-3">
@@ -363,10 +406,29 @@ export function PipelineFlow({
   );
 }
 
-function Column({ title, children }: { title: string; children: React.ReactNode }) {
+function Column({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  /**
+   * "6 / 14" — what this column shows against what the week held.
+   *
+   * The stat row below the graph reports the whole week (14 reviews, 6 themes)
+   * while the graph shows only the evidence behind the three jobs. Both were
+   * true and neither said so, on a page that tells the reader to count. The
+   * column now states its own scope.
+   */
+  count?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <p className="mb-3 text-eyebrow text-faint uppercase">{title}</p>
+      <p className="mb-3 flex items-baseline gap-2 text-eyebrow text-faint uppercase">
+        <span>{title}</span>
+        {count ? <span className="font-mono normal-case tabular-nums">{count}</span> : null}
+      </p>
       <ul className="flex flex-col gap-3">{children}</ul>
     </div>
   );

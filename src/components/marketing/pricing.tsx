@@ -18,13 +18,34 @@ import { PLAN_CATALOG, PLAN_KEYS, type PlanKey } from "@/lib/plans";
  */
 const MAX_FEATURES_SHOWN = 4;
 
+/**
+ * Two catalogue keys the product treats as one capability.
+ *
+ * `competitor_watch` is declared in `PLAN_CATALOG` and read by **nothing** —
+ * only `benchmarking` gates the feature (`src/server/competitors.ts`,
+ * `benchmark-card.tsx`). `docs/05` §2.1 prices them as a single row,
+ * "Competitor watch + benchmarking"; the catalogue split a line the product
+ * never split. Listing both put a capability on the pricing table that does not
+ * separately exist, in two Turkish phrases a reader takes as one thing said
+ * twice. Collapsed to one line here rather than papered over with wording that
+ * would invent the distinction.
+ *
+ * The dead key itself is a product decision, not a copy one — it is flagged in
+ * the surface brief rather than deleted from the catalogue.
+ */
+const MERGED: Record<string, string> = {
+  competitor_watch: "competitors",
+  benchmarking: "competitors",
+};
+
 /** Feature keys this tier turns on that the tier below it does not have. */
 function addedFeatures(plan: PlanKey, index: number): string[] {
   const features = PLAN_CATALOG[plan].entitlements.features as Record<string, boolean>;
   const below = index === 0 ? null : PLAN_CATALOG[PLAN_KEYS[index - 1]!].entitlements.features;
   const previous = (below ?? {}) as Record<string, boolean>;
 
-  return Object.keys(features).filter((key) => features[key] && !previous[key]);
+  const added = Object.keys(features).filter((key) => features[key] && !previous[key]);
+  return [...new Set(added.map((key) => MERGED[key] ?? key))];
 }
 
 export async function Pricing() {
@@ -85,7 +106,7 @@ export async function Pricing() {
                   <ul className="mt-2 flex flex-col gap-1.5">
                     {shown.map((code) => (
                       <li key={code} className="text-copy text-ink-600">
-                        {t(`feature.${code}`)}
+                        {code === "competitors" ? t("featureCompetitors") : t(`feature.${code}`)}
                       </li>
                     ))}
                     {hidden > 0 ? (

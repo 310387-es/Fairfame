@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { AA_NON_TEXT, AA_TEXT, contrast, ratio } from "./contrast-math";
 
@@ -86,7 +87,81 @@ const LIGHTEST_LEGAL_TEXT: { surface: string; lightest: string; darkerToo: strin
     darkerToo: ["ink-500", "ink-600", "ink-800"],
   },
   { surface: "surface-hover", lightest: "ink-350", darkerToo: ["ink-500", "ink-600", "ink-800"] },
+  /*
+    The marketing band on `/`, and the reason the completeness test below exists.
+
+    `--indigo-050` was already in this file — as a *badge wash*, carrying
+    `--indigo-700`. That is a different question from "may body text sit on it",
+    and nothing connected the two, so when the landing page used it as a
+    full-bleed section background carrying `--ink-350` the suite stayed green
+    while four paragraphs measured **4.493:1** — under AA by seven thousandths.
+
+    `--ink-350` and `--ink-400` both fail here (4.49 and 4.16); the lightest that
+    clears is `--ink-500` at 5.21:1. The page uses `--ink-600`, which is darker
+    still and therefore fine.
+  */
+  { surface: "indigo-050", lightest: "ink-500", darkerToo: ["ink-600", "ink-800"] },
 ];
+
+/**
+ * Backgrounds that are deliberately not body-text surfaces.
+ *
+ * Each entry is a claim: nobody sets ordinary prose on this. Keeping the reason
+ * next to the token is the point — it is what a future reader has to disagree
+ * with in writing before promoting one of these to a page surface.
+ */
+const NOT_A_TEXT_SURFACE: Record<string, string> = {
+  transparent: "not a colour",
+  white: "plain white, covered by --surface",
+  current: "inherits, not a surface",
+  // Dark surfaces: they carry `--text-on-ink`, asserted in "the two dark surfaces".
+  "ink-900": "the rail and the briefing bar; white text, tested separately",
+  "ink-800": "the same dark family",
+  rail: "alias of --ink-900",
+  brief: "alias of --ink-900",
+  primary: "indigo-600 as a button fill; white text, not prose",
+  "cta-brief": "amber on ink, the one amber control; tested separately",
+  // Badge washes: each carries its own paired ink, asserted in "state pairs".
+  "state-positive-bg": "badge wash with --state-positive-text",
+  "state-negative-bg": "badge wash with --state-negative-text",
+  "state-rating-bg": "badge wash with --amber-ink",
+  "state-accent-bg": "badge wash with --state-accent-text",
+  // Decorative fills: bars, hairlines and chart marks, never text beds.
+  "sentiment-positive": "sentiment bar fill",
+  "sentiment-neutral": "sentiment bar fill",
+  "sentiment-negative": "sentiment bar fill",
+  "line-soft": "a hairline drawn as a filled element",
+  line: "a hairline",
+  "indigo-100": "the margin rule and selected ring, non-text",
+  "amber-500": "the rating mark and the one amber button; tested separately",
+  destructive: "shadcn alias, white text",
+  // shadcn aliases that resolve to surfaces already in the table above.
+  card: "alias of --surface",
+  popover: "alias of --surface",
+  muted: "alias of --surface-sunken",
+  accent: "alias of --surface-sunken",
+  background: "alias of --canvas",
+  secondary: "alias of --surface-sunken",
+  input: "alias of --line",
+  border: "alias of --line",
+  sidebar: "alias of --ink-900",
+  // Chart marks and scale fills. `--rating-1`…`--rating-5` each clear 4.5:1 as
+  // *ink on white* (docs/15 §2) — which is a different claim from carrying
+  // text, and they never do: they are the rungs of a bar.
+  "rating-1": "rating scale fill",
+  "rating-2": "rating scale fill",
+  "rating-3": "rating scale fill",
+  "rating-4": "rating scale fill",
+  "rating-5": "rating scale fill",
+  "chart-1": "chart series fill",
+  "chart-2": "chart series fill",
+  "chart-3": "chart series fill",
+  "chart-4": "chart series fill",
+  "chart-5": "chart series fill",
+  "graphic-faint": "the non-text token; axis ticks and dots, by definition never prose",
+  "indigo-700": "the primary button's hover fill; white text, not prose",
+  "ink-500": "a filled marker, not a text bed",
+};
 
 describe.each(LIGHTEST_LEGAL_TEXT)("text on --$surface", ({ surface, lightest, darkerToo }) => {
   it(`clears AA from --${lightest} downwards`, () => {
@@ -208,5 +283,79 @@ describe("brand amber", () => {
     // somebody reaching for `--amber-500` the next time they want a warm label.
     expect(ratio(token("amber-500"), WHITE)).toBe(2.04);
     expect(contrast(token("amber-500"), WHITE)).toBeLessThan(AA_TEXT);
+  });
+});
+
+/**
+ * The table above has to know about every background the product paints.
+ *
+ * This is the test that would have caught the landing page's 4.493:1 failure,
+ * and it is deliberately shaped like the project's other completeness tests —
+ * public routes enumerated from disk, tenant tables derived from the catalog.
+ * Each of those exists because a *behaviour* test proves one door is locked and
+ * notices nothing when somebody adds a door.
+ *
+ * The same was true here. Every assertion in this file was correct and the page
+ * still shipped illegal text, because the surface it used was not on the list
+ * and nothing required it to be. A hand-maintained list of six surfaces cannot
+ * fail; it can only be incomplete.
+ *
+ * So: every `bg-*` in the app is resolved to a token and must be classified —
+ * either it is a text surface with a known lightest ink, or it is named in
+ * `NOT_A_TEXT_SURFACE` with the reason it is not. Adding a background without
+ * deciding which it is now fails here rather than in front of somebody using a
+ * screen reader.
+ */
+describe("every painted background is classified", () => {
+  /* The same walk `action-feedback`, `design-tokens` and `formats` use. */
+  function walk(dir: string): string[] {
+    return readdirSync(dir).flatMap((entry) => {
+      const path = join(dir, entry);
+      if (statSync(path).isDirectory()) return walk(path);
+      return path.endsWith(".tsx") ? [path] : [];
+    });
+  }
+
+  const FILES = walk("src");
+
+  /*
+    `bg-` is not only a colour prefix.
+
+    Tailwind also spells `bg-clip-padding`, `bg-cover`, `bg-no-repeat` and
+    friends this way, and a class built as `bg-rating-${n}` leaves the literal
+    `bg-rating-` in the source. Both showed up as "unclassified surfaces" on the
+    first run of this test, which is the sort of noise that gets an enumeration
+    test deleted rather than fixed.
+  */
+  const NOT_A_COLOUR =
+    /^(clip|cover|contain|center|top|bottom|left|right|repeat|no-repeat|fixed|local|scroll|origin|blend|auto|none|gradient|size|position)(-|$)/;
+
+  const used = new Set(
+    FILES.flatMap((file: string) => [...readFileSync(file, "utf8").matchAll(/\bbg-([a-z0-9-]+)/g)])
+      .map((match) => match[1]!)
+      .filter((name) => !/^\[/.test(name) && !NOT_A_COLOUR.test(name) && !name.endsWith("-")),
+  );
+
+  const classified = new Set([
+    ...LIGHTEST_LEGAL_TEXT.map((entry) => entry.surface),
+    ...Object.keys(NOT_A_TEXT_SURFACE),
+  ]);
+
+  it("finds backgrounds to check", () => {
+    // A regex that silently matches nothing would make every assertion below
+    // vacuously true, which is the failure mode of enumeration tests.
+    expect(used.size).toBeGreaterThan(10);
+  });
+
+  it("has a ruling for each one", () => {
+    const unclassified = [...used].filter((name) => !classified.has(name)).sort();
+
+    expect(
+      unclassified,
+      `These backgrounds are painted somewhere in src/ and this file has no ` +
+        `ruling on them. Either add the token to LIGHTEST_LEGAL_TEXT with the ` +
+        `lightest ink that clears 4.5:1 on it, or to NOT_A_TEXT_SURFACE with ` +
+        `the reason prose never sits on it: ${unclassified.join(", ")}`,
+    ).toEqual([]);
   });
 });

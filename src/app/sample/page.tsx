@@ -108,7 +108,11 @@ export default async function SamplePage() {
               is the only place in the product that earns a second heading —
               the promise and the artefact are both the point. */}
           <h1 className="text-hero text-balance">{t("title")}</h1>
-          <p className="mt-3 text-body text-pretty text-ink-400">{t("intro")}</p>
+          {/* `text-faint` (--ink-350), not `--ink-400`: this sits on `--canvas`,
+          where docs/15 §Colour puts ink-400 at 4.37:1 — under AA. The token is
+          legal on a white card and this page is not one. Found by
+          `e2e/contrast.spec.ts`, which measures the rendered pixel. */}
+          <p className="mt-3 text-body text-pretty text-faint">{t("intro")}</p>
         </div>
 
         {/*
@@ -292,7 +296,7 @@ export default async function SamplePage() {
             </Button>
             <Link
               href="/sign-in"
-              className="text-body text-muted-foreground underline-offset-4 hover:underline"
+              className="tap text-body text-muted-foreground underline-offset-4 hover:underline"
             >
               {t("ctaSignIn")}
             </Link>

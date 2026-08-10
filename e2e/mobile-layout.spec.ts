@@ -504,3 +504,80 @@ test.describe("the two screens that were overflowing", () => {
     expect(clipped).toEqual([]);
   });
 });
+
+/**
+ * Touch targets on the marketing surfaces (A22 · adapt).
+ *
+ * WCAG 2.2 **SC 2.5.8** sets 24×24 CSS px at AA. Nine standalone controls on
+ * the landing page were about 20px tall — the secondary call to action beside
+ * each button, the three evidence disclosures, the agency link and the footer
+ * nav — because a 14px text link is 20px tall and nothing had said otherwise.
+ *
+ * The exception in 2.5.8 covers a target "in a sentence", sized by the line
+ * height of the text around it. A disclosure under an action and a footer nav
+ * item are not that; they are controls that happen to be set in body size. The
+ * one genuine exemption here is the skip link, which is keyboard-only and never
+ * touched — so it is named rather than silently filtered.
+ *
+ * **Signed out and coarse-pointered**, deliberately: `playwright.config.ts`
+ * attaches the shared account to this project, and `/` redirects a signed-in
+ * visitor to `/dashboard` — measuring the app instead of the page under test.
+ */
+test.describe("marketing touch targets", () => {
+  test.use({
+    storageState: { cookies: [], origins: [] },
+    hasTouch: true,
+    isMobile: true,
+    viewport: PHONE,
+  });
+
+  /** Keyboard-only, revealed on focus, never a touch target. */
+  const EXEMPT = [/İçeriğe geç/i, /Skip to content/i];
+
+  for (const [name, route] of [
+    ["the landing page", "/"],
+    ["the sample digest", "/sample"],
+  ] as const) {
+    test(`${name} has no control under 24px`, async ({ page }) => {
+      await page.goto(route);
+      await page.evaluate(async () => {
+        const step = window.innerHeight;
+        for (let y = 0; y < document.body.scrollHeight; y += step) {
+          window.scrollTo(0, y);
+          await new Promise((resolve) => setTimeout(resolve, 80));
+        }
+        window.scrollTo(0, 0);
+      });
+
+      const small = await page.evaluate(() =>
+        [...document.querySelectorAll("a[href], button, summary, input, select")]
+          .filter((el) => {
+            const style = getComputedStyle(el);
+            return (
+              style.display !== "none" &&
+              style.visibility !== "hidden" &&
+              el.getBoundingClientRect().width > 0
+            );
+          })
+          .map((el) => {
+            const box = el.getBoundingClientRect();
+            return {
+              label: (el.textContent ?? "").trim().slice(0, 30) || el.tagName,
+              width: Math.round(box.width),
+              height: Math.round(box.height),
+            };
+          })
+          .filter((target) => target.height < 24 || target.width < 24),
+      );
+
+      const failures = small.filter(
+        (target) => !EXEMPT.some((pattern) => pattern.test(target.label)),
+      );
+
+      expect(
+        failures,
+        failures.map((f) => `${f.width}x${f.height} — "${f.label}"`).join("\n"),
+      ).toEqual([]);
+    });
+  }
+});

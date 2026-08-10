@@ -59,7 +59,7 @@ export async function Briefing({ digest }: { digest: SampleDigest }) {
               artefact competing with its own argument. */}
           <h3 className="mt-2 text-display text-balance">{digest.headline}</h3>
 
-          <p className="mt-4 text-body leading-relaxed text-pretty text-ink-600">
+          <p className="mt-4 max-w-argument text-body leading-relaxed text-pretty text-ink-600">
             {digest.summary}
           </p>
         </div>
@@ -98,7 +98,17 @@ export async function Briefing({ digest }: { digest: SampleDigest }) {
         <h4 className="pt-6 pb-1 text-title">{t("actionsTitle")}</h4>
       </div>
 
-      <ol className="px-6 pb-6 sm:px-8 sm:pb-8">
+      {/*
+        The rule stops where the text stops.
+
+        The action rows were on the argument track under separators that ran the
+        full card width, leaving ~340px of ruled void to the right of every job.
+        A margin is fine; a margin with hairlines drawn across it reads as a
+        layout that lost its content. Capping the list — not each paragraph —
+        keeps the card wide enough for the score tile above while the rules
+        agree with the words underneath them.
+      */}
+      <ol className="max-w-argument px-6 pb-6 sm:px-8 sm:pb-8">
         {digest.actions.map((action) => {
           const quotes = quotesFor(action.theme);
 
@@ -119,7 +129,9 @@ export async function Briefing({ digest }: { digest: SampleDigest }) {
               </span>
 
               <div className="min-w-0 flex-1">
-                <p className="text-lead leading-relaxed text-pretty">{action.text}</p>
+                <p className="max-w-argument text-lead leading-relaxed text-pretty">
+                  {action.text}
+                </p>
 
                 {/*
                   The page's signature interaction: evidence opens *in place*.
@@ -134,7 +146,7 @@ export async function Briefing({ digest }: { digest: SampleDigest }) {
                 */}
                 {quotes.length > 0 ? (
                   <details className="group mt-2">
-                    <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-sm text-copy font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+                    <summary className="tap cursor-pointer list-none gap-1 rounded-sm text-copy font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
                       {t("evidenceSummary")}
                       <ChevronDown
                         aria-hidden
@@ -155,7 +167,7 @@ export async function Briefing({ digest }: { digest: SampleDigest }) {
                               className="mt-1 size-3 shrink-0 text-graphic-faint"
                             />
                             <div className="min-w-0">
-                              <p className="text-copy leading-relaxed text-pretty text-ink-600 italic">
+                              <p className="max-w-evidence text-copy leading-relaxed text-pretty text-ink-600 italic">
                                 {quote.text}
                               </p>
                               {quote.rating === null ? null : (

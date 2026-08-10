@@ -55,3 +55,6 @@ playwright-report/
 .impeccable/mocks/*.png
 .impeccable/live/sessions/
 .impeccable/hook.cache.json
+
+# Local machine state, not a shared setting.
+.claude/settings.local.json
