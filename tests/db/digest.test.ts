@@ -17,7 +17,7 @@ import {
   setActionStatus,
   windowReadiness,
 } from "@/digest/queries";
-import { currentPeriod } from "@/lib/entitlements";
+import { currentPeriod, withinLimit } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
 
 /**
@@ -687,11 +687,18 @@ describe("assets", () => {
     const fixture = await makeFixture("capped-assets");
     await padToThreshold(fixture);
 
+    // The whole allowance, asked for rather than written down: since the
+    // 11 Aug 2026 repricing the catalog figure is per location and the resolver
+    // multiplies it, so a literal here would sit below the real ceiling and the
+    // assets would generate anyway.
+    const { limit } = await withinLimit(fixture.orgId, "ai_analyses_per_month", { additional: 0 });
+    if (limit === null) throw new Error("expected a finite analysis allowance");
+
     await getAdminDb().insert(schema.usageCounters).values({
       organizationId: fixture.orgId,
       metric: "ai_analyses_per_month",
       period: currentPeriod(),
-      count: 250,
+      count: limit,
     });
 
     await addReview(fixture, {

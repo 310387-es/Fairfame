@@ -407,6 +407,13 @@
       "when": 1785791250127,
       "tag": "0057_digest_refresh",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1785791251127,
+      "tag": "0058_plan_catalog_usd",
+      "breakpoints": true
     }
   ]
 }

@@ -30,6 +30,8 @@ export type PlanOption = {
   name: string;
   /** Minor units, or null for a plan that is quoted rather than sold. */
   priceMonth: number | null;
+  /** Annual price in minor units — 10× monthly, so two months are free. Null = no annual option. */
+  priceYear: number | null;
   currency: string;
   /** What this tier adds over the one below it — three lines, not a matrix. */
   highlights: string[];
@@ -66,16 +68,28 @@ export function PlanSection({
   const format = useFormatter();
   const { run, pending } = useAction();
 
+  const money = (minorUnits: number, currency: string) =>
+    format.number(minorUnits / 100, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    });
+
   const price = (plan: PlanOption) =>
     plan.priceMonth === null
       ? t("quoted")
-      : t("perMonth", {
-          amount: format.number(plan.priceMonth / 100, {
-            style: "currency",
-            currency: plan.currency,
-            maximumFractionDigits: 0,
-          }),
-        });
+      : t("perMonth", { amount: money(plan.priceMonth, plan.currency) });
+
+  /**
+   * The annual line, and it only says something when it says something new.
+   *
+   * Rendered under the monthly price rather than as a toggle: a billing card in
+   * settings is read to check what is being paid, not to reconfigure a
+   * subscription, and a switch would ask a question nobody came here with.
+   * Absent for Agency, which is quoted, so there is no annual figure to show.
+   */
+  const perYear = (plan: PlanOption) =>
+    plan.priceYear === null ? null : t("perYear", { amount: money(plan.priceYear, plan.currency) });
 
   return (
     <SectionCard
@@ -207,6 +221,9 @@ export function PlanSection({
                   puts the pieces in the wrong order in the launch locale.
                 */}
                 <p className="text-metric text-foreground tabular-nums">{price(plan)}</p>
+                {perYear(plan) === null ? null : (
+                  <p className="text-copy text-ink-400 tabular-nums">{perYear(plan)}</p>
+                )}
 
                 <ul className="flex flex-1 flex-col gap-1.5">
                   {plan.highlights.map((line) => (

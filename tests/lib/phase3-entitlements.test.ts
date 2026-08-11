@@ -63,18 +63,31 @@ describe("the packaging, as `docs/05` prices it", () => {
     expect(PLAN_CATALOG.starter.entitlements.limits.max_widgets).toBe(1);
   });
 
-  it("opens Insights at Growth, and leaves reporting and benchmarking above it", () => {
+  it("opens Insights and scheduled reports at Growth, and leaves benchmarking above them", () => {
     expect(features("growth").analytics).toBe(true);
-    expect(features("growth").scheduled_reports).toBe(false);
+    /**
+     * Scheduled reports moved down from Pro on 11 Aug 2026 (docs/05 §2.1).
+     *
+     * The weekly rhythm is the retention engine — the report that arrives every
+     * Monday is what keeps an account opening the product — so charging Pro
+     * money for it withheld the habit from the tier that most needs forming
+     * one. Pro's upgrade case rests on benchmarking, competitor watch and the
+     * API instead, which is what the assertion below now pins.
+     */
+    expect(features("growth").scheduled_reports).toBe(true);
     expect(features("growth").benchmarking).toBe(false);
+    expect(features("growth").competitor_watch).toBe(false);
+    expect(features("growth").api_access).toBe(false);
     // Unlimited widgets is the Growth upgrade on the showcase line.
     expect(PLAN_CATALOG.growth.entitlements.limits.max_widgets).toBeNull();
   });
 
-  it("puts scheduled reports and benchmarking at Pro and above", () => {
+  it("puts benchmarking, competitor watch and the API at Pro and above", () => {
     for (const plan of ["pro", "agency"] as const) {
-      expect(features(plan).scheduled_reports, plan).toBe(true);
       expect(features(plan).benchmarking, plan).toBe(true);
+      expect(features(plan).competitor_watch, plan).toBe(true);
+      expect(features(plan).api_access, plan).toBe(true);
+      expect(features(plan).scheduled_reports, plan).toBe(true);
       expect(features(plan).analytics, plan).toBe(true);
     }
   });

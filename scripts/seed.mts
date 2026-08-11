@@ -47,8 +47,12 @@ try {
         key: plan.key,
         name: plan.name,
         priceMonth: plan.priceMonth,
+        priceYear: plan.priceYear,
         currency: plan.currency,
         interval: plan.interval,
+        includedLocations: plan.includedLocations,
+        priceExtraLocationMonth: plan.priceExtraLocationMonth,
+        priceExtraLocationYear: plan.priceExtraLocationYear,
         entitlements: plan.entitlements,
       })
       .onConflictDoUpdate({
@@ -56,11 +60,19 @@ try {
         set: {
           name: plan.name,
           priceMonth: plan.priceMonth,
+          priceYear: plan.priceYear,
           currency: plan.currency,
           interval: plan.interval,
+          includedLocations: plan.includedLocations,
+          priceExtraLocationMonth: plan.priceExtraLocationMonth,
+          priceExtraLocationYear: plan.priceExtraLocationYear,
           entitlements: plan.entitlements,
           updatedAt: new Date(),
         },
+        // `provider_price_id` / `provider_price_id_year` are deliberately not
+        // in this set. They belong to the payment provider, and a re-seed that
+        // blanked them would leave a plan that renders a price it cannot
+        // charge. Migration 0058 leaves them alone for the same reason.
       });
   }
   console.log(`Seeded ${PLAN_KEYS.length} plans: ${PLAN_KEYS.join(", ")}`);

@@ -10,26 +10,26 @@ Table of Contents
 
 ## 1\. Business Model
 
-**Type:** B2B SaaS subscription. **Billing unit:** per **location** (the natural unit in this category), with seats included and **metered add\-ons** for real\-cost items (SMS/WhatsApp sends, high\-volume AI). Monthly and discounted annual. Türkiye billed in **TRY with e\-fatura via a local PSP (iyzico)**; international via Stripe in USD/EUR.
+**Type:** B2B SaaS subscription. **Billing unit:** per **location** (the natural unit in this category), with seats included and **metered add\-ons** for real\-cost items (SMS/WhatsApp sends, high\-volume AI). Monthly and discounted annual. **The catalog is denominated in USD only (decided 11 Aug 2026):** the payment provider converts at charge time — Stripe presents local currency where it can, and iyzico charges the TRY equivalent (with e\-fatura) when that adapter goes live. There is no separate TRY price list to maintain against inflation; repricing is one ladder, not two.
 
-**Why per\-location:** it aligns price with value (a 5\-location brand gets \~5× the value and pays accordingly) and scales naturally into multi\-location and agency tiers.
+**Why per\-location:** it aligns price with value (a 5\-location brand gets \~5× the value and pays accordingly) and scales naturally into multi\-location and agency tiers. Concretely: each plan's base price **includes N locations**, and additional locations are **priced add\-ons** rather than hard caps forcing a tier jump.
 
 * * *
 
 ## 2\. Pricing Tiers (initial hypothesis)
 
-Prices are anchored to a hard\-currency value and displayed locally; **TRY figures are indicative and will be repriced for inflation.** Positioned to undercut opaque, sales\-gated incumbents with transparent public pricing.
+Positioned to undercut opaque, sales\-gated incumbents with transparent public pricing — including the extra\-location price, which is published, not discovered at checkout.
 
-**Decided 11 Aug 2026 — the USD ladder is now published, and it is the only one the marketing front door shows.** `/` states **$29 / $89 / $229** per location per month, in both languages, with Agency per deal. Two of the three sit *above* the indicative bands this table first hypothesised — Growth was \~$49–79 and Pro \~$129–199 — and the decision is deliberate rather than a drift: an indicative band written before the product existed was a guess at what four phases of build would be worth, and the shipped product carries the Action Digest, the compliance gate, surveys, broadcasts and the agency console. The bands below are updated to what is published. **The TRY ladder is unchanged** (Starter ₺1.299, Growth ₺3.499, Pro ₺8.999) and remains the Türkiye figure in `PRODUCT.md`; it simply no longer appears on `/`, because the page addresses a global audience and the product is not a Türkiye product ([`CLAUDE.md`](../CLAUDE.md)). Reconciling the two ladders per market is open commercial work, not a code question.
+**Decided 11 Aug 2026 (superseding the same day's two\-ladder note): one USD ladder, and it is the whole catalog.** The anchors stay **$29 / $89 / $229** — an Aug 2026 market scan places Starter level with Reviewshake/Cloutly entry pricing, Growth under NiceJob Pro ($125) with far more product, and Pro inside the empty gap between the self\-serve band (≤$125) and the demo\-gated band (Birdeye \~$299+/location) — but the TRY ladder is **retired**: the catalog is USD\-only and the provider converts at charge time (§1). The structure around the anchors changed too: **annual billing at two months free** ($290 / $890 / $2,290 per year), **base \+ per\-extra\-location pricing** instead of hard location caps, seats loosened to the category norm (unlimited from Pro), and per\-location quota semantics. Full rationale, competitor benchmarks and the seed SQL live in the *Fairfame Pricing Plans — August 2026* document.
 
-| Tier | Target | Published USD/mo (per location) | Indicative TRY/mo | Includes |
-| --- | --- | --- | --- | --- |
-| **Starter** | Single\-location SMB | **$29** | ₺1.299 (repriced periodically) | Google connect, notifications, AI analysis, capped review requests \+ AI replies, 1 widget |
-| **Growth** | Established SMB | **$89** | ₺3.499 | Multi\-source monitor, unlimited requests (fair\-use), full AI, widgets, trends dashboard, exports |
-| **Pro** | Multi\-location | **$229** | ₺8.999 | Everything \+ benchmarking, per\-location reporting, API access, priority support, SLAs |
-| **Agency / White\-label** | Agencies | Per deal (per\-seat \+ per\-location) | Per deal | White\-label, client roles, bulk management, reseller pricing |
+| Tier | Target | USD/mo | Annual | Locations | Includes |
+| --- | --- | --- | --- | --- | --- |
+| **Starter** | Single\-location SMB | **$29** | $290/yr | 1 (single\-location plan) | Google \+ first\-party, notifications, AI analysis, capped requests \+ AI replies, 1 widget, hosted page, weekly digest |
+| **Growth** | Established SMB | **$89** | $890/yr | 1 incl. **\+$49/mo each**, max 5 | \+ social sources, unlimited requests (fair\-use), analytics, scheduled reports, CRM, surveys, messaging, broadcasts, unlimited widgets |
+| **Pro** | Multi\-location | **$229** | $2,290/yr | 3 incl. **\+$59/mo each**, max 25 | \+ benchmarking, competitor watch, API \+ webhooks, unlimited seats, priority support |
+| **Agency / White\-label** | Agencies | Per deal (anchor: from $299) | Per deal | 10 incl. \+$29/mo each | White\-label, agency console, client roles, reseller margin |
 
-**Add\-ons (metered):** SMS/WhatsApp credits at cost\-plus; AI usage above the included quota. **Trial:** 14\-day full\-feature trial (no crippled free tier) to bound SMS/AI cost while showing full value.
+**Add\-ons (metered, per location):** SMS/WhatsApp credits at cost\-plus (WhatsApp quotas deliberately \~2.5× SMS — the cheaper, TR\-preferred channel protects margin); AI usage above the included quota. **Trial:** 14\-day full\-feature trial (no crippled free tier) to bound SMS/AI cost while showing full value. **Marketing copy note:** under base \+ extra, `/` must say **"from $29/mo"** rather than "per location per month".
 
 * * *
 
@@ -41,19 +41,22 @@ What each tier unlocks (initial packaging — kept as configuration, not code; s
 | --- | --- | --- | --- | --- |
 | Sources: Google \+ first\-party | ✅ | ✅ | ✅ | ✅ |
 | Social sources (Instagram / WhatsApp) | — | ✅ | ✅ | ✅ |
-| AI analysis (sentiment / themes) | ✅ | ✅ | ✅ | ✅ |
-| AI reply drafting | capped | ✅ | ✅ | ✅ |
+| AI analysis (sentiment / themes) | 300/mo | 1,000 /location/mo | 2,500 /location/mo | per deal |
+| AI reply drafting | ✅ (within analysis quota) | ✅ | ✅ | ✅ |
 | Action Digest (hero) | weekly | weekly \+ on\-demand | weekly \+ on\-demand | weekly \+ on\-demand |
-| Review requests / month | capped | unlimited\* | unlimited\* | unlimited\* |
-| Locations included | 1 | \~3 | \~10 | custom |
-| Team members | 2 | 5 | 15 | custom |
-| Widgets / showcase | 1 | ✅ | ✅ | ✅ |
+| Review requests / month | 100 (email \+ QR) | unlimited\* | unlimited\* | unlimited\* |
+| SMS / WhatsApp included (per location/mo) | 0 / 0 | 100 / 250 | 250 / 500 | 2,500 / 2,500 pooled |
+| Locations | 1 | 1 incl. \+$49 ea (max 5) | 3 incl. \+$59 ea (max 25) | 10 incl. \+$29 ea |
+| Team members | 3 | 10 | unlimited | unlimited |
+| Widgets / showcase \+ hosted page | 1 \+ page | unlimited | unlimited | unlimited |
+| Analytics workspace \+ scheduled reports | — | ✅ | ✅ | ✅ |
+| CRM · surveys · messaging · broadcasts | — | ✅ | ✅ | ✅ |
 | Competitor watch \+ benchmarking | — | — | ✅ | ✅ |
 | Public API \+ webhooks | — | — | ✅ | ✅ |
-| White\-label \+ Client role | — | — | — | ✅ |
+| White\-label \+ Client role \+ agency console | — | — | — | ✅ |
 | Support | standard | standard | priority | priority \+ partner |
 
-\*Fair\-use; SMS/WhatsApp sends are metered add\-ons on every tier. Exact caps are entitlement config we tune without code changes.
+\*Fair\-use; SMS/WhatsApp sends are metered add\-ons on every tier, and quotas are **per location** so billing and cost scale together. Exact caps are entitlement config we tune without code changes. Scheduled reports moved from Pro to Growth (11 Aug 2026): the weekly rhythm is the retention engine, and Pro's upgrade case rests on benchmarking, competitor watch and the API instead.
 
 ## 3\. Unit Economics (the honest math)
 

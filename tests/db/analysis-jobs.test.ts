@@ -16,7 +16,7 @@ import {
 import { runNotifySweep } from "@/jobs/workers/notify-reviews";
 import { runAnalyze, runAnalyzeSweep } from "@/jobs/workers/analyze-reviews";
 import { createReviewWorker } from "@/jobs/workers/sync-reviews";
-import { currentPeriod } from "@/lib/entitlements";
+import { currentPeriod, withinLimit } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
 
 /**
@@ -317,6 +317,21 @@ describe("the monthly plan limit", () => {
     return row?.count ?? 0;
   }
 
+  /**
+   * The effective ceiling, asked for rather than written down.
+   *
+   * Since the 11 Aug 2026 repricing the catalog stores a *per-location* figure
+   * and the resolver multiplies it by the organization's locations, so a
+   * hardcoded 250 here stopped being the allowance and became an arbitrary
+   * number below it — which is why these tests failed by analyzing anyway.
+   * Deriving it means the next repricing moves them too.
+   */
+  async function allowanceOf(organizationId: string): Promise<number> {
+    const { limit } = await withinLimit(organizationId, "ai_analyses_per_month", { additional: 0 });
+    if (limit === null) throw new Error("expected a finite analysis allowance");
+    return limit;
+  }
+
   it("meters each analyzed review against the allowance", async () => {
     const target = await makeOrgWithLocation("meter");
     const connectionId = await connectMock(target.orgId, target.locationId);
@@ -332,8 +347,8 @@ describe("the monthly plan limit", () => {
     const target = await makeOrgWithLocation("capped");
     const connectionId = await connectMock(target.orgId, target.locationId);
 
-    // The default plan allows 250 analyses a month; spend them all.
-    await setUsage(target.orgId, "ai_analyses_per_month", 250);
+    // Spend the whole allowance, whatever the plan currently grants.
+    await setUsage(target.orgId, "ai_analyses_per_month", await allowanceOf(target.orgId));
 
     await enqueueSync(queue, { organizationId: target.orgId, connectionId });
     await drain();
@@ -346,7 +361,7 @@ describe("the monthly plan limit", () => {
 
   it("reports the ceiling as skipped rather than as a failure", async () => {
     const target = await makeOrgWithLocation("skipped");
-    await setUsage(target.orgId, "ai_analyses_per_month", 250);
+    await setUsage(target.orgId, "ai_analyses_per_month", await allowanceOf(target.orgId));
 
     const result = await runAnalyze(
       fakeJob({ kind: "analyze", organizationId: target.orgId }),
@@ -362,7 +377,10 @@ describe("the monthly plan limit", () => {
     const target = await makeOrgWithLocation("partial");
     const connectionId = await connectMock(target.orgId, target.locationId, 8);
 
-    await setUsage(target.orgId, "ai_analyses_per_month", 247);
+    // Three left of eight synced: the partial allowance is the point, so it is
+    // measured back from the ceiling rather than stated as a literal.
+    const allowance = await allowanceOf(target.orgId);
+    await setUsage(target.orgId, "ai_analyses_per_month", allowance - 3);
 
     const { syncConnection } = await import("@/connectors/sync");
     await syncConnection(target.orgId, connectionId);
@@ -373,7 +391,7 @@ describe("the monthly plan limit", () => {
     );
 
     expect(result.analyzed).toBe(3);
-    expect(await usageOf(target.orgId, "ai_analyses_per_month")).toBe(250);
+    expect(await usageOf(target.orgId, "ai_analyses_per_month")).toBe(allowance);
   });
 });
 

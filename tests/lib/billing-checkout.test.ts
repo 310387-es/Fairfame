@@ -118,9 +118,9 @@ describe("the catalog the screen renders", () => {
   });
 
   it("states prices in minor units, so nobody charges a hundredth of the fee", () => {
-    // ₺1.299,00 is 129_900 kuruş. The screen divides by 100; a catalog that
-    // held major units would render ₺12,99 and charge it too.
-    expect(PLAN_CATALOG.starter.priceMonth).toBe(129_900);
+    // $29.00 is 2_900 cents. The screen divides by 100; a catalog that held
+    // major units would render $0.29 and charge it too.
+    expect(PLAN_CATALOG.starter.priceMonth).toBe(2_900);
     expect(PLAN_CATALOG.growth.priceMonth).toBeGreaterThan(PLAN_CATALOG.starter.priceMonth!);
     expect(PLAN_CATALOG.pro.priceMonth).toBeGreaterThan(PLAN_CATALOG.growth.priceMonth!);
   });

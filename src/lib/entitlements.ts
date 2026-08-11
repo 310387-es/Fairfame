@@ -30,6 +30,58 @@ import { withTenant, type TenantDatabase } from "./tenancy.ts";
 
 export type MetricKey = LimitKey | MeteredKey;
 
+/**
+ * Quotas that are **per location**, and are multiplied by how many the
+ * organization has (11 Aug 2026 repricing — docs/05 §1–2).
+ *
+ * Billing is per location, so allowances scale with it: a five-branch Growth
+ * account pays five times and gets five times the sends. The catalog stores the
+ * single-branch figure, which is what makes the tiers comparable to each other
+ * and to a competitor's page.
+ *
+ * The three absent keys are absent on purpose. `max_locations`,
+ * `max_team_members` and `max_widgets` are **absolute** — multiplying a
+ * location cap by the location count is a cap that raises itself every time
+ * somebody hits it, and would let one branch become unlimited branches.
+ */
+const PER_LOCATION_KEYS = [
+  "requests_per_month",
+  "ai_analyses_per_month",
+  "sms_credits",
+  "whatsapp_conversations",
+  "ai_tokens",
+] as const satisfies readonly MetricKey[];
+
+/**
+ * Scales the per-location quotas by `locationCount`. Pure.
+ *
+ * - `null` stays `null` — unlimited never multiplies into a number.
+ * - `0` stays `0` — a plan that grants no SMS grants none at ten branches.
+ * - The count floors at 1, so an organization that has not created a location
+ *   yet gets a single branch's quota rather than nothing. Zero would make the
+ *   first review request of a new account fail a limit check.
+ */
+export function scalePerLocation(entitlements: Entitlements, locationCount: number): Entitlements {
+  const factor = Math.max(1, Math.trunc(locationCount));
+  if (factor === 1) return entitlements;
+
+  const scale = (value: number | null): number | null =>
+    value === null || value === 0 ? value : value * factor;
+
+  const limits = { ...entitlements.limits };
+  const metered = { ...entitlements.metered };
+
+  for (const key of PER_LOCATION_KEYS) {
+    if (key in limits) {
+      limits[key as LimitKey] = scale(limits[key as LimitKey]);
+    } else {
+      metered[key as MeteredKey] = scale(metered[key as MeteredKey]);
+    }
+  }
+
+  return { features: entitlements.features, limits, metered };
+}
+
 /** Subscription facts the resolver needs. Deliberately not the Drizzle row. */
 export type SubscriptionSnapshot = {
   planKey: PlanKey;
@@ -46,6 +98,12 @@ export type ResolvedEntitlements = {
   isTrialing: boolean;
   /** When the live trial lapses. Null unless `isTrialing`. */
   trialEndsAt: Date | null;
+  /**
+   * How many locations the per-location quotas were multiplied by (floored at
+   * 1). Returned so a screen can show "1,000 × 3 branches" rather than a total
+   * the reader cannot account for.
+   */
+  locationCount: number;
 };
 
 /**
@@ -61,18 +119,33 @@ export type ResolvedEntitlements = {
 export function resolveEntitlements(
   subscription: SubscriptionSnapshot | null,
   now: Date,
+  locationCount = 1,
 ): ResolvedEntitlements {
   const fallback = (): ResolvedEntitlements => ({
     entitlements: PLAN_CATALOG[DEFAULT_PLAN_KEY].entitlements,
     effectivePlanKey: DEFAULT_PLAN_KEY,
     isTrialing: false,
     trialEndsAt: null,
+    locationCount,
   });
 
-  if (!subscription) return fallback();
+  if (!subscription) {
+    const base = fallback();
+    return { ...base, entitlements: scalePerLocation(base.entitlements, locationCount) };
+  }
 
   const overrides = parseOverrides(subscription.overrides);
-  const withOverrides = (base: Entitlements): Entitlements => applyOverrides(base, overrides);
+
+  /**
+   * Overrides first, multiplication second — and the order is load-bearing.
+   *
+   * An override *replaces* a plan value, and plan values are per-location
+   * figures, so an override is one too. Scaling first would multiply the plan's
+   * number and then throw it away, making a custom deal silently absolute while
+   * every other account scaled.
+   */
+  const withOverrides = (base: Entitlements): Entitlements =>
+    scalePerLocation(applyOverrides(base, overrides), locationCount);
 
   const periodLive =
     subscription.currentPeriodEnd === null ||
@@ -90,6 +163,7 @@ export function resolveEntitlements(
         effectivePlanKey: TRIAL_PLAN_KEY,
         isTrialing: true,
         trialEndsAt: subscription.currentPeriodEnd,
+        locationCount,
       };
     }
 
@@ -100,6 +174,7 @@ export function resolveEntitlements(
         effectivePlanKey: subscription.planKey,
         isTrialing: false,
         trialEndsAt: null,
+        locationCount,
       };
     }
 
@@ -133,6 +208,33 @@ async function inTenant<T>(
   const { organizationId, tx } = scopeOf(org);
   if (tx) return fn(tx, organizationId);
   return withTenant({ organizationId }, (scoped) => fn(scoped, organizationId));
+}
+
+/**
+ * How many locations the organization has.
+ *
+ * One definition, read for two different jobs: it is the `max_locations` usage
+ * counter *and* the multiplier for every per-location quota. Two counts that
+ * could disagree would mean an account allowed to create a branch it does not
+ * get any allowance for.
+ */
+async function countLocations(tx: TenantDatabase, organizationId: string): Promise<number> {
+  const [row] = await tx
+    .select({ value: count() })
+    .from(schema.locations)
+    .where(eq(schema.locations.organizationId, organizationId));
+  return row?.value ?? 0;
+}
+
+/** Subscription + location count, resolved together. The shell around the pure resolver. */
+async function resolveInTx(
+  tx: TenantDatabase,
+  organizationId: string,
+  now: Date,
+): Promise<ResolvedEntitlements> {
+  const subscription = await loadSubscription(tx, organizationId);
+  const locations = await countLocations(tx, organizationId);
+  return resolveEntitlements(subscription, now, locations);
 }
 
 async function loadSubscription(
@@ -172,9 +274,7 @@ export async function getEntitlements(
   org: OrgRef,
   now = new Date(),
 ): Promise<ResolvedEntitlements> {
-  return inTenant(org, async (tx, organizationId) =>
-    resolveEntitlements(await loadSubscription(tx, organizationId), now),
-  );
+  return inTenant(org, async (tx, organizationId) => resolveInTx(tx, organizationId, now));
 }
 
 /** Is this feature unlocked for the organization? */
@@ -199,13 +299,7 @@ export type LimitCheck = {
 const RESOURCE_COUNTERS: Partial<
   Record<MetricKey, (tx: TenantDatabase, organizationId: string) => Promise<number>>
 > = {
-  max_locations: async (tx, organizationId) => {
-    const [row] = await tx
-      .select({ value: count() })
-      .from(schema.locations)
-      .where(eq(schema.locations.organizationId, organizationId));
-    return row?.value ?? 0;
-  },
+  max_locations: countLocations,
   max_team_members: async (tx, organizationId) => {
     const [row] = await tx
       .select({ value: count() })
@@ -280,7 +374,7 @@ export async function withinLimit(
   const { additional = 1, now = new Date() } = options;
 
   return inTenant(org, async (tx, organizationId) => {
-    const { entitlements } = resolveEntitlements(await loadSubscription(tx, organizationId), now);
+    const { entitlements } = await resolveInTx(tx, organizationId, now);
     const limit = limitFor(entitlements, metric);
     const current = await readUsage(tx, organizationId, metric, currentPeriod(now));
 

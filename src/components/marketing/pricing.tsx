@@ -1,6 +1,7 @@
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { HashLink } from "@/components/marketing/hash-link";
 import { Reveal } from "@/components/marketing/reveal";
+import { PLAN_CATALOG, type PlanKey } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,9 +19,13 @@ import { cn } from "@/lib/utils";
  * plan" anywhere. The trial grants top-tier entitlements — that is why the
  * sub-line calls it full-feature rather than a trial of Starter.
  *
- * **Billing is per location, per month**, and the unit is on the price rather
- * than in a footnote, because a monthly figure that turns out to be per branch
- * at checkout is the kind of surprise this page is positioned against.
+ * **Billing is base + extras, not per location** (11 Aug 2026 — docs/05 §2).
+ * Each tier includes N locations and prices the rest, so the unit line here
+ * said "/ location · month" and was describing a model the product no longer
+ * has: it read as though Starter's $29 multiplied by branch, and as though
+ * Pro's $229 bought one. A monthly figure that turns out to mean something
+ * else at checkout is the exact surprise this page is positioned against, so
+ * the tiers that *can* cost more say "from" and the one that cannot does not.
  *
  * **Agency is not the top of the ladder.** It is a different shape — priced
  * per deal, sold to a different buyer — so it carries no figure and its call
@@ -32,24 +37,34 @@ import { cn } from "@/lib/utils";
  * marginal cost; saying so beside the price is the honest version of a plan
  * that would otherwise have to hide the ceiling.
  *
- * The figures live in the message catalogue rather than in this file because
- * they differ per audience — the catalogue is the one place a price is
- * written, and `pnpm check:i18n` proves both locales carry the same set.
+ * **The figures come from `PLAN_CATALOG`, not from the message catalogue.**
+ * They used to be four hardcoded strings per locale — eight numbers with
+ * nothing tying them to what the product charges. They were correct only
+ * because somebody had lately typed them correctly, and the failure mode is the
+ * worst one a pricing page has: the front door quoting last quarter's ladder
+ * while checkout charges this quarter's. The catalogue still owns the *words*
+ * around the number; the number itself is read from the same object the
+ * entitlement checks and the billing screen read.
+ *
+ * Read from the catalogue rather than the `plans` table on purpose. The values
+ * are identical — `pnpm db:seed` writes one from the other, and migration 0058
+ * pins them — but this page is public, unauthenticated and heavily cached, so a
+ * database round trip buys nothing and an unseeded database would render a
+ * pricing section with no prices in it.
  */
 
 /**
- * Every key written out rather than assembled from the tier's name.
+ * Every message key written out rather than assembled from the tier's name.
  *
  * `scripts/check-i18n.mts` can only see a key it can read as a literal, and a
- * price nothing can prove is referenced is a price nobody dares delete when
- * the packaging changes. The repetition is what makes the dead-string check
- * work on the four strings on this page that cost money to get wrong.
+ * line nothing can prove is referenced is a line nobody dares delete when the
+ * packaging changes. The repetition is what makes the dead-string check work on
+ * the strings that cost money to get wrong.
  */
 const TIERS = [
   {
     id: "starter",
     name: "pricing.starterName",
-    price: "pricing.starterPrice",
     features: [
       "pricing.starterOne",
       "pricing.starterTwo",
@@ -61,7 +76,6 @@ const TIERS = [
   {
     id: "growth",
     name: "pricing.growthName",
-    price: "pricing.growthPrice",
     features: [
       "pricing.growthOne",
       "pricing.growthTwo",
@@ -73,14 +87,12 @@ const TIERS = [
   {
     id: "pro",
     name: "pricing.proName",
-    price: "pricing.proPrice",
     features: ["pricing.proOne", "pricing.proTwo", "pricing.proThree", "pricing.proFour"],
     featured: false,
   },
   {
     id: "agency",
     name: "pricing.agencyName",
-    price: "pricing.agencyPrice",
     features: [
       "pricing.agencyOne",
       "pricing.agencyTwo",
@@ -93,10 +105,50 @@ const TIERS = [
 
 export function Pricing() {
   const t = useTranslations("marketing");
+  const format = useFormatter();
+
+  /**
+   * The price line, built from the catalogue.
+   *
+   * One interpolated string per shape rather than an amount styled large beside
+   * a small unit, because the pieces do not sit in the same order in both
+   * languages: English puts "from" before the number and "/ month" after it,
+   * Turkish carries both as "aylık … 'dan". A split that looks right in English
+   * puts the words in the wrong places in the launch locale — the same trap
+   * `src/components/billing/plan-section.tsx` records. `t.rich` lets each
+   * translation decide the order while still marking which part is the figure.
+   *
+   * **"from" appears only where an extra location can actually be bought.**
+   * Starter is the single-location plan with no purchasable extras, so $29 is
+   * not a starting price, it is the price; saying "from" there would overstate
+   * the cost in the one place a visitor is deciding whether to bother.
+   */
+  const priceLine = (key: PlanKey) => {
+    const plan = PLAN_CATALOG[key];
+    const big = (chunks: React.ReactNode) => (
+      <span className="text-display tabular-nums">{chunks}</span>
+    );
+
+    // Agency carries no figure at all: it is priced per deal, and a number here
+    // would be one sales will not honour.
+    if (plan.priceMonth === null) return big(t("pricing.agencyPrice"));
+
+    const amount = format.number(plan.priceMonth / 100, {
+      style: "currency",
+      // From the row, never a typed "$": a hardcoded symbol is how a price ends
+      // up rendered in a currency nobody is charged in.
+      currency: plan.currency,
+      maximumFractionDigits: 0,
+    });
+
+    return plan.priceExtraLocationMonth === null
+      ? t.rich("pricing.priceExact", { amount, big })
+      : t.rich("pricing.priceFrom", { amount, big });
+  };
 
   return (
     <div className="grid items-stretch gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-      {TIERS.map(({ id, name, price, features, featured }) => {
+      {TIERS.map(({ id, name, features, featured }) => {
         const agency = id === "agency";
         return (
           <Reveal key={id}>
@@ -114,15 +166,9 @@ export function Pricing() {
 
               <h3 className="mb-2 text-lead font-semibold">{t(name)}</h3>
 
-              <p className="mb-3.5">
-                <span className="text-display tabular-nums">{t(price)}</span>{" "}
-                {/* Agency carries no per-location unit: it is priced per deal,
-                    and appending "/ location · month" to "Per deal" would state
-                    a billing model that does not exist. */}
-                {!agency && (
-                  <span className="text-meta text-paper-faint">{t("pricing.perLocation")}</span>
-                )}
-              </p>
+              {/* The qualifier is the paragraph's own size; the figure inside
+                  it is promoted by the `big` tag the translation places. */}
+              <p className="mb-3.5 text-meta text-paper-faint">{priceLine(id)}</p>
 
               <ul className="mb-4 flex flex-1 flex-col gap-2">
                 {features.map((feature) => (

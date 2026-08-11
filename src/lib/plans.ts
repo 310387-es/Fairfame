@@ -13,11 +13,25 @@ import { z } from "zod";
  *
  * `null` means unlimited. It never means zero.
  *
- * Pricing is denominated in TRY (kuruş) because Türkiye is the launch market.
- * docs/05 anchors the tiers to ~$29 / ~$79 / ~$199; the TRY figures below apply
- * an assumed ~45 TRY/USD and are explicitly repriced for inflation, exactly as
- * that doc says. Adding USD/EUR plans later means new catalog rows with a
- * different `currency`, not a schema change.
+ * **The catalog is USD-only (cents), decided 11 Aug 2026 — docs/05 §1–2.** It
+ * was TRY, on the argument that Türkiye is the launch market. That is a fact
+ * about where the first customers are rather than about the product, and it
+ * bought a second price list to reprice against inflation on a schedule nobody
+ * owns. The payment provider converts at charge time instead: Stripe presents
+ * local currency where it can, iyzico charges the TRY equivalent with e-fatura
+ * when that adapter goes live. `currency` stays on every row because formatters
+ * read it — one value in it today is not the same as no value.
+ *
+ * **Price is base + extras, not a cap.** Each tier includes N locations
+ * (`includedLocations`) and prices the rest (`priceExtraLocationMonth`);
+ * `limits.max_locations` survives as the hard ceiling of the tier rather than
+ * as the thing being sold. Annual is 10× monthly — two months free.
+ *
+ * **Quotas below are per location, not per organization.** `requests_per_month`,
+ * `ai_analyses_per_month` and all three metered keys are multiplied by the
+ * organization's location count before any comparison; see
+ * `scalePerLocation` in src/lib/entitlements.ts. The numbers here are therefore
+ * what *one* branch gets, which is what makes them comparable across tiers.
  *
  * `max_widgets` is not in the build plan's key list. Without it the Starter
  * "1 widget" entitlement from docs/05 §2.1 is unexpressible and Starter reads
@@ -178,11 +192,19 @@ export type PlanKey = (typeof PLAN_KEYS)[number];
 export type PlanConfig = {
   key: PlanKey;
   name: string;
-  /** Minor units of `currency` (kuruş for TRY). Null for Agency — quoted per deal. */
+  /** Minor units of `currency` (USD cents). Null for Agency — quoted per deal. */
   priceMonth: number | null;
-  /** ISO 4217. TRY is the launch-market currency. */
+  /** Annual price in minor units: 10× monthly, so two months are free. Null = no annual option. */
+  priceYear: number | null;
+  /** ISO 4217. USD-only catalog; the provider converts at charge time. */
   currency: string;
   interval: "month" | "year";
+  /** Locations included in the base price. Not the ceiling — that is `limits.max_locations`. */
+  includedLocations: number;
+  /** Minor units per extra location per month. Null = not purchasable, or per deal. */
+  priceExtraLocationMonth: number | null;
+  /** Minor units per extra location per year. */
+  priceExtraLocationYear: number | null;
   entitlements: Entitlements;
 };
 
@@ -190,9 +212,15 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
   starter: {
     key: "starter",
     name: "Starter",
-    priceMonth: 129_900, // ₺1.299,00
-    currency: "TRY",
+    priceMonth: 2_900, // $29.00
+    priceYear: 29_000, // $290.00 — two months free
+    currency: "USD",
     interval: "month",
+    includedLocations: 1,
+    // Extras are not purchasable on Starter: it is the single-location plan,
+    // and a second branch is the upgrade rather than an add-on line.
+    priceExtraLocationMonth: null,
+    priceExtraLocationYear: null,
     entitlements: {
       features: {
         ai_replies: true, // capped — see limits.ai_analyses_per_month
@@ -224,31 +252,48 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
       },
       limits: {
         max_locations: 1,
-        max_team_members: 2,
+        max_team_members: 3,
         max_widgets: 1,
         requests_per_month: 100,
-        ai_analyses_per_month: 250,
+        ai_analyses_per_month: 300,
       },
       metered: {
+        // Zero, not null. A Starter account may not send SMS or WhatsApp at
+        // all, and null here would read as unlimited — the one confusion this
+        // file's "null never means zero" rule exists to prevent.
         sms_credits: 0,
         whatsapp_conversations: 0,
-        ai_tokens: 100_000,
+        ai_tokens: 200_000,
       },
     },
   },
   growth: {
     key: "growth",
     name: "Growth",
-    priceMonth: 349_900, // ₺3.499,00
-    currency: "TRY",
+    priceMonth: 8_900, // $89.00
+    priceYear: 89_000, // $890.00 — two months free
+    currency: "USD",
     interval: "month",
+    includedLocations: 1,
+    priceExtraLocationMonth: 4_900, // $49.00
+    priceExtraLocationYear: 49_000, // $490.00
     entitlements: {
       features: {
         ai_replies: true,
         social_sources: true,
         competitor_watch: false,
         widgets: true,
-        scheduled_reports: false,
+        /**
+         * Moved down from Pro (11 Aug 2026, docs/05 §2.1).
+         *
+         * The weekly rhythm is the retention engine — a report that arrives
+         * every Monday is what keeps an account opening the product — so
+         * charging Pro money for it withheld the habit from the tier that most
+         * needs forming one. Pro's upgrade case stands on benchmarking,
+         * competitor watch and the API instead, which are all things a
+         * multi-location operator asks for by name.
+         */
+        scheduled_reports: true,
         analytics: true,
         seo_pages: true,
         api_access: false,
@@ -264,14 +309,18 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         agency_console: false,
       },
       limits: {
-        max_locations: 3,
-        max_team_members: 5,
+        max_locations: 5,
+        max_team_members: 10,
         max_widgets: null, // unlimited
         requests_per_month: null, // unlimited (fair use)
-        ai_analyses_per_month: 2_000,
+        ai_analyses_per_month: 1_000, // per location
       },
       metered: {
-        sms_credits: 250,
+        // Per location. WhatsApp runs ~2.5× SMS deliberately: it is the
+        // cheaper channel and the one Turkish customers actually read, so the
+        // ratio steers volume toward the send that protects margin. Keep it if
+        // these numbers move.
+        sms_credits: 100,
         whatsapp_conversations: 250,
         ai_tokens: 1_000_000,
       },
@@ -280,9 +329,13 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
   pro: {
     key: "pro",
     name: "Pro",
-    priceMonth: 899_900, // ₺8.999,00
-    currency: "TRY",
+    priceMonth: 22_900, // $229.00
+    priceYear: 229_000, // $2,290.00 — two months free
+    currency: "USD",
     interval: "month",
+    includedLocations: 3,
+    priceExtraLocationMonth: 5_900, // $59.00
+    priceExtraLocationYear: 59_000, // $590.00
     entitlements: {
       features: {
         ai_replies: true,
@@ -305,25 +358,40 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         agency_console: false,
       },
       limits: {
-        max_locations: 10,
-        max_team_members: 15,
+        max_locations: 25,
+        // Unlimited from Pro, which is the category norm: a multi-location
+        // operator counting seats is a customer being taught to ration access
+        // to their own reviews.
+        max_team_members: null,
         max_widgets: null,
         requests_per_month: null,
-        ai_analyses_per_month: 10_000,
+        ai_analyses_per_month: 2_500, // per location
       },
       metered: {
-        sms_credits: 1_000,
-        whatsapp_conversations: 1_000,
-        ai_tokens: 5_000_000,
+        // Per location, keeping the ~2.5× WhatsApp:SMS ratio — see Growth.
+        sms_credits: 250,
+        whatsapp_conversations: 500,
+        ai_tokens: 2_000_000,
       },
     },
   },
   agency: {
     key: "agency",
     name: "Agency",
-    priceMonth: null, // custom: per-seat + per-location
-    currency: "TRY",
+    /**
+     * Quoted per deal, so there is no list price — but the anchor is real and
+     * worth writing down: **from $299/mo including 10 client locations, then
+     * +$29/location wholesale**, with volume discounts from roughly 25. Null
+     * here rather than 29_900 because the screen must say "talk to us" instead
+     * of quoting a number sales will not honour.
+     */
+    priceMonth: null,
+    priceYear: null,
+    currency: "USD",
     interval: "month",
+    includedLocations: 10,
+    priceExtraLocationMonth: 2_900, // $29.00 wholesale
+    priceExtraLocationYear: 29_000, // $290.00
     entitlements: {
       features: {
         ai_replies: true,
@@ -352,6 +420,23 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         requests_per_month: null,
         ai_analyses_per_month: null,
       },
+      /**
+       * **Unresolved: docs/05 calls these "pooled", and the resolver multiplies
+       * them like every other tier's.**
+       *
+       * §2.1's table reads "2,500 / 2,500 pooled" — one allowance for the whole
+       * agency. The per-location rule in `scalePerLocation` has no plan
+       * exception, deliberately: a `planKey === "agency"` branch is exactly the
+       * hardcoding CLAUDE.md forbids, and `subscriptions.overrides` cannot
+       * express "pooled" either, because an override is multiplied too.
+       *
+       * So an agency with 40 client locations resolves to 100,000 SMS credits
+       * rather than 2,500. Left as the uniform rule rather than guessed at,
+       * because the fix is a packaging decision: either these numbers become
+       * genuine per-location figures (2,500 ÷ 10 = 250 each, matching Pro), or
+       * the catalog needs a `meteredPooled` flag and the resolver a second
+       * branch. Flagged in docs/23 and raised with the decision's owner.
+       */
       metered: {
         sms_credits: 2_500,
         whatsapp_conversations: 2_500,

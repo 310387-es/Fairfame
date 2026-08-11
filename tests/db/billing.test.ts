@@ -5,7 +5,7 @@ import { assignPlan, cancelSubscription } from "@/billing/subscriptions";
 import type { BillingEvent } from "@/billing/types";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { can, withinLimit } from "@/lib/entitlements";
-import { DEFAULT_PLAN_KEY } from "@/lib/plans";
+import { DEFAULT_PLAN_KEY, PLAN_CATALOG } from "@/lib/plans";
 
 /**
  * The T12 acceptance criterion: assigning a plan to an organization changes
@@ -52,7 +52,11 @@ describe("assignPlan", () => {
     expect(await can(orgId, "api_access")).toBe(true);
     expect(await can(orgId, "benchmarking")).toBe(true);
     expect(await can(orgId, "competitor_watch")).toBe(true);
-    expect((await withinLimit(orgId, "max_locations")).limit).toBe(10);
+    // Absolute, not per-location: a location ceiling that scaled with the
+    // location count would raise itself every time somebody reached it.
+    expect((await withinLimit(orgId, "max_locations")).limit).toBe(
+      PLAN_CATALOG.pro.entitlements.limits.max_locations,
+    );
     // Still not Agency.
     expect(await can(orgId, "white_label")).toBe(false);
   });

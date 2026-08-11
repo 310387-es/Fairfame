@@ -116,12 +116,46 @@ describe("plan catalog", () => {
     expect(PLAN_CATALOG.agency.priceMonth).toBeNull();
   });
 
-  it("prices the launch market in TRY, in whole minor units", () => {
+  it("prices one catalog in USD, in whole minor units", () => {
+    // One currency, decided 11 Aug 2026 (docs/05 §1): the provider converts at
+    // charge time rather than us keeping a TRY list to reprice for inflation.
     for (const key of PLAN_KEYS) {
       const plan = PLAN_CATALOG[key];
-      expect(plan.currency, `${key} should be priced for the launch market`).toBe("TRY");
+      expect(plan.currency, `${key} should be priced in the catalog currency`).toBe("USD");
       if (plan.priceMonth !== null) {
-        expect(Number.isInteger(plan.priceMonth), `${key} price must be integer kuruş`).toBe(true);
+        expect(Number.isInteger(plan.priceMonth), `${key} price must be integer cents`).toBe(true);
+      }
+      if (plan.priceYear !== null) {
+        expect(Number.isInteger(plan.priceYear), `${key} annual price must be integer cents`).toBe(
+          true,
+        );
+      }
+    }
+  });
+
+  it("gives two months free on annual, on every tier that has one", () => {
+    // The discount is the offer, so it is pinned rather than left to a comment:
+    // a tier repriced monthly and not annually would quietly become 12x.
+    for (const key of PLAN_KEYS) {
+      const { priceMonth, priceYear } = PLAN_CATALOG[key];
+      if (priceMonth === null || priceYear === null) continue;
+      expect(priceYear, `${key} annual should be 10x monthly`).toBe(priceMonth * 10);
+    }
+  });
+
+  it("includes locations in the base price, at or below the tier's ceiling", () => {
+    // `includedLocations` is what you get; `max_locations` is the ceiling. A
+    // plan that included more than it allowed would sell what it then refuses.
+    for (const key of PLAN_KEYS) {
+      const plan = PLAN_CATALOG[key];
+      expect(plan.includedLocations, `${key} must include at least one location`).toBeGreaterThan(
+        0,
+      );
+      const ceiling = plan.entitlements.limits.max_locations;
+      if (ceiling !== null) {
+        expect(plan.includedLocations, `${key} includes more than it allows`).toBeLessThanOrEqual(
+          ceiling,
+        );
       }
     }
   });

@@ -331,16 +331,39 @@ export const plans = pgTable("plans", {
   key: planKeyEnum("key").notNull().unique(),
   name: text("name").notNull(),
   /**
-   * Minor units of `currency` (kuruş for TRY). Null for Agency — quoted per deal.
+   * Minor units of `currency` — **USD cents since 11 Aug 2026**, TRY kuruş
+   * before it. Null for Agency, which is quoted per deal.
    * Integer, never a float: money must not round.
    */
   priceMonth: integer("price_month"),
-  /** ISO 4217. TRY for the launch market; USD/EUR plans come with Stripe later. */
-  currency: text("currency").notNull().default("TRY"),
+  /** Annual price in minor units: 10× monthly, so two months are free. Null = no annual option. */
+  priceYear: integer("price_year"),
+  /**
+   * ISO 4217. One value in the catalog today (USD) — the provider converts at
+   * charge time rather than us keeping a second price list per market. The
+   * column stays because every formatter reads it, and a hardcoded symbol is
+   * how a price ends up rendered in a currency nobody is charged in.
+   */
+  currency: text("currency").notNull().default("USD"),
   interval: billingIntervalEnum("interval").notNull().default("month"),
+  /**
+   * Locations included in the base price.
+   *
+   * Distinct from `limits.max_locations`, and the difference is the pricing
+   * model: this is what you get before paying more, that is the ceiling of the
+   * tier. Growth includes 1 and allows 5 — the four in between are sold, not
+   * refused.
+   */
+  includedLocations: integer("included_locations").notNull().default(1),
+  /** Minor units per extra location per month. Null = not purchasable (Starter) or per deal (Agency). */
+  priceExtraLocationMonth: integer("price_extra_location_month"),
+  /** Minor units per extra location per year. */
+  priceExtraLocationYear: integer("price_extra_location_year"),
   /** Feature flags, numeric limits and metered allowances. Config, not code. */
   entitlements: jsonb("entitlements").notNull(),
   providerPriceId: text("provider_price_id"),
+  /** The annual price object at the provider. Sibling of `providerPriceId`, which stays monthly. */
+  providerPriceIdYear: text("provider_price_id_year"),
   ...timestamps,
 });
 

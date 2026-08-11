@@ -62,6 +62,18 @@ async function createOrgOn(
   return org.id;
 }
 
+/** Real rows, because the resolver counts locations rather than being told a number. */
+async function addLocations(organizationId: string, howMany: number): Promise<void> {
+  await getAdminDb()
+    .insert(schema.locations)
+    .values(
+      Array.from({ length: howMany }, (_unused, index) => ({
+        organizationId,
+        name: `Branch ${index + 1} ${suffix}`,
+      })),
+    );
+}
+
 let starterOrg: string;
 let proOrg: string;
 
@@ -186,11 +198,72 @@ describe("withinLimit()", () => {
   });
 
   it("respects the requested quantity, not just one more", async () => {
-    const org = await createOrgOn("growth"); // 250 sms credits
-    await recordUsage(org, "sms_credits", 245);
+    const org = await createOrgOn("growth");
+    // Measured back from whatever the plan grants, so a repricing moves this
+    // test with it rather than turning it red.
+    const { limit } = await withinLimit(org, "sms_credits", { additional: 0 });
+    if (limit === null) throw new Error("expected a finite sms allowance");
+    await recordUsage(org, "sms_credits", limit - 5);
 
     expect((await withinLimit(org, "sms_credits", { additional: 5 })).allowed).toBe(true);
     expect((await withinLimit(org, "sms_credits", { additional: 6 })).allowed).toBe(false);
+  });
+});
+
+/**
+ * Per-location quotas, through the database shell (11 Aug 2026 — docs/05 §1–2).
+ *
+ * `tests/lib/entitlements.test.ts` pins the arithmetic; these pin that the real
+ * location count reaches it. A pure function that multiplies correctly is worth
+ * nothing if the resolver never counts the branches.
+ */
+describe("per-location quotas", () => {
+  it("multiplies the allowance by the organization's locations", async () => {
+    const org = await createOrgOn("growth");
+    const perLocation = PLAN_CATALOG.growth.entitlements.metered.sms_credits ?? 0;
+
+    // No branches yet, so the floor of 1 applies and the catalog figure stands.
+    expect((await withinLimit(org, "sms_credits", { additional: 0 })).limit).toBe(perLocation);
+
+    await addLocations(org, 3);
+
+    expect((await withinLimit(org, "sms_credits", { additional: 0 })).limit).toBe(perLocation * 3);
+  });
+
+  it("leaves the location ceiling absolute, so it cannot raise itself", async () => {
+    // The failure this prevents: max_locations scaling with the location count
+    // means every new branch raises the cap that was supposed to stop it.
+    const org = await createOrgOn("growth");
+    await addLocations(org, 3);
+
+    expect((await withinLimit(org, "max_locations", { additional: 0 })).limit).toBe(
+      PLAN_CATALOG.growth.entitlements.limits.max_locations,
+    );
+  });
+
+  it("gives a brand-new organization one location's worth, not nothing", async () => {
+    // No locations yet. Flooring at 1 is what stops the very first review
+    // request of a new account failing a limit check against zero.
+    const org = await createOrgOn("growth");
+
+    const check = await withinLimit(org, "requests_per_month", { additional: 1 });
+    expect(check.allowed).toBe(true);
+  });
+
+  it("keeps a zero allowance at zero however many branches there are", async () => {
+    const org = await createOrgOn("starter");
+    await addLocations(org, 3);
+
+    const check = await withinLimit(org, "sms_credits", { additional: 1 });
+    expect(check.limit).toBe(0);
+    expect(check.allowed).toBe(false);
+  });
+
+  it("keeps unlimited unlimited", async () => {
+    const org = await createOrgOn("agency");
+    await addLocations(org, 5);
+
+    expect((await withinLimit(org, "requests_per_month", { additional: 1 })).limit).toBeNull();
   });
 });
 

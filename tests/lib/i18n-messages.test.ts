@@ -57,8 +57,8 @@ function argumentsOf(text: string): string[] {
  * catching. A `Date` is supplied for anything that reads like a time, since
  * `date`/`time` formats reject a number.
  */
-function valuesFor(text: string): Record<string, string | number | Date> {
-  const values: Record<string, string | number | Date> = {};
+function valuesFor(text: string): Record<string, unknown> {
+  const values: Record<string, unknown> = {};
 
   for (const name of argumentsOf(text)) {
     const usage = new RegExp(`\\{\\s*${name}\\s*,\\s*(\\w+)`).exec(text)?.[1];
@@ -70,7 +70,27 @@ function valuesFor(text: string): Record<string, string | number | Date> {
           : "x";
   }
 
+  // Rich-text tags need a handler each, or the message throws for want of one.
+  for (const tag of tagsOf(text)) {
+    values[tag] = (chunks: unknown) => chunks;
+  }
+
   return values;
+}
+
+/**
+ * Rich-text tag names — `big` in `<big>{amount}</big>`.
+ *
+ * These exist because a price line's words do not sit in the same order in
+ * every language: English is `from $89 / month`, Turkish is `aylık $89'dan`,
+ * and only the translation can say which part is the figure. `t.rich` lets it,
+ * and a message that uses it must be rendered through `.rich` — plain `t()`
+ * reports a missing handler and returns the key, which is what this file exists
+ * to catch. Without this the check could not validate a tag-bearing message at
+ * all, so the first one added would have failed here rather than in the page.
+ */
+function tagsOf(text: string): string[] {
+  return [...new Set([...text.matchAll(/<(\w+)>/g)].map((match) => match[1]!))];
 }
 
 describe.each(LOCALES)("the %s catalogue", (locale) => {
@@ -96,7 +116,12 @@ describe.each(LOCALES)("the %s catalogue", (locale) => {
 
       // The key is a runtime string; the typed API wants a literal drawn from
       // the catalogue, which is precisely what cannot be known in a loop.
-      (t as unknown as (key: string, values: Record<string, unknown>) => string)(
+      //
+      // `.rich` for a message carrying tags, plain `t()` for the rest — the
+      // same call the app would make, which is the whole point of formatting
+      // through next-intl rather than through a bare parser.
+      const call = tagsOf(message.text).length > 0 ? t.rich : t;
+      (call as unknown as (key: string, values: Record<string, unknown>) => unknown)(
         message.path,
         valuesFor(message.text),
       );

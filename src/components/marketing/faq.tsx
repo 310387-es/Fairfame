@@ -1,4 +1,5 @@
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
+import { PLAN_CATALOG, type PlanKey } from "@/lib/plans";
 
 /**
  * The five questions, as native disclosures.
@@ -28,6 +29,37 @@ const QUESTIONS = [
 
 export function Faq() {
   const t = useTranslations("marketing");
+  const format = useFormatter();
+
+  /**
+   * The pricing answer repeats the ladder, so it reads the same catalogue the
+   * cards above it do.
+   *
+   * It used to spell the three figures out in both locales — six numbers whose
+   * only tie to what the product charges was that somebody had lately typed
+   * them correctly. That is a worse copy of the same mistake `pricing.tsx`
+   * carried, because an answer buried in a disclosure is the one nobody
+   * re-reads after a repricing.
+   *
+   * Passed to every answer rather than only to the fourth: next-intl ignores
+   * values a message does not use, and special-casing one key here would mean a
+   * second place to update the day the questions are renumbered.
+   */
+  const price = (key: PlanKey) => {
+    const plan = PLAN_CATALOG[key];
+    if (plan.priceMonth === null) return t("pricing.agencyPrice");
+    return format.number(plan.priceMonth / 100, {
+      style: "currency",
+      currency: plan.currency,
+      maximumFractionDigits: 0,
+    });
+  };
+
+  const prices = {
+    starter: price("starter"),
+    growth: price("growth"),
+    pro: price("pro"),
+  };
 
   return (
     <div className="max-w-[880px]">
@@ -39,7 +71,7 @@ export function Faq() {
               +
             </span>
           </summary>
-          <p className="max-w-[600px] pb-4 text-body text-paper-body">{t(answer)}</p>
+          <p className="max-w-[600px] pb-4 text-body text-paper-body">{t(answer, prices)}</p>
         </details>
       ))}
     </div>

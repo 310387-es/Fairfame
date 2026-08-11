@@ -126,6 +126,7 @@ export default async function SettingsPage() {
     key,
     name: PLAN_CATALOG[key].name,
     priceMonth: PLAN_CATALOG[key].priceMonth,
+    priceYear: PLAN_CATALOG[key].priceYear,
     currency: PLAN_CATALOG[key].currency,
     highlights: highlights[key],
   }));

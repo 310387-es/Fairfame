@@ -4,7 +4,7 @@ import { createStubProvider } from "@/ai/providers/stub";
 import { setLlmProviderForTesting } from "@/ai/client";
 import { connectSource } from "@/connectors/sync";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
-import { currentPeriod } from "@/lib/entitlements";
+import { currentPeriod, withinLimit } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
 import { MAX_REPLY_CHARS } from "@/prompts/index";
 import {
@@ -611,11 +611,19 @@ describe("entitlements and usage", () => {
     const fixture = await makeFixture("capped");
     const reviewId = await addReview(fixture);
 
+    // The whole allowance, derived rather than written down. Since the
+    // 11 Aug 2026 repricing the catalog figure is per location and the resolver
+    // multiplies it by the organization's branches, so a literal 250 stopped
+    // being the ceiling — it became a number under it, which would leave these
+    // tests asserting against an allowance that was never actually spent.
+    const { limit } = await withinLimit(fixture.orgId, "ai_analyses_per_month", { additional: 0 });
+    if (limit === null) throw new Error("expected a finite analysis allowance");
+
     await getAdminDb().insert(schema.usageCounters).values({
       organizationId: fixture.orgId,
       metric: "ai_analyses_per_month",
       period: currentPeriod(),
-      count: 250,
+      count: limit,
     });
 
     await expect(
@@ -881,11 +889,19 @@ describe("writing a reply by hand", () => {
     const fixture = await makeFixture("manual-capped");
     const reviewId = await addReview(fixture);
 
+    // The whole allowance, derived rather than written down. Since the
+    // 11 Aug 2026 repricing the catalog figure is per location and the resolver
+    // multiplies it by the organization's branches, so a literal 250 stopped
+    // being the ceiling — it became a number under it, which would leave these
+    // tests asserting against an allowance that was never actually spent.
+    const { limit } = await withinLimit(fixture.orgId, "ai_analyses_per_month", { additional: 0 });
+    if (limit === null) throw new Error("expected a finite analysis allowance");
+
     await getAdminDb().insert(schema.usageCounters).values({
       organizationId: fixture.orgId,
       metric: "ai_analyses_per_month",
       period: currentPeriod(),
-      count: 250,
+      count: limit,
     });
 
     // The reason this exists. Metering a typed sentence against the model
