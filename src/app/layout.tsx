@@ -17,9 +17,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/**
+ * The icons are declared here rather than by Next's `icon.svg` / `apple-icon.png`
+ * file convention, and the two cannot both be used: **file-based metadata wins
+ * over this object**, so leaving the old convention files in place would have
+ * served the retired Revira monogram while every reference below pointed at the
+ * Fairfame seal — a mismatch nothing would fail on.
+ *
+ * The artwork is copied verbatim out of `brand/` into `public/`
+ * (`tests/lib/brand-assets.test.ts` fails when a copy drifts). One source of
+ * truth, and the manifest points at the same files.
+ */
 export const metadata: Metadata = {
-  title: "Revira",
+  title: "Fairfame",
   description: "Review and customer-voice management for local businesses.",
+  icons: {
+    // SVG first for anything modern; the 32px PNG is the fallback for a browser
+    // that will not take one, and Safari asks for the touch icon by name.
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export default async function RootLayout({

@@ -69,7 +69,7 @@ async function resolve(code: string): Promise<{
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { code } = await params;
   const resolved = await resolve(code);
-  if (!resolved) return { title: "Revira", robots: PRIVATE };
+  if (!resolved) return { title: "Fairfame", robots: PRIVATE };
 
   const t = await getTranslations({
     locale: localeOf(resolved.survey.locale),

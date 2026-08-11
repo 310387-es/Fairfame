@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Revira",
+    "name": "Fairfame",
     "tagline": "Review and customer-voice management",
     "authPanelBody": "Every source you connect turns into one short plan a week — what changed, and the three things worth doing about it.",
     "authPanelLink": "See a sample weekly plan"
@@ -709,7 +709,7 @@
     "noRatings": "No ratings yet.",
     "empty": "No reviews have been published here yet.",
     "viewOriginal": "Read it on the original site",
-    "poweredBy": "Reviews by Revira"
+    "poweredBy": "Reviews by Fairfame"
   },
   "sources": {
     "monitorOnly": "Monitor only",
@@ -999,7 +999,7 @@
       "title": "Add a contact",
       "description": "One person — a name, and an email address or a phone number.",
       "body": "Use this for somebody in front of you. For a list, import a file instead.",
-      "noPermission": "Adding somebody records their details. It does not give you permission to message them — that comes from them, and Revira checks for it before anything is sent.",
+      "noPermission": "Adding somebody records their details. It does not give you permission to message them — that comes from them, and Fairfame checks for it before anything is sent.",
       "name": "Name",
       "email": "Email",
       "phone": "Phone",
@@ -1278,7 +1278,7 @@
     "logoUrl": "Logo URL",
     "agencyOnly": "Agency plan",
     "locked": "Removing our mark and using your own domain are included from the Agency plan.",
-    "hidePoweredBy": "Remove “Powered by Revira” from public pages",
+    "hidePoweredBy": "Remove “Powered by Fairfame” from public pages",
     "customDomain": "Custom domain",
     "customDomainHint": "Your DNS must already point this hostname at us and a certificate must exist. Setting it here changes the links we print, nothing else — see the go-live runbook.",
     "save": "Save",
@@ -1519,8 +1519,8 @@
     "openOnPlatform": "View on the platform"
   },
   "sample": {
-    "metaTitle": "A sample weekly plan — Revira",
-    "metaDescription": "See what Revira sends a business owner every week: a reputation score, what changed, and the three things to do about it.",
+    "metaTitle": "A sample weekly plan — Fairfame",
+    "metaDescription": "See what Fairfame sends a business owner every week: a reputation score, what changed, and the three things to do about it.",
     "eyebrow": "Sample",
     "title": "This is what lands in your inbox every Monday",
     "intro": "A real weekly plan, composed the way yours would be — from reviews, not from a template. The café below is invented; the pipeline is the one your reviews would go through.",
@@ -1564,7 +1564,7 @@
     "badgeNoRatings": "No ratings yet",
     "badgeLink": "See all reviews",
     "viewOriginal": "Read it on the original site",
-    "poweredBy": "Reviews by Revira"
+    "poweredBy": "Reviews by Fairfame"
   },
   "widgets": {
     "title": "Website widgets",
@@ -1706,7 +1706,7 @@
       "not_live": "Not live"
     },
     "blocker": {
-      "not_connected": "Nothing is configured to send with. Connect an account — or, if you host Revira yourself, set {envVar}.",
+      "not_connected": "Nothing is configured to send with. Connect an account — or, if you host Fairfame yourself, set {envVar}.",
       "connection_error": "The last attempt failed with these credentials. Reconnect to try again.",
       "no_consent_registry": "No consent registry is wired, so no commercial message may leave at all — however well this channel is configured.",
       "not_live": "This channel accepts messages and reaches nobody. Nothing sent here has ever arrived on a phone."
@@ -1882,12 +1882,12 @@
     "hostname": "Use a hostname like reviews.example.com."
   },
   "marketing": {
-    "metaTitle": "Revira — your customers already wrote what you should do",
+    "metaTitle": "Fairfame — your customers already wrote what you should do",
     "metaDescription": "Review and customer-voice management that turns every week's reviews into a three-item job list. See a sample weekly plan without signing up.",
     "skipToContent": "Skip to content",
     "signIn": "Sign in",
     "headline": "Your customers already wrote what you should do.",
-    "subhead": "Every week Revira reads your reviews and draws up a three-item job list. Under each item sits the sentence from the customer who prompted it.",
+    "subhead": "Every week Fairfame reads your reviews and draws up a three-item job list. Under each item sits the sentence from the customer who prompted it.",
     "ctaPrimary": "Open the sample plan",
     "ctaSecondary": "Create an account",
     "noCard": "No card needed · everything open for 14 days",
@@ -1993,7 +1993,7 @@
     "statNote": "In the sample week below. Your numbers will differ; there will still be three jobs.",
     "briefingTitle": "And this is what lands on Friday",
     "briefingBody": "The same week as one document: the score, what changed, and three jobs — each with its evidence underneath.",
-    "shotReviewsAlt": "Revira's review queue: queues on the left, filters across the top, and rated reviews with their reply status below.",
+    "shotReviewsAlt": "Fairfame's review queue: queues on the left, filters across the top, and rated reviews with their reply status below.",
     "themeNew": "New",
     "whyTitle": "Three things that separate this from a report",
     "flowEvidence": "The reviews behind this job",
@@ -2001,7 +2001,7 @@
     "featureCompetitors": "Competitor watch and benchmarking",
     "changeThemeHeader": "Theme",
     "changeCountHeader": "Reviews",
-    "shotCollectAlt": "Revira's review-collection screen: a campaign, its QR code, the public link, poster and table-card exports, a contact picker and CSV import.",
+    "shotCollectAlt": "Fairfame's review-collection screen: a campaign, its QR code, the public link, poster and table-card exports, a contact picker and CSV import.",
     "shotCollectCaption": "The line across the top is the product's own rule: every customer sees the same page whatever they would have rated you. There is no route-by-rating option here — not switched off, absent."
   }
 }

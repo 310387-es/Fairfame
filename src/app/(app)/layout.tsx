@@ -93,9 +93,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <aside className="sticky top-0 hidden h-screen w-(--rail-width) shrink-0 flex-col overflow-y-auto bg-rail text-on-ink md:flex">
         <Link
           href="/dashboard"
-          className="flex h-(--topbar-height) shrink-0 items-center gap-2.5 px-[18px] text-base font-semibold tracking-[-0.01em]"
+          className="flex h-(--topbar-height) shrink-0 items-center px-[18px]"
         >
-          <Logo className="text-white" markClassName="size-[26px]" />
+          {/* Sized by height: the lockup is one image, so the seal and the
+              wordmark keep the proportion the file was drawn at. 34px puts the
+              seal itself at the 26px it was before. */}
+          <Logo tone="ink" className="h-[34px]" />
         </Link>
 
         <SidebarNav />

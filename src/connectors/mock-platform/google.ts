@@ -65,7 +65,7 @@ function error(status: number, code: string, message: string, headers?: Record<s
 
 export function createGoogleMock(options: GoogleMockOptions = {}) {
   const accountId = options.accountId ?? DEFAULT_ACCOUNT;
-  const accountName = options.accountName ?? "Revira Test İşletmesi";
+  const accountName = options.accountName ?? "Fairfame Test İşletmesi";
   const locations = options.locations ?? [{ id: DEFAULT_LOCATION, title: "Kadıköy Şubesi" }];
   const now = options.now ?? (() => new Date());
   const validTokens = new Set(options.validTokens ?? []);

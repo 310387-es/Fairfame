@@ -19,7 +19,7 @@ import { publicBaseUrl } from "../lib/urls.ts";
  *   2. The organization's **own** brand. Not a white-label feature — an
  *      ordinary business putting its logo on its own review page is just having
  *      a logo, and gating that behind the Agency tier would be mean.
- *   3. Revira.
+ *   3. Fairfame.
  *
  * **The entitlement is checked on the agency, not on the client.** It is the
  * agency that bought the right to put its name on somebody else's page; a
@@ -42,7 +42,7 @@ const brandingSchema = z
       .regex(/^#[0-9a-fA-F]{6}$/)
       .optional(),
     senderName: z.string().max(80).optional(),
-    /** Whether "Powered by Revira" appears. Only an agency may switch it off. */
+    /** Whether "Powered by Fairfame" appears. Only an agency may switch it off. */
     hidePoweredBy: z.boolean().optional(),
   })
   .partial();
@@ -69,7 +69,7 @@ export type Brand = {
 
 /** What every unbranded page has always shown. */
 export const DEFAULT_BRAND: Omit<Brand, "baseUrl"> = {
-  name: "Revira",
+  name: "Fairfame",
   logoUrl: null,
   primaryColor: null,
   showPoweredBy: true,
@@ -147,7 +147,7 @@ function toBrand(row: OrgRow, whiteLabelled: boolean, allowHidePoweredBy: boolea
  *
  * Never throws and never blocks a page: a missing row, a malformed blob or a
  * lapsed subscription all degrade to the next rule down and eventually to
- * Revira. A customer looking at a review page must not see an error because an
+ * Fairfame. A customer looking at a review page must not see an error because an
  * agency mistyped a colour.
  */
 export async function resolveBrand(organizationId: string): Promise<Brand> {

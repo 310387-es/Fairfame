@@ -292,7 +292,7 @@ describe("white-label branding", () => {
     expect(brand.showPoweredBy).toBe(true);
   });
 
-  it("degrades to Revira for an organization that does not exist", async () => {
+  it("degrades to Fairfame for an organization that does not exist", async () => {
     const brand = await resolveBrand("00000000-0000-4000-8000-000000000000");
     expect(brand.name).toBe(DEFAULT_BRAND.name);
     expect(brand.whiteLabelled).toBe(false);

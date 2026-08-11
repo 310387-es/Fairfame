@@ -1,0 +1,100 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          "src/messaging/templates.ts"
+        ],
+        "createdAt": "2026-08-11T07:51:49.146Z",
+        "reason": "Email HTML: clients ignore CSS custom properties, so literal px is the only form that survives. Already an exemption in tests/lib/design-tokens.test.ts."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "*",
+        "files": [
+          "src/messaging/templates.ts"
+        ],
+        "createdAt": "2026-08-11T07:51:49.179Z",
+        "reason": "Email HTML: same reason as the font sizes above — a radius token in an email resolves to nothing."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/messaging/templates.ts"
+        ],
+        "createdAt": "2026-08-11T07:51:49.211Z",
+        "reason": "Both are 3px border-left on a blockquote — the customer's own review text — not a decorative card accent."
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgb(0 0 0 / 0.09)",
+        "createdAt": "2026-08-11T07:53:12.270Z",
+        "reason": "Not a palette colour: the alpha-black in the scroll-shadow gradients on a scrollable region. A token would still be a literal in this same file."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          "src/components/analytics/trend-chart.tsx",
+          "src/components/dashboard/reputation-chart.tsx",
+          "src/components/ds/chip.tsx",
+          "src/components/ds/stars.tsx",
+          "src/components/requests/campaign-card.tsx",
+          "src/components/requests/recipient-picker.tsx",
+          "src/components/reviews/saved-views.tsx",
+          "src/components/reviews/template-picker.tsx",
+          "src/components/shell/notification-bell.tsx",
+          "src/components/shell/sidebar-nav.tsx",
+          "src/components/ui/badge.tsx"
+        ],
+        "createdAt": "2026-08-11T07:57:30.568Z",
+        "reason": "Optical sizes already argued file by file in MAY_SIZE_BY_HAND (tests/lib/design-tokens.test.ts) — a star glyph, a state chip, an SVG axis tick. That list is the reviewable place; this mirrors it."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "*",
+        "files": [
+          "src/app/u/[token]/route.ts",
+          "src/widgets/theme.ts"
+        ],
+        "createdAt": "2026-08-11T07:57:49.583Z",
+        "reason": "No stylesheet reaches these surfaces — a widget renders on a stranger's site and the unsubscribe page is an HTML string reached from an email footer. Both are argued in MAY_WRITE_HEX (tests/lib/design-tokens.test.ts); the widget has its own contrast suite."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          "src/app/u/[token]/route.ts",
+          "src/widgets/theme.ts"
+        ],
+        "createdAt": "2026-08-11T07:57:49.615Z",
+        "reason": "No stylesheet reaches these surfaces — a widget renders on a stranger's site and the unsubscribe page is an HTML string reached from an email footer. Both are argued in MAY_WRITE_HEX (tests/lib/design-tokens.test.ts); the widget has its own contrast suite."
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          "src/app/u/[token]/route.ts",
+          "src/widgets/theme.ts"
+        ],
+        "createdAt": "2026-08-11T07:57:49.646Z",
+        "reason": "No stylesheet reaches these surfaces — a widget renders on a stranger's site and the unsubscribe page is an HTML string reached from an email footer. Both are argued in MAY_WRITE_HEX (tests/lib/design-tokens.test.ts); the widget has its own contrast suite."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          "src/app/u/[token]/route.ts",
+          "src/widgets/theme.ts"
+        ],
+        "createdAt": "2026-08-11T07:57:49.677Z",
+        "reason": "No stylesheet reaches these surfaces — a widget renders on a stranger's site and the unsubscribe page is an HTML string reached from an email footer. Both are argued in MAY_WRITE_HEX (tests/lib/design-tokens.test.ts); the widget has its own contrast suite."
+      }
+    ]
+  }
+}

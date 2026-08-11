@@ -483,7 +483,7 @@ export type DigestEmailInput = {
  *
  * Until 7 Aug 2026 these were Tailwind's stock defaults: `#6b7280` for muted
  * text, `#111827` for ink, `#e5e7eb` for hairlines — and, in the digest,
- * **`#4f46e5` for links, which is Tailwind's indigo-600 and not Revira's
+ * **`#4f46e5` for links, which is Tailwind's indigo-600 and not Fairfame's
  * `#3d5af1`**. Two different indigos in one email, four pixels of hue apart,
  * neither obviously wrong on its own. That is what a hand-copied palette looks
  * like after a few months.
@@ -1268,7 +1268,7 @@ const RESET_COPY: Record<
   }
 > = {
   tr: {
-    subject: "Revira parolanızı sıfırlayın",
+    subject: "Fairfame parolanızı sıfırlayın",
     lead: (input) =>
       `Merhaba ${input.name}, yeni bir parola belirlemek için aşağıdaki bağlantıyı kullanın.`,
     cta: "Yeni parola belirle",
@@ -1276,7 +1276,7 @@ const RESET_COPY: Record<
     ignore: "Bu isteği siz yapmadıysanız hiçbir şey yapmanıza gerek yok — parolanız değişmedi.",
   },
   en: {
-    subject: "Reset your Revira password",
+    subject: "Reset your Fairfame password",
     lead: (input) => `Hello ${input.name}, use the link below to set a new password.`,
     cta: "Set a new password",
     expiry: (input) => `This link is good for ${input.expiresInMinutes} minutes.`,

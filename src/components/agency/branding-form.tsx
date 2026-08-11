@@ -14,7 +14,7 @@ import { saveBrandingAction } from "@/server/agency";
  * Branding (P4-T5).
  *
  * Two halves, and the form says which is which rather than mixing them: a name,
- * a logo and a colour are for anybody, while removing Revira's mark and serving
+ * a logo and a colour are for anybody, while removing Fairfame's mark and serving
  * from your own domain need `white_label`. Gating the first three would mean
  * charging Agency prices for having a logo.
  *

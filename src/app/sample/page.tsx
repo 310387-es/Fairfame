@@ -96,7 +96,7 @@ export default async function SamplePage() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 md:py-16">
       <header className="flex flex-col gap-4">
         <Link href="/" className="self-start">
-          <Logo markClassName="size-6" />
+          <Logo className="h-8" />
         </Link>
 
         <div>
@@ -168,8 +168,11 @@ export default async function SamplePage() {
               being shown first. `sr-only` for the reading, `aria-hidden` for
               the mark, so it announces as "65 out of 100".
 
-              The raw `text-[2rem]` went with it: `text-metric` is the token and
-              typing a font size is what the design system exists to stop.
+              The hand-typed arbitrary size went with it: `text-metric` is the
+              token, and typing a font size is what the design system exists to
+              stop. The old value is described rather than quoted, because a
+              scanner reading this file cannot tell a comment from a class and
+              reported the sentence as the very drift it records fixing.
             */}
             <span className="flex items-baseline gap-1">
               <span className="text-metric">

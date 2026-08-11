@@ -32,8 +32,22 @@ async function tabThrough(page: Page, steps: number) {
       if (el.closest("nextjs-portal")) return null;
 
       const style = getComputedStyle(el);
-      const label =
+
+      // The accessible name, approximated in the order the algorithm uses it:
+      // `aria-label`, then the element's own text, then the `alt` of any image
+      // it contains. That last step is not a loophole — it is how a browser and
+      // a screen reader name a link whose whole content is a picture, which the
+      // rail's logo now is. Reading text alone reported it as nameless while
+      // VoiceOver read it as "Fairfame", and a test that disagrees with the
+      // assistive technology it stands in for is testing the wrong thing. An
+      // image link with no `alt` still fails here, which is the case worth
+      // catching.
+      const text =
         el.getAttribute("aria-label") ?? (el as HTMLElement).innerText ?? el.textContent ?? "";
+      const alt = [...el.querySelectorAll("img[alt]")]
+        .map((image) => image.getAttribute("alt") ?? "")
+        .join(" ");
+      const label = text.trim() === "" ? alt : text;
 
       return {
         name: label.trim().slice(0, 40),

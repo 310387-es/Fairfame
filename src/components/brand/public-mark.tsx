@@ -1,4 +1,4 @@
-import { Logo } from "@/components/brand/logo";
+import { LogoMark } from "@/components/brand/logo";
 import type { Brand } from "@/agency/branding";
 
 /**
@@ -10,7 +10,7 @@ import type { Brand } from "@/agency/branding";
  *     includes `white_label` and which has uploaded one. Our name is gone.
  *   - **An agency's name in words**, when it has no logo. Better than falling
  *     back to ours: the point is that the customer sees who they deal with.
- *   - **Revira**, otherwise — including for an ordinary business that has
+ *   - **Fairfame**, otherwise — including for an ordinary business that has
  *     branded its own page, because branding your own page is not the same as
  *     buying the right to remove somebody else's mark.
  *
@@ -36,8 +36,16 @@ export function PublicMark({ brand, className }: { brand: Brand; className?: str
   if (!brand.showPoweredBy) return null;
 
   return (
+    // The seal and the name in words, not the lockup: this sits at footer
+    // scale, and below 24px the brand rules say the seal is the only correct
+    // form — a lockup shrunk to fit would put the wordmark under its own
+    // minimum. The name beside it is prose in the page's own type, which is a
+    // different thing from re-typing the logotype (docs/24 §2, §4).
     <div className={className}>
-      <Logo className="text-muted-foreground" markClassName="size-4" />
+      <span className="flex items-center gap-2 text-copy font-semibold text-muted-foreground">
+        <LogoMark className="size-4" />
+        Fairfame
+      </span>
     </div>
   );
 }

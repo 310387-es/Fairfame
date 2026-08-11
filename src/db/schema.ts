@@ -387,7 +387,7 @@ export const organizations = pgTable("organizations", {
   /** Our own org configuration. */
   settings: jsonb("settings").notNull().default({}),
   /**
-   * The rest of a brand: primary colour, sender name, whether Revira's own mark
+   * The rest of a brand: primary colour, sender name, whether Fairfame's own mark
    * appears (P4-T5). The logo itself is `logo` above, BetterAuth's column.
    *
    * On the organization rather than on the agency link, because an ordinary

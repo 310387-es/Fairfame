@@ -335,7 +335,7 @@ export default async function InboxPage({
       differently.
 
       `hasOwnerReply` with no `reply_` means the owner answered on the platform
-      before or outside Revira. We have the fact but not the words — the text is
+      before or outside Fairfame. We have the fact but not the words — the text is
       buried in `raw_payload` and normalising it is a connector change — so that
       case says only that it was answered, rather than inventing a preview.
     */

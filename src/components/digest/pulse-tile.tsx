@@ -125,8 +125,11 @@ export async function PulseTile({ score, delta, reviewCount }: PulseTileProps) {
 
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {/* `text-metric` alone — it is already the headline-number role at
-              28px, and the `text-[2rem]` that used to override it was exactly
-              the hand-typed font size docs/15 opens by forbidding. */}
+              28px, and the arbitrary size that used to override it was exactly
+              the hand-typed font size docs/15 opens by forbidding. The old
+              value is described rather than quoted: a scanner reading this file
+              cannot tell a comment from a class, and read the sentence as the
+              drift it records removing. */}
           {/*
             The number, or the reason there is not one (W3.3).
 

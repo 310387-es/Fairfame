@@ -70,5 +70,5 @@ export function toCsv(rows: CsvRow[]): string {
  */
 export function csvFilename(kind: string, range: string, now: Date): string {
   const day = now.toISOString().slice(0, 10);
-  return `revira-${kind}-${range}-${day}.csv`;
+  return `fairfame-${kind}-${range}-${day}.csv`;
 }

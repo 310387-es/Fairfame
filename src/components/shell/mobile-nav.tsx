@@ -59,8 +59,8 @@ export function MobileNav({ footer }: { footer: ReactNode }) {
           the trigger's label makes a screen reader announce the thing you are
           already inside as the action that got you there. */}
       <SheetContent title={t("menu")} hideTitle closeLabel={t("closeMenu")}>
-        <div className="flex h-(--topbar-height) items-center gap-2.5 px-[18px] text-base font-semibold tracking-[-0.01em]">
-          <Logo className="text-white" markClassName="size-[26px]" />
+        <div className="flex h-(--topbar-height) items-center px-[18px]">
+          <Logo tone="ink" className="h-[34px]" />
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">

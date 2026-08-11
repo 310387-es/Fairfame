@@ -182,7 +182,7 @@ export async function updateWidget(
  * Which connector sources this organization actually has reviews from.
  *
  * The builder offers these as filter checkboxes rather than a fixed list of
- * every provider Revira supports: a source toggle for a platform a business has
+ * every provider Fairfame supports: a source toggle for a platform a business has
  * never connected is a control that does nothing, and three of them make the
  * panel look broken. A source with no reviews is not a choice.
  */

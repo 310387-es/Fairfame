@@ -47,9 +47,16 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: body ?? "",
-      icon: "/icon.svg",
-      badge: "/icon.svg",
-      // The dedupe key, so a retried delivery replaces rather than stacks.
+      // The seal, as PNG. This used to point at `/icon.svg`, which no longer
+      // exists — the icons moved to `public/` when the brand landed. A raster
+      // is also the safer choice here: SVG support for notification icons is
+      // uneven across the browsers that implement push at all, and the failure
+      // is a notification with a hole where the mark should be.
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      // The dedupe key, so a retried delivery replaces rather than stacks. It
+      // is a string the platform compares to itself, not a name anybody reads,
+      // which is why the rename left it alone.
       tag: tag ?? "revira",
       data: { url: url ?? "/dashboard" },
       // Never `requireInteraction`: a notification that will not go away until

@@ -60,7 +60,7 @@ const labels = {
   badgeNoRatings: "Henüz puan yok",
   badgeLink: "Tüm yorumları gör",
   viewOriginal: "Kaynağında oku",
-  poweredBy: "Revira",
+  poweredBy: "Fairfame",
 };
 
 /** The hash a browser computes for an inline block, derived independently. */

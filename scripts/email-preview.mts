@@ -39,7 +39,7 @@ import { completedPeriod } from "../src/reports/period.ts";
 import { isLocale, LOCALES, type Locale } from "../src/i18n/config.ts";
 import { getEnv } from "../src/lib/env.ts";
 
-const RECIPIENT = "preview@revira.local";
+const RECIPIENT = "preview@fairfame.local";
 const SETTINGS_URL = "http://localhost:3000/settings#notifications";
 const BUSINESS = "Kadıköy Kahve";
 const LOCATION = "Kadıköy Şubesi";

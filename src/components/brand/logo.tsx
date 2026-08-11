@@ -1,74 +1,105 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The Revira monogram: an indigo "R" tile with a live-notification dot.
+ * The Fairfame mark (docs/24-brand-guidelines.md §2).
  *
- * Direction chosen in docs/08-design-brief.md §2 and drawn from concept B in
- * docs/assets/revira-logo-concepts.svg. The reference sets the "R" as an SVG
- * <text> element, which would depend on Poppins being installed and render
- * differently on every machine — fatal for a favicon. The letterform here is
- * drawn as geometry instead, so it is identical everywhere and scales cleanly
- * down to 16px.
+ * **The identity is a file, not a drawing.** The seal's two f's share a single
+ * crossbar — that is the whole idea of the mark, two words fused — and a
+ * component that re-draws it with its own `<path>` has drawn a different logo
+ * the first time somebody adjusts a curve. So nothing here describes geometry:
+ * the artwork ships in `brand/`, is copied verbatim into `public/brand/`, and
+ * this file only says which variant and how big. `tests/lib/brand-assets.test.ts`
+ * fails if a copy drifts from its source.
  *
- * Colours are literal brand hex rather than theme tokens: a logo must not
- * change hue with the surrounding UI.
+ * This replaced the Revira "R" monogram, which was drawn in code for a reason
+ * that no longer applies — the old reference set the letter as SVG `<text>`,
+ * which would have depended on a font being installed. The Fairfame wordmark is
+ * already cut to outlines in the file, so serving the file is both the safest
+ * and the most faithful option.
+ *
+ * ## Two surfaces, two files
+ *
+ * `tone` is the surface the logo sits *on*, not the colour it is: `"ink"` picks
+ * the white-seal variant for the rail and the briefing bar, `"paper"` the
+ * ink-seal variant for every light surface. It is a file swap rather than a
+ * `currentColor` trick because the wordmark's full stop stays amber in both,
+ * and an inherited colour would have flattened it.
  */
 
-const INDIGO = "#3D5AF1";
-const AMBER = "#F5A524";
+const LOCKUP = {
+  paper: "/brand/fairfame-lockup.svg",
+  ink: "/brand/fairfame-lockup-on-dark.svg",
+} as const;
 
+const SEAL = {
+  paper: "/brand/fairfame-symbol.svg",
+  ink: "/brand/fairfame-symbol-on-dark.svg",
+} as const;
+
+export type LogoTone = keyof typeof LOCKUP;
+
+/**
+ * The seal alone. Holds at 16px, which is the documented floor; below 24px the
+ * brand rules say the seal is the *only* correct form, so a caller that needs
+ * something small wants this rather than a shrunken lockup.
+ *
+ * `title` makes it an image with a name; without one it is decorative and
+ * hidden, which is right whenever the product's name is already in the text
+ * beside it.
+ */
 export function LogoMark({
   className,
-  /** Ring around the notification dot — set to the surface it sits on. */
-  ringColor = "#FFFFFF",
+  tone = "paper",
   title,
+  size,
 }: {
   className?: string;
-  ringColor?: string;
+  tone?: LogoTone;
   title?: string;
+  /**
+   * Edge length in pixels, for a caller that sizes in numbers rather than in
+   * classes — `ProviderMark` is the one, because every mark on that screen is
+   * drawn to one `size` prop and ours must line up with the rest.
+   */
+  size?: number;
 }) {
   return (
-    <svg
-      viewBox="0 0 96 96"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      role={title ? "img" : "presentation"}
-      aria-label={title}
+    /* A plain image element, not `next/image`: the artwork is a static SVG
+       served from `public/`, so there is nothing for the optimizer to resize or
+       re-encode, and `next/image` would only wrap a mark whose size every call
+       site already sets in layout rules it does not need.
+
+       Written out in words rather than as the tag, because a design scanner
+       reading this file cannot tell a comment from markup and reported the
+       sentence as an image with no `src`. */
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={SEAL[tone]}
+      alt={title ?? ""}
       aria-hidden={title ? undefined : true}
+      width={size ?? 44}
+      height={size ?? 44}
       className={cn("shrink-0", className)}
-    >
-      {title ? <title>{title}</title> : null}
-
-      <rect x="6" y="6" width="84" height="84" rx="22" fill={INDIGO} />
-
-      {/* Geometric R: stem, bowl, leg. Round joins keep it friendly rather
-          than severe, matching the "calm, confident" personality. */}
-      <g stroke="#FFFFFF" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none">
-        <path d="M33 26 V70" />
-        <path d="M33 26 H52 A11 11 0 0 1 52 48 H33" />
-        <path d="M45 48 L62 70" />
-      </g>
-
-      {/* The live dot — the product is about reviews arriving. */}
-      <circle cx="76" cy="20" r="11" fill={AMBER} stroke={ringColor} strokeWidth="4" />
-    </svg>
+    />
   );
 }
 
-/** Mark plus wordmark, for headers and auth screens. */
-export function Logo({
-  className,
-  markClassName,
-  ringColor,
-}: {
-  className?: string;
-  markClassName?: string;
-  ringColor?: string;
-}) {
+/**
+ * Seal plus wordmark — the lockup, for headers, the rail and auth screens.
+ *
+ * Sized by **height**, because the file carries its own proportions (241 × 58)
+ * and the wordmark must not be stretched. `h-*` on `className` sets it; the
+ * width follows. The minimum is 28px tall.
+ */
+export function Logo({ className, tone = "paper" }: { className?: string; tone?: LogoTone }) {
   return (
-    <span className={cn("flex items-center gap-2", className)}>
-      <LogoMark className={cn("size-7", markClassName)} ringColor={ringColor} title="Revira" />
-      <span className="text-base font-semibold tracking-tight">Revira</span>
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element -- see `LogoMark`.
+    <img
+      src={LOCKUP[tone]}
+      alt="Fairfame"
+      width={241}
+      height={58}
+      className={cn("w-auto shrink-0", className)}
+    />
   );
 }

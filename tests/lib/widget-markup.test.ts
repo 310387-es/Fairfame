@@ -63,7 +63,7 @@ const labels = {
   badgeNoRatings: "Henüz puan yok",
   badgeLink: "Tüm yorumları gör",
   viewOriginal: "Kaynağında oku",
-  poweredBy: "Revira",
+  poweredBy: "Fairfame",
 };
 
 describe("untrusted content", () => {

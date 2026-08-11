@@ -6,7 +6,7 @@ import { looksLikeCode, randomCode } from "../lib/codes.ts";
  * Two different jobs, so two different lengths over the shared generator in
  * `src/lib/codes.ts`:
  *
- * - A campaign **slug** is printed on a poster and read aloud ("revira.app
+ * - A campaign **slug** is printed on a poster and read aloud ("our domain,
  *   slash c slash kadikoy-h7m2qp"). It is public by design and guards nothing,
  *   so it is short and human-friendly.
  * - A request **token** identifies one person's ask. Anyone holding it can mark

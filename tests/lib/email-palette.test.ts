@@ -10,7 +10,7 @@ import { AA_TEXT, contrast } from "./contrast-math";
  * exemption is about *how* a colour is written, never about *which* colour it
  * is, and without something checking, the difference is invisible: until
  * 7 Aug 2026 the templates were drawn in Tailwind's stock greys, and the digest
- * linked in `#4f46e5` — Tailwind's indigo-600, not Revira's `#3d5af1`. Two
+ * linked in `#4f46e5` — Tailwind's indigo-600, not Fairfame's `#3d5af1`. Two
  * indigos in one email, neither obviously wrong on its own.
  *
  * A hand-copied palette cannot be caught by review, because a wrong grey looks
@@ -42,7 +42,7 @@ const CSS = readFileSync("src/app/globals.css", "utf8");
  *
  * The header of that file explains this rule by quoting the values it replaced
  * — "`#6b7280` for muted text… `#4f46e5`, which is Tailwind's indigo-600 and
- * not Revira's" — because a rule with no example of the mistake is a rule
+ * not Fairfame's" — because a rule with no example of the mistake is a rule
  * nobody can apply. Scanning the raw text made that documentation fail the very
  * check it documents, which would have left one of two bad options: delete the
  * explanation, or weaken the test.
@@ -87,7 +87,7 @@ describe("the email palette", () => {
     ).toEqual([]);
   });
 
-  it("links in Revira's indigo, not a lookalike", () => {
+  it("links in Fairfame's indigo, not a lookalike", () => {
     // The one that actually shipped wrong. `#4f46e5` is Tailwind's indigo-600
     // and sat four pixels of hue from ours in the same email.
     expect(TEMPLATES).not.toContain("#4f46e5");

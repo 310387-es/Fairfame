@@ -116,7 +116,7 @@ describe("sending", () => {
 
     // Turkish, transliterated for the trip through a mail server and a file
     // system — see `src/reports/copy.ts`.
-    expect(attachment.filename).toMatch(/^revira-[a-z0-9-]+-\d{4}-\d{2}-\d{2}\.pdf$/);
+    expect(attachment.filename).toMatch(/^fairfame-[a-z0-9-]+-\d{4}-\d{2}-\d{2}\.pdf$/);
 
     // The *recipient's* language, from `users.locale` — not the organization's
     // and not a request's, because a worker has no request.
