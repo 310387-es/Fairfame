@@ -1,6 +1,6 @@
 # CLAUDE.md — Fairfame
 
-**Fairfame** is a review & customer-voice management SaaS: businesses connect their review and social sources and receive new-review notifications, AI analysis, and a weekly **Action Digest** (the hero feature). Launch market is Türkiye; the product is built global-ready (EN + TR). The full plan lives in `docs/` — read `docs/02-prd.md`, `docs/03-technical-architecture.md`, and `docs/06-ux-roles-and-flows.md` before building.
+**Fairfame** is a review & customer-voice management SaaS: businesses connect their review and social sources and receive new-review notifications, AI analysis, and a weekly **Action Digest** (the hero feature). **It is a global SaaS, for any business in any market** — one location or hundreds, a café or a chain. Türkiye is simply where the first customers are, and that is a fact about the go-to-market rather than about the product: it is why Turkish and English ship as equals (never a translation of an English product) and why İYS consent is implemented in code, not why the product is narrower than it is. Nothing may describe it as being for local businesses, or for Türkiye. The full plan lives in `docs/` — read `docs/02-prd.md`, `docs/03-technical-architecture.md`, and `docs/06-ux-roles-and-flows.md` before building.
 
 ## Current state
 

@@ -1,6 +1,6 @@
 # Fairfame — Planning Docs
 
-Planning and design documentation for **Fairfame** — a review & customer-voice management SaaS. Launch market: Türkiye. Built global-ready.
+Planning and design documentation for **Fairfame** — a review & customer-voice management SaaS for any business in any market. Türkiye is the first market, not the product's scope: it is why TR and EN ship as equals and why İYS is in the code, and the market study at `04` and the GTM plan at `05` are written from there.
 
 > Source-of-truth planning docs. `CLAUDE.md` (repo root) gives Claude Code its project context. Build plans: `09` (Phase 0), `10` (Phase 1a), `11` (Phase 1b), `17` (Phase 2), `19` (Phase 3) — all built; `20` (Phase 4) is planned and not started. `13` is what to do when credentials arrive.
 >

@@ -12,13 +12,13 @@ Two confirmed audiences, both first-class.
 
 **1. Any brand that has customers.** Vertical-agnostic by decision, not by indecision — the product is sold to any business that receives customer feedback, from a single café to a multi-branch chain. Within that, three recurring situations:
 
-- **Owner-operator** — runs 1–3 local businesses (café, restaurant, clinic, salon, auto shop, retail). Non-technical, busy, phone-heavy, acts between customers. Wants more reviews, wants to know when something is wrong, wants to look responsive. Judges the product in the first session.
+- **Owner-operator** — runs 1–3 businesses with a counter customers walk up to (café, restaurant, clinic, salon, auto shop, retail). Non-technical, busy, phone-heavy, acts between customers. Wants more reviews, wants to know when something is wrong, wants to look responsive. Judges the product in the first session.
 - **Marketing or ops manager** — owns reputation across many branches. Wants one place to compare locations, delegate replies, and report upward.
 - **Team member** — replies and triages under a location scope, not the whole account.
 
 **2. Agencies.** An agency operator runs many client businesses from one seat, white-labelled, with the client given a limited role. This is a buying audience in its own right and the highest-leverage distribution channel, not an afterthought tier.
 
-Launch market is **Türkiye**; the product is built global-ready. Turkish and English are equals — not a translation of an English product.
+**A global SaaS, and it should never be described as anything narrower.** Any business, any market — the product is not "for local businesses" and not "for Türkiye". Türkiye is where the first customers are, which is a fact about the go-to-market: it is why Turkish and English are equals rather than a translation of an English product, and why İYS consent is written into the code. Neither makes the product Turkish, and a description that leads with either tells everyone else to look elsewhere.
 
 ## Product Purpose
 

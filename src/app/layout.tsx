@@ -30,7 +30,12 @@ const geistMono = Geist_Mono({
  */
 export const metadata: Metadata = {
   title: "Fairfame",
-  description: "Review and customer-voice management for local businesses.",
+  // Says what the product does, not who it is for. It was "for local
+  // businesses", which described the first customers rather than the product:
+  // a chain, a franchise and a single café have the same problem, and naming
+  // one of them in the meta description tells the other two to look elsewhere.
+  description:
+    "Review and customer-voice management: every review and message in one inbox, and a weekly plan of what to do about them.",
   icons: {
     // SVG first for anything modern; the 32px PNG is the fallback for a browser
     // that will not take one, and Safari asks for the touch icon by name.
