@@ -557,6 +557,19 @@
   --color-state-accent-bg: var(--state-accent-bg);
   --color-state-accent-text: var(--state-accent-text);
 
+  /* The brand layer (docs/24 §3). The utilities are declared globally because
+     that is the only place Tailwind reads them from; the *values* they point at
+     are declared on `.marketing` alone, so outside that subtree `bg-paper`
+     resolves to nothing and paints nothing. The scope is the variable, not the
+     class — which is what keeps "the brand stops at the product's edge" a fact
+     about the cascade rather than a convention someone has to remember. */
+  --color-paper: var(--paper);
+  --color-paper-line: var(--paper-line);
+  --color-paper-faint: var(--paper-faint);
+  --color-paper-body: var(--paper-body);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-rail: var(--brand-rail);
+
   --color-rail: var(--surface-rail);
   --color-rail-item: var(--rail-item);
   --color-brief: var(--surface-brief);
@@ -835,39 +848,53 @@
 /* ===========================================================================
  * The marketing front door (`/`)
  *
- * Scoped to `.marketing` rather than added globally: both rules below are
- * decisions about a *Persuade* surface, and the app is an Operate one. A
+ * Scoped to `.marketing` rather than added globally: everything below is a
+ * decision about a *Persuade* surface, and the app is an Operate one. A
  * selection colour that suits a landing page is not automatically the right
  * one behind a review queue somebody is dragging a cursor through all day.
  * ======================================================================== */
 
-@keyframes evidence-in {
-  from {
-    opacity: 0;
-    transform: translateY(-2px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+/* ---------------------------------------------------------------------------
+ * The brand layer's palette, and why literal hex is correct in exactly here.
+ *
+ * `docs/24` §3 governs the surfaces the brand owns — paper, ink, amber,
+ * indigo — and `docs/15` governs the product. The two are **not** the same
+ * palette: the app's `--canvas` is deliberately cool, and paper is
+ * deliberately warm. That is the whole boundary in §7, so the front door
+ * cannot simply reuse the product's surface tokens and be on-brand.
+ *
+ * These are declared **on `.marketing`, not on `:root`**, which is what keeps
+ * "the brand stops at the product's edge" structural rather than a matter of
+ * discipline — the same argument `--font-lora` is scoped for. No surface
+ * inside `(app)` can reach `--paper` even by accident, because outside this
+ * subtree the variable does not exist.
+ *
+ * Two of the six are *not* new values and say so by pointing at the product
+ * token rather than repeating its hex: the brand's ink *is* `--ink-800` and
+ * its rail *is* `--ink-900`, exactly as `docs/24` §3 states. Repeating those
+ * as literals would create a second source of truth for a value the brand
+ * sheet calls shared, and the two would drift the first time either moved.
+ * (Amber and indigo need no entry at all — the front door uses the product's
+ * `--amber-500` and `--indigo-600` directly, which is the same argument taken
+ * one step further.)
+ *
+ * The other four are the warm ones — paper, its hairline, and two inks chosen
+ * *against paper* — which exist nowhere in the product palette because the
+ * product has no warm surface. `--paper-faint` is 5.06:1 on paper and
+ * `--paper-body` 8.8:1. Both are cleared by `tests/lib/brand-contrast.test.ts`,
+ * which also fails if a cool value is ever copied into this block, and both
+ * are re-measured on the rendered page by `e2e/contrast.spec.ts`.
+ * ------------------------------------------------------------------------ */
+.marketing {
+  --paper: #faf7f0;
+  --paper-line: #e9e4d8;
+  --paper-faint: #6d6a60;
+  --paper-body: #3d4563;
+  --brand-ink: var(--ink-800);
+  --brand-rail: var(--ink-900);
 }
 
 @layer components {
-  /**
-   * The page's one authored motion moment: an action's evidence opening.
-   *
-   * `docs/15` §4 says **no entrance animation on data**, and this is data — the
-   * customer's own sentences. The rule is not broken, it is read for what it
-   * says: it forbids decorating *arrival*, because a number that changes just
-   * changes. This is not arrival. It is the direct, immediate answer to a
-   * disclosure the reader pressed, and feedback on a press is the one thing
-   * motion is unambiguously for. It lasts `--duration-base` and moves two
-   * pixels; anything longer would be a flourish and would earn the objection.
-   */
-  .evidence-reveal {
-    animation: evidence-in var(--duration-base) var(--ease-out);
-  }
-
   /* Selection is a brand surface most pages leave to the browser (the UA's
    * default is a saturated blue that belongs to no design system). Indigo at
    * its lightest tint keeps ink at full contrast on top of it. */
@@ -875,18 +902,148 @@
     background: var(--indigo-100);
     color: var(--ink-900);
   }
+
+  /**
+   * A section arriving as the reader reaches it.
+   *
+   * `docs/15` §4 forbids entrance animation **on data**, and none of this is
+   * data: it is a sales page's own copy, arriving once, on a surface whose
+   * job is to be read in order rather than scanned. The rule is read for what
+   * it says rather than extended by analogy.
+   *
+   * The un-revealed state is `opacity: 0`, so it is gated on the observer
+   * actually running — `.reveal` is applied by `SectionReveal`, which adds it
+   * only after mount. A reader with JavaScript off gets the finished page
+   * rather than a blank one, which is the failure mode that matters.
+   */
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 0.5s var(--ease-out),
+      transform 0.5s var(--ease-out);
+  }
+
+  .reveal.is-in {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * The flow tour's three moving parts (`components/marketing/flow-tour.tsx`).
+ *
+ * All three are **animations rather than transitions**, and that is the whole
+ * reason they are here instead of inline: the tour unmounts a panel when it
+ * stops being current, so an animation replays on every visit for free, while
+ * a transition would need an entered/un-entered state threaded through React
+ * and a frame to flip it in. The delay each row waits is the one thing the
+ * component decides, and it passes it as `animation-delay`.
+ * ------------------------------------------------------------------------ */
+
+@keyframes flow-bar-fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes flow-row-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes flow-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* The system map's edges: a dashed overlay travelling along a static line, so
+   the picture says which way the work moves without an arrowhead at every
+   end. Offset by exactly one dash + gap, or the loop visibly jumps. */
+@keyframes map-flow-travel {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+
+@layer components {
+  /* The step's own progress, and the only place the tour says how long it
+     waits. Paused by `animation-play-state` while the pointer is inside. */
+  .flow-bar {
+    width: 0;
+    animation: flow-bar-fill linear forwards;
+  }
+
+  .panel-row {
+    opacity: 0;
+    animation: flow-row-in 0.45s var(--ease-out) forwards;
+  }
+
+  .caret {
+    animation: flow-caret-blink 1s steps(1) infinite;
+  }
+
+  .map-flow {
+    opacity: 0.7;
+    animation: map-flow-travel 1.6s linear infinite;
+  }
+
+  /* Safari still paints a disclosure triangle unless the WebKit pseudo-element
+     is cleared too; `list-style:none` alone leaves it in place. */
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-item[open] .faq-plus {
+    transform: rotate(45deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .evidence-reveal {
+  /* The flow tour and the map cross-fade on hover and advance on a timer.
+     Harmless for most readers and not for everyone; every one of them still
+     works, they simply arrive at once. */
+  .marketing [class*="transition-"] {
+    transition: none !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  /* The bar is the timer made visible; with motion off it is removed rather
+     than frozen, because a bar stuck at zero reads as broken. The tour still
+     advances — the step text and the panel are the content, not the bar. */
+  .flow-bar {
+    display: none;
+  }
+
+  .panel-row {
+    opacity: 1;
     animation: none;
   }
 
-  /* The pipeline cross-fades opacity and stroke on every hover. Harmless for
-     most readers and not for everyone; the highlight itself still works, it
-     simply arrives at once. */
-  .marketing [class*="transition-"] {
-    transition: none !important;
+  .caret {
+    animation: none;
+  }
+
+  /* The dashes stop travelling but stay drawn: they are also how the picture
+     distinguishes an edge from a rule, so removing them would remove meaning
+     rather than motion. */
+  .map-flow {
+    animation: none;
   }
 }
 

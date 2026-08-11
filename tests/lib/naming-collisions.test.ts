@@ -48,11 +48,12 @@ const MAY_SAY_CAMPAIGN = [
   // points at a *collection* campaign rather than deciding its own destination.
   // It is the entity, named correctly, and naming it is the whole argument.
   "compliance.gatingPoint2",
-  // The landing page's alt text for the `/get-reviews` screenshot, which
-  // describes what is visibly on that screen: a collection campaign with its QR
-  // code and public link. Alt text has to name what a sighted reader sees, and
-  // what they see is the entity this list exists to protect.
-  "marketing.shotCollectAlt",
+  // The landing page's "more real reviews" pillar, which lists the four ways a
+  // collection campaign goes out: "WhatsApp, email, SMS and QR campaigns". That
+  // is the `/get-reviews` entity named correctly and in the plural — the same
+  // object `requests` above owns. It replaced `marketing.shotCollectAlt`, which
+  // described a screenshot the rebuilt front door no longer carries.
+  "marketing.features.collectBody",
 ];
 
 function flatten(node: unknown, path = ""): [string, string][] {

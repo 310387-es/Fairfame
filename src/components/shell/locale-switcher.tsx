@@ -9,7 +9,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LOCALE_LABELS, LOCALES, type Locale } from "@/i18n/config";
@@ -36,8 +35,13 @@ export function LocaleSwitcher({ locale, className }: { locale: Locale; classNam
         </Button>
       </DropdownMenuTrigger>
 
+      {/* No heading row. The trigger already carries a globe and the
+          accessible name, and every item is the language written in its own
+          language — a "Language" caption above them restates the icon and
+          costs a row in a menu that only ever holds the locales. The name
+          lives on the trigger's `aria-label`, where a screen reader reads it
+          before the menu opens rather than after. */}
       <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuLabel>{t("localeSwitcher")}</DropdownMenuLabel>
         {LOCALES.map((option) => (
           <DropdownMenuItem
             key={option}
