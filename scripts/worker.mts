@@ -8,6 +8,11 @@
  * a separate process from the web app: a slow or crashing sync must never take
  * request handling down with it.
  */
+// First, and deliberately so: this installs Sentry before pg, ioredis and
+// bullmq are evaluated, which is the only way it can instrument them. See the
+// module's own header before moving this line.
+import { Sentry } from "./sentry-worker.mts";
+
 import { installIysGateway } from "../src/compliance/iys-gateway.ts";
 import { closeDatabasePools } from "../src/db/client.ts";
 import { getEnv } from "../src/lib/env.ts";
@@ -48,6 +53,31 @@ const iysGateway = installIysGateway();
 const queue = createQueue(queueConnection);
 const worker = createReviewWorker({ connection: workerConnection, queue });
 
+/**
+ * Job failures, reported rather than only logged.
+ *
+ * `createReviewWorker` already logs these, and a log is enough when somebody is
+ * reading it. Nobody reads this one: the sweeps run unattended, and a digest
+ * that stopped going out on Mondays is discovered by the customer, not by us.
+ * A second listener rather than a change to the job module — BullMQ's emitter
+ * takes many, and observability does not belong inside the sync logic.
+ *
+ * The job's name and id are tags because they are what makes two failures the
+ * same failure; the payload is not sent, since a job carries organization ids
+ * and review text.
+ */
+worker.on("failed", (job, error) => {
+  Sentry.captureException(error, {
+    tags: { jobName: job?.name ?? "unknown", queue: "reviews" },
+    extra: { jobId: job?.id, attemptsMade: job?.attemptsMade },
+  });
+});
+
+/** Worker-level faults — a lost Redis connection, a stalled-check failure. */
+worker.on("error", (error) => {
+  Sentry.captureException(error, { tags: { queue: "reviews", scope: "worker" } });
+});
+
 await scheduleScan(queue, SCAN_INTERVAL_MS);
 await scheduleAnalyzeSweep(queue, ANALYZE_SWEEP_INTERVAL_MS);
 await scheduleNotifySweep(queue, NOTIFY_SWEEP_INTERVAL_MS);
@@ -86,6 +116,13 @@ async function shutdown(signal: string): Promise<void> {
   await queue.close();
   await Promise.all([queueConnection.quit(), workerConnection.quit()]);
   await closeDatabasePools();
+
+  // Sentry batches events and sends them on a timer. `process.exit` below is
+  // immediate, so without this the last thing that went wrong — usually the
+  // reason somebody is restarting the worker — is the one report that never
+  // arrives. Bounded, because a shutdown that hangs on telemetry is worse than
+  // a lost event.
+  await Sentry.flush(2000);
 
   log.info("Worker stopped");
   process.exit(0);

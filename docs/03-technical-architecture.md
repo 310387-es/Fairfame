@@ -66,7 +66,7 @@ Table of Contents
 | Payments | **Stripe** (subscriptions \+ metered usage) \+ **iyzico**/local for TRY | Stripe global; a local PSP for Turkish cards/invoicing |
 | AI | Provider APIs (Claude / OpenAI) behind our own interface | Swap models; keep prompts \+ guardrails in one place |
 | Email/SMS | ESP (Postmark/SES) \+ **Turkish SMS gateway with İYS integration** (e.g. Netgsm/İleti providers) | İYS compliance requires a gateway that checks the registry |
-| Infra | Vercel (web) \+ managed Postgres/Redis, or Fly.io/Railway for all\-in\-one | Low ops burden for a small team |
+| Infra | **Railway** — web \+ worker as two services from one image, with Postgres \+ Redis | One artifact, two process types; the worker is long\-lived and Vercel has nowhere to run it |
 | Storage/CDN | S3 / Cloudflare R2 \+ CDN | Review media \+ widget delivery |
 | Observability | Sentry \+ structured logs \+ uptime/metrics | See failures before customers do |
 
@@ -219,8 +219,9 @@ WhatsApp Business messaging (digests, notifications, review requests) requires r
 
 ## 10\. Environments, CI/CD, Testing
 
-- **Environments:** local → staging → production; seeded demo data.
-- **CI/CD:** GitHub Actions — lint, typecheck, test, migrate, deploy.
+- **Environments:** local → staging → production; seeded demo data. Staging builds with `NODE_ENV=production` like production does, so it sets `NEXT_PUBLIC_SENTRY_ENVIRONMENT=staging` explicitly — without it, staging's errors are indistinguishable from a customer's in every alert.
+- **Deployment shape (Railway):** **two services from one image**, differing only in their start command — `web` runs `next start`, `worker` runs `node scripts/worker.mts`. One artifact deliberately: it is what guarantees the worker and the web app run identical code against identical schema, and separate images drift into jobs failing against a table the worker has not learned about yet. They scale on different signals — web on request latency, worker on **queue depth**, which is also the alert that catches a dead worker. Nothing background runs without the worker service, and its absence is silent: the queue keeps accepting jobs nobody consumes.
+- **CI/CD:** GitHub Actions — lint, typecheck, test, migrate, deploy. CI builds only to prove the build compiles and holds **no** Sentry credentials; source maps upload from the deploy, never from a pull request.
 - **Testing:** unit (business logic, normalizers), integration (connectors against recorded fixtures), e2e (the Core Loop), and an **NLP eval set** for Turkish/English sentiment quality.
 - **Migrations:** versioned, reversible; never destructive without a backfill.
 

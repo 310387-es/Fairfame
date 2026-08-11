@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { LOCALES } from "../i18n/config.ts";
-import { msg } from "@/lib/validation-keys";
+// Relative, with the extension, like the import above it — not the `@/` alias.
+// Next and Vitest both resolve the alias; plain Node does not, and this module
+// is reachable from `pnpm worker`, which is a plain Node process. The alias
+// here took the worker down at startup with ERR_MODULE_NOT_FOUND.
+import { msg } from "../lib/validation-keys.ts";
 
 /**
  * Every input that crosses into the collection module, validated in one place.

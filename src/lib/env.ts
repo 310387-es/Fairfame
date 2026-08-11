@@ -254,6 +254,37 @@ const envSchema = z.object({
   TOKEN_VAULT_KEYS: optionalSecret,
 
   /**
+   * Error reporting (Sentry). All three optional, and absent is the ordinary
+   * state in development and in CI.
+   *
+   * `NEXT_PUBLIC_SENTRY_DSN` is the switch: an empty DSN makes every
+   * `Sentry.init` a no-op, so a deployment that has not opted in reports
+   * nothing rather than filling a shared project with a developer's typos.
+   * `NEXT_PUBLIC_` because the browser needs it and Next inlines that prefix at
+   * **build** time — setting it only at container start instruments the server
+   * and silently leaves the client blind. It is not a secret; it ships inside
+   * the client bundle by design and grants nothing but the ability to write
+   * events into the project.
+   *
+   * `SENTRY_AUTH_TOKEN` **is** a secret — it uploads source maps and can write
+   * to the org — and is needed only by `pnpm build`, never at runtime.
+   *
+   * These are declared here so a typo fails loudly at boot alongside every
+   * other variable, but the Sentry init files read `process.env` directly
+   * through `src/lib/sentry-options.ts`: that module runs in the browser and
+   * the edge runtime too, where this schema's Node assumptions do not hold.
+   */
+  NEXT_PUBLIC_SENTRY_DSN: z.url({ message: "must be a valid Sentry DSN URL" }).optional(),
+  SENTRY_AUTH_TOKEN: optionalSecret,
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).optional(),
+  /**
+   * Overrides the environment tag, which otherwise follows `NODE_ENV`. Needed
+   * for staging, which builds as `production` and would otherwise be
+   * indistinguishable from it in every alert.
+   */
+  NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().trim().min(1).optional(),
+
+  /**
    * Web Push identity (W5-9): `npx web-push generate-vapid-keys`.
    *
    * Optional, and absent is the ordinary state. A deployment with no key pair

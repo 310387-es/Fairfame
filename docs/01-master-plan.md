@@ -158,7 +158,7 @@ Designed for a senior engineer building with Claude Code: **one language end\-to
 - **Auth:** Auth.js (NextAuth), Clerk, or Supabase Auth — org/multi\-tenant aware.
 - **Payments:** **Stripe** (subscriptions, metered usage for SMS/AI add\-ons, customer portal).
 - **AI:** Provider APIs (Claude/OpenAI) behind our own abstraction: reply drafting, sentiment \+ theme extraction, embeddings for semantic search/clustering, with prompt\-injection and content guardrails since we process user\-generated text.
-- **Infra/DevOps:** Vercel (web) \+ managed Postgres/Redis, or a single platform (Fly.io/Railway) if we want everything together. Object storage on S3/Cloudflare R2 for review media. CI/CD via GitHub Actions. Observability with Sentry \+ structured logs \+ a metrics dashboard.
+- **Infra/DevOps:** **Railway** (decided 11 Aug 2026) — the web app and the worker as **two services built from one image**, with Postgres and Redis alongside them. The alternative this line used to lead with, Vercel for the web tier, is **not viable**: `pnpm worker` is a long\-lived BullMQ consumer that holds a Redis connection and blocks waiting for jobs, and Vercel has no process for it to be. Object storage on S3/Cloudflare R2 for review media. CI/CD via GitHub Actions. Observability with Sentry \+ structured logs \+ a metrics dashboard. Reasoning in `docs/23-build-log.md`.
 
 **Multi\-tenancy model:** shared database, shared schema, **`organization_id` on every row**, enforced with Postgres **Row\-Level Security** (natural with Supabase) or a strict repository layer. Simplest to operate; isolate to per\-tenant schemas only if a big enterprise later demands it.
 

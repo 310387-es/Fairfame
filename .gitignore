@@ -58,3 +58,6 @@ playwright-report/
 
 # Local machine state, not a shared setting.
 .claude/settings.local.json
+
+# Sentry Config File
+.env.sentry-build-plugin

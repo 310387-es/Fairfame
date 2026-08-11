@@ -6,6 +6,12 @@
 #   @swc/core, @parcel/watcher — next-intl's build-time toolchain
 allowBuilds:
   "@parcel/watcher": true
+  # Denied deliberately. @sentry/cli's postinstall is a fallback that downloads
+  # the binary from Sentry's CDN; it is only needed where no prebuilt platform
+  # package exists. One always does here — @sentry/cli-darwin locally,
+  # @sentry/cli-linux-x64 on CI's ubuntu-latest — so the script has nothing to
+  # do, and allowing it would grant install-time code execution for no gain.
+  "@sentry/cli": false
   "@swc/core": true
   esbuild: true
   msgpackr-extract: true
