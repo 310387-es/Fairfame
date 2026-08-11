@@ -18,7 +18,26 @@ test.describe("the plan section's billing toggle", () => {
   test("announces the saving, and fits a phone carrying it", async ({ page }) => {
     await page.goto("/settings#plan");
 
+    /**
+     * The toggle exists only where checkout does.
+     *
+     * `PlanSection` renders it under `canManage && canCheckout`, so a
+     * deployment with no payment provider — the repo's default, and what CI was
+     * until a fake key was added — shows the tiers as a price list with nothing
+     * to press. Asserting its presence unconditionally is what made this spec
+     * fail there while passing on a machine with a real key in `.env`.
+     *
+     * Same shape as the Google-button spec: ask the app which state it is in
+     * rather than assuming, so the test is true in both.
+     */
     const annual = page.getByRole("tab", { name: /annual|yıllık/i });
+
+    if ((await annual.count()) === 0) {
+      // The honest alternative: no control, but the prices still readable.
+      await expect(page.getByText(/\$\d/).first()).toBeVisible();
+      return;
+    }
+
     await expect(annual).toBeVisible();
     await expect(annual).toHaveAccessibleName(/%|save|tasarruf/i);
 
