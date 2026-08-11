@@ -63,11 +63,11 @@ Lora loads via `next/font/google` **on public marketing surfaces only** (`/`, SE
 
 ## 5. Texture — the murmur
 
-The one illustration device: **the murmur** — the town talking, faintly, in both languages. Short phrases in Lora italic drift on paper at near-invisible opacity; near the pointer they sharpen into ink — lean in and you can hear the talk — and a click sends a quiet ring through them. It is the brand's picture of word of mouth, told in Fairfame's own material: words.
+The one illustration device: **the murmur** — the town talking, faintly, in the reader's language — bilingual only where the audience truly is. Short phrases in Lora italic drift on paper at near-invisible opacity; near the pointer they sharpen into ink — lean in and you can hear the talk — and a click sends a quiet ring through them. It is the brand's picture of word of mouth, told in Fairfame's own material: words.
 
-Implementation: `brand/murmur.js` — self-contained, `Murmur.attach(el, {carve:true})`, no dependencies; the `carve` option keeps a clear zone behind hero content, and `prefers-reduced-motion` stills the drift. The brand sheet's hero and §04 band run it live.
+Implementation: `brand/murmur.js` — self-contained, no dependencies; `Murmur.attach(el, {carve:true, carveX, carveY, phrases})` and `Murmur.setPhrases(list)` for language switches; the `carve` option keeps a clear zone behind hero content, and `prefers-reduced-motion` stills the drift. The brand sheet's hero and §04 band run it live.
 
-*Integration notes (10 Aug 2026), added when the app mounted this file. Both are backwards compatible — the brand sheet's own call is unchanged — and both exist because an embedded copy is not a standalone page:*
+*Integration notes (10 Aug 2026), added when the app mounted this file, and **re-applied 11 Aug** after a regenerated copy dropped them. Both are backwards compatible — the brand sheet's and the landing concept's own calls are unchanged — and both exist because an embedded copy is not a standalone page. A regeneration that loses them takes the front door down on the first click, so re-apply rather than revert:*
 
 - **`opts.family`** — the font-family string to draw with, default `"Lora"`. The name of a loaded face belongs to whatever loaded it, and a bundler that hashes it leaves the canvas drawing in Georgia: still a serif, still handsome, silently not the brand. The front door passes `lora.style.fontFamily`.
 - **`attach` returns `{detach}`** — cancels the loop, drops the listeners, removes the canvas. In a single-page app the container unmounts while the tab stays open, and a render loop with nothing to render into is a warm phone.
