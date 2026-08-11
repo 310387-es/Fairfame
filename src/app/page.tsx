@@ -143,6 +143,9 @@ export default async function RootPage() {
 
   const locale = await getLocale();
   const t = await getTranslations({ locale, namespace: "marketing" });
+  // The new-tab hint is shared with the auth panel's link to the same page, so
+  // it lives in `app` rather than being written twice in two voices.
+  const tApp = await getTranslations({ locale, namespace: "app" });
   const phrases = MURMUR_KEYS.map((key) => t(`murmur.${key}`));
 
   return (
@@ -319,9 +322,20 @@ export default async function RootPage() {
         <div className="ms-auto flex flex-wrap items-center gap-4">
           {/* The sample digest is the page's one checkable claim: it is
               composed by the real pipeline, needs no account, and is the same
-              artefact `/sample` serves. */}
-          <Link href="/sample" className="tap underline underline-offset-4 hover:text-brand-ink">
+              artefact `/sample` serves.
+
+              A new tab, matching the auth panel's link to the same page. It is
+              a reference artefact rather than a step in the flow — nothing to
+              come back and do on it — and a visitor who opens it to check the
+              claim should not lose their place in the pitch that made it. */}
+          <Link
+            href="/sample"
+            target="_blank"
+            rel="noopener"
+            className="tap underline underline-offset-4 hover:text-brand-ink"
+          >
             {t("footer.sample")}
+            <span className="sr-only"> ({tApp("opensInNewTab")})</span>
           </Link>
           <Link href="/sign-in" className="tap hover:text-brand-ink">
             {t("footer.signIn")}

@@ -7,13 +7,16 @@ import { useState } from "react";
 import { adoptLocaleAction } from "@/app/actions";
 import { signIn } from "@/auth/client";
 import { safeNextPath } from "@/auth/next-path";
+import { AuthDivider } from "@/components/auth/auth-divider";
+import { AuthLegalLine } from "@/components/auth/auth-legal-line";
+import { GoogleButton } from "@/components/auth/google-button";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function SignInForm() {
+export function SignInForm({ googleEnabled }: { googleEnabled: boolean }) {
   const t = useTranslations("auth");
   const { toast } = useToast();
   const tErrors = useTranslations("errors");
@@ -79,6 +82,21 @@ export function SignInForm() {
         <p className="mt-1 text-body text-pretty text-ink-400">{t("signInSubtitle")}</p>
       </div>
       <CardContent>
+        {/*
+          The same order as sign-up, deliberately (P5-T1).
+
+          A returning customer looks for the control they used last time in the
+          place it was; moving Google to the bottom here because "this screen is
+          about passwords" would make the two doors different shapes for no
+          reason the person on the other side can see.
+        */}
+        {googleEnabled ? (
+          <div className="mb-4 space-y-4">
+            <GoogleButton destination={destination} />
+            <AuthDivider />
+          </div>
+        ) : null}
+
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">{t("email")}</Label>
@@ -111,13 +129,27 @@ export function SignInForm() {
           </Button>
         </form>
 
-        <p className="mt-4 text-center text-body text-muted-foreground">
+        {/*
+          Consent belongs on this screen too, and the reason is the button
+          above: "Continue with Google" creates an account when there is not
+          one already, so this door is a signup for anyone who has not used it
+          before. See `AuthLegalLine`.
+
+          `continue` rather than the sign-up wording: most readers here made
+          their account months ago, and telling them they are creating one is
+          the kind of copy error a consent notice cannot afford.
+        */}
+        <AuthLegalLine lead="continue" />
+
+        <p className="mt-4 text-center text-body text-ink-400">
           {t("noAccount")}{" "}
           <Link
             // Carry the destination across, or an invited person who clicks
             // through to create an account loses the invitation (W1.9).
             href={destination ? `/sign-up?next=${encodeURIComponent(destination)}` : "/sign-up"}
-            className="font-medium text-primary hover:underline"
+            // The system's ring — same reason as the forgot-password link
+            // above, which had it and this one did not (`docs/15` §4).
+            className="rounded-sm font-medium text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             {t("signUp")}
           </Link>

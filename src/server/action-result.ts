@@ -1,8 +1,14 @@
 import type { ZodError } from "zod";
-import { INVALID_INPUT, KEY_PREFIX, type ValidationKey } from "@/lib/validation-keys";
+import {
+  INVALID_INPUT,
+  KEY_PREFIX,
+  UNVERIFIED_EMAIL,
+  type ValidationKey,
+} from "@/lib/validation-keys";
 import { ConnectorError } from "@/connectors/types";
 import { EntitlementError } from "@/lib/entitlements";
 import { ForbiddenError, NoActiveOrganizationError, UnauthenticatedError } from "@/auth/session";
+import { UnverifiedSenderError } from "@/auth/verification";
 
 /**
  * What a server action hands back to the form that called it.
@@ -121,6 +127,15 @@ export function toActionResult(error: unknown): { ok: false; error: string; code
   }
   if (error instanceof ForbiddenError) {
     return { ok: false, error: error.message, code: "forbidden" };
+  }
+  /**
+   * An unverified sender (P5-T4). Carries a code because this refusal has an
+   * *action* attached — the UI offers to send the verification email again —
+   * and a bare sentence gives a caller nothing to hang that on. Same reason
+   * `EntitlementError` carries one for its upgrade prompt.
+   */
+  if (error instanceof UnverifiedSenderError) {
+    return { ok: false, error: error.message, code: UNVERIFIED_EMAIL };
   }
   if (error instanceof UnauthenticatedError || error instanceof NoActiveOrganizationError) {
     return { ok: false, error: error.message, code: "unauthenticated" };

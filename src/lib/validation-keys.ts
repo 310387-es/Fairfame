@@ -38,6 +38,18 @@ export const KEY_PREFIX = "@";
 export const INVALID_INPUT = "invalid_input";
 
 /**
+ * The refusal a send gets when the person driving it has not confirmed their
+ * own address (P5-T4).
+ *
+ * Here rather than beside `UnverifiedSenderError` for exactly the reason this
+ * module exists: the error is thrown in `src/auth/verification.ts`, which
+ * reaches the database, and the component that keys a "resend the email" button
+ * off this code is `"use client"`. A shared *word* is the only thing that can
+ * cross that boundary at runtime.
+ */
+export const UNVERIFIED_EMAIL = "unverified_email";
+
+/**
  * Every message a field can carry.
  *
  * The union is the point: `useAction` renders `validation.<key>`, and

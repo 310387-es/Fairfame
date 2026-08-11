@@ -3,6 +3,7 @@
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { withAuthenticatedTenant } from "@/auth/session";
+import { requireVerifiedSender } from "@/auth/verification";
 import { resolveLocationScope } from "@/auth/scope";
 import { createCampaign } from "@/collect/campaigns";
 import { parseRecipientCsv } from "@/collect/csv";
@@ -163,6 +164,11 @@ export async function sendRequestsAction(formData: FormData): Promise<SendReques
     const actor = await withAuthenticatedTenant(async (_tx, actor) => actor, {
       minimumRole: "admin",
     });
+
+    // Nothing reaches a customer's inbox until the sender has proved their own
+    // (P5-T4). Before the recipients are prepared, so a refusal creates no
+    // contacts and no half-run — see `src/auth/verification.ts`.
+    await requireVerifiedSender(actor.userId);
 
     const outcome = await sendReviewRequests({
       organizationId: actor.organizationId,

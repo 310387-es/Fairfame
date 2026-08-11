@@ -20,6 +20,65 @@ import { expect, type Page } from "@playwright/test";
 /** Recognisable at a glance in a dev database, and easy to delete in bulk. */
 export const E2E_EMAIL_DOMAIN = "e2e.fairfame.test";
 
+/** Mailpit's API, the same dev inbox `pnpm email:preview` writes to. */
+const MAILPIT = process.env.E2E_MAILPIT_URL ?? "http://localhost:8025";
+
+/**
+ * Confirms the address by following the real link out of the dev inbox (P5-T4).
+ *
+ * **Through Mailpit rather than by flipping the column**, and the extra
+ * dependency is the point. An account that is verified by an `UPDATE` proves
+ * the *product* nothing: the token would never be minted, the callback never
+ * hit, and a broken verification link would sail through a green suite. This
+ * way every run exercises the whole path — `sendVerificationEmail`, the
+ * template, the token, the callback — and does it before the first assertion in
+ * any spec is written, which is the same argument `createAccount` makes for
+ * building the account through the product's own endpoints.
+ *
+ * Mailpit is part of `docker compose up` and is already required by the dev
+ * environment these tests run against, so this adds no service the suite did
+ * not already need.
+ *
+ * Polled rather than awaited once: the send happens inside the sign-up request
+ * but the SMTP round trip does not block it, so the message can land a moment
+ * after the response.
+ */
+export async function verifyAccountEmail(page: Page, email: string): Promise<void> {
+  const api = page.request;
+
+  let link: string | undefined;
+  for (let attempt = 0; attempt < 25 && !link; attempt += 1) {
+    const search = await api.get(
+      `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`,
+    );
+
+    if (search.ok()) {
+      const { messages } = (await search.json()) as { messages: { ID: string }[] };
+
+      for (const message of messages) {
+        const detail = await api.get(`${MAILPIT}/api/v1/message/${message.ID}`);
+        if (!detail.ok()) continue;
+
+        const { Text } = (await detail.json()) as { Text: string };
+        // The verification link, not the reset one — an account may hold both.
+        const found = Text.match(/https?:\/\/\S*verify-email\S*/);
+        if (found) {
+          link = found[0];
+          break;
+        }
+      }
+    }
+
+    if (!link) await page.waitForTimeout(200);
+  }
+
+  expect(link, `no verification email arrived for ${email}`).toBeTruthy();
+
+  // Through the browser context, so the callback's session cookie lands in the
+  // jar the specs actually use.
+  await page.goto(link!);
+}
+
 export type Account = { email: string; slug: string; stamp: number };
 
 /**

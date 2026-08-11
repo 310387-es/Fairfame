@@ -134,6 +134,20 @@ export function ResetPasswordForm() {
           <Button type="submit" className="w-full" disabled={pending}>
             {pending ? t("resetSaving") : t("resetSubmit")}
           </Button>
+
+          {/* A way out, matching `forgot-password`. This screen had none: a
+              person who followed the link, then remembered their password or
+              changed their mind, had a form and no exit — and the only route
+              back was the browser's Back button, which returns to a mail
+              client. Every other pre-auth card offers this row. */}
+          <p className="text-center text-body text-ink-400">
+            <Link
+              href="/sign-in"
+              className="rounded-sm font-medium text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            >
+              {t("backToSignIn")}
+            </Link>
+          </p>
         </form>
       </CardContent>
     </Card>

@@ -1,6 +1,6 @@
 import { test as setup, expect } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { createAccount } from "./account";
+import { createAccount, verifyAccountEmail } from "./account";
 
 /**
  * One account, one organization, one location, a handful of reviews.
@@ -27,6 +27,18 @@ export { E2E_EMAIL_DOMAIN } from "./account";
 
 setup("create an account with reviews to look at", async ({ page, baseURL }) => {
   const { email, slug, stamp } = await createAccount(page, baseURL);
+
+  /**
+   * And confirm the address, because the shared account is meant to be an
+   * *ordinary* one (P5-T4).
+   *
+   * An unverified account is a real state with a banner on every screen and
+   * three refused send paths — worth testing, and tested, in
+   * `verification-gate.spec.ts` with an account of its own. Leaving the shared
+   * one in that state would put a banner into every layout and contrast spec in
+   * the suite and quietly change what several of them are looking at.
+   */
+  await verifyAccountEmail(page, email);
 
   // A collection campaign too, so the public review page — the one a customer
   // opens from a QR code — has a real slug to be tested against. Created

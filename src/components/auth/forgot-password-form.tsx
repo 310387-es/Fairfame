@@ -68,8 +68,11 @@ export function ForgotPasswordForm() {
             >
               {t("forgotTryAgain")}
             </Button>
-            <p className="text-center text-copy text-ink-400">
-              <Link href="/sign-in" className="font-medium text-primary hover:underline">
+            <p className="text-center text-body text-ink-400">
+              <Link
+                href="/sign-in"
+                className="rounded-sm font-medium text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
                 {t("backToSignIn")}
               </Link>
             </p>
@@ -85,8 +88,11 @@ export function ForgotPasswordForm() {
               {pending ? t("forgotSending") : t("forgotSubmit")}
             </Button>
 
-            <p className="text-center text-copy text-ink-400">
-              <Link href="/sign-in" className="font-medium text-primary hover:underline">
+            <p className="text-center text-body text-ink-400">
+              <Link
+                href="/sign-in"
+                className="rounded-sm font-medium text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
                 {t("backToSignIn")}
               </Link>
             </p>

@@ -150,6 +150,31 @@ export const LIMIT_KEYS = [
   "max_locations",
   "max_team_members",
   "max_widgets",
+  /**
+   * How many workspaces one person may own (11 Aug 2026).
+   *
+   * **The odd one out, and it is worth knowing why before using it.** Every
+   * other key here is a limit on an *organization* — how many branches it has,
+   * how many seats, how many widgets — and is counted inside that
+   * organization's tenant. This one is a limit on a **user**: "how many
+   * workspaces have you created", a question with no tenant to ask it in.
+   *
+   * It lives in the catalog anyway because it is genuinely plan data — the
+   * numbers are a pricing decision, they belong on the pricing screen beside
+   * the others, and hardcoding them would be exactly the `if plan === '...'`
+   * the architecture forbids. What it does **not** do is go through
+   * `withinLimit`, which resolves one organization's plan and counts rows in
+   * one tenant. `src/auth/organization-limit.ts` owns the check, and
+   * `withinLimit` throws if anybody asks it about this key — a per-user
+   * question answered against a single tenant would return a confident, wrong
+   * number.
+   *
+   * **What it is for.** Every organization gets its own 14-day top-tier trial
+   * from `afterCreateOrganization`. Unbounded workspace creation is therefore
+   * unbounded free trials on one account, which `docs/05` prices against
+   * ("14-day full-feature trial… to bound SMS/AI cost").
+   */
+  "max_organizations",
   "requests_per_month",
   "ai_analyses_per_month",
 ] as const;
@@ -254,6 +279,10 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         max_locations: 1,
         max_team_members: 3,
         max_widgets: 1,
+        // One business, which is what Starter is: a single café on a single
+        // listing. A second workspace here is a second trial, not a second
+        // customer.
+        max_organizations: 1,
         requests_per_month: 100,
         ai_analyses_per_month: 300,
       },
@@ -312,6 +341,10 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         max_locations: 5,
         max_team_members: 10,
         max_widgets: null, // unlimited
+        // A second workspace, because at this tier a genuine second business is
+        // an ordinary thing — a restaurant group's owner running a separate
+        // bakery keeps them apart rather than as branches of one brand.
+        max_organizations: 2,
         requests_per_month: null, // unlimited (fair use)
         ai_analyses_per_month: 1_000, // per location
       },
@@ -359,6 +392,7 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
       },
       limits: {
         max_locations: 25,
+        max_organizations: 3,
         // Unlimited from Pro, which is the category norm: a multi-location
         // operator counting seats is a customer being taught to ration access
         // to their own reviews.
@@ -417,6 +451,11 @@ export const PLAN_CATALOG: Record<PlanKey, PlanConfig> = {
         max_locations: null,
         max_team_members: null,
         max_widgets: null,
+        // Unlimited, and this is the tier where it is the *product*: an agency
+        // holds a workspace per client, and `agency_console` exists to switch
+        // between them. A number here would cap how many customers an agency
+        // may have.
+        max_organizations: null,
         requests_per_month: null,
         ai_analyses_per_month: null,
       },

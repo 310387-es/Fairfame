@@ -1,4 +1,5 @@
 import { redirectIfSignedIn } from "@/auth/session";
+import { isGoogleAuthConfigured } from "@/auth/social";
 import { SignInForm } from "@/components/auth/sign-in-form";
 
 export default async function SignInPage({
@@ -10,5 +11,6 @@ export default async function SignInPage({
   // anyway is how somebody ends up signed into a second account by accident.
   await redirectIfSignedIn((await searchParams).next);
 
-  return <SignInForm />;
+  // Server-only read, passed down — see the note on the sign-up page.
+  return <SignInForm googleEnabled={isGoogleAuthConfigured()} />;
 }

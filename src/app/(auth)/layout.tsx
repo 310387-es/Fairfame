@@ -1,7 +1,8 @@
-import { ArrowRight } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { Eyebrow } from "@/components/ds/eyebrow";
 import { LocaleSwitcher } from "@/components/shell/locale-switcher";
 import { getLocale } from "@/i18n/locale";
 
@@ -74,7 +75,11 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
 
       <aside className="hidden bg-ink-900 lg:flex lg:flex-col lg:justify-center lg:px-16 xl:px-24">
         <div className="max-w-md">
-          <p className="text-eyebrow text-on-ink-muted uppercase">{t("tagline")}</p>
+          {/* `Eyebrow` sits at `--text-faint`, which is a floor for *white*
+              surfaces and unreadable here; the override is what the component's
+              `className` is for, and `on-ink-muted` is registered in
+              `TEXT_COLORS` so the merge keeps the 10.5px size. */}
+          <Eyebrow className="text-on-ink-muted">{t("tagline")}</Eyebrow>
 
           <h2 className="mt-3 text-display text-balance text-on-ink">{tSample("title")}</h2>
 
@@ -82,12 +87,34 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
             {t("authPanelBody")}
           </p>
 
+          {/*
+            **A new tab, for the same reason the legal notices became a modal.**
+
+            This link sits beside a half-filled signup form. Following it in
+            place threw away the name, the email and the password of anybody
+            curious enough to check what they were signing up for — punishing
+            the one visitor who wanted to see the product first, which is
+            exactly who the panel is written for.
+
+            The sample plan is a *reference artefact* rather than a step in the
+            flow: it needs no account, it is the same page the marketing footer
+            serves, and there is nothing to come back and do on it. A separate
+            tab is what that shape wants.
+
+            `ExternalLink` replaces the arrow so the behaviour is visible, and
+            the hidden suffix says it out loud — an icon is announced to nobody,
+            and a link that silently steals the tab is worse for a screen-reader
+            user than for anyone else.
+          */}
           <Link
             href="/sample"
+            target="_blank"
+            rel="noopener"
             className="mt-8 inline-flex items-center gap-2 text-body font-medium text-on-ink underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             {t("authPanelLink")}
-            <ArrowRight aria-hidden className="size-4" />
+            <span className="sr-only">({t("opensInNewTab")})</span>
+            <ExternalLink aria-hidden className="size-4" />
           </Link>
         </div>
       </aside>

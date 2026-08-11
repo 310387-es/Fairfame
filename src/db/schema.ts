@@ -396,6 +396,34 @@ export const users = pgTable("users", {
     (): AnyPgColumn => organizations.id,
     { onDelete: "set null" },
   ),
+  /**
+   * Whether this person agreed to hear from *us* — product and marketing email
+   * from Fairfame (P5-T2).
+   *
+   * **Nothing sends against this column yet, which is the point.** The consent
+   * record exists before the first send does, so the first marketing email the
+   * company ever writes has a lawful audience already waiting rather than a
+   * migration to run and a decision to make in a hurry. It is the same posture
+   * as the İYS work: the gate refuses before the gateway exists.
+   *
+   * Separate from everything in `consents`, and not a near-duplicate of it.
+   * That table is about a *contact* — a customer of the business — and is
+   * governed by İYS. This is about a *user*, our own account holder, and is
+   * governed by our relationship with them. Merging the two would put a café's
+   * customers and Fairfame's customers under one permission.
+   *
+   * **Transactional mail ignores this.** A password reset, a team invitation
+   * and an address verification are replies to something the person did, not a
+   * subscription; gating them here would lock somebody out of their account for
+   * declining a newsletter.
+   */
+  marketingEmailConsent: boolean("marketing_email_consent").notNull().default(false),
+  /**
+   * When they agreed. Null whenever the flag is false, and never written from a
+   * request — `databaseHooks.user.create` in `src/auth/config.ts` stamps it
+   * from the clock, because a date the subject can choose is not evidence.
+   */
+  marketingEmailConsentAt: timestamp("marketing_email_consent_at", { withTimezone: true }),
   ...timestamps,
 });
 
@@ -440,24 +468,6 @@ export const organizations = pgTable("organizations", {
    */
   billingProvider: text("billing_provider"),
   billingCustomerId: text("billing_customer_id"),
-  /**
-   * True for the sample workspace, and for nothing else (W5-14).
-   *
-   * The demo lives in its **own organization** rather than as a flagged branch
-   * inside a real one, and that is the load-bearing decision. A sample *branch*
-   * would put invented reviews in the same tenant as real ones, and every facts
-   * loader, every average and every export would then need to know about a flag
-   * — the shape `docs/13` records as the `competitor_snapshots` mistake. A
-   * separate organization is held apart by RLS, which is the strongest boundary
-   * the product has, and deleting it is one cascade.
-   *
-   * What reads it: the banner that says where you are, the workspace switcher's
-   * label, the billing prompt (suppressed — a sample workspace is not something
-   * to buy), and the action that removes it. **Nothing that computes a number
-   * ever reads it**, because there is no number here that could be confused
-   * with a real one.
-   */
-  isSample: boolean("is_sample").notNull().default(false),
   /** BetterAuth's organization metadata — it stores stringified JSON here, so
    *  this is deliberately text and kept separate from `settings`. */
   metadata: text("metadata"),

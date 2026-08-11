@@ -31,6 +31,7 @@ import {
   renderInvitationEmail,
   renderPasswordResetEmail,
   renderSurveyInviteEmail,
+  renderVerifyEmailEmail,
   type RenderedEmail,
 } from "../src/messaging/templates.ts";
 import { reportCopy } from "../src/reports/copy.ts";
@@ -397,6 +398,23 @@ const SAMPLES: Sample[] = [
         name: "Ömer Eş",
         link: "http://localhost:3000/api/auth/reset-password/preview-token?callbackURL=%2Freset-password",
         expiresInMinutes: 60,
+      }),
+  },
+  {
+    /**
+     * Address verification (P5-T4). Worth previewing for the middle paragraph
+     * rather than the button: this email has to say what confirming *unlocks*,
+     * because the product deliberately does not stand in the doorway demanding
+     * it. An email that asks for a click without a reason is one somebody
+     * reasonably ignores — and then discovers the limit weeks later, mid-send.
+     */
+    label: "11 · Verify email address",
+    render: (locale) =>
+      renderVerifyEmailEmail({
+        locale,
+        name: "Ömer Eş",
+        link: "http://localhost:3000/api/auth/verify-email?token=preview-token&callbackURL=%2Fdashboard",
+        expiresInHours: 24,
       }),
   },
 ];

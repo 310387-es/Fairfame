@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useRef, useState, useTransition } from "react";
 import { useToast } from "@/components/ui/toast";
-import { INVALID_INPUT } from "@/lib/validation-keys";
+import { INVALID_INPUT, UNVERIFIED_EMAIL } from "@/lib/validation-keys";
 import type { ActionResult, FieldErrors } from "@/server/action-result";
 
 /**
@@ -125,11 +125,33 @@ export function useAction(): UseAction {
             )
           : undefined;
 
+        /**
+         * An unverified sender, said in the reader's language (P5-T4).
+         *
+         * Central, and that placement is the whole point. The rule is enforced
+         * at three send seams and the refusal surfaces at every screen that
+         * drives one, so translating it per call site would mean the same
+         * sentence written four times and drifting immediately — which is the
+         * failure `src/auth/verification.ts` exists to avoid on the server side
+         * and would be silly to reintroduce on the client.
+         *
+         * It sits beside the `INVALID_INPUT` case for the same reason that one
+         * is here: this is the first point in the round trip that knows what
+         * language the reader is in. The server's sentence is written in
+         * English at the throw, where nobody knows.
+         *
+         * A `message` callback still wins, so a screen with something more
+         * specific to say can say it.
+         */
         const summary =
           options.message?.(result) ??
-          (result.code === INVALID_INPUT && fieldMessages && Object.keys(fieldMessages).length > 0
-            ? t("summary")
-            : result.error);
+          (result.code === UNVERIFIED_EMAIL
+            ? t("unverifiedEmail")
+            : result.code === INVALID_INPUT &&
+                fieldMessages &&
+                Object.keys(fieldMessages).length > 0
+              ? t("summary")
+              : result.error);
 
         toast("error", summary);
         options.onError?.(result);

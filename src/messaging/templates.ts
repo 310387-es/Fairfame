@@ -1325,3 +1325,111 @@ export function renderPasswordResetEmail(input: PasswordResetEmailInput): Render
 
   return { subject: copy.subject, text, html };
 }
+
+// ---------------------------------------------------------------------------
+// Address verification (P5-T4)
+// ---------------------------------------------------------------------------
+
+export type VerifyEmailEmailInput = {
+  locale: Locale;
+  /** What to call them. Falls back to the address when there is no name. */
+  name: string;
+  link: string;
+  /** How long the link is good for, in hours — stated, not implied. */
+  expiresInHours: number;
+};
+
+const VERIFY_COPY: Record<
+  Locale,
+  {
+    subject: string;
+    lead: (input: VerifyEmailEmailInput) => string;
+    /** What confirming unlocks. The reason to bother, said plainly. */
+    why: string;
+    cta: string;
+    expiry: (input: VerifyEmailEmailInput) => string;
+    ignore: string;
+  }
+> = {
+  tr: {
+    subject: "Fairfame e-posta adresinizi doğrulayın",
+    lead: (input) =>
+      `Merhaba ${input.name}, Fairfame hesabınızı bu adresle açtınız. Adresin size ait ` +
+      `olduğunu doğrulamak için aşağıdaki bağlantıya tıklayın.`,
+    why:
+      "Doğrulamadan da Fairfame'i kullanmaya devam edebilirsiniz. Yalnızca başkalarına " +
+      "gönderim yapan işlemler — yorum daveti, toplu gönderim ve ekip daveti — adres " +
+      "doğrulanana kadar bekler.",
+    cta: "Adresimi doğrula",
+    expiry: (input) => `Bu bağlantı ${input.expiresInHours} saat geçerli.`,
+    ignore: "Bu hesabı siz açmadıysanız hiçbir şey yapmanıza gerek yok.",
+  },
+  en: {
+    subject: "Verify your Fairfame email address",
+    lead: (input) =>
+      `Hello ${input.name}, your Fairfame account was opened with this address. ` +
+      `Use the link below to confirm it is yours.`,
+    why:
+      "You can keep using Fairfame without confirming. Only the things that write to " +
+      "other people — review invitations, broadcasts and team invitations — wait until " +
+      "the address is verified.",
+    cta: "Verify my address",
+    expiry: (input) => `This link is good for ${input.expiresInHours} hours.`,
+    ignore: "If you did not open this account, there is nothing to do.",
+  },
+};
+
+/**
+ * Proving the address (P5-T4).
+ *
+ * **It says what verifying is *for*, which is the whole reason it gets opened.**
+ * The product does not stand in the doorway demanding this — `src/auth/config.ts`
+ * keeps `requireEmailVerification: false` so the first session is unblocked —
+ * and an email that asks for a click without saying why is one somebody
+ * reasonably ignores. What it actually unlocks is naming: review invitations,
+ * broadcasts and team invitations, the three things that put mail in somebody
+ * else's inbox. A reader who has no plans to send anything can ignore this
+ * safely, and the copy tells them so rather than implying an ultimatum.
+ *
+ * No unsubscribe footer and no consent gate, on the same grounds as the reset
+ * and the invitation: this is a transactional reply to an account that has just
+ * been created, not a list anybody is on. `marketing_email_consent` is a
+ * different question and is deliberately not consulted — declining a newsletter
+ * must never be able to strand somebody with an unverifiable address.
+ *
+ * **The address is never printed in the body.** It is already in the To: line,
+ * and repeating an address back at whoever received it is the shape a phishing
+ * template takes.
+ */
+export function renderVerifyEmailEmail(input: VerifyEmailEmailInput): RenderedEmail {
+  const copy = VERIFY_COPY[input.locale];
+
+  const text = [
+    copy.lead(input),
+    "",
+    input.link,
+    "",
+    copy.why,
+    "",
+    copy.expiry(input),
+    copy.ignore,
+  ].join("\n");
+
+  const html = `<!doctype html>
+<html lang="${input.locale}">
+  <body style="margin:0;padding:24px;background:#f6f7fb;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#10193a;">
+    <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
+      <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">${escapeHtml(copy.lead(input))}</p>
+      <p style="margin:0 0 24px;">
+        <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#3d5af1;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;">${escapeHtml(copy.cta)}</a>
+      </p>
+      <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#10193a;">${escapeHtml(copy.why)}</p>
+      <hr style="border:none;border-top:1px solid #e7eaf3;margin:28px 0 16px;" />
+      <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#666e88;">${escapeHtml(copy.expiry(input))}</p>
+      <p style="margin:0;font-size:12px;line-height:1.5;color:#666e88;">${escapeHtml(copy.ignore)}</p>
+    </div>
+  </body>
+</html>`;
+
+  return { subject: copy.subject, text, html };
+}

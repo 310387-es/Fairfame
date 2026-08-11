@@ -1,4 +1,5 @@
 import { redirectIfSignedIn } from "@/auth/session";
+import { isGoogleAuthConfigured } from "@/auth/social";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 
 export default async function SignUpPage({
@@ -11,5 +12,8 @@ export default async function SignUpPage({
   // not a second account with a second set of memberships.
   await redirectIfSignedIn((await searchParams).next);
 
-  return <SignUpForm />;
+  // Read here rather than in the form: `getEnv` is server-only, and a
+  // `NEXT_PUBLIC_` mirror of whether a secret exists would be a second source
+  // of truth for one fact.
+  return <SignUpForm googleEnabled={isGoogleAuthConfigured()} />;
 }

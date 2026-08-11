@@ -75,7 +75,22 @@ async function makeOrg(label: string): Promise<Fixture> {
 
   const [user] = await db
     .insert(schema.users)
-    .values({ email: `bc-admin-${label}-${suffix}@example.com`, name: "Admin" })
+    .values({
+      email: `bc-admin-${label}-${suffix}@example.com`,
+      name: "Admin",
+      /**
+       * Verified, because an ordinary sending admin is (P5-T4).
+       *
+       * `emailVerified` defaults to false, so without this every broadcast in
+       * this file is abandoned by the verification check in the pipeline and
+       * the consent assertions below never run — they would pass through
+       * having proved nothing, or fail for a reason that has nothing to do
+       * with İYS. The unverified case has its own suite
+       * (`tests/db/verification-gate.test.ts`), which is where it belongs: a
+       * fixture that quietly carries two conditions tests neither.
+       */
+      emailVerified: true,
+    })
     .returning({ id: schema.users.id });
   userIds.push(user!.id);
   await db
@@ -381,7 +396,10 @@ describe("running one", () => {
     const db = getAdminDb();
     const [member] = await db
       .insert(schema.users)
-      .values({ email: `bc-scoped-${suffix}@example.com`, name: "Scoped" })
+      // Verified for the same reason the admin fixture is: this test is about
+      // *location scope*, and an unverified creator would abandon the broadcast
+      // before the scope was ever resolved (P5-T4).
+      .values({ email: `bc-scoped-${suffix}@example.com`, name: "Scoped", emailVerified: true })
       .returning({ id: schema.users.id });
     userIds.push(member!.id);
     await db

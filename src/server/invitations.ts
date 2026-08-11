@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth/config";
 import { assertRoleAtLeast, requireActor } from "@/auth/session";
+import { requireVerifiedSender } from "@/auth/verification";
 import { requireWithinLimit } from "@/lib/entitlements";
 import { childLogger } from "@/lib/logger";
 import { withTenant } from "@/lib/tenancy";
@@ -51,6 +52,20 @@ export async function inviteMemberAction(input: {
   try {
     const actor = await requireActor();
     assertRoleAtLeast(actor, "admin");
+
+    /**
+     * An invitation is mail to somebody outside the product (P5-T4).
+     *
+     * The least obvious member of the gated three, and the one most worth
+     * gating: it is the only send in the product where the *recipient list is
+     * free text* and the message carries this company's name to a person who
+     * has never heard of it. A throwaway account that cannot invite is a
+     * throwaway account that cannot use us to write to strangers at all.
+     *
+     * Before the seat check, so a refusal costs nothing and reports the
+     * actionable problem rather than the incidental one.
+     */
+    await requireVerifiedSender(actor.userId);
 
     // Seats are counted inside the tenant transaction, against live rows, so
     // two admins inviting at once cannot both slip past the limit.

@@ -1,8 +1,10 @@
 import { and, eq } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/auth/session";
 import { AcceptInvitation } from "@/components/team/accept-invitation";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAdminDb, schema } from "@/db/client";
 
@@ -77,11 +79,28 @@ export default async function InvitePage({ params }: { params: Promise<{ id: str
         </p>
       </div>
 
-      {usable ? (
-        <CardContent>
+      <CardContent>
+        {usable ? (
           <AcceptInvitation invitationId={invitation.id} />
-        </CardContent>
-      ) : null}
+        ) : (
+          /*
+            A way out, because this screen had none.
+
+            An expired or withdrawn invitation rendered a heading, a sentence
+            and nothing else — no button, no link, on a route somebody arrived
+            at from an email rather than from inside the product. The only exit
+            was the browser's Back button, which goes back to a mail client.
+
+            Deliberately still says nothing about *why* it failed: the reason
+            the message is vague is that naming it would confirm an invitation
+            exists for an address a stranger typed. Offering a door out does not
+            weaken that — it just stops the dead end.
+          */
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/dashboard">{t("inviteInvalidAction")}</Link>
+          </Button>
+        )}
+      </CardContent>
     </Card>
   );
 }

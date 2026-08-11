@@ -1,6 +1,7 @@
 import { and, eq, inArray, lte, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import { resolveScopeForUser, UNRESTRICTED, type LocationScope } from "../auth/scope.ts";
+import { senderVerification } from "../auth/verification.ts";
 import { checkSendAllowed, type GateRefusal } from "../compliance/gate.ts";
 import {
   deliverRequests,
@@ -207,6 +208,43 @@ export async function runBroadcast(
     const scope = await creatorScope(tx, organizationId, broadcast.createdByUserId);
     if (!scope) {
       return { broadcast, abandoned: "The person who created this broadcast has left the team." };
+    }
+
+    /**
+     * The author's address, re-proved at send time (P5-T4).
+     *
+     * The same argument as the plan check six lines above, applied to the other
+     * thing that can change between scheduling and firing. `sendBroadcastAction`
+     * already refuses an unverified sender at the button; this is the path that
+     * button does not cover — a broadcast queued on Monday by somebody who
+     * never confirmed their address, fired by the sweep on Friday with nobody
+     * watching.
+     *
+     * Read against `createdByUserId`, which is the person whose scope resolved
+     * the audience directly above. Any other user would be attributing the send
+     * to somebody who did not decide it.
+     *
+     * **A null creator is skipped, not refused.** That is a broadcast the
+     * system made — `creatorScope` reads the same null as `UNRESTRICTED` for
+     * the same reason — and there is no unverified account behind it to gate.
+     * Refusing here would block the one sender that cannot possibly be a
+     * throwaway signup, which is what this rule exists to stop.
+     *
+     * Abandoned rather than thrown, which is how every other refusal in this
+     * phase reports: an abandoned broadcast leaves a row saying why, and the
+     * screen shows it. A throw here would be a worker stack trace and a
+     * broadcast stuck in `sending` forever.
+     */
+    if (
+      broadcast.createdByUserId !== null &&
+      !(await senderVerification(broadcast.createdByUserId)).verified
+    ) {
+      return {
+        broadcast,
+        abandoned:
+          "The person who scheduled this has not confirmed their email address. " +
+          "Confirm it and send again.",
+      };
     }
 
     const contacts = await resolveAudience({

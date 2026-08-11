@@ -3,7 +3,8 @@
     "name": "Fairfame",
     "tagline": "Review and customer-voice management",
     "authPanelBody": "Every source you connect turns into one short plan a week — what changed, and the three things worth doing about it.",
-    "authPanelLink": "See a sample weekly plan"
+    "authPanelLink": "See a sample weekly plan",
+    "opensInNewTab": "opens in a new tab"
   },
   "nav": {
     "home": "Dashboard",
@@ -1348,7 +1349,8 @@
     "inviteAccept": "Accept and join",
     "inviteAccepting": "Joining…",
     "inviteInvalid": "This invitation cannot be used",
-    "inviteInvalidBody": "It may have expired, been withdrawn, already been used, or been sent to a different address. Ask whoever invited you to send a new one."
+    "inviteInvalidBody": "It may have expired, been withdrawn, already been used, or been sent to a different address. Ask whoever invited you to send a new one.",
+    "inviteInvalidAction": "Go to your dashboard"
   },
   "settings": {
     "title": "Settings",
@@ -1399,7 +1401,7 @@
     "signInTitle": "Sign in",
     "signInSubtitle": "Welcome back.",
     "signUpTitle": "Create your account",
-    "signUpSubtitle": "Start your 14-day trial. No card required.",
+    "signUpSubtitle": "14 days, every feature, no card required.",
     "name": "Full name",
     "email": "Email",
     "password": "Password",
@@ -1410,7 +1412,7 @@
     "createOrgTitle": "Create your organization",
     "createOrgSubtitle": "This is the workspace your locations and reviews live in.",
     "chooseOrgTitle": "Choose an organization",
-    "chooseOrgSubtitle": "You belong to more than one workspace. Pick the one to open.",
+    "chooseOrgSubtitle": "{count, plural, =1 {Open it, or create another.} other {You belong to more than one workspace. Pick the one to open.}}",
     "createOrgInstead": "Create a new organization",
     "orgName": "Organization name",
     "createOrg": "Create organization",
@@ -1431,14 +1433,26 @@
     "resetSaving": "Saving…",
     "resetDone": "Password changed. Sign in with it.",
     "resetInvalidTitle": "This link cannot be used",
-    "resetInvalidBody": "Reset links last an hour and can be used once. Ask for a new one."
+    "resetInvalidBody": "Reset links last an hour and can be used once. Ask for a new one.",
+    "continueWithGoogle": "Continue with Google",
+    "orDivider": "or",
+    "marketingConsent": "Send me occasional email about new features and how other businesses use Fairfame. Optional, and you can stop at any time.",
+    "legalLine": "By creating an account you accept the <terms>Terms of Service</terms> and the <privacy>Privacy and KVKK Notice</privacy>.",
+    "verifyBannerTitle": "Confirm your email address",
+    "verifyBannerBody": "You can keep working. Review invitations, broadcasts and team invitations wait until the address is confirmed.",
+    "verifyResend": "Send the email again",
+    "verifyResent": "Sent. Check your inbox.",
+    "verifyAlready": "That address is already confirmed.",
+    "legalLineContinue": "By continuing you accept the <terms>Terms of Service</terms> and the <privacy>Privacy and KVKK Notice</privacy>.",
+    "orgLimitReached": "Your plan does not include another workspace. Choose a plan to add more."
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
     "signInFailed": "Those credentials did not work.",
     "signUpFailed": "We could not create that account.",
     "required": "This field is required.",
-    "forbidden": "You do not have permission to do that."
+    "forbidden": "You do not have permission to do that.",
+    "googleSignInFailed": "Google sign-in did not complete. Try again, or use your email and password."
   },
   "feedback": {
     "saved": "Saved",
@@ -1857,17 +1871,7 @@
     "empty": "There are no reviews to brief on yet. Connect a source and we will do this then.",
     "failed": "We could not finish the analysis. Everything is still here — the dashboard has your reviews.",
     "openBriefing": "Open the briefing",
-    "skip": "Skip to the dashboard",
-    "sample": {
-      "pitch": "Not ready to connect anything? Look around a sample café first — real screens, sample reviews, a real weekly plan.",
-      "explore": "Explore with sample data",
-      "building": "Building the sample…"
-    },
-    "banner": {
-      "title": "Sample workspace.",
-      "body": "These reviews are generated, not yours. Switch workspaces from the menu at the top right.",
-      "remove": "Delete sample"
-    }
+    "skip": "Skip to the dashboard"
   },
   "validation": {
     "summary": "Check the highlighted fields.",
@@ -1880,7 +1884,8 @@
     "email": "That is not a valid email address.",
     "url": "That is not a valid web address.",
     "hexColour": "Use a hex colour like #3d5af1.",
-    "hostname": "Use a hostname like reviews.example.com."
+    "hostname": "Use a hostname like reviews.example.com.",
+    "unverifiedEmail": "Confirm your email address before sending to people outside your team. The banner at the top of the screen will send the email again."
   },
   "marketing": {
     "metaTitle": "Fairfame — your good name, looked after.",
@@ -2132,5 +2137,62 @@
       "p47": "fair about the refund",
       "p48": "we bring visitors here"
     }
+  },
+  "legal": {
+    "draftNotice": "This is a working draft, not the binding text. It describes what Fairfame does today in plain language; the reviewed legal version is being prepared and will replace this draft before the product is sold.",
+    "contact": "Questions about this page: legal@fairfame.com",
+    "terms": {
+      "title": "Terms of service",
+      "intro": "What Fairfame is, and what using it involves.",
+      "service": {
+        "heading": "The service",
+        "body": "Fairfame collects reviews and customer messages from the sources a business connects, analyses them, and produces notifications and a weekly plan. It does not post anything on a business's behalf without an explicit action in the product."
+      },
+      "account": {
+        "heading": "Your account",
+        "body": "An account belongs to a person; a workspace belongs to a business. You are responsible for who you invite into a workspace and for what they do with the sources connected to it. Keep your password to yourself."
+      },
+      "trial": {
+        "heading": "The trial",
+        "body": "A new workspace gets 14 days with every feature and no payment method collected. Nothing is charged when the trial ends; the workspace moves to the free tier and the data stays."
+      },
+      "data": {
+        "heading": "The data",
+        "body": "Reviews and customer records belong to the business, not to us. They can be exported or erased at any time from the Compliance screen. We do not sell them, and we do not use one business's data to answer another's question."
+      },
+      "ending": {
+        "heading": "Ending it",
+        "body": "A workspace can be closed at any time, and closing it erases the customer records it holds. We would give notice before withdrawing the service."
+      }
+    },
+    "kvkk": {
+      "title": "Privacy and KVKK notice",
+      "intro": "What personal data Fairfame processes, why, and what you can ask us to do about it.",
+      "controller": {
+        "heading": "Who processes the data",
+        "body": "Fairfame is the data processor for the reviews and customer records in a workspace; the business that owns the workspace is the controller. For account data — your name, email and sign-in records — Fairfame is the controller."
+      },
+      "collected": {
+        "heading": "What is held",
+        "body": "Account data for users. For a workspace: reviews and their authors as the source publishes them, contact records the business adds, survey answers, and messages sent or received through connected channels."
+      },
+      "purpose": {
+        "heading": "Why",
+        "body": "To show a business its own reviews, analyse them, notify the right people, and send messages the business asks to send. Review text is analysed by a model; nothing from one workspace is ever placed in another workspace's request."
+      },
+      "ground": {
+        "heading": "On what basis",
+        "body": "Performance of the contract for account and workspace data. Explicit consent for commercial messages to customers, recorded per person and per channel, and checked against İYS before any send in Türkiye."
+      },
+      "sharing": {
+        "heading": "Who else sees it",
+        "body": "The platforms a business connects, because that is where the reviews come from; the model provider, for the text being analysed; the email and messaging providers, for messages being delivered. No one else, and never for their own purposes."
+      },
+      "rights": {
+        "heading": "Your rights",
+        "body": "Under KVKK Article 11 you may ask what is held about you, ask for it to be corrected or erased, and object to processing. Export and erasure are built into the product and run from the Compliance screen rather than through a request queue."
+      }
+    },
+    "close": "Close"
   }
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { resolveLocationScope } from "@/auth/scope";
 import { withAuthenticatedTenant } from "@/auth/session";
+import { requireVerifiedSender } from "@/auth/verification";
 import { runBroadcast } from "@/broadcasts/pipeline";
 import { broadcastInputSchema, cancelBroadcast, createBroadcast } from "@/broadcasts/store";
 import { schema } from "@/db/client";
@@ -88,13 +89,26 @@ export async function sendBroadcastAction(input: { id: string }): Promise<SendBr
   if (!parsed.success) return invalidInput(parsed.error, "Invalid broadcast.");
 
   try {
-    const organizationId = await withAuthenticatedTenant(
+    const { organizationId, actorUserId } = await withAuthenticatedTenant(
       async (tx, actor) => {
         await requireFeature({ organizationId: actor.organizationId, tx }, "broadcasts");
-        return actor.organizationId;
+        return { organizationId: actor.organizationId, actorUserId: actor.userId };
       },
       { minimumRole: "admin" },
     );
+
+    /**
+     * The sender's own address, proved, before hundreds of other people's are
+     * written to (P5-T4).
+     *
+     * Asked here *and* again inside `runBroadcast`, which is not belt and
+     * braces. This call refuses the person pressing the button, now, with a
+     * message and a way to fix it. The one in the pipeline covers the
+     * *scheduled* send, whose author is long gone by the time it fires — the
+     * same reason the plan is checked twice, and the same rule: anything with a
+     * delay between the decision and the act has to ask again.
+     */
+    await requireVerifiedSender(actorUserId);
 
     // Outside the request transaction: this makes network calls, and holding a
     // pooled connection across two hundred SMTP round trips would make a slow

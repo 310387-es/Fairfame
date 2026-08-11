@@ -3,7 +3,8 @@
     "name": "Fairfame",
     "tagline": "Yorum ve müşteri sesi yönetimi",
     "authPanelBody": "Bağladığınız her kaynak, haftada tek bir kısa plana dönüşür — ne değişti ve bu konuda yapmaya değer üç şey.",
-    "authPanelLink": "Örnek bir haftalık plan görün"
+    "authPanelLink": "Örnek bir haftalık plan görün",
+    "opensInNewTab": "yeni sekmede açılır"
   },
   "nav": {
     "home": "Panel",
@@ -1348,7 +1349,8 @@
     "inviteAccept": "Kabul et ve katıl",
     "inviteAccepting": "Katılınıyor…",
     "inviteInvalid": "Bu davet kullanılamıyor",
-    "inviteInvalidBody": "Süresi dolmuş, geri çekilmiş, daha önce kullanılmış ya da başka bir adrese gönderilmiş olabilir. Sizi davet eden kişiden yenisini isteyin."
+    "inviteInvalidBody": "Süresi dolmuş, geri çekilmiş, daha önce kullanılmış ya da başka bir adrese gönderilmiş olabilir. Sizi davet eden kişiden yenisini isteyin.",
+    "inviteInvalidAction": "Panonuza gidin"
   },
   "settings": {
     "title": "Ayarlar",
@@ -1399,7 +1401,7 @@
     "signInTitle": "Giriş yap",
     "signInSubtitle": "Tekrar hoş geldiniz.",
     "signUpTitle": "Hesabınızı oluşturun",
-    "signUpSubtitle": "14 günlük denemenizi başlatın. Kart gerekmez.",
+    "signUpSubtitle": "14 gün, bütün özellikler, kart gerekmez.",
     "name": "Ad soyad",
     "email": "E-posta",
     "password": "Parola",
@@ -1410,7 +1412,7 @@
     "createOrgTitle": "Organizasyonunuzu oluşturun",
     "createOrgSubtitle": "Şubeleriniz ve yorumlarınız bu çalışma alanında yaşar.",
     "chooseOrgTitle": "Bir işletme seçin",
-    "chooseOrgSubtitle": "Birden fazla çalışma alanına üyesiniz. Açmak istediğinizi seçin.",
+    "chooseOrgSubtitle": "{count, plural, =1 {Açın ya da yeni bir tane oluşturun.} other {Birden fazla çalışma alanına üyesiniz. Açmak istediğinizi seçin.}}",
     "createOrgInstead": "Yeni bir işletme oluşturun",
     "orgName": "Organizasyon adı",
     "createOrg": "Organizasyon oluştur",
@@ -1431,14 +1433,26 @@
     "resetSaving": "Kaydediliyor…",
     "resetDone": "Parola değişti. Bu parolayla giriş yapın.",
     "resetInvalidTitle": "Bu bağlantı kullanılamıyor",
-    "resetInvalidBody": "Sıfırlama bağlantıları bir saat geçerlidir ve bir kez kullanılır. Yenisini isteyin."
+    "resetInvalidBody": "Sıfırlama bağlantıları bir saat geçerlidir ve bir kez kullanılır. Yenisini isteyin.",
+    "continueWithGoogle": "Google ile devam et",
+    "orDivider": "veya",
+    "marketingConsent": "Yeni özellikler ve diğer işletmelerin Fairfame'i nasıl kullandığı hakkında ara sıra e-posta gönderin. İsteğe bağlı, istediğiniz zaman bırakabilirsiniz.",
+    "legalLine": "Hesap oluşturarak <terms>Kullanım Koşulları</terms>'nı ve <privacy>Aydınlatma Metni</privacy>'ni kabul edersiniz.",
+    "verifyBannerTitle": "E-posta adresinizi doğrulayın",
+    "verifyBannerBody": "Çalışmaya devam edebilirsiniz. Yorum daveti, toplu gönderim ve ekip daveti adres doğrulanana kadar bekler.",
+    "verifyResend": "E-postayı yeniden gönder",
+    "verifyResent": "Gönderildi. Gelen kutunuza bakın.",
+    "verifyAlready": "Bu adres zaten doğrulanmış.",
+    "legalLineContinue": "Devam ederek <terms>Kullanım Koşulları</terms>'nı ve <privacy>Aydınlatma Metni</privacy>'ni kabul edersiniz.",
+    "orgLimitReached": "Planınız başka bir çalışma alanı içermiyor. Daha fazlası için bir plan seçin."
   },
   "errors": {
     "generic": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
     "signInFailed": "Bu bilgilerle giriş yapılamadı.",
     "signUpFailed": "Hesap oluşturulamadı.",
     "required": "Bu alan zorunludur.",
-    "forbidden": "Bunu yapma yetkiniz yok."
+    "forbidden": "Bunu yapma yetkiniz yok.",
+    "googleSignInFailed": "Google ile giriş tamamlanmadı. Tekrar deneyin ya da e-posta ve parolanızı kullanın."
   },
   "feedback": {
     "saved": "Kaydedildi",
@@ -1857,17 +1871,7 @@
     "empty": "Henüz brifing çıkarılacak yorum yok. Bir kaynak bağlayın, gerisini biz yapalım.",
     "failed": "İnceleme tamamlanamadı. Her şey yerinde — yorumlarınız panoda duruyor.",
     "openBriefing": "Brifingi aç",
-    "skip": "Panoya geç",
-    "sample": {
-      "pitch": "Henüz bir şey bağlamak istemiyor musunuz? Önce örnek bir kafeyi gezin — gerçek ekranlar, örnek yorumlar, gerçek bir haftalık plan.",
-      "explore": "Örnek veriyle gezin",
-      "building": "Örnek hazırlanıyor…"
-    },
-    "banner": {
-      "title": "Örnek çalışma alanı.",
-      "body": "Bu yorumlar üretilmiştir, size ait değildir. Sağ üstteki menüden çalışma alanı değiştirebilirsiniz.",
-      "remove": "Örneği sil"
-    }
+    "skip": "Panoya geç"
   },
   "validation": {
     "summary": "İşaretli alanları kontrol edin.",
@@ -1880,7 +1884,8 @@
     "email": "Geçerli bir e-posta adresi değil.",
     "url": "Geçerli bir web adresi değil.",
     "hexColour": "#3d5af1 gibi bir renk kodu kullanın.",
-    "hostname": "reviews.ornek.com gibi bir alan adı kullanın."
+    "hostname": "reviews.ornek.com gibi bir alan adı kullanın.",
+    "unverifiedEmail": "Ekibiniz dışındaki kişilere gönderim yapmadan önce e-posta adresinizi doğrulayın. Ekranın üstündeki bandan e-postayı yeniden gönderebilirsiniz."
   },
   "marketing": {
     "metaTitle": "Fairfame — iyi adınız, emin ellerde.",
@@ -2132,5 +2137,62 @@
       "p47": "iadede adil davrandılar",
       "p48": "misafirlerimizi buraya getiriyoruz"
     }
+  },
+  "legal": {
+    "draftNotice": "Bu bir çalışma taslağıdır, bağlayıcı metin değildir. Fairfame'in bugün ne yaptığını sade bir dille anlatır; hukuki incelemeden geçmiş sürüm hazırlanıyor ve ürün satışa açılmadan önce bu taslağın yerini alacak.",
+    "contact": "Bu sayfayla ilgili sorular: legal@fairfame.com",
+    "terms": {
+      "title": "Kullanım koşulları",
+      "intro": "Fairfame nedir ve kullanmak ne anlama gelir.",
+      "service": {
+        "heading": "Hizmet",
+        "body": "Fairfame, işletmenin bağladığı kaynaklardan yorumları ve müşteri mesajlarını toplar, analiz eder, bildirim ve haftalık plan üretir. Ürün içinde açık bir işlem yapılmadan işletme adına hiçbir şey yayımlamaz."
+      },
+      "account": {
+        "heading": "Hesabınız",
+        "body": "Hesap kişiye, çalışma alanı işletmeye aittir. Çalışma alanına kimi davet ettiğinizden ve davet ettiklerinizin bağlı kaynaklarla ne yaptığından siz sorumlusunuz. Parolanızı kimseyle paylaşmayın."
+      },
+      "trial": {
+        "heading": "Deneme",
+        "body": "Yeni çalışma alanı 14 gün boyunca bütün özellikleri kullanır ve ödeme yöntemi istenmez. Deneme bitince hiçbir ücret alınmaz; çalışma alanı ücretsiz kademeye geçer ve veriler yerinde kalır."
+      },
+      "data": {
+        "heading": "Veriler",
+        "body": "Yorumlar ve müşteri kayıtları işletmenindir, bizim değil. Uyum ekranından istediğiniz zaman dışa aktarabilir veya silebilirsiniz. Bunları satmayız ve bir işletmenin verisini başka bir işletmenin sorusunu yanıtlamak için kullanmayız."
+      },
+      "ending": {
+        "heading": "Sonlandırma",
+        "body": "Çalışma alanı istediğiniz zaman kapatılabilir; kapatmak, içindeki müşteri kayıtlarını siler. Hizmeti geri çekmemiz gerekirse önceden haber veririz."
+      }
+    },
+    "kvkk": {
+      "title": "Aydınlatma metni",
+      "intro": "Fairfame hangi kişisel verileri, neden işler ve bu konuda bizden ne isteyebilirsiniz.",
+      "controller": {
+        "heading": "Veriyi kim işler",
+        "body": "Çalışma alanındaki yorumlar ve müşteri kayıtları bakımından Fairfame veri işleyendir; çalışma alanının sahibi işletme veri sorumlusudur. Hesap verileri — adınız, e-postanız ve giriş kayıtlarınız — bakımından veri sorumlusu Fairfame'dir."
+      },
+      "collected": {
+        "heading": "Hangi veriler",
+        "body": "Kullanıcılar için hesap verileri. Çalışma alanı için: kaynağın yayımladığı haliyle yorumlar ve yorum sahipleri, işletmenin eklediği kişi kayıtları, anket yanıtları ve bağlı kanallardan gönderilen ya da gelen mesajlar."
+      },
+      "purpose": {
+        "heading": "Neden",
+        "body": "İşletmeye kendi yorumlarını göstermek, analiz etmek, doğru kişiyi haberdar etmek ve işletmenin göndermek istediği mesajları göndermek için. Yorum metni bir model tarafından analiz edilir; bir çalışma alanının verisi başka bir çalışma alanının isteğine hiçbir zaman konmaz."
+      },
+      "ground": {
+        "heading": "Hangi hukuki sebeple",
+        "body": "Hesap ve çalışma alanı verileri için sözleşmenin ifası. Müşterilere ticari elektronik ileti için açık rıza; rıza kişi ve kanal bazında kaydedilir ve Türkiye'deki her gönderim öncesinde İYS'ye sorulur."
+      },
+      "sharing": {
+        "heading": "Kimlerle paylaşılır",
+        "body": "İşletmenin bağladığı platformlar, çünkü yorumlar oradan gelir; analiz edilen metin için model sağlayıcı; iletilen mesajlar için e-posta ve mesajlaşma sağlayıcıları. Başka kimseyle paylaşılmaz ve hiçbiri kendi amaçları için kullanamaz."
+      },
+      "rights": {
+        "heading": "Haklarınız",
+        "body": "KVKK'nın 11. maddesi uyarınca hakkınızda tutulan verileri öğrenebilir, düzeltilmesini veya silinmesini isteyebilir ve işlenmesine itiraz edebilirsiniz. Dışa aktarma ve silme ürünün içine yerleşiktir; bir talep kuyruğundan değil, Uyum ekranından çalışır."
+      }
+    },
+    "close": "Kapat"
   }
 }

@@ -6,7 +6,12 @@ import { getEnv } from "../lib/env.ts";
 import { childLogger } from "../lib/logger.ts";
 import { provisionTrialSubscription } from "../lib/provisioning.ts";
 import { getEmailTransport } from "../messaging/email.ts";
-import { renderInvitationEmail, renderPasswordResetEmail } from "../messaging/templates.ts";
+import {
+  renderInvitationEmail,
+  renderPasswordResetEmail,
+  renderVerifyEmailEmail,
+} from "../messaging/templates.ts";
+import { isGoogleAuthConfigured } from "./social.ts";
 import { dashboardBaseUrl } from "../lib/urls.ts";
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/config.ts";
 import { resolveActiveOrganization, rememberActiveOrganization } from "./active-organization.ts";
@@ -37,6 +42,18 @@ const env = getEnv();
  * sentence a reader is shown cannot drift from what the token actually does.
  */
 const RESET_TOKEN_MINUTES = 60;
+
+/**
+ * How long an address-verification link is good for.
+ *
+ * A day rather than the reset link's hour, and the difference is what the two
+ * links *are*. A reset link is a bearer token for an account and a short life
+ * is a security property. A verification link proves an address receives mail;
+ * it grants nothing on its own, and the person following it may be doing so
+ * from the phone they left in another room. Stated here rather than inherited
+ * for the same reason as the reset window: the email prints the number.
+ */
+const VERIFY_TOKEN_HOURS = 24;
 
 /** "tr" | "en", or the default. The organization's column is free text. */
 function localeOf(value: string | null | undefined): Locale {
@@ -79,10 +96,109 @@ export const auth = betterAuth({
     },
   },
 
+  /**
+   * Signing in with Google, when this deployment has a client for it.
+   *
+   * **Registered conditionally, and that is the whole failure mode being
+   * avoided.** BetterAuth throws `CLIENT_ID_AND_SECRET_REQUIRED` from inside
+   * the authorization-URL builder, which is to say *after* somebody has pressed
+   * the button — a 500 on the front door of a product nobody has signed into
+   * yet. An empty `socialProviders` has no such endpoint to press, and the
+   * screen does not draw a button for a provider that is not there.
+   *
+   * **No `scope` is set on purpose.** BetterAuth's Google provider already asks
+   * for exactly `email profile openid`, which is all a login needs; adding to
+   * that list is how a sign-in button quietly starts asking a café owner for
+   * their calendar. The Business Profile connector's scopes belong to the
+   * *other* client — see `GOOGLE_AUTH_CLIENT_ID` in `src/lib/env.ts`.
+   *
+   * Google's profile carries `email_verified`, and BetterAuth maps it onto
+   * `users.email_verified` at sign-up. That is what makes an OAuth arrival a
+   * verified sender under `src/auth/verification.ts` with nothing else to do.
+   */
+  ...(isGoogleAuthConfigured()
+    ? {
+        socialProviders: {
+          google: {
+            clientId: env.GOOGLE_AUTH_CLIENT_ID as string,
+            clientSecret: env.GOOGLE_AUTH_CLIENT_SECRET as string,
+          },
+        },
+      }
+    : {}),
+
+  account: {
+    /**
+     * One person, one row, however they came in.
+     *
+     * Without this a customer who signed up with a password in March and
+     * pressed "Continue with Google" in April would be refused outright —
+     * `users.email` is unique, so the second identity has nowhere to go. They
+     * would read that as the product having lost their account.
+     *
+     * `google` is trusted because Google states whether it verified the address
+     * (`email_verified`), which is the only claim that makes linking safe: an
+     * unverified assertion of an address is just a typed-in string, and
+     * trusting one would let anybody claim an existing account by naming its
+     * email at an identity provider that never checks.
+     *
+     * **`requireLocalEmailVerified` is left at its default of `true`**, and it
+     * is worth saying why the looser setting is tempting. Linking also asks the
+     * *local* row to have proved its address — so a password account that never
+     * clicked the verification email is not linked into, and Google sign-in on
+     * that address is refused rather than merged. That is deliberate on
+     * BetterAuth's part and correct here: the alternative hands the real
+     * owner's Google identity to whoever registered their address first. The
+     * way out is the verification email this config now sends, not a weaker
+     * gate. (BetterAuth has the option marked deprecated and the behaviour
+     * becoming unconditional, so setting it would buy a release at most.)
+     */
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google"],
+    },
+  },
+
+  /**
+   * Proving the address, without standing in the doorway (P5-T4).
+   *
+   * `requireEmailVerification` stays **false**, deliberately and in tension
+   * with the usual advice: the product's stated target is ten minutes from
+   * signing up to seeing something worth having, and a verification wall spends
+   * the first of those ten on a round trip to a mail client. What verification
+   * gates instead is the narrower thing that actually needs it — sending mail
+   * to *other people* — which `src/auth/verification.ts` enforces at the send
+   * seam. Signing in, connecting a source, reading the sample workspace and
+   * running analysis are all open to an unverified account, because none of
+   * them can reach a stranger's inbox.
+   *
+   * `sendOnSignUp` is explicit rather than left to follow
+   * `requireEmailVerification`: with that flag false the default is to send
+   * *nothing*, so the address could never be proved and every outbound send in
+   * the product would be permanently refused.
+   *
+   * OAuth arrivals get none of this. They are already verified, and mailing
+   * somebody a link to confirm what Google just confirmed is noise.
+   */
+  emailVerification: {
+    sendOnSignUp: true,
+    expiresIn: VERIFY_TOKEN_HOURS * 60 * 60,
+    async sendVerificationEmail({ user, url }) {
+      const { subject, text, html } = renderVerifyEmailEmail({
+        locale: localeOf((user as { locale?: string | null }).locale),
+        name: user.name?.trim() || user.email,
+        link: url,
+        expiresInHours: VERIFY_TOKEN_HOURS,
+      });
+
+      await getEmailTransport().send({ to: user.email, subject, text, html });
+    },
+  },
+
   emailAndPassword: {
     enabled: true,
-    // Phase 0 has no mail transport yet. Turn this on with the T-later email
-    // work — leaving it off must be a deliberate, visible choice.
+    // Verification is sent but not demanded — see `emailVerification` above,
+    // which explains why the wall is at the send seam and not at the door.
     requireEmailVerification: false,
     minPasswordLength: 12,
 
@@ -132,6 +248,49 @@ export const auth = betterAuth({
         required: false,
         input: true,
       },
+      /**
+       * Whether they ticked the marketing box on the sign-up form (P5-T2).
+       *
+       * **`input: true` on purpose, and it is the one additional field where
+       * that is right.** `lastActiveOrganizationId` is explicitly *not* an
+       * additional field because it is ours to write and a signup request must
+       * not be able to set it. This is the mirror image: it is a statement the
+       * person is making about themselves, so the request is exactly where it
+       * should come from. The worst a forged `true` achieves is opting its own
+       * sender into email.
+       *
+       * The **timestamp** is not here, and that is the part that matters. When
+       * a consent was given is evidence, not a preference — see the create hook
+       * below, which stamps it server-side from the clock. `iys_uploaded_via`
+       * elsewhere in the product records provenance for the same reason: a
+       * consent record whose date the subject could have chosen is not a record.
+       *
+       * Absent means false, which is what an OAuth arrival is. There is no form
+       * on that path, so there is nothing to infer from, and inferring anything
+       * is how a product ends up mailing people who never asked.
+       */
+      marketingEmailConsent: {
+        type: "boolean",
+        required: false,
+        input: true,
+      },
+      /**
+       * When they agreed — declared so the adapter will persist it, and
+       * `input: false` so only we can.
+       *
+       * It has to be declared at all: the Drizzle adapter writes the fields it
+       * knows about, so a timestamp the create hook adds to a payload nobody
+       * declared is silently dropped — and the `users_marketing_consent_dated`
+       * constraint would then refuse the insert, which is a failed sign-up for
+       * everybody who ticks the box. Declaring it with `input: false` is
+       * BetterAuth's own way of saying "ours to write", which is exactly the
+       * distinction the schema comment draws.
+       */
+      marketingEmailConsentAt: {
+        type: "date",
+        required: false,
+        input: false,
+      },
     },
   },
 
@@ -141,6 +300,30 @@ export const auth = betterAuth({
   },
 
   databaseHooks: {
+    user: {
+      create: {
+        /**
+         * Date the consent, from the clock rather than from the request (P5-T2).
+         *
+         * The tick arrives with the signup because it is the person's own
+         * statement; *when* they made it is the evidence behind that statement,
+         * and evidence a client can supply is not evidence. Same posture as
+         * `consents.granted_at` on the customer side of the product, where the
+         * distinction is enforceable law rather than good manners.
+         *
+         * Only ever set, never cleared here: a signup cannot un-consent, and
+         * withdrawing later is a different act on a different screen that has
+         * to leave its own trail.
+         */
+        before: async (user) => {
+          const consented = (user as { marketingEmailConsent?: boolean }).marketingEmailConsent;
+          if (consented !== true) return;
+
+          return { data: { ...user, marketingEmailConsentAt: new Date() } };
+        },
+      },
+    },
+
     session: {
       create: {
         /**

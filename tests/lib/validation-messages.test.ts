@@ -43,12 +43,25 @@ describe("every validation key has copy in every locale", () => {
     // The summary is not in the union — it is about the form, not a field — so
     // it would slip past the loop above.
     expect(block.summary, `${locale}.validation.summary`).toBeTruthy();
+
+    /**
+     * And the unverified-sender refusal (P5-T4), for the same reason.
+     *
+     * Also about the action rather than a field: nothing on the form is wrong,
+     * the *sender* is not yet allowed to use it. It lives in this namespace
+     * because `useAction` is the one place that translates a refusal — the
+     * server writes its sentence at the throw, where nobody knows what language
+     * the reader is in — and it is asserted here so a locale cannot ship
+     * without it and show a café owner the English.
+     */
+    expect(block.unverifiedEmail, `${locale}.validation.unverifiedEmail`).toBeTruthy();
   });
 
   it("has no copy for a key that does not exist", () => {
     // The inverse: dead copy is how a namespace grows a key nobody renders and
-    // nobody notices is wrong.
-    const known = new Set<string>([...VALIDATION_KEYS, "summary"]);
+    // nobody notices is wrong. The two non-field entries are named rather than
+    // pattern-matched, so a third one has to be argued for.
+    const known = new Set<string>([...VALIDATION_KEYS, "summary", "unverifiedEmail"]);
 
     for (const locale of Object.keys(messages)) {
       for (const key of Object.keys(messages[locale]?.validation ?? {})) {

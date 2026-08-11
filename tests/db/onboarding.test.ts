@@ -9,11 +9,10 @@ import {
   onboardingStatus,
   pendingAnalysis,
 } from "@/onboarding/first-briefing";
-import { isSampleOrganization, markSample } from "@/onboarding/sample";
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 
 /**
- * The first briefing, and the sample workspace (W5-14).
+ * The first briefing (W5-14).
  *
  * The interesting behaviour is **which week gets briefed on**, and it is the
  * whole reason this module exists. `digest_sweep` composes the last *completed*
@@ -348,33 +347,5 @@ describe("waiting for the first sync", () => {
     );
 
     expect(status.awaitingSync).toBe(false);
-  });
-});
-
-describe("the sample workspace", () => {
-  it("is flagged, and nothing else is", async () => {
-    await markSample(recent.id);
-
-    expect(await isSampleOrganization(recent.id)).toBe(true);
-    // The flag is what makes a one-click delete safe, so "everything else is
-    // false by default" is the assertion that matters, not the true case.
-    expect(await isSampleOrganization(stale.id)).toBe(false);
-    expect(await isSampleOrganization(empty.id)).toBe(false);
-  });
-
-  it("holds no reviews outside its own organization", async () => {
-    // RLS is what keeps the sample apart, so the check is that the flag is
-    // *not* doing any of that work: reading the sample tenant returns only the
-    // sample tenant's rows, exactly as it would for any other organization.
-    const rows = await withTenant({ organizationId: recent.id }, (tx) =>
-      tx.select({ id: schema.reviews.id }).from(schema.reviews),
-    );
-    const foreign = await getAdminDb()
-      .select({ id: schema.reviews.id })
-      .from(schema.reviews)
-      .where(eq(schema.reviews.organizationId, stale.id));
-
-    const sampleIds = new Set(rows.map((row) => row.id));
-    for (const row of foreign) expect(sampleIds.has(row.id)).toBe(false);
   });
 });

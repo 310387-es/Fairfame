@@ -373,6 +373,28 @@ export async function withinLimit(
 ): Promise<LimitCheck> {
   const { additional = 1, now = new Date() } = options;
 
+  /**
+   * `max_organizations` is a limit on a **user**, not on this organization, and
+   * answering it here would be worse than not answering it.
+   *
+   * There is no resource counter for it, so `readUsage` would fall through to
+   * `usage_counters`, find nothing, and return `0` — a check that passes
+   * forever while reading exactly like an enforced one. That is the failure
+   * mode this codebase keeps finding: not a missing guard but a guard that
+   * returns a confident wrong number.
+   *
+   * `src/auth/organization-limit.ts` owns the question. Throwing rather than
+   * returning `allowed: false` because a caller reaching here has the wrong
+   * shape, not a refused request, and a refusal would be silently mistaken for
+   * enforcement.
+   */
+  if (metric === "max_organizations") {
+    throw new Error(
+      "max_organizations is a per-user limit — ask organizationAllowance(userId) in " +
+        "src/auth/organization-limit.ts, not withinLimit(org).",
+    );
+  }
+
   return inTenant(org, async (tx, organizationId) => {
     const { entitlements } = await resolveInTx(tx, organizationId, now);
     const limit = limitFor(entitlements, metric);

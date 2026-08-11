@@ -324,6 +324,33 @@ const envSchema = z.object({
   META_APP_ID: optionalSecret,
   META_APP_SECRET: optionalSecret,
 
+  /**
+   * **Signing in with Google, which is not the same Google as the four lines
+   * above.**
+   *
+   * `GOOGLE_CLIENT_ID` is the *Business Profile connector*: it asks a business
+   * owner for access to their listings, its scopes are
+   * `business.manage`-shaped, and its consent screen has to survive Google's
+   * app review before it may leave testing. This pair is **login only** —
+   * `openid email profile`, which is BetterAuth's Google default and is why no
+   * `scope` is configured against it — and needs no verification to work for
+   * anyone.
+   *
+   * They are deliberately two OAuth clients and two variables. One client
+   * doing both would tie the front door to a review queue: a connector scope
+   * added later would put the whole app back into Google's verification, and
+   * until it cleared, nobody could sign in. The `_AUTH_` infix exists so the
+   * two cannot be pasted into each other's slot at go-live, which is the hour
+   * when somebody is holding four Google credentials at once.
+   *
+   * Absent is the ordinary state, exactly like the connector credentials: the
+   * button does not render, and `emailAndPassword` carries the product. It must
+   * never be a runtime error — see `isGoogleAuthConfigured` in
+   * `src/auth/social.ts`, which is the only reader.
+   */
+  GOOGLE_AUTH_CLIENT_ID: optionalSecret,
+  GOOGLE_AUTH_CLIENT_SECRET: optionalSecret,
+
   // -------------------------------------------------------------------------
   // AI layer (P1a-T1)
   // -------------------------------------------------------------------------
