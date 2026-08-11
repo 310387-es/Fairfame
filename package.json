@@ -32,6 +32,7 @@
     "ai:analyze": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/ai-analyze.mts",
     "ai:eval": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/ai-eval.mts",
     "golive": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/golive.mts",
+    "stripe:sync": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/stripe-sync.mts",
     "ai:redteam": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/ai-redteam.mts",
     "knip": "knip --include files,dependencies,unlisted,duplicates",
     "knip:all": "knip",

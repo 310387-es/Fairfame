@@ -1,4 +1,5 @@
 import type { PlanKey } from "../lib/plans.ts";
+import type { BillingInterval } from "./lookup-keys.ts";
 
 /**
  * The billing provider seam.
@@ -35,6 +36,19 @@ export type CheckoutRequest = {
    * one during checkout.
    */
   customerId?: string | undefined;
+  /**
+   * Monthly or annual. Defaults to monthly when absent, which is what every
+   * caller wanted before annual was reachable at all.
+   */
+  interval?: BillingInterval | undefined;
+  /**
+   * Locations beyond the plan's included allowance, billed on the add-on price.
+   *
+   * **Computed by `startCheckout` from the live location count, never supplied
+   * by a screen.** A caller that could send this could send `0` and buy a
+   * fifty-branch chain at the one-branch price.
+   */
+  extraLocations?: number | undefined;
   successUrl: string;
   cancelUrl: string;
 };

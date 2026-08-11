@@ -1,7 +1,8 @@
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { getAdminDb, schema } from "../db/client.ts";
 import { childLogger } from "../lib/logger.ts";
 import { PLAN_CATALOG, type PlanKey } from "../lib/plans.ts";
+import type { BillingInterval } from "./lookup-keys.ts";
 import { providerForCurrency } from "./registry.ts";
 import { assignPlan } from "./subscriptions.ts";
 import { BillingNotConfiguredError, type BillingEvent } from "./types.ts";
@@ -48,6 +49,33 @@ export function isPurchasable(planKey: PlanKey): boolean {
 }
 
 /**
+ * Locations this organization must pay extra for, counted here and nowhere else.
+ *
+ * **Server-side by construction.** The number never crosses a wire from a
+ * screen: a request that could name its own quantity could name `0`, and a
+ * fifty-branch chain would check out at the one-branch price. It is read from
+ * the same `locations` table the entitlement layer counts, so the figure a
+ * customer is billed for is the figure the product enforces against.
+ *
+ * Floored at zero — an organization inside its allowance buys no add-on, and a
+ * negative quantity is not a discount.
+ *
+ * `getAdminDb` rather than a tenant transaction because checkout runs outside a
+ * request's tenant context, and the organization id is the one this function was
+ * called about rather than anything a caller chose.
+ */
+async function extraLocationsFor(organizationId: string, planKey: PlanKey): Promise<number> {
+  const included = PLAN_CATALOG[planKey].includedLocations;
+
+  const [row] = await getAdminDb()
+    .select({ value: count() })
+    .from(schema.locations)
+    .where(eq(schema.locations.organizationId, organizationId));
+
+  return Math.max(0, (row?.value ?? 0) - included);
+}
+
+/**
  * Starts a hosted checkout for one organization and plan.
  *
  * The customer record is created once and remembered on the organization, so a
@@ -57,6 +85,8 @@ export function isPurchasable(planKey: PlanKey): boolean {
 export async function startCheckout(input: {
   organizationId: string;
   planKey: PlanKey;
+  /** Monthly unless asked otherwise. */
+  interval?: BillingInterval;
   successUrl: string;
   cancelUrl: string;
 }): Promise<CheckoutOutcome> {
@@ -105,6 +135,8 @@ export async function startCheckout(input: {
       organizationId: input.organizationId,
       planKey: input.planKey,
       currency: organization.currency,
+      ...(input.interval ? { interval: input.interval } : {}),
+      extraLocations: await extraLocationsFor(input.organizationId, input.planKey),
       customerId,
       successUrl: input.successUrl,
       cancelUrl: input.cancelUrl,
