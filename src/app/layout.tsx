@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
  * The icons are declared here rather than by Next's `icon.svg` / `apple-icon.png`
  * file convention, and the two cannot both be used: **file-based metadata wins
  * over this object**, so leaving the old convention files in place would have
- * served the retired Revira monogram while every reference below pointed at the
+ * served the retired monogram while every reference below pointed at the
  * Fairfame seal — a mismatch nothing would fail on.
  *
  * The artwork is copied verbatim out of `brand/` into `public/`

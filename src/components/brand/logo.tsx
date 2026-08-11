@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
  * this file only says which variant and how big. `tests/lib/brand-assets.test.ts`
  * fails if a copy drifts from its source.
  *
- * This replaced the Revira "R" monogram, which was drawn in code for a reason
+ * This replaced an earlier "R" monogram, which was drawn in code for a reason
  * that no longer applies — the old reference set the letter as SVG `<text>`,
  * which would have depended on a font being installed. The Fairfame wordmark is
  * already cut to outlines in the file, so serving the file is both the safest

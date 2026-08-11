@@ -366,10 +366,8 @@
 }
 
 /* ===========================================================================
- * Fairfame Design System — imported from the approved Home redesign (option 1a)
- * in the "Revira home page redesign review" project on claude.ai/design. That
- * project keeps its name: it is a citation, and a citation that has been tidied
- * up points at nothing.
+ * Fairfame Design System — imported from the approved Home redesign (option 1a),
+ * reviewed on claude.ai/design.
  *
  * This block is the contract every screen inherits. It is deliberately the
  * *last* word in this file: it re-points the shadcn aliases above at the

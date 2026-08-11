@@ -1,6 +1,6 @@
 # 15 — Design system
 
-**Status:** in force as of 3 Aug 2026, **amended 6 Aug 2026**. Imported from the approved Home redesign (option **1a**) in the `Revira home page redesign review` project on claude.ai/design.
+**Status:** in force as of 3 Aug 2026, **amended 6 Aug 2026**. Imported from the approved Home redesign (option **1a**), reviewed on claude.ai/design.
 
 > **Read [`21-visual-language.md`](./21-visual-language.md) alongside this.** It refines this document after the running app was judged on real data at 1440px and 390px, in both languages. Where the two disagree, 21 wins and this file has been brought into line — the type scale (§3), elevation and the selection surface (§4) are the sections it changed.
 
