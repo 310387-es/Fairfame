@@ -101,6 +101,39 @@ const LIGHTEST_LEGAL_TEXT: { surface: string; lightest: string; darkerToo: strin
     still and therefore fine.
   */
   { surface: "indigo-050", lightest: "ink-500", darkerToo: ["ink-600", "ink-800"] },
+  /*
+    Paper — the brand layer's page, and the only warm surface anywhere.
+
+    It is `.marketing`-scoped rather than a `:root` token (docs/24 §7), but it
+    is a body-text surface like any other and the table has to know about it:
+    the front door sets more running prose on paper than the app sets on any
+    single surface.
+
+    **`--ink-400` fails here at 4.375:1** and `--ink-350` is the lightest that
+    clears, at 4.729:1 — a narrower margin than on white, because paper is
+    warmer and slightly darker than the surface those inks were measured on.
+    The page never reaches for either: it uses `--paper-faint` (5.058:1), which
+    exists precisely so the brand layer has a secondary ink chosen against
+    paper rather than borrowed from a cooler surface and hoped for.
+  */
+  {
+    surface: "paper",
+    lightest: "ink-350",
+    darkerToo: ["paper-faint", "paper-body", "ink-500", "ink-600", "ink-800"],
+  },
+  /*
+    The tour's highlight wash, which is a text bed and not a badge.
+
+    `--state-rating-bg` aliases this same token and is listed below as a badge
+    wash carrying `--amber-ink`. That is a different question from "may a
+    sentence sit on it", and the landing page asks the second one: the review
+    the AI is shown reading is highlighted, in full, in `--ink-800`.
+  */
+  {
+    surface: "amber-050",
+    lightest: "ink-350",
+    darkerToo: ["amber-ink", "ink-500", "ink-600", "ink-800"],
+  },
 ];
 
 /**
@@ -117,6 +150,13 @@ const NOT_A_TEXT_SURFACE: Record<string, string> = {
   // Dark surfaces: they carry `--text-on-ink`, asserted in "the two dark surfaces".
   "ink-900": "the rail and the briefing bar; white text, tested separately",
   "ink-800": "the same dark family",
+  // The brand layer's two names for those same two darks (docs/24 §3 states
+  // the identity: brand ink *is* --ink-800, brand rail *is* --ink-900). Named
+  // rather than resolved, because the class in the source is what this test
+  // reads and `bg-brand-rail` is what the closing band is written with.
+  "brand-ink": "alias of --ink-800 on the brand layer; white text",
+  "brand-rail": "alias of --ink-900; the front door's closing band, white text",
+  "indigo-600": "the approve button's fill; white text at 5.34:1, not prose",
   rail: "alias of --ink-900",
   brief: "alias of --ink-900",
   primary: "indigo-600 as a button fill; white text, not prose",

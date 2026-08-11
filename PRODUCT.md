@@ -109,7 +109,7 @@ Explicitly absent — must never be fabricated: customer logos, testimonials, ca
 ## Commercial Facts
 
 - **Billing unit:** per location, per month. Seats included; SMS/WhatsApp sends and heavy AI usage are metered add-ons because they are real cost.
-- **Public pricing** (TRY, launch market; **use these figures, and expect them to change** — they are repriced for inflation and validated with the first cohort): Starter ₺1.299, Growth ₺3.499, Pro ₺8.999 per location/month; Agency quoted per deal (per-seat + per-location).
+- **Public pricing, two ladders, one product.** **USD — $29 / $89 / $229** per location/month for Starter / Growth / Pro, Agency per deal. This is what the marketing front door publishes, in both languages, and it is the figure to use for any global-audience surface (decided 11 Aug 2026; `docs/05` §2 records why two of the three sit above the bands originally hypothesised). **TRY — Starter ₺1.299, Growth ₺3.499, Pro ₺8.999** per location/month, the Türkiye figure, **use these and expect them to change** as they are repriced for inflation and validated with the first cohort. The TRY ladder no longer appears on `/`. Reconciling the two per market is open commercial work.
 - **14-day full-feature trial**, not a crippled free tier. The trial grants top-tier entitlements.
 - **Transparent public pricing is a positioning pillar** — a pricing page that hides numbers behind a demo request contradicts the product.
 - Entitlements are configuration, not code: packaging changes are one edit to the plan catalog.

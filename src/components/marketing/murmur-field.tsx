@@ -2,6 +2,7 @@
 
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
+import { useMediaQuery } from "@/components/marketing/use-media-query";
 
 /**
  * The murmur, behind the front door's first viewport (docs/24 §5).
@@ -47,54 +48,116 @@ type MurmurHandle = { detach: () => void };
 declare global {
   interface Window {
     Murmur?: {
-      attach: (el: HTMLElement, opts: { carve?: boolean; family?: string }) => MurmurHandle;
+      attach: (
+        el: HTMLElement,
+        opts: {
+          carve?: boolean;
+          family?: string;
+          phrases?: string[];
+          /** Multiplier on the resting alpha; the script clamps it at 0.6. */
+          opacity?: number;
+          /** Multiplier on how many phrases are seeded for the area. */
+          density?: number;
+          /** Multiplier on the drift. */
+          speed?: number;
+          /** Fade whole words toward the middle instead of clearing it. */
+          veil?: boolean;
+        },
+      ) => MurmurHandle;
     };
   }
 }
 
 export function MurmurField({
   family,
+  phrases,
   className,
   children,
 }: {
   /** The resolved font-family string — `lora.style.fontFamily`, not "Lora". */
   family: string;
+  /**
+   * The talk, in the reader's language, already translated.
+   *
+   * Passed in rather than read from the catalogue here because this component
+   * is `"use client"` and the phrases are a *server* decision — and because
+   * `Murmur.setPhrases` is deliberately unused: a locale change in this app is
+   * a cookie write and a full server re-render, so the container unmounts and
+   * re-attaches with the new list. Reaching for `setPhrases` would add a second
+   * way for the canvas to change language, and only one of them would be tested.
+   */
+  phrases: string[];
   className?: string;
   children: React.ReactNode;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
-  const [roomy, setRoomy] = useState(false);
 
   /*
     Wide viewports only, and this is a legibility decision rather than a
     performance one.
 
-    `carve` holds a clear ellipse through the middle of the container, so the
-    words gather in the margins — which is the whole composition, and which a
-    390px hero does not have. Measured on a phone, the phrases land on the
-    subhead and on the no-card note, and that note is `text-faint`: small, light
-    grey, over a drifting texture. Texture behind body copy is a contrast
-    problem you cannot fix by making the texture fainter, because the fix is
-    making it invisible.
+    `carve` holds a clear ellipse through the container, so the words gather in
+    the margins — which is the whole composition, and which a 390px hero does
+    not have. Measured on a phone, the phrases land on the subhead and on the
+    source list, and that list is `text-paper-faint`: small, warm grey, over a
+    drifting texture. Texture behind body copy is a contrast problem you cannot
+    fix by making the texture fainter, because the fix is making it invisible.
 
-    `ROOMY` is the `lg` breakpoint, the same one the hero's own layout turns on.
-    Watched rather than read once: a rotated phone and a dragged window are the
-    same event to this, and attaching on a resize costs one reseed.
+    The query is the `lg` breakpoint, the same one the hero's own layout turns
+    on. Watched rather than read once: a rotated phone and a dragged window are
+    the same event to this, and re-attaching costs one reseed.
+  */
+  const roomy = useMediaQuery("(min-width: 64rem)");
+
+  /*
+    `veil`, not `carve`, and not a wash painted over the top either.
+
+    Three ways to keep copy off a moving texture, and the third is the only one
+    without a visible seam:
+
+      - **carve** rejects positions inside an ellipse. The middle goes empty,
+        which with a centred hero reads as a hole rather than as a background.
+      - **a scrim** — a paper-to-transparent radial painted over the canvas —
+        fills the middle again, but it fades *pixels*. A phrase straddling its
+        edge is drawn half-visible: a sentence that stops in the middle of
+        itself, which reads as a rendering fault rather than as depth.
+      - **veil** scales each word's alpha by how deep its own centre sits in
+        that ellipse. It fades *words*, so every phrase is whole at whatever
+        opacity it has, and the field stays continuous all the way through.
+
+    The ceiling is veiled too, not just the resting alpha — otherwise moving
+    the pointer over the headline would sharpen the words underneath it back
+    up to full strength, which is exactly where they must not be.
+
+    `opacity: 1.5` lifts the resting alpha from 10% to 15% (and the amber
+    minority from 34% to 51%). The ceiling near the pointer is unchanged, so
+    leaning in still sharpens.
+
+    `density: 2` doubles the seeded count — about ninety phrases on a 1440-wide
+    hero rather than forty-six. **It is the reason the catalogue carries 48
+    phrases**: the script deals from a shuffled deck, so the crowd can only be
+    twice as thick without repeating itself if there are twice as many things
+    to say. Crowding it further means writing more of them.
+
+    `speed: 1.7` stirs the field faster without moving it further — the
+    multiplier scales the drift's two sines, not their amplitude, so the words
+    stay where they were placed and the crowd reads as busier rather than as
+    drifting away.
   */
   useEffect(() => {
-    const wide = window.matchMedia("(min-width: 64rem)");
-    const read = () => setRoomy(wide.matches);
-    read();
-    wide.addEventListener("change", read);
-    return () => wide.removeEventListener("change", read);
-  }, []);
-
-  useEffect(() => {
     if (!loaded || !roomy || !host.current || !window.Murmur) return;
-    const murmur = window.Murmur.attach(host.current, { carve: true, family });
+    const murmur = window.Murmur.attach(host.current, {
+      carve: false,
+      family,
+      phrases,
+      opacity: 1.5,
+      density: 2,
+      speed: 1.7,
+      veil: true,
+    });
     return () => murmur.detach();
-  }, [loaded, roomy, family]);
+  }, [loaded, roomy, family, phrases]);
 
   return (
     <div ref={host} className={`murmur-field ${className ?? ""}`}>

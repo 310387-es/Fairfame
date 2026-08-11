@@ -20,12 +20,14 @@ Table of Contents
 
 Prices are anchored to a hard\-currency value and displayed locally; **TRY figures are indicative and will be repriced for inflation.** Positioned to undercut opaque, sales\-gated incumbents with transparent public pricing.
 
-| Tier | Target | Indicative USD/mo (per location) | Indicative TRY/mo | Includes |
+**Decided 11 Aug 2026 — the USD ladder is now published, and it is the only one the marketing front door shows.** `/` states **$29 / $89 / $229** per location per month, in both languages, with Agency per deal. Two of the three sit *above* the indicative bands this table first hypothesised — Growth was \~$49–79 and Pro \~$129–199 — and the decision is deliberate rather than a drift: an indicative band written before the product existed was a guess at what four phases of build would be worth, and the shipped product carries the Action Digest, the compliance gate, surveys, broadcasts and the agency console. The bands below are updated to what is published. **The TRY ladder is unchanged** (Starter ₺1.299, Growth ₺3.499, Pro ₺8.999) and remains the Türkiye figure in `PRODUCT.md`; it simply no longer appears on `/`, because the page addresses a global audience and the product is not a Türkiye product ([`CLAUDE.md`](../CLAUDE.md)). Reconciling the two ladders per market is open commercial work, not a code question.
+
+| Tier | Target | Published USD/mo (per location) | Indicative TRY/mo | Includes |
 | --- | --- | --- | --- | --- |
-| **Starter** | Single\-location SMB | \~$19–29 | (repriced periodically) | Google connect, notifications, AI analysis, capped review requests \+ AI replies, 1 widget |
-| **Growth** | Established SMB | \~$49–79 | — | Multi\-source monitor, unlimited requests (fair\-use), full AI, widgets, trends dashboard, exports |
-| **Pro** | Multi\-location | \~$129–199 | — | Everything \+ benchmarking, per\-location reporting, API access, priority support, SLAs |
-| **Agency / White\-label** | Agencies | Custom (per\-seat \+ per\-location) | — | White\-label, client roles, bulk management, reseller pricing |
+| **Starter** | Single\-location SMB | **$29** | ₺1.299 (repriced periodically) | Google connect, notifications, AI analysis, capped review requests \+ AI replies, 1 widget |
+| **Growth** | Established SMB | **$89** | ₺3.499 | Multi\-source monitor, unlimited requests (fair\-use), full AI, widgets, trends dashboard, exports |
+| **Pro** | Multi\-location | **$229** | ₺8.999 | Everything \+ benchmarking, per\-location reporting, API access, priority support, SLAs |
+| **Agency / White\-label** | Agencies | Per deal (per\-seat \+ per\-location) | Per deal | White\-label, client roles, bulk management, reseller pricing |
 
 **Add\-ons (metered):** SMS/WhatsApp credits at cost\-plus; AI usage above the included quota. **Trial:** 14\-day full\-feature trial (no crippled free tier) to bound SMS/AI cost while showing full value.
 
