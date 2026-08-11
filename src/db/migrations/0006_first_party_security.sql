@@ -34,8 +34,8 @@ CREATE POLICY tenant_isolation ON public.review_requests
 --> statement-breakpoint
 
 -- Migration 0001 set default privileges for future tables, but only for those
--- created by the `revira` role. Re-granting explicitly costs nothing and keeps
+-- created by the `fairfame` role. Re-granting explicitly costs nothing and keeps
 -- this migration correct on a database whose migrations were once applied by a
 -- different owner.
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.contacts, public.campaigns, public.review_requests
-  TO revira_app;
+  TO fairfame_app;

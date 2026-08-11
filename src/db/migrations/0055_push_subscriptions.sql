@@ -49,4 +49,4 @@ ALTER TABLE public.push_subscriptions FORCE ROW LEVEL SECURITY;--> statement-bre
 CREATE POLICY tenant_isolation ON public.push_subscriptions
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.push_subscriptions TO revira_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.push_subscriptions TO fairfame_app;

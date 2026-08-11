@@ -90,7 +90,7 @@ CREATE POLICY tenant_isolation ON public.broadcasts
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.broadcasts TO revira_app;--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.broadcasts TO fairfame_app;--> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
 -- Who it went to, and what happened
@@ -139,4 +139,4 @@ CREATE POLICY tenant_isolation ON public.broadcast_recipients
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.broadcast_recipients TO revira_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.broadcast_recipients TO fairfame_app;

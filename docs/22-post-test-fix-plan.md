@@ -1,6 +1,6 @@
 # Post-Test Fix Plan — Cafe-Owner (Mehmet) run
 
-*Revira · source: live cafe-owner usability test (Mehmet Yılmaz persona, 73 items, every screen + 390px) · merged with the founder audit + remediation plan, deduped, sequenced for Claude Code.*
+*Fairfame · source: live cafe-owner usability test (Mehmet Yılmaz persona, 73 items, every screen + 390px) · merged with the founder audit + remediation plan, deduped, sequenced for Claude Code.*
 
 > **Verdict:** the product is close and the wedge lands — the tester would **pay ₺700–900/mo for the digest + AI replies alone**, and judged the UI genuinely professional (the design pass worked). Two things gate trial→paid and ₺700→₺1,500: **the digest must never break**, and **WhatsApp must actually work**. The sleeper risk is **number trust** — four different "waiting" counts make him doubt every metric.
 >

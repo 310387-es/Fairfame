@@ -3,8 +3,8 @@ import { parseEnvForTesting } from "@/lib/env";
 
 const validEnv = {
   NODE_ENV: "development",
-  DATABASE_URL: "postgres://revira:revira@localhost:5432/revira",
-  APP_DATABASE_URL: "postgres://revira_app:revira_app@localhost:5432/revira",
+  DATABASE_URL: "postgres://fairfame:fairfame@localhost:5432/fairfame",
+  APP_DATABASE_URL: "postgres://fairfame_app:fairfame_app@localhost:5432/fairfame",
   REDIS_URL: "redis://localhost:6379",
   BETTER_AUTH_SECRET: "a".repeat(32),
   BETTER_AUTH_URL: "http://localhost:3000",

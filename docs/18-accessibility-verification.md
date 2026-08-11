@@ -1,6 +1,6 @@
 # 18 — Accessibility & mobile verification
 
-*Revira · evidence for the WCAG AA and mobile-layout requirements in `docs/17-phase-2-build-plan.md` §P2-T9 · verified 4 Aug 2026*
+*Fairfame · evidence for the WCAG AA and mobile-layout requirements in `docs/17-phase-2-build-plan.md` §P2-T9 · verified 4 Aug 2026*
 
 This is the sibling of `docs/12-ai-guardrail-validation.md`: a record of the checks that **cannot live in the unit suite**, so that "we verified it" is a document rather than a memory.
 

@@ -12,7 +12,7 @@ import * as schema from "./schema.ts";
  * Row-Level Security and must never serve a user request — it exists for
  * migrations, seeding, BetterAuth, and the global `plans` catalog.
  *
- * `getAppDb()` connects as `revira_app` (NOSUPERUSER, NOBYPASSRLS). RLS applies
+ * `getAppDb()` connects as `fairfame_app` (NOSUPERUSER, NOBYPASSRLS). RLS applies
  * to it, so without a tenant context it reads as empty. Do not query it
  * directly for tenant data either: go through `withTenant()` in
  * src/lib/tenancy.ts, which is what actually sets the context.

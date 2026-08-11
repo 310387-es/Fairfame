@@ -1,6 +1,6 @@
 # Product Requirements Document — Review SaaS
 
-*Working name: **Revira** (provisional) · v1 · August 2026 · Owner: Omer · Companion to the Master Plan*
+*Working name: **Fairfame** (provisional) · v1 · August 2026 · Owner: Omer · Companion to the Master Plan*
 
 > This PRD defines **what** we build and **why**, and the acceptance criteria that tell us a feature is done. It does not prescribe implementation — that lives in the Technical Architecture document. Scope is organized by the phases in the Master Plan; we build them in order.
 

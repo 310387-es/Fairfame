@@ -1,6 +1,6 @@
 # Phase 1a — AI Layer & Action Digest · Build Plan
 
-*Revira (provisional) · the hero sprint · builds entirely on the MockConnector — no real platform APIs required · companion to CLAUDE.md, `docs/02-prd.md` §6, and `docs/03-technical-architecture.md` §6*
+*Fairfame (provisional) · the hero sprint · builds entirely on the MockConnector — no real platform APIs required · companion to CLAUDE.md, `docs/02-prd.md` §6, and `docs/03-technical-architecture.md` §6*
 
 > **Goal:** turn ingested (mock) reviews into **AI insights, notifications, AI-drafted replies, and the weekly Action Digest** — the product's hero and its real differentiator. This is fully buildable now; it needs only an LLM API key, not the gated Google/Meta APIs.
 >

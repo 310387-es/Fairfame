@@ -29,4 +29,4 @@ CREATE POLICY tenant_isolation ON public.notifications
 
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON public.notification_preferences, public.notifications
-  TO revira_app;
+  TO fairfame_app;

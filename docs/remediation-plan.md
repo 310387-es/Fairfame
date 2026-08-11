@@ -1,6 +1,6 @@
 # Remediation & Build Plan — from the Founder Audit
 
-*Revira · source: live founder product audit (Aug 2026, 215 seeded reviews, every screen at 1440/390px) · this sequences the audit into execution-ready waves for Claude Code.*
+*Fairfame · source: live founder product audit (Aug 2026, 215 seeded reviews, every screen at 1440/390px) · this sequences the audit into execution-ready waves for Claude Code.*
 
 > **Strategic principle (the audit's closing, and it's right):** the engineering is good; the *product* is a broken first mile under four phases of platform. **Fix the first mile (Wave 1) in a week — none of it is hard — then spend three weeks making the two things we actually sell real: the Action Digest, and WhatsApp.** Everything else (IA, richness, features) comes after those two.
 >

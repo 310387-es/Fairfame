@@ -1,6 +1,6 @@
-# Design Brief — Revira
+# Design Brief — Fairfame
 
-*Working name: **Revira** (provisional) · v1 · August 2026 · Hand this to the design session*
+*Working name: **Fairfame** (provisional) · v1 · August 2026 · Hand this to the design session*
 
 > A self\-contained brief so a design session starts warm, not blank. It captures the brand, principles, screens, components, and flows to design for the MVP. Detail behind each item lives in the PRD and UX & Flows docs.
 
@@ -10,7 +10,7 @@ Table of Contents
 
 ## 1\. What We're Designing
 
-**Product:** Revira — a platform where any business connects its review and social sources, then gets new\-review notifications, AI analysis, and a weekly **Action Digest** that tells them what to do. Launch market Türkiye; bilingual (TR/EN); global\-ready.
+**Product:** Fairfame — a platform where any business connects its review and social sources, then gets new\-review notifications, AI analysis, and a weekly **Action Digest** that tells them what to do. Launch market Türkiye; bilingual (TR/EN); global\-ready.
 
 **Primary users:** non\-technical **owner\-operators** and **marketing managers** of local/multi\-location businesses. They are busy, phone\-heavy, and not analysts. The design must make value obvious in the first session.
 
@@ -20,7 +20,7 @@ Table of Contents
 
 ## 2\. Brand Foundation
 
-- **Name:** Revira (provisional). Logo direction chosen: **monogram** ("R" tile with a live\-notification dot — favicon/app\-icon ready).
+- **Name:** Fairfame (provisional). Logo direction chosen: **monogram** ("R" tile with a live\-notification dot — favicon/app\-icon ready).
 - **Palette:** Indigo `#3D5AF1` (primary/trust) · Amber `#F5A524` (accent / rating / energy) · Ink `#10193A` (text) · light neutral backgrounds. Flat, confident, **not** gradient\-heavy.
 - **Typography:** geometric/clean sans (e.g. Inter or Poppins) — legible, modern, works in Turkish and English.
 - **Personality:** trustworthy, clear, calm, AI\-native, professional. The deliberate opposite of the sleazy "buy reviews" grey market and the cluttered legacy tools. Confidence through clarity, not decoration.

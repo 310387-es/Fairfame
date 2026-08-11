@@ -1,6 +1,6 @@
 # Home — Live Dashboard · Implementation Handoff
 
-*Revira · redesign of `src/app/(app)/dashboard/page.tsx` · companion to `docs/08-design-brief.md` and `docs/06-ux-roles-and-flows.md`*
+*Fairfame · redesign of `src/app/(app)/dashboard/page.tsx` · companion to `docs/08-design-brief.md` and `docs/06-ux-roles-and-flows.md`*
 
 > **Decision (Omer, Aug 2026):** Home becomes a **live dashboard**, not a weekly-digest page. The weekly **Action Digest moves to email + WhatsApp** (and a `/weekly-plan` archive). Competitors all run live dashboards or live inboxes; the digest-as-email is the retention loop the market already trained users to open. Our edge on Home is a **live AI insight strip** plus an **action-first review queue** — nobody else does the AI layer live.
 >
@@ -18,7 +18,7 @@
 
 ## 2. Design tokens (`src/app/globals.css`)
 
-The current `--chart-*` tokens are greyscale and the page is pure white, which is why the UI reads flat. Add this block **after** the existing Revira brand-tokens block:
+The current `--chart-*` tokens are greyscale and the page is pure white, which is why the UI reads flat. Add this block **after** the existing Fairfame brand-tokens block:
 
 ```css
 :root {

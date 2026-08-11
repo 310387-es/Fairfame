@@ -1,6 +1,6 @@
 # Ideas & Parking Lot — Review SaaS
 
-*Working name: **Revira** (provisional) · living doc · started August 2026*
+*Working name: **Fairfame** (provisional) · living doc · started August 2026*
 
 > A single home for "not now, but don't forget" — monetization ideas, deferred bets, and things to revisit. **Nothing here is committed.** When we decide to act on an item, it graduates into the PRD / Architecture / Business docs.
 

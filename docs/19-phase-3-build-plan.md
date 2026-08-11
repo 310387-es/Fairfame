@@ -1,6 +1,6 @@
 # Phase 3 — Showcase & Analyze · Build Plan
 
-*Revira · turn reviews into growth + intelligence · companion to `docs/02-prd.md` §5 (Phase 3) and `docs/01-master-plan.md` §7*
+*Fairfame · turn reviews into growth + intelligence · companion to `docs/02-prd.md` §5 (Phase 3) and `docs/01-master-plan.md` §7*
 
 > **Two tracks, one honest split.** *Showcase* (widgets, badges, SEO pages) and the *internal Analyze* work are **fully buildable now on mock / first-party data**. **Competitor benchmarking is gated** — it needs real competitors' public reviews, which arrive with the real connectors at go-live (Phase 1b, post-company). Build its framework now against fixtures; wire live data later.
 >

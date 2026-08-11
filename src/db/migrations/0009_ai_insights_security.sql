@@ -25,7 +25,7 @@ CREATE POLICY tenant_isolation ON public.tags
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
 
--- Migration 0001 set default privileges for tables created by `revira`;
+-- Migration 0001 set default privileges for tables created by `fairfame`;
 -- granting explicitly keeps this correct on a database whose migrations were
 -- once applied by a different owner.
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.review_insights, public.tags TO revira_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.review_insights, public.tags TO fairfame_app;

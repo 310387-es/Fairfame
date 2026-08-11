@@ -44,4 +44,4 @@ CREATE POLICY tenant_isolation ON public.digest_deliveries
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.digest_deliveries TO revira_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.digest_deliveries TO fairfame_app;

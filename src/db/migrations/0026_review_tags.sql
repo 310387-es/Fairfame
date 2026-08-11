@@ -36,4 +36,4 @@ CREATE POLICY tenant_isolation ON public.review_tags
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.review_tags TO revira_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.review_tags TO fairfame_app;

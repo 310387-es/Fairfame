@@ -88,4 +88,4 @@ CREATE POLICY tenant_isolation ON public.widgets
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.widgets TO revira_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.widgets TO fairfame_app;

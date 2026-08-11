@@ -25,12 +25,12 @@ jobs:
         # migration 0008 fails on them — and it is the first thing that runs.
         image: pgvector/pgvector:pg17
         env:
-          POSTGRES_USER: revira
-          POSTGRES_PASSWORD: revira
-          POSTGRES_DB: revira
+          POSTGRES_USER: fairfame
+          POSTGRES_PASSWORD: fairfame
+          POSTGRES_DB: fairfame
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U revira -d revira"
+          --health-cmd "pg_isready -U fairfame -d fairfame"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
@@ -47,8 +47,8 @@ jobs:
 
     env:
       NODE_ENV: test
-      DATABASE_URL: postgres://revira:revira@localhost:5432/revira
-      APP_DATABASE_URL: postgres://revira_app:revira_app@localhost:5432/revira
+      DATABASE_URL: postgres://fairfame:fairfame@localhost:5432/fairfame
+      APP_DATABASE_URL: postgres://fairfame_app:fairfame_app@localhost:5432/fairfame
       REDIS_URL: redis://localhost:6379
       BETTER_AUTH_SECRET: ci-secret-not-used-for-anything-real-000000
       BETTER_AUTH_URL: http://localhost:3000
@@ -80,18 +80,18 @@ jobs:
       # or every isolation test would pass for the wrong reason.
       - name: Create the application role
         env:
-          PGPASSWORD: revira
+          PGPASSWORD: fairfame
         run: |
-          psql -h localhost -U revira -d revira -v ON_ERROR_STOP=1 <<'SQL'
+          psql -h localhost -U fairfame -d fairfame -v ON_ERROR_STOP=1 <<'SQL'
           DO $$
           BEGIN
-            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'revira_app') THEN
-              CREATE ROLE revira_app LOGIN PASSWORD 'revira_app';
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'fairfame_app') THEN
+              CREATE ROLE fairfame_app LOGIN PASSWORD 'fairfame_app';
             END IF;
           END
           $$;
-          ALTER ROLE revira_app NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
-          GRANT CONNECT ON DATABASE revira TO revira_app;
+          ALTER ROLE fairfame_app NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+          GRANT CONNECT ON DATABASE fairfame TO fairfame_app;
           SQL
 
       - name: Write .env for the db-backed suites
@@ -116,12 +116,12 @@ jobs:
       # tenant isolation suite meaningless while still reporting green.
       - name: Assert the runtime role cannot bypass RLS
         env:
-          PGPASSWORD: revira
+          PGPASSWORD: fairfame
         run: |
-          RESULT=$(psql -h localhost -U revira -d revira -tAc \
-            "select rolsuper or rolbypassrls from pg_roles where rolname = 'revira_app'")
+          RESULT=$(psql -h localhost -U fairfame -d fairfame -tAc \
+            "select rolsuper or rolbypassrls from pg_roles where rolname = 'fairfame_app'")
           if [ "$RESULT" != "f" ]; then
-            echo "revira_app can bypass RLS — isolation tests would be worthless." >&2
+            echo "fairfame_app can bypass RLS — isolation tests would be worthless." >&2
             exit 1
           fi
 

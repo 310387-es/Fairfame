@@ -1,6 +1,6 @@
 # Phase 1b — Real Connectors · Build Plan
 
-*Revira (provisional) · the real-source sprint · companion to CLAUDE.md, `docs/03-technical-architecture.md` §4, and `docs/09-phase-0-build-plan.md` (Connector contract)*
+*Fairfame (provisional) · the real-source sprint · companion to CLAUDE.md, `docs/03-technical-architecture.md` §4, and `docs/09-phase-0-build-plan.md` (Connector contract)*
 
 > **Strategy:** implement every real connector **now**, against each platform's **documented API contract + recorded fixtures**, to the existing `Connector` interface — behind per-provider flags, with **MockConnector as the dev default**. What is gated on company formation is **credentials, platform approvals, and live verification** — not the code.
 >

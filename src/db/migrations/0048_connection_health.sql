@@ -55,4 +55,4 @@ ALTER TABLE public.integration_requests FORCE ROW LEVEL SECURITY;--> statement-b
 CREATE POLICY tenant_isolation ON public.integration_requests
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.integration_requests TO revira_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.integration_requests TO fairfame_app;

@@ -1,4 +1,4 @@
-# 21 — Revira's visual language
+# 21 — Fairfame's visual language
 
 **Status: in force from 6 Aug 2026.** This refines `docs/15-design-system.md`; it does not
 replace it. Where the two disagreed, this file won and **15 has been brought into line** —
@@ -130,7 +130,7 @@ the reasons are the more useful half.
 
 ### Queues and lists — Linear, Front, Superhuman
 
-| Pattern | Where | Revira | Verdict |
+| Pattern | Where | Fairfame | Verdict |
 | --- | --- | --- | --- |
 | **Two-pane list + reading pane**, selection held in the URL | Front, Superhuman | `/reviews` (W4.1 already had this) | Kept |
 | **Selection = tinted row + a solid bar in the gutter**, distinct from hover | All three, independently | `--surface-selected` + 3px indigo bar | **Adopted.** The convergence is the argument: three keyboard-driven inboxes landed on the same answer because a wash alone dies under a pointer |
@@ -141,7 +141,7 @@ the reasons are the more useful half.
 
 ### Numbers and dashboards — Stripe, Vercel
 
-| Pattern | Where | Revira | Verdict |
+| Pattern | Where | Fairfame | Verdict |
 | --- | --- | --- | --- |
 | **Small-caps label above a large number**, label losing decisively | Stripe's dashboard | `Eyebrow` + `Metric` — the intent was already here and the `cn()` bug was silently defeating it (§0a) | Kept, and finally working |
 | **Tabular numerals in any column that refreshes** | Stripe | `tabular-nums` throughout | Kept |
@@ -151,7 +151,7 @@ the reasons are the more useful half.
 
 ### Pricing — Stripe, Vercel, Linear
 
-| Pattern | Where | Revira | Verdict |
+| Pattern | Where | Fairfame | Verdict |
 | --- | --- | --- | --- |
 | **Price at display size**, plan name demoted to a label | All three | `plan-section.tsx`, price at `text-metric` | **Adopted** |
 | **The current plan is visually held**, not just badged | Stripe's billing settings | Indigo border + ring | **Adopted** |
@@ -160,7 +160,7 @@ the reasons are the more useful half.
 
 ### Empty and resting states — Notion, Linear
 
-| Pattern | Where | Revira | Verdict |
+| Pattern | Where | Fairfame | Verdict |
 | --- | --- | --- | --- |
 | **Icon, one sentence, one action** — never a paragraph | Notion | `EmptyState` `blank` | **Adopted** |
 | **A waiting pane is not an empty pane** | Superhuman's reading pane before selection | `EmptyState` `resting` | **Adopted.** This is the distinction that was missing: `/reviews` dressed "pick one of sixty-five" as a first-run screen |
@@ -169,11 +169,11 @@ the reasons are the more useful half.
 ### The category — Birdeye, Podium, Trustpilot, Yotpo
 
 This is where benchmarking is most useful, because the competitors' shared instinct is one
-Revira should deliberately not follow.
+Fairfame should deliberately not follow.
 
 | Pattern | Where | Verdict |
 | --- | --- | --- |
-| **Dashboard-first: gauge clusters, donut breakdowns, dense KPI grids** | Birdeye and Podium both lead with reporting density | **Rejected, and it is the product's main visual argument.** That layout answers "how are we doing"; Revira's differentiator is the Action Digest, which answers "what should I do on Monday". A wall of gauges is the *posture* of a reporting tool, and adopting it would flatten the one thing that is not commodity. It is also why `/weekly-plan` now leads with the plan rather than a list of dates |
+| **Dashboard-first: gauge clusters, donut breakdowns, dense KPI grids** | Birdeye and Podium both lead with reporting density | **Rejected, and it is the product's main visual argument.** That layout answers "how are we doing"; Fairfame's differentiator is the Action Digest, which answers "what should I do on Monday". A wall of gauges is the *posture* of a reporting tool, and adopting it would flatten the one thing that is not commodity. It is also why `/weekly-plan` now leads with the plan rather than a list of dates |
 | Review cards with **amber stars, source attribution, and a date** | Trustpilot, and the category convention | **Adopted** — this is settled convention and deviating would only cost recognition. It is also the argument for `Stars` being amber by default rather than inheriting ink |
 | **Widget-first social proof layouts** | Yotpo | Already built (P3-T0/T1), and the widget's separate palette is the right call for the same reason theirs is: it renders on somebody else's site |
 | Star-rating *inputs* drawn large and unfilled until touched | Trustpilot, Google | Already how `/c/{slug}` works | Kept |

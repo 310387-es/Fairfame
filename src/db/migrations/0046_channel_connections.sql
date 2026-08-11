@@ -50,4 +50,4 @@ ALTER TABLE public.channel_connections FORCE ROW LEVEL SECURITY;--> statement-br
 CREATE POLICY tenant_isolation ON public.channel_connections
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.channel_connections TO revira_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.channel_connections TO fairfame_app;

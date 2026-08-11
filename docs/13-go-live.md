@@ -1,6 +1,6 @@
 # Go-Live
 
-*Revira · what has to exist before each platform works, and how to verify it · P1b-T6*
+*Fairfame · what has to exist before each platform works, and how to verify it · P1b-T6*
 
 Everything in Phase 1b was built against documented API contracts and recorded
 fixtures. **None of it has run against a live platform**, because every platform

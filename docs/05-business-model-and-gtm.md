@@ -1,6 +1,6 @@
 # Business Model & Go\-to\-Market — Review SaaS
 
-*Working name: **Revira** (provisional) · v1 · August 2026 · Companion to the Master Plan*
+*Working name: **Fairfame** (provisional) · v1 · August 2026 · Companion to the Master Plan*
 
 > How we make money, what it costs us, and how we get customers. Numbers here are **planning assumptions to validate**, not promises — every figure is a hypothesis we test with the first cohort. Includes the brand & naming shortlist.
 

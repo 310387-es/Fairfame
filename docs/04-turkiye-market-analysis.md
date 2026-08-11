@@ -1,6 +1,6 @@
 # Türkiye Market Analysis — Review SaaS
 
-*Working name: **Revira** (provisional) · v1 · August 2026 · Launch\-market study*
+*Working name: **Fairfame** (provisional) · v1 · August 2026 · Launch\-market study*
 
 > Türkiye is our launch market; the brand is built global. This document maps the platforms that matter here, the local and international competition, buyer behavior, the compliance landscape (KVKK / İYS), pricing norms, and our entry strategy. It is deliberately honest about where "manage all reviews" is limited by platform access.
 

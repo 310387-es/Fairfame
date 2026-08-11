@@ -1,6 +1,6 @@
 # Product UX, Roles & User Flows — Review SaaS
 
-*Working name: **Revira** (provisional) · v1 · August 2026 · Companion to the PRD & Architecture*
+*Working name: **Fairfame** (provisional) · v1 · August 2026 · Companion to the PRD & Architecture*
 
 > This document answers "how does a person actually use the app?" — the account model, team access, location management, navigation, and step\-by\-step user journeys. Paired with the visual flow diagrams.
 

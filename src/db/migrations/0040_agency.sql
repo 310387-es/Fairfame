@@ -43,7 +43,7 @@ CREATE POLICY tenant_isolation ON public.agency_clients
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.agency_clients TO revira_app;--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.agency_clients TO fairfame_app;--> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
 -- Branding

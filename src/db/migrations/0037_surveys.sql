@@ -67,7 +67,7 @@ CREATE POLICY tenant_isolation ON public.surveys
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.surveys TO revira_app;--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.surveys TO fairfame_app;--> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
 -- One person's participation, from ask to answer
@@ -148,4 +148,4 @@ CREATE POLICY tenant_isolation ON public.survey_responses
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.survey_responses TO revira_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.survey_responses TO fairfame_app;

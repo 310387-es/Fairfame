@@ -62,7 +62,7 @@ CREATE POLICY tenant_isolation ON public.contact_tags
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.contact_tags TO revira_app;--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.contact_tags TO fairfame_app;--> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
 -- Segments — a saved contact filter
@@ -104,7 +104,7 @@ CREATE POLICY tenant_isolation ON public.contact_segments
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.contact_segments TO revira_app;--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.contact_segments TO fairfame_app;--> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
 -- Reading the contact list

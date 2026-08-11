@@ -2,7 +2,7 @@
 --
 -- Model
 -- -----
--- Two roles. `revira` owns the tables and runs migrations. `revira_app` is the
+-- Two roles. `fairfame` owns the tables and runs migrations. `fairfame_app` is the
 -- runtime role, created NOSUPERUSER / NOBYPASSRLS by the compose init script.
 -- Every table below also gets FORCE ROW LEVEL SECURITY so the owner is subject
 -- to its own policies too — without FORCE, the table owner silently bypasses
@@ -47,25 +47,25 @@ CREATE OR REPLACE FUNCTION app.is_member(target_org uuid) RETURNS boolean
 -- init script is what grants it a password.
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'revira_app') THEN
-    CREATE ROLE revira_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'fairfame_app') THEN
+    CREATE ROLE fairfame_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
   END IF;
 END
 $$;
 --> statement-breakpoint
 
-GRANT USAGE ON SCHEMA public, app TO revira_app;--> statement-breakpoint
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app TO revira_app;--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO revira_app;--> statement-breakpoint
+GRANT USAGE ON SCHEMA public, app TO fairfame_app;--> statement-breakpoint
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app TO fairfame_app;--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO fairfame_app;--> statement-breakpoint
 
 -- `plans` is a global catalog, not tenant data: readable, never writable at runtime.
-REVOKE INSERT, UPDATE, DELETE ON public.plans FROM revira_app;--> statement-breakpoint
+REVOKE INSERT, UPDATE, DELETE ON public.plans FROM fairfame_app;--> statement-breakpoint
 
 -- Tables added by later migrations inherit the same grants.
-ALTER DEFAULT PRIVILEGES FOR ROLE revira IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO revira_app;--> statement-breakpoint
-ALTER DEFAULT PRIVILEGES FOR ROLE revira IN SCHEMA app
-  GRANT EXECUTE ON FUNCTIONS TO revira_app;--> statement-breakpoint
+ALTER DEFAULT PRIVILEGES FOR ROLE fairfame IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO fairfame_app;--> statement-breakpoint
+ALTER DEFAULT PRIVILEGES FOR ROLE fairfame IN SCHEMA app
+  GRANT EXECUTE ON FUNCTIONS TO fairfame_app;--> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
 -- Tenant business data: strict organization_id scoping.

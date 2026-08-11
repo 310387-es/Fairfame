@@ -1,6 +1,6 @@
 # AI Guardrail Validation
 
-*Revira · the evidence behind P1a-T11 · last run 2 Aug 2026*
+*Fairfame · the evidence behind P1a-T11 · last run 2 Aug 2026*
 
 This document records what has actually been tested about the AI layer, how, and
 what the results were. It exists because "we have guardrails" is a claim, and the

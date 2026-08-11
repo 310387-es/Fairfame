@@ -23,7 +23,7 @@ CREATE POLICY tenant_isolation ON public.invitations
 --
 -- `accounts` holds the password hashes and any OAuth refresh tokens, and
 -- `verifications` holds live password-reset tokens. The default privileges
--- granted in migration 0001 handed revira_app full CRUD on these when 0002
+-- granted in migration 0001 handed fairfame_app full CRUD on these when 0002
 -- created them, which is more than the application ever needs: it reaches
 -- sessions and accounts only via BetterAuth, on the owner connection.
 --
@@ -32,8 +32,8 @@ CREATE POLICY tenant_isolation ON public.invitations
 -- on the table. Defence in depth beneath RLS, not instead of it.
 -- ---------------------------------------------------------------------------
 
-REVOKE ALL ON public.accounts FROM revira_app;--> statement-breakpoint
-REVOKE ALL ON public.sessions FROM revira_app;--> statement-breakpoint
-REVOKE ALL ON public.verifications FROM revira_app;--> statement-breakpoint
+REVOKE ALL ON public.accounts FROM fairfame_app;--> statement-breakpoint
+REVOKE ALL ON public.sessions FROM fairfame_app;--> statement-breakpoint
+REVOKE ALL ON public.verifications FROM fairfame_app;--> statement-breakpoint
 
 SELECT 1;

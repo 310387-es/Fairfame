@@ -1,6 +1,6 @@
 # Technical Architecture — Review SaaS
 
-*Working name: **Revira** (provisional) · v1 · August 2026 · Companion to the Master Plan & PRD*
+*Working name: **Fairfame** (provisional) · v1 · August 2026 · Companion to the Master Plan & PRD*
 
 > This document is the engineering source of truth: system design, the connector framework, the data model, infrastructure, and how we handle security and Türkiye compliance (KVKK / İYS) at the code level. It assumes a senior engineer building with Claude Code and favors boring, proven technology with clean module seams.
 

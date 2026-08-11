@@ -1,4 +1,4 @@
-name: revira
+name: fairfame
 
 # Local development infrastructure for Phase 0.
 # Credentials here are intentionally weak dev-only defaults and match the
@@ -11,17 +11,17 @@ services:
     # not ship the extension. This is Postgres 17 with `vector` preinstalled —
     # same major version, so the existing data directory is unaffected.
     image: pgvector/pgvector:pg17
-    container_name: revira-postgres
+    container_name: fairfame-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: revira
-      POSTGRES_PASSWORD: revira
-      POSTGRES_DB: revira
+      POSTGRES_USER: fairfame
+      POSTGRES_PASSWORD: fairfame
+      POSTGRES_DB: fairfame
       # Deterministic collation so ordering matches across machines.
       POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=und --encoding=UTF8"
       # Consumed by the init script below to create the RLS-bound app role.
-      APP_DB_USER: "${APP_DB_USER:-revira_app}"
-      APP_DB_PASSWORD: "${APP_DB_PASSWORD:-revira_app}"
+      APP_DB_USER: "${APP_DB_USER:-fairfame_app}"
+      APP_DB_PASSWORD: "${APP_DB_PASSWORD:-fairfame_app}"
     ports:
       - "5432:5432"
     volumes:
@@ -29,7 +29,7 @@ services:
       # Runs only on first init of the volume.
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U revira -d revira"]
+      test: ["CMD-SHELL", "pg_isready -U fairfame -d fairfame"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -37,7 +37,7 @@ services:
 
   redis:
     image: redis:8-alpine
-    container_name: revira-redis
+    container_name: fairfame-redis
     restart: unless-stopped
     # BullMQ requires keyspace eviction to be disabled: losing a job key to an
     # eviction policy silently drops work.
@@ -62,7 +62,7 @@ services:
   # maintained successor and speaks the same SMTP(1025)/UI(8025) contract.
   mail:
     image: axllent/mailpit:v1.28
-    container_name: revira-mail
+    container_name: fairfame-mail
     restart: unless-stopped
     environment:
       MP_SMTP_AUTH_ACCEPT_ANY: 1

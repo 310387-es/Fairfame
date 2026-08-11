@@ -1,8 +1,8 @@
 # Phase 4 — Engage · Build Plan
 
-*Revira · from "manage reviews" to "engage customers" · companion to `docs/02-prd.md` §5 (Phase 4) and `docs/01-master-plan.md` §7*
+*Fairfame · from "manage reviews" to "engage customers" · companion to `docs/02-prd.md` §5 (Phase 4) and `docs/01-master-plan.md` §7*
 
-> **The platform phase.** Adds two-way messaging, NPS/CSAT surveys, contact profiles / light CRM, campaigns, and agency white-label. This is where Revira stops being a review tool and becomes the customer-voice + engagement layer (the long-term vision).
+> **The platform phase.** Adds two-way messaging, NPS/CSAT surveys, contact profiles / light CRM, campaigns, and agency white-label. This is where Fairfame stops being a review tool and becomes the customer-voice + engagement layer (the long-term vision).
 >
 > **Gated like 1b:** outbound messaging over **WhatsApp/SMS** needs Meta + İYS credentials (post-company), so build it on **mock/fixtures behind provider flags**, live at go-live. Contacts/CRM, surveys-over-email, and campaign logic are fully buildable now. Reuses the İYS/consent compliance layer and the `contacts`/`consent_records` from earlier phases.
 

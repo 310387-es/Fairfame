@@ -10,7 +10,7 @@
 # `docker compose down -v && docker compose up -d`.
 set -euo pipefail
 
-APP_DB_USER="${APP_DB_USER:-revira_app}"
+APP_DB_USER="${APP_DB_USER:-fairfame_app}"
 
 if [ -z "${APP_DB_PASSWORD:-}" ]; then
   echo "APP_DB_PASSWORD is not set; refusing to create a passwordless app role." >&2

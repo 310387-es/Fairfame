@@ -16,4 +16,4 @@ CREATE POLICY tenant_isolation ON public.whatsapp_conversations
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.whatsapp_conversations TO revira_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.whatsapp_conversations TO fairfame_app;

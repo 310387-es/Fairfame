@@ -76,7 +76,7 @@ CREATE POLICY tenant_isolation ON public.reply_templates
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.reply_templates TO revira_app;--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.reply_templates TO fairfame_app;--> statement-breakpoint
 
 ALTER TABLE public.saved_views ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE public.saved_views FORCE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -84,7 +84,7 @@ CREATE POLICY tenant_isolation ON public.saved_views
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.saved_views TO revira_app;--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.saved_views TO fairfame_app;--> statement-breakpoint
 
 -- ---------------------------------------------------------------------------
 -- Backfill for rows that predate the workflow columns.

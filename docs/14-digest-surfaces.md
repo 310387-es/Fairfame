@@ -1,6 +1,6 @@
 # Digest Surfaces — Email, Archive, and the Cadence Question
 
-*Revira · where the weekly Action Digest goes now that Home is a live dashboard · companion to `docs/10-phase-1a-build-plan.md` (T7/T8) and `docs/home-live-dashboard.md` §6*
+*Fairfame · where the weekly Action Digest goes now that Home is a live dashboard · companion to `docs/10-phase-1a-build-plan.md` (T7/T8) and `docs/home-live-dashboard.md` §6*
 
 > **Why this doc exists.** The Home redesign moved the digest off the screen it was built for. `docs/home-live-dashboard.md` §6 records the intent in one paragraph — "email + a `/weekly-plan` archive, not this task" — which was enough to keep that task honest and is not enough to build from. This is the plan.
 

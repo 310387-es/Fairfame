@@ -1,6 +1,6 @@
 # Phase 0 — Foundations · Build Plan
 
-*Revira (provisional) · the first build sprint · companion to CLAUDE.md and `docs/03-technical-architecture.md`*
+*Fairfame (provisional) · the first build sprint · companion to CLAUDE.md and `docs/03-technical-architecture.md`*
 
 > **Goal:** stand up the multi-tenant foundation everything else hangs on, and prove it with one vertical slice. No real end-user features beyond that slice. Build the tasks **in order**; each has acceptance criteria. Pause after each task for review.
 
@@ -145,7 +145,7 @@ Seed values per plan mirror `docs/05-business-model-and-gtm.md` §2.1 (config, n
 ## .env.example (create in T2)
 
 ```
-DATABASE_URL=postgres://revira:revira@localhost:5432/revira
+DATABASE_URL=postgres://fairfame:fairfame@localhost:5432/fairfame
 REDIS_URL=redis://localhost:6379
 BETTER_AUTH_SECRET=change-me
 BETTER_AUTH_URL=http://localhost:3000
@@ -162,4 +162,4 @@ Real platform connectors (Google/Meta), AI analysis + Action Digest, notificatio
 
 ## Claude Code Kickoff Prompt
 
-> Read `CLAUDE.md` and `docs/09-phase-0-build-plan.md`. We're starting **Phase 0** of Revira. First, restate the locked stack and the Phase 0 Definition of Done back to me so I know we're aligned. Then begin at **T1** and proceed **in order**, stopping after each task for my review. Use the locked stack exactly — no substitutions. Ask before introducing any dependency not named in the plan.
+> Read `CLAUDE.md` and `docs/09-phase-0-build-plan.md`. We're starting **Phase 0** of Fairfame. First, restate the locked stack and the Phase 0 Definition of Done back to me so I know we're aligned. Then begin at **T1** and proceed **in order**, stopping after each task for my review. Use the locked stack exactly — no substitutions. Ask before introducing any dependency not named in the plan.

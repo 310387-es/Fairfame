@@ -73,7 +73,7 @@ CREATE POLICY tenant_isolation ON public.report_schedules
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.report_schedules TO revira_app;--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.report_schedules TO fairfame_app;--> statement-breakpoint
 
 ALTER TABLE public.report_deliveries ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE public.report_deliveries FORCE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -81,4 +81,4 @@ CREATE POLICY tenant_isolation ON public.report_deliveries
   USING (organization_id = app.current_org())
   WITH CHECK (organization_id = app.current_org());
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.report_deliveries TO revira_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.report_deliveries TO fairfame_app;

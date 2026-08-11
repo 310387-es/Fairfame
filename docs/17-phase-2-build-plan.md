@@ -1,6 +1,6 @@
 # Phase 2 — Unified Inbox & Team Workflow · Build Plan
 
-*Revira · turns the inbox into an operations tool · companion to `docs/02-prd.md` §5 (Phase 2) and `docs/06-ux-roles-and-flows.md`*
+*Fairfame · turns the inbox into an operations tool · companion to `docs/02-prd.md` §5 (Phase 2) and `docs/06-ux-roles-and-flows.md`*
 
 > **Builds on what exists.** Phase 1 already shipped a basic inbox (`src/components/reviews/{filter-bar,review-list,reply-composer}.tsx`, `src/reviews/queries.ts`) for the AI-reply flow. Phase 2 elevates it from "list + reply" into a real **team triage inbox**: unified across sources, with status, assignment, SLA, templates, saved views, bulk actions, and near-real-time updates. Still on the **mock connector** (real sources are 1b, gated on the company).
 
