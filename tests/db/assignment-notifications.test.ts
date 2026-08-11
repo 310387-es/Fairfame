@@ -10,6 +10,7 @@ import { sendPendingEmails } from "@/notifications/email";
 import { listFeed } from "@/notifications/feed";
 import { savePreference } from "@/notifications/preferences";
 import { subscribeToPlanWith } from "./plan-fixture";
+import { dropFixtureUsers } from "./cleanup";
 
 /**
  * Telling somebody that work was handed to them (P2-T4 follow-up).
@@ -114,6 +115,8 @@ afterAll(async () => {
   if (orgIds.length > 0) {
     await getAdminDb().delete(schema.organizations).where(inArray(schema.organizations.id, orgIds));
   }
+  // Organizations cascade; users do not — see `dropFixtureUsers`.
+  await dropFixtureUsers(suffix);
   await closeDatabasePools();
 });
 

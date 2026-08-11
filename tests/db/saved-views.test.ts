@@ -11,6 +11,7 @@ import {
 } from "@/reviews/views";
 import { withTenant } from "@/lib/tenancy";
 import { subscribeToPlanWith } from "./plan-fixture";
+import { dropFixtureUsers } from "./cleanup";
 
 /**
  * Saved views (P2-T3).
@@ -58,6 +59,8 @@ afterAll(async () => {
   if (orgIds.length > 0) {
     await getAdminDb().delete(schema.organizations).where(inArray(schema.organizations.id, orgIds));
   }
+  // Organizations cascade; users do not — see `dropFixtureUsers`.
+  await dropFixtureUsers(suffix);
   await closeDatabasePools();
 });
 

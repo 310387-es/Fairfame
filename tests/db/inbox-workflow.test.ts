@@ -5,6 +5,7 @@ import type { CanonicalReview } from "@/connectors/types";
 import { closeDatabasePools, getAdminDb, getAppDb, schema } from "@/db/client";
 import { computePriority, DEFAULT_SLA_HOURS, refreshPriority } from "@/reviews/workflow";
 import { withTenant } from "@/lib/tenancy";
+import { dropFixtureUsers } from "./cleanup";
 
 /**
  * Inbox workflow columns (P2-T1).
@@ -91,6 +92,8 @@ afterAll(async () => {
   if (orgIds.length > 0) {
     await getAdminDb().delete(schema.organizations).where(inArray(schema.organizations.id, orgIds));
   }
+  // Organizations cascade; users do not — see `dropFixtureUsers`.
+  await dropFixtureUsers(suffix);
   await closeDatabasePools();
 });
 

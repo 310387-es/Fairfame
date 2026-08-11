@@ -8,6 +8,7 @@ import { DEFAULT_WIDGET_FILTERS } from "@/widgets/config";
 import { createWidget, getWidget, listWidgets, updateWidget } from "@/widgets/store";
 import { loadWidgetContent, resolveWidgetByKey } from "@/widgets/public";
 import { subscribeToPlanWith } from "./plan-fixture";
+import { dropFixtureUsers } from "./cleanup";
 
 /**
  * The widget builder (P3-T1).
@@ -124,6 +125,8 @@ afterAll(async () => {
   if (orgIds.length > 0) {
     await getAdminDb().delete(schema.organizations).where(inArray(schema.organizations.id, orgIds));
   }
+  // Organizations cascade; users do not — see `dropFixtureUsers`.
+  await dropFixtureUsers(suffix);
   await closeDatabasePools();
 });
 

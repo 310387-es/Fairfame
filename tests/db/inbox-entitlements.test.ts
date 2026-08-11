@@ -12,6 +12,7 @@ import { listLocations, listLocationsForActor } from "@/lib/active-location";
 import { withTenant } from "@/lib/tenancy";
 import { notifySlaBreaches } from "@/notifications/service";
 import { PLAN_CATALOG } from "@/lib/plans";
+import { dropFixtureUsers } from "./cleanup";
 
 /**
  * Entitlements and team scope (P2-T8).
@@ -195,6 +196,8 @@ afterAll(async () => {
   if (orgIds.length > 0) {
     await getAdminDb().delete(schema.organizations).where(inArray(schema.organizations.id, orgIds));
   }
+  // Organizations cascade; users do not — see `dropFixtureUsers`.
+  await dropFixtureUsers(suffix);
   await closeDatabasePools();
 });
 

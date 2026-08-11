@@ -18,6 +18,7 @@ import { runAnalyze, runAnalyzeSweep } from "@/jobs/workers/analyze-reviews";
 import { createReviewWorker } from "@/jobs/workers/sync-reviews";
 import { currentPeriod, withinLimit } from "@/lib/entitlements";
 import { withTenant } from "@/lib/tenancy";
+import { dropFixtureUsers } from "./cleanup";
 
 /**
  * Ingestion to insights, with nothing done by hand (P1a-T4).
@@ -146,6 +147,8 @@ afterAll(async () => {
   await Promise.all([queueConnection.quit(), workerConnection.quit(), eventsConnection.quit()]);
 
   await getAdminDb().delete(schema.organizations).where(inArray(schema.organizations.id, orgIds));
+  // Organizations cascade; users do not — see `dropFixtureUsers`.
+  await dropFixtureUsers(suffix);
   await closeDatabasePools();
 });
 

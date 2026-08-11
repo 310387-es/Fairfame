@@ -18,6 +18,7 @@ import { TriageError, type TriageActor } from "@/reviews/triage";
 import { withTenant } from "@/lib/tenancy";
 import { subscribeToPlanWith } from "./plan-fixture";
 import { saveReplyTemplate } from "@/replies/templates";
+import { dropFixtureUsers } from "./cleanup";
 
 /**
  * Bulk actions (P2-T6).
@@ -135,6 +136,8 @@ afterAll(async () => {
   if (orgIds.length > 0) {
     await getAdminDb().delete(schema.organizations).where(inArray(schema.organizations.id, orgIds));
   }
+  // Organizations cascade; users do not — see `dropFixtureUsers`.
+  await dropFixtureUsers(suffix);
   await closeDatabasePools();
 });
 

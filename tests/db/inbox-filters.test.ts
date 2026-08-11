@@ -13,6 +13,7 @@ import {
   type InboxFilters,
 } from "@/reviews/queries";
 import { withTenant } from "@/lib/tenancy";
+import { dropFixtureUsers } from "./cleanup";
 
 /**
  * The unified inbox query (P2-T2).
@@ -190,6 +191,8 @@ afterAll(async () => {
   if (orgIds.length > 0) {
     await getAdminDb().delete(schema.organizations).where(inArray(schema.organizations.id, orgIds));
   }
+  // Organizations cascade; users do not — see `dropFixtureUsers`.
+  await dropFixtureUsers(suffix);
   await closeDatabasePools();
 });
 

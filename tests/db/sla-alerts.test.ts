@@ -7,6 +7,7 @@ import { EMPTY_INBOX_FILTERS } from "@/reviews/filters";
 import { recordFirstResponse } from "@/reviews/triage";
 import { withTenant } from "@/lib/tenancy";
 import { subscribeToPlanWith } from "./plan-fixture";
+import { dropFixtureUsers } from "./cleanup";
 import {
   notifyPendingReviews,
   notifySlaBreaches,
@@ -117,6 +118,8 @@ afterAll(async () => {
   if (orgIds.length > 0) {
     await getAdminDb().delete(schema.organizations).where(inArray(schema.organizations.id, orgIds));
   }
+  // Organizations cascade; users do not — see `dropFixtureUsers`.
+  await dropFixtureUsers(suffix);
   await closeDatabasePools();
 });
 

@@ -13,6 +13,7 @@ import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { assignReview, recordFirstResponse, setReviewStatus, TriageError } from "@/reviews/triage";
 import { listLocations } from "@/lib/active-location";
 import { withTenant } from "@/lib/tenancy";
+import { dropFixtureUsers } from "./cleanup";
 
 /**
  * Status, assignment and location scope (P2-T4).
@@ -157,6 +158,8 @@ afterAll(async () => {
   if (orgIds.length > 0) {
     await getAdminDb().delete(schema.organizations).where(inArray(schema.organizations.id, orgIds));
   }
+  // Organizations cascade; users do not — see `dropFixtureUsers`.
+  await dropFixtureUsers(suffix);
   await closeDatabasePools();
 });
 
