@@ -45,6 +45,21 @@ jobs:
           --health-retries 12
         ports: ["6379:6379"]
 
+      # The browser suite verifies the shared account's email address by
+      # following the real link out of the inbox, so it needs somewhere for the
+      # mail to land. Without this the setup fails at ECONNREFUSED :8025 and all
+      # 64 tests are skipped — which is what happened for six runs.
+      #
+      # No healthcheck: the image ships no shell and no curl, so every form of
+      # `--health-cmd` fails and the container never reports healthy. The suite
+      # polls the inbox itself and is the real readiness check.
+      mail:
+        image: axllent/mailpit:v1.28
+        env:
+          MP_SMTP_AUTH_ACCEPT_ANY: 1
+          MP_SMTP_AUTH_ALLOW_INSECURE: 1
+        ports: ["1025:1025", "8025:8025"]
+
     env:
       NODE_ENV: test
       DATABASE_URL: postgres://fairfame:fairfame@localhost:5432/fairfame
@@ -54,6 +69,11 @@ jobs:
       BETTER_AUTH_URL: http://localhost:3000
       LOG_LEVEL: warn
       LOG_PRETTY: "false"
+      # `log` is the default and renders mail without sending it. The browser
+      # suite reads the address-verification link out of Mailpit, so CI has to
+      # actually send — this pair is what makes the service above reachable.
+      EMAIL_TRANSPORT: smtp
+      SMTP_URL: smtp://localhost:1025
       # The browser suite connects the mock source, which is a development
       # instrument and hidden unless a deployment opts in. `next start` runs in
       # production mode here, so without this the suite cannot set an account

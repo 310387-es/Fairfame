@@ -35,9 +35,14 @@ const MAILPIT = process.env.E2E_MAILPIT_URL ?? "http://localhost:8025";
  * any spec is written, which is the same argument `createAccount` makes for
  * building the account through the product's own endpoints.
  *
- * Mailpit is part of `docker compose up` and is already required by the dev
- * environment these tests run against, so this adds no service the suite did
- * not already need.
+ * **It does add a service, and the first version of this comment claimed it did
+ * not.** "Mailpit is part of `docker compose up`, so the suite needed it
+ * already" was true of a developer's machine and false of CI, which ran
+ * Postgres and Redis and nothing else — six commits went red at
+ * `ECONNREFUSED :8025` before anybody looked. `.github/workflows/ci.yml` now
+ * runs Mailpit and sets `EMAIL_TRANSPORT=smtp`, because with the default `log`
+ * transport the mail is rendered and never sent and the service alone would not
+ * have been enough.
  *
  * Polled rather than awaited once: the send happens inside the sign-up request
  * but the SMTP round trip does not block it, so the message can land a moment
@@ -45,6 +50,28 @@ const MAILPIT = process.env.E2E_MAILPIT_URL ?? "http://localhost:8025";
  */
 export async function verifyAccountEmail(page: Page, email: string): Promise<void> {
   const api = page.request;
+
+  /**
+   * Reachability is checked once, and separately, because the two failures need
+   * different sentences.
+   *
+   * CI ran for six commits with no Mailpit service: every run died inside the
+   * poll loop on `connect ECONNREFUSED ::1:8025` and skipped all 64 tests. That
+   * stack trace says nothing about what to do. "No inbox is listening" and "the
+   * mail never arrived" are different problems — one is infrastructure, the
+   * other is the product — and a suite that cannot tell them apart costs an
+   * afternoon to diagnose.
+   */
+  const reachable = await api
+    .get(`${MAILPIT}/api/v1/info`, { failOnStatusCode: false })
+    .then((response) => response.ok())
+    .catch(() => false);
+
+  expect(
+    reachable,
+    `No mail server at ${MAILPIT}. Locally: \`docker compose up -d\`. In CI: the ` +
+      "`mail` service in .github/workflows/ci.yml, plus EMAIL_TRANSPORT=smtp.",
+  ).toBe(true);
 
   let link: string | undefined;
   for (let attempt = 0; attempt < 25 && !link; attempt += 1) {
