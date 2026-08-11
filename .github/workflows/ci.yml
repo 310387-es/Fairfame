@@ -79,10 +79,16 @@ jobs:
       # entirely when no provider is configured, which is the repo's default
       # state and therefore the one CI would otherwise be the only place to test.
       #
-      # Never used to reach Stripe: the SDK is constructed lazily inside
-      # `createCheckoutSession`, and no test presses a checkout button. A key
-      # shaped like a test key and named as fake, same as BETTER_AUTH_SECRET above.
-      STRIPE_SECRET_KEY: sk_test_ci_fake_no_network_call_is_ever_made_000
+      # The first version of this comment said no test would ever reach Stripe.
+      # Three did — `tests/lib/billing.test.ts` calls `createCheckoutSession`
+      # expecting a refusal, and a configured provider answers by making the
+      # request. The unit suite is now sealed against credentials outright
+      # (`tests/setup-unit-env.ts`), which is the real fix; a key that only
+      # *looks* fake would have been a live call away from a valid one.
+      #
+      # So this reaches the browser suite alone, which never presses checkout.
+      # Named as fake, same as BETTER_AUTH_SECRET above.
+      STRIPE_SECRET_KEY: sk_test_ci_fake_browser_suite_only_see_seal_000
       # The browser suite connects the mock source, which is a development
       # instrument and hidden unless a deployment opts in. `next start` runs in
       # production mode here, so without this the suite cannot set an account
