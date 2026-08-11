@@ -11,7 +11,7 @@
 html{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 body{background:var(--paper);color:var(--ink);font-family:GeistE,system-ui,sans-serif;font-size:15px;line-height:1.6}
-.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 28px}
 a{color:inherit;text-decoration:none}
 .eyebrow{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
 .serif{font-family:Lora,Georgia,serif;font-weight:500;letter-spacing:-.01em}
@@ -31,13 +31,14 @@ nav.scrolled{border-bottom-color:var(--line)}
 .lang{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;font-weight:600;font-size:12.5px;cursor:pointer;font-family:inherit}
 /* hero */
 .hero{position:relative;overflow:hidden;cursor:default}
-.hero-in{position:relative;text-align:center;padding:104px 24px 118px;pointer-events:none}
+.hero-in{position:relative;text-align:left;padding:110px 28px 110px;pointer-events:none;max-width:1200px;margin:0 auto}
+.hero-in .inner{max-width:620px}
 .hero-in .btn, .hero-in a{pointer-events:auto}
 .hero h1{font-family:Lora,Georgia,serif;font-weight:500;font-size:clamp(42px,7vw,68px);line-height:1.05;letter-spacing:-.018em;margin:16px 0 20px}
-.hero .sub{max-width:560px;margin:0 auto 30px;color:#3d4563;font-size:17px}
-.hero .sources{margin-top:34px;font-size:12.5px;color:var(--faint)}
+.hero .sub{max-width:540px;margin:0 0 30px;color:#3d4563;font-size:17px}
+.hero .sources{margin-top:36px;font-size:12.5px;color:var(--faint);max-width:560px}
 /* sections */
-section{padding:84px 0}
+section{padding:60px 0}
 .sec-head{max-width:640px;margin-bottom:40px}
 .sec-head h2{font-family:Lora,Georgia,serif;font-weight:500;font-size:clamp(28px,4vw,40px);line-height:1.12;letter-spacing:-.014em;margin:8px 0 12px}
 .sec-head p{color:#3d4563}
@@ -45,22 +46,24 @@ section{padding:84px 0}
 .reveal.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 /* flow */
-.flow{display:grid;grid-template-columns:340px 1fr;gap:34px;align-items:start}
-.steps{position:sticky;top:88px;display:flex;flex-direction:column;gap:10px}
+.flow{display:grid;grid-template-columns:340px 1fr;gap:30px;align-items:stretch}
+.steps{display:flex;flex-direction:column;gap:10px}
+.steps .step{flex:1;display:flex;flex-direction:column;justify-content:center;transition:flex-grow .3s ease,border-color .18s}
+.steps .step.active{flex-grow:3.2}
 .step{border:1px solid var(--line);border-radius:12px;background:#fff;padding:15px 16px 15px 18px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .18s}
 .step .num{font-family:ui-monospace,monospace;font-size:11px;color:var(--faint)}
 .step h3{font-size:15px;margin:3px 0 4px}
 .step p{font-size:13px;color:var(--faint);line-height:1.5;max-height:0;opacity:0;overflow:hidden;transition:max-height .28s ease,opacity .28s ease,margin .28s}
 .step.active{border-color:var(--ink)}
-.step.active p{max-height:130px;opacity:1;margin-top:4px}
+.step.active p{max-height:170px;opacity:1;margin-top:4px}
 .step .bar{position:absolute;left:0;bottom:0;height:2px;background:var(--amber);width:0}
 .step.active .bar{animation:fill var(--stepms) linear forwards}
 @keyframes fill{to{width:100%}}
 .paused .step.active .bar{animation-play-state:paused}
 @media (prefers-reduced-motion:reduce){.step .bar{display:none}}
 /* stage */
-.stage{position:relative;border:1px solid var(--line);border-radius:16px;background:#F6F7FB;padding:26px;min-height:430px}
-.window{background:#fff;border:1px solid #E7EAF3;border-radius:12px;overflow:hidden;max-width:560px;margin:0 auto}
+.stage{position:relative;border:1px solid var(--line);border-radius:16px;background:#F6F7FB;padding:26px;display:flex;align-items:center}
+.window{background:#fff;border:1px solid #E7EAF3;border-radius:12px;overflow:hidden;max-width:600px;width:100%;margin:0 auto}
 .win-top{display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid #EFF1F7;font-size:12.5px;font-weight:600}
 .win-top .crumb{color:#666E88;font-weight:500}
 .panel{display:none;padding:16px}
@@ -110,12 +113,115 @@ section{padding:84px 0}
 .meter i{display:block;height:100%;background:var(--amber);width:0;transition:width 1s cubic-bezier(.2,.7,.3,1)}
 .in .meter i{width:var(--w)}
 .badge-demo{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:9px 13px;background:var(--paper);font-weight:650;font-variant-numeric:tabular-nums}
+/* vignettes */
+.viz{margin-top:auto;padding-top:16px}
+.cell{display:flex;flex-direction:column}
+.vbubble{display:inline-block;background:#F5F7FA;border:1px solid #E7EAF3;border-radius:10px 10px 10px 3px;padding:8px 11px;font-size:12px;max-width:100%}
+.vchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.vchip{font-size:10px;font-weight:600;border:1px solid #E7EAF3;background:#fff;border-radius:6px;padding:3px 7px;color:#3d4563}
+.vchip.ok{background:#EAF4EE;color:#1d5c3a;border-color:#d5e8dc}
+.vdraft{border:1px solid #E7EAF3;background:#FBFBFD;border-radius:9px;padding:9px 11px;font-size:12px}
+.vbtns{display:flex;gap:6px;margin-top:8px}
+.vbtn{font-size:10.5px;font-weight:600;border-radius:6px;padding:4px 9px;border:1px solid #E7EAF3;background:#fff;color:var(--ink)}
+.vbtn.p{background:var(--indigo);border-color:var(--indigo);color:#fff}
+.nps{display:flex;gap:3px;align-items:center}
+.nps i{width:16px;height:16px;border-radius:4px;background:#F1EDE3;font-style:normal;font-size:9px;display:flex;align-items:center;justify-content:center;color:#8a8676}
+.nps i.hot{background:var(--amber);color:var(--rail);font-weight:700}
+.avarow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.av{width:24px;height:24px;border-radius:50%;background:#EEF1FB;color:var(--indigo);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff}
+.av+.av{margin-left:-10px}
+.pill{font-size:10px;font-weight:600;border:1px solid #E7EAF3;border-radius:99px;padding:3px 8px;color:#3d4563;background:#fff}
+.phone{border:1.5px solid var(--line);border-radius:12px;padding:8px;background:#fff;max-width:230px}
+.push{display:flex;gap:8px;align-items:center;background:#F5F7FA;border-radius:8px;padding:7px 9px;font-size:11px}
+.pushdot{width:8px;height:8px;border-radius:50%;background:var(--amber);flex:none}
+.labels3{display:flex;gap:8px;flex-wrap:wrap}
+/* diagram */
+.dgm-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;margin-top:14px}
+.dgm-card .hint{font-size:12px;color:var(--faint);margin:2px 0 10px}
+.dgm{width:100%;height:auto;display:block}
+.dgm .edge{fill:none;stroke:#E3DCCB;stroke-width:1.5}
+.dgm .flowd{fill:none;stroke:var(--amber);stroke-width:1.5;stroke-dasharray:3 8;stroke-linecap:round;animation:dashmove 1.6s linear infinite;opacity:.7}
+@keyframes dashmove{to{stroke-dashoffset:-22}}
+@media (prefers-reduced-motion:reduce){.dgm .flowd{animation:none}}
+.dgm .edge.hot{stroke:var(--ink);stroke-width:2}
+.dgm .node rect{fill:#fff;stroke:#E7EAF3;rx:9}
+.dgm .node text{font-family:GeistE,sans-serif;font-size:12px;font-weight:600;fill:#10193A}
+.dgm .node{cursor:default;transition:transform .18s}
+.dgm .node.hot rect{stroke:#10193A;stroke-width:1.5}
+/* pricing */
+.tiers{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:stretch}
+.tier{position:relative;background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column}
+.tier.hot{border-color:var(--ink)}
+.tbadge{position:absolute;top:-11px;left:20px;background:var(--amber);color:var(--rail);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:3px 9px}
+.tname{font-weight:650;font-size:15px;margin-bottom:8px}
+.tprice{margin-bottom:14px}.tprice b{font-size:26px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.tprice span{font-size:11.5px;color:var(--faint)}
+.tier ul{list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:8px;flex:1}
+.tier li{font-size:12.5px;color:#3d4563;padding-left:16px;position:relative}
+.tier li:before{content:"—";position:absolute;left:0;color:var(--amber)}
+.tbtn{text-align:center;padding:10px 14px;font-size:13px}
 /* quote */
 .quoteband{text-align:center;padding:96px 24px}
 .quoteband .q{font-family:Lora,Georgia,serif;font-style:italic;font-size:clamp(22px,3.4vw,32px);line-height:1.35;max-width:760px;margin:0 auto 14px}
 .quoteband .src{font-size:13px;color:var(--faint)}
+/* diagram */
+(function(){
+  var svg=document.querySelector(".dgm"), NE=document.getElementById("nodes"), EE=document.getElementById("edges");
+  var seal=44;
+  var srcs=[["n_g",32],["n_w",86],["n_i",140],["n_q",194],["n_more",248]];
+  var outs=[["n_a",32],["n_r",86],["n_p",140],["n_s",194],["n_d",248]];
+  var CX=460, CY=140;
+  function path(x1,y1,x2,y2){ var mx=(x1+x2)/2; return "M"+x1+","+y1+" C"+mx+","+y1+" "+mx+","+y2+" "+x2+","+y2; }
+  var edges=[];
+  var allNodes=[];
+  function sizeNode(n){
+    var w=n.t.getBBox().width+28;
+    n.t.setAttribute("x", n.anchor==="start" ? 34 : 914-w);
+    n.r.setAttribute("x", n.anchor==="start" ? 20 : 900-w);
+    n.r.setAttribute("y", n.y-16); n.r.setAttribute("width", w); n.r.setAttribute("height", 32); n.r.setAttribute("rx", 9);
+  }
+  window.__dgmResize=function(){ allNodes.forEach(sizeNode); };
+  function node(id,x,y,anchor,ei){
+    var g=document.createElementNS("http://www.w3.org/2000/svg","g");
+    g.setAttribute("class","node"); g.dataset.edge=ei;
+    var r=document.createElementNS("http://www.w3.org/2000/svg","rect");
+    var t=document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("data-i18n",id); t.setAttribute("y",y+4);
+    g.appendChild(r); g.appendChild(t); NE.appendChild(g);
+    var n={t:t,r:r,y:y,anchor:anchor}; allNodes.push(n);
+    requestAnimationFrame(function(){ sizeNode(n); });
+    g.addEventListener("pointerenter",function(){ edges[ei].classList.add("hot"); g.classList.add("hot"); });
+    g.addEventListener("pointerleave",function(){ edges[ei].classList.remove("hot"); g.classList.remove("hot"); });
+    return g;
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ window.__dgmResize(); });
+  var ei=0;
+  srcs.forEach(function(sp){
+    var e=document.createElementNS("http://www.w3.org/2000/svg","path");
+    e.setAttribute("class","edge"); e.setAttribute("d", path(160, sp[1], CX-seal-6, CY));
+    var f=e.cloneNode(); f.setAttribute("class","flowd");
+    EE.appendChild(e); EE.appendChild(f); edges.push(e);
+    node(sp[0], 20, sp[1], "start", ei); ei++;
+  });
+  outs.forEach(function(sp){
+    var e=document.createElementNS("http://www.w3.org/2000/svg","path");
+    e.setAttribute("class","edge"); e.setAttribute("d", path(CX+seal+6, CY, 760, sp[1]));
+    var f=e.cloneNode(); f.setAttribute("class","flowd");
+    EE.appendChild(e); EE.appendChild(f); edges.push(e);
+    node(sp[0], 900, sp[1], "end", ei); ei++;
+  });
+  var c=document.createElementNS("http://www.w3.org/2000/svg","g");
+  c.innerHTML='<circle cx="'+CX+'" cy="'+CY+'" r="'+seal+'" fill="#10193A"/>';
+  var img=document.createElementNS("http://www.w3.org/2000/svg","g");
+  EE.parentNode.appendChild(c);
+  var glyph=document.createElementNS("http://www.w3.org/2000/svg","g");
+  glyph.setAttribute("transform","translate("+(CX-30)+","+(CY-30)+") scale(1.36)");
+  glyph.innerHTML=SEAL_GLYPH;
+  EE.parentNode.appendChild(glyph);
+})();
+
 /* faq */
-.faq{max-width:720px}
+.faq{max-width:880px}
 .qa{border-bottom:1px solid var(--line)}
 .qa button{width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:0;padding:18px 2px;font:inherit;font-weight:600;font-size:15.5px;color:var(--ink);cursor:pointer;text-align:left}
 .qa .plus{font-family:ui-monospace,monospace;color:var(--faint);transition:transform .2s}
@@ -133,6 +239,8 @@ footer .grow{flex:1}
  .flow{grid-template-columns:1fr}
  .steps{position:static;flex-direction:column}
  .bento{grid-template-columns:1fr}
+ .tiers{grid-template-columns:1fr 1fr}
+ @media(max-width:560px){.tiers{grid-template-columns:1fr}}
  .cell.wide{grid-column:span 1}
  .nav-links{display:none}
  .nav-in > a.btn{display:none}
@@ -144,6 +252,7 @@ footer .grow{flex:1}
   <div class="nav-links">
     <a href="#how" data-i18n="nav_how">How it works</a>
     <a href="#features" data-i18n="nav_features">What you get</a>
+    <a href="#pricing" data-i18n="nav_pricing">Pricing</a>
     <a href="#faq" data-i18n="nav_faq">Questions</a>
   </div>
   <button class="lang" id="langbtn">TR</button>
@@ -151,14 +260,14 @@ footer .grow{flex:1}
 </div></nav>
 
 <header class="hero" id="hero">
-  <div class="hero-in wrap">
+  <div class="hero-in wrap"><div class="inner">
     <div class="eyebrow" data-i18n="hero_eyebrow">Review &amp; customer-voice management</div>
     <h1 data-i18n-html="hero_h1">Your good name,<br>looked after.</h1>
     <p class="sub" data-i18n="hero_sub"></p>
     <a class="btn" href="#cta" data-i18n="hero_cta1">Start free</a>
     <a class="btn ghost" href="#how" data-i18n="hero_cta2">See how it works</a>
     <div class="sources" data-i18n="hero_sources"></div>
-  </div>
+  </div></div>
 </header>
 
 <section id="how"><div class="wrap">
@@ -169,10 +278,11 @@ footer .grow{flex:1}
   </div>
   <div class="flow" id="flowroot">
     <div class="steps" id="steps">
-      <div class="step active" data-step="0"><div class="num">01</div><h3 data-i18n="s1_t"></h3><p data-i18n="s1_d"></p><div class="bar"></div></div>
-      <div class="step" data-step="1"><div class="num">02</div><h3 data-i18n="s2_t"></h3><p data-i18n="s2_d"></p><div class="bar"></div></div>
-      <div class="step" data-step="2"><div class="num">03</div><h3 data-i18n="s3_t"></h3><p data-i18n="s3_d"></p><div class="bar"></div></div>
-      <div class="step" data-step="3"><div class="num">04</div><h3 data-i18n="s4_t"></h3><p data-i18n="s4_d"></p><div class="bar"></div></div>
+      <div class="step active" data-step="0"><div class="num">01</div><h3 data-i18n="s0_t"></h3><p data-i18n="s0_d"></p><div class="bar"></div></div>
+      <div class="step" data-step="1"><div class="num">02</div><h3 data-i18n="s1_t"></h3><p data-i18n="s1_d"></p><div class="bar"></div></div>
+      <div class="step" data-step="2"><div class="num">03</div><h3 data-i18n="s2_t"></h3><p data-i18n="s2_d"></p><div class="bar"></div></div>
+      <div class="step" data-step="3"><div class="num">04</div><h3 data-i18n="s3_t"></h3><p data-i18n="s3_d"></p><div class="bar"></div></div>
+      <div class="step" data-step="4"><div class="num">05</div><h3 data-i18n="s4_t"></h3><p data-i18n="s4_d"></p><div class="bar"></div></div>
     </div>
     <div class="stage" id="stage">
       <div class="window">
@@ -180,7 +290,21 @@ footer .grow{flex:1}
 
         <div class="panel on" data-panel="0">
           <div class="chips">
-            <span class="chip">Google</span><span class="chip">WhatsApp</span><span class="chip">Instagram</span><span class="chip">+ TR</span>
+            <span class="chip" data-i18n="c_wa"></span><span class="chip" data-i18n="c_em"></span><span class="chip" data-i18n="c_sms"></span><span class="chip" data-i18n="c_qr"></span>
+          </div>
+          <div class="rowi"><div class="ava" style="background:#EAF4EE;color:#1d5c3a">Q</div><div>
+            <div class="who" data-i18n="req_to"></div>
+            <div class="txt" data-i18n="req_msg"></div>
+            <div style="margin-top:9px"><span class="badge pos" data-i18n="req_consent"></span></div>
+          </div></div>
+          <div class="rowi" style="border:0"><div class="ava" style="background:#F5F7FA;color:#666E88">i</div><div>
+            <div class="txt" style="font-size:12px;color:#666E88" data-i18n="req_note"></div>
+          </div></div>
+        </div>
+
+        <div class="panel" data-panel="1">
+          <div class="chips">
+            <span class="chip">Google</span><span class="chip">WhatsApp</span><span class="chip">Instagram</span><span class="chip">Facebook</span><span class="chip">TripAdvisor</span><span class="chip">Trustpilot</span><span class="chip" data-i18n="c_more"></span>
           </div>
           <div class="rowi"><div class="ava">D</div><div><div class="who" data-i18n="r1_name"></div>
             <div class="stars">★★<span class="off">★★★</span></div><div class="txt" data-i18n="r1_text"></div></div></div>
@@ -190,7 +314,7 @@ footer .grow{flex:1}
             <div class="txt" data-i18n="r3_text"></div></div></div>
         </div>
 
-        <div class="panel" data-panel="1">
+        <div class="panel" data-panel="2">
           <div class="rowi" style="opacity:1;transform:none"><div class="ava">D</div><div>
             <div class="who" data-i18n="r1_name"></div>
             <div class="stars">★★<span class="off">★★★</span></div>
@@ -200,7 +324,7 @@ footer .grow{flex:1}
           </div></div>
         </div>
 
-        <div class="panel" data-panel="2">
+        <div class="panel" data-panel="3">
           <div class="rowi" style="opacity:1;transform:none;border:0;padding-bottom:4px"><div class="ava">D</div><div>
             <div class="who" data-i18n="r1_name"></div><div class="txt" data-i18n="r1_text"></div></div></div>
           <div class="draft"><div class="lbl" data-i18n="draft_label"></div>
@@ -213,7 +337,7 @@ footer .grow{flex:1}
           </div>
         </div>
 
-        <div class="panel" data-panel="3">
+        <div class="panel" data-panel="4">
           <div class="eyebrow" style="margin:2px 0 8px" data-i18n="mock_digest">Monday plan</div>
           <div class="digest-item"><div class="dnum">1</div><div class="txt" data-i18n="d1"></div></div>
           <div class="digest-item"><div class="dnum">2</div><div class="txt" data-i18n="d2"></div></div>
@@ -232,16 +356,78 @@ footer .grow{flex:1}
   </div>
   <div class="bento">
     <div class="cell wide reveal"><h3 data-i18n="f1_t"></h3><p data-i18n="f1_d"></p>
-      <div class="viz"><div class="digest-item" style="opacity:1;transform:none"><div class="dnum">1</div><div class="txt" data-i18n="d2"></div></div></div></div>
-    <div class="cell reveal"><h3 data-i18n="f2_t"></h3><p data-i18n="f2_d"></p></div>
-    <div class="cell reveal"><h3 data-i18n="f3_t"></h3><p data-i18n="f3_d"></p></div>
+      <div class="viz"><div class="digest-item" style="opacity:1;transform:none"><div class="dnum">1</div><div class="txt" data-i18n="d2"></div></div>
+      <div class="digest-item" style="opacity:1;transform:none"><div class="dnum">2</div><div class="txt" data-i18n="d3"></div></div></div></div>
+    <div class="cell reveal"><h3 data-i18n="fc_t"></h3><p data-i18n="fc_d"></p>
+      <div class="viz"><div class="vchips"><span class="vchip">QR</span><span class="vchip">SMS</span><span class="vchip" data-i18n="c_em"></span><span class="vchip">WhatsApp</span><span class="vchip ok" data-i18n="v_consent"></span></div>
+      <span class="vbubble" data-i18n="v_req"></span></div></div>
+    <div class="cell reveal"><h3 data-i18n="f3_t"></h3><p data-i18n="f3_d"></p>
+      <div class="viz"><div class="vdraft"><span data-i18n="v_draft"></span>
+      <div class="vbtns"><span class="vbtn" data-i18n="btn_edit"></span><span class="vbtn p" data-i18n="btn_approve"></span></div></div></div></div>
+    <div class="cell reveal"><h3 data-i18n="fe_t"></h3><p data-i18n="fe_d"></p>
+      <div class="viz"><div class="nps"><span style="font-size:10px;font-weight:700;color:var(--faint);margin-right:4px" data-i18n="v_nps"></span>
+      <i>6</i><i>7</i><i>8</i><i class="hot">9</i><i>10</i></div></div></div>
     <div class="cell reveal"><h3 data-i18n="f4_t"></h3><p data-i18n="f4_d"></p>
       <div class="viz"><span class="badge-demo"><span class="stars">★★★★<span class="off">★</span></span> 4,8 · 212</span></div></div>
-    <div class="cell reveal"><h3 data-i18n="f5_t"></h3><p data-i18n="f5_d"></p>
+    <div class="cell reveal"><h3 data-i18n="fa_t"></h3><p data-i18n="fa_d"></p>
       <div class="viz"><div style="font-size:11px;color:var(--faint)">Fairfame</div><div class="meter" style="--w:86%"><i></i></div>
       <div style="font-size:11px;color:var(--faint);margin-top:8px">~</div><div class="meter" style="--w:64%"><i style="background:#C9CEDC"></i></div></div></div>
-    <div class="cell wide reveal" style="grid-column:span 3"><h3 data-i18n="f6_t"></h3><p data-i18n="f6_d"></p></div>
+    <div class="cell reveal"><h3 data-i18n="ft_t"></h3><p data-i18n="ft_d"></p>
+      <div class="viz"><div class="avarow"><span class="av">EY</span><span class="av">MC</span><span class="av">SD</span>
+      <span class="pill" data-i18n="v_sla"></span><span class="pill" data-i18n="v_loc1"></span><span class="pill" data-i18n="v_loc2"></span></div></div></div>
+    <div class="cell reveal"><h3 data-i18n="fw_t"></h3><p data-i18n="fw_d"></p>
+      <div class="viz"><div class="phone"><div class="push"><span class="pushdot"></span><span data-i18n="v_push"></span></div></div></div></div>
+    <div class="cell wide reveal" style="grid-column:span 3;border-color:var(--ink)"><h3 data-i18n="f6_t"></h3><p data-i18n="f6_d"></p>
+      <div class="viz"><div class="labels3"><span class="pill" data-i18n="lbl_live"></span><span class="pill" data-i18n="lbl_mon"></span><span class="pill" data-i18n="lbl_disp"></span></div></div></div>
   </div>
+
+  <div class="dgm-card reveal">
+    <div class="eyebrow" data-i18n="dgm_t"></div>
+    <div class="hint" data-i18n="dgm_hint"></div>
+    <svg class="dgm" viewBox="0 0 920 300" aria-hidden="true">
+      <g id="edges"></g>
+      <g id="nodes"></g>
+    </svg>
+  </div>
+</div>
+</div></section>
+
+<section id="agency" style="padding-top:8px"><div class="wrap">
+  <div class="cell reveal" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;padding:30px">
+    <div style="flex:1;min-width:260px">
+      <div class="eyebrow" data-i18n="agency_eyebrow"></div>
+      <h2 class="serif" style="font-size:clamp(24px,3vw,32px);margin:6px 0 8px" data-i18n="agency_h2"></h2>
+      <p style="color:#3d4563;font-size:14px;max-width:560px" data-i18n="agency_d"></p>
+    </div>
+    <a class="btn ghost" href="#cta" data-i18n="agency_cta"></a>
+  </div>
+</div></section>
+
+<section id="pricing" style="padding-top:36px"><div class="wrap">
+  <div class="sec-head reveal">
+    <div class="eyebrow" data-i18n="pricing_eyebrow"></div>
+    <h2 data-i18n="pricing_h2"></h2>
+    <p data-i18n="pricing_sub"></p>
+  </div>
+  <div class="tiers">
+    <div class="tier reveal"><div class="tname" data-i18n="tier1_n"></div>
+      <div class="tprice"><b data-i18n="tier1_p"></b> <span data-i18n="per_loc"></span></div>
+      <ul><li data-i18n="tier1_f1"></li><li data-i18n="tier1_f2"></li><li data-i18n="tier1_f3"></li><li data-i18n="tier1_f4"></li></ul>
+      <a class="btn ghost tbtn" href="#cta" data-i18n="hero_cta1"></a></div>
+    <div class="tier hot reveal"><div class="tbadge" data-i18n="tier2_badge"></div><div class="tname" data-i18n="tier2_n"></div>
+      <div class="tprice"><b data-i18n="tier2_p"></b> <span data-i18n="per_loc"></span></div>
+      <ul><li data-i18n="tier2_f1"></li><li data-i18n="tier2_f2"></li><li data-i18n="tier2_f3"></li><li data-i18n="tier2_f4"></li></ul>
+      <a class="btn tbtn" href="#cta" data-i18n="hero_cta1"></a></div>
+    <div class="tier reveal"><div class="tname" data-i18n="tier3_n"></div>
+      <div class="tprice"><b data-i18n="tier3_p"></b> <span data-i18n="per_loc"></span></div>
+      <ul><li data-i18n="tier3_f1"></li><li data-i18n="tier3_f2"></li><li data-i18n="tier3_f3"></li><li data-i18n="tier3_f4"></li></ul>
+      <a class="btn ghost tbtn" href="#cta" data-i18n="hero_cta1"></a></div>
+    <div class="tier reveal"><div class="tname" data-i18n="tier4_n"></div>
+      <div class="tprice"><b data-i18n="tier4_p"></b></div>
+      <ul><li data-i18n="tier4_f1"></li><li data-i18n="tier4_f2"></li><li data-i18n="tier4_f3"></li><li data-i18n="tier4_f4"></li></ul>
+      <a class="btn ghost tbtn" href="#cta" data-i18n="agency_cta"></a></div>
+  </div>
+  <p class="reveal" style="font-size:12px;color:var(--faint);margin-top:16px;max-width:640px" data-i18n="pricing_note"></p>
 </div></section>
 
 <div class="quoteband reveal">
@@ -256,6 +442,7 @@ footer .grow{flex:1}
     <div class="qa"><button><span data-i18n="q2"></span><span class="plus">+</span></button><div class="ans"><p data-i18n="a2"></p></div></div>
     <div class="qa"><button><span data-i18n="q3"></span><span class="plus">+</span></button><div class="ans"><p data-i18n="a3"></p></div></div>
     <div class="qa"><button><span data-i18n="q4"></span><span class="plus">+</span></button><div class="ans"><p data-i18n="a4"></p></div></div>
+    <div class="qa"><button><span data-i18n="q5"></span><span class="plus">+</span></button><div class="ans"><p data-i18n="a5"></p></div></div>
   </div>
 </div></section>
 
@@ -290,8 +477,10 @@ footer .grow{flex:1}
     "best in the neighbourhood","ask for the usual"
   ];
   var INK = [16, 25, 58], AMBER = [245, 165, 36];
+  var instances = [];
   function attach(el, opts) {
     opts = opts || {};
+    var phrases = opts.phrases || PHRASES;
     var canvas = document.createElement("canvas");
     canvas.setAttribute("aria-hidden", "true");
     canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;";
@@ -302,9 +491,11 @@ footer .grow{flex:1}
     var reduced = global.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     var W = 0, H = 0;
 
+    var cvx = opts.carveX === undefined ? 0.5 : opts.carveX;
+    var cvy = opts.carveY === undefined ? 0.5 : opts.carveY;
     function carved(x, y) {
       if (!opts.carve) return false;
-      var dx = (x - W / 2) / (W * 0.34), dy = (y - H * 0.50) / (H * 0.50);
+      var dx = (x - W * cvx) / (W * 0.34), dy = (y - H * cvy) / (H * 0.50);
       return dx * dx + dy * dy < 1;
     }
     function seed() {
@@ -313,7 +504,7 @@ footer .grow{flex:1}
       var guard = 0;
       while (words.length < target && guard++ < target * 40) {
         var x = 20 + Math.random() * (W - 40), y = 24 + Math.random() * (H - 34);
-        var text = PHRASES[(Math.random() * PHRASES.length) | 0];
+        var text = phrases[(Math.random() * phrases.length) | 0];
         var size = 12 + Math.random() * 8;
         ctx.font = "italic " + size.toFixed(1) + "px Lora, Georgia, serif";
         var tw = ctx.measureText(text).width;
@@ -393,12 +584,15 @@ footer .grow{flex:1}
     });
     global.addEventListener("resize", resize);
     resize(); requestAnimationFrame(frame);
+    instances.push({ setPhrases: function (list) { phrases = list; seed(); } });
   }
-  global.Murmur = { attach: attach };
+  function setPhrases(list) { instances.forEach(function (i) { i.setPhrases(list); }); }
+  global.Murmur = { attach: attach, setPhrases: setPhrases };
 })(window);
 </script>
 <script>
-var COPY = {"en": {"nav_how": "How it works", "nav_features": "What you get", "nav_faq": "Questions", "nav_cta": "Start free", "hero_eyebrow": "Review & customer-voice management", "hero_h1": "Your good name,<br>looked after.", "hero_sub": "Fairfame gathers every review and message your business gets, understands them, helps you answer well — and hands you a Monday plan with the three things that matter.", "hero_cta1": "Start free", "hero_cta2": "See how it works", "hero_sources": "Watches Google · WhatsApp · Instagram · local review platforms — Türkiye first, built global.", "flow_eyebrow": "How it works", "flow_h2": "From noise to next steps.", "flow_sub": "Four moments, one loop. Click through it — this is the product, not a metaphor.", "s1_t": "Every voice lands in one inbox.", "s1_d": "Google, WhatsApp, Instagram, local platforms — a review posted anywhere is in front of you in minutes, in one list, oldest wounds first.", "s2_t": "Fairfame reads it first.", "s2_d": "Sentiment, topic, urgency — each message arrives already understood. A delay complaint is not filed under “neutral feedback”.", "s3_t": "A reply in your voice. You sign it.", "s3_d": "A draft is waiting — warm, specific, in your tone, in the customer's language. Nothing is ever sent without a human pressing the button.", "s4_t": "Monday, 08:00 — your plan.", "s4_d": "Not a dashboard to decode. Three things worth doing this week, ranked, with the evidence one click behind each.", "mock_inbox": "Inbox", "mock_all": "All sources", "mock_understood": "Understood", "mock_reply": "Reply", "mock_digest": "Monday plan", "r1_name": "D. K. · Google", "r1_text": "Waited 40 minutes for two coffees. Nobody came to the table.", "r2_name": "A. S. · Google", "r2_text": "Best breakfast on this street. The team remembers our order.", "r3_name": "WhatsApp message", "r3_text": "Hi — do you take group reservations for Saturday?", "b_negative": "needs attention", "b_positive": "positive", "b_question": "question", "t_service": "service", "t_delay": "waiting time", "t_praise": "team praised", "draft_label": "Draft reply — your tone", "draft_text": "We're sorry about the wait on Tuesday — 40 minutes is not who we are. The kitchen was short-staffed and we've fixed the roster. Your next two coffees are on us; ask for Deniz.", "btn_edit": "Edit", "btn_approve": "Approve & send", "sent_note": "Sent. Logged, and counted in the week's plan.", "d1": "Reply to the 2 reviews still waiting — both mention the same Tuesday.", "d2": "Waiting-time complaints doubled this week. Worth a look at the kitchen roster.", "d3": "Three regulars praised the team by name. A thank-you costs nothing.", "d_delta": "Rating this month: 4,6 → 4,8 · replies within a day: 100%", "feat_eyebrow": "What you get", "feat_h2": "Small team. Well spoken of.", "f1_t": "A Monday plan, not a dashboard.", "f1_d": "The Action Digest ranks the week's three moves and shows its working. If nothing needs you, it says so.", "f2_t": "One inbox for every voice.", "f2_d": "Reviews, messages, questions — triaged, assigned, answered from one place.", "f3_t": "Replies in your voice.", "f3_d": "Drafts learn your tone and your menu. Every send has a human signature.", "f4_t": "Show it off.", "f4_d": "A rating badge and review pages for your site — your good name, working for you in search.", "f5_t": "Know where you stand.", "f5_d": "Your rating next to the street's — movement explained in words, not just a line.", "f6_t": "KVKK-first.", "f6_d": "Consent tracked, data in your control, nothing sent without sign-off. Compliance is a feature, not a footnote.", "quote": "“Cattle die, kindred die… but word-fame never dies, for the one who earns it well.”", "quote_src": "— Hávamál, c. 900. Still true.", "faq_h2": "Fair questions.", "q1": "Which platforms does it watch?", "a1": "Google reviews and Business Profile, WhatsApp Business, Instagram, plus local Turkish platforms. First-party feedback pages are built in — anywhere your customers talk, it can listen.", "q2": "Does AI send replies on its own?", "a2": "No. Every reply is drafted for you and sent by you. The one exception is rules you explicitly create — and even those keep a full audit trail.", "q3": "Is it KVKK compliant?", "a3": "Designed for it from the first line: consent records, data locality choices, İYS integration for outbound messaging, and export/delete on request.", "q4": "What does it cost?", "a4": "There's a free tier that's genuinely useful for a single location. Paid plans grow with locations and sources — pricing is on its way; early users lock the launch price.", "cta_h2": "Ready to be well spoken of?", "cta_sub": "Free for your first location. Ten minutes to your first connected source.", "cta_b1": "Start free", "cta_b2": "Talk to us", "foot_note": "Built Türkiye-first. Works anywhere.", "foot_rights": "Fairfame — name adopted pending trademark screening.", "lang_btn": "TR"}, "tr": {"nav_how": "Nasıl çalışır", "nav_features": "Neler var", "nav_faq": "Sorular", "nav_cta": "Ücretsiz başla", "hero_eyebrow": "Yorum ve müşteri sesi yönetimi", "hero_h1": "İyi adınız,<br>emin ellerde.", "hero_sub": "Fairfame işletmenize gelen her yorumu ve mesajı tek yerde toplar, anlar, iyi cevap vermenize yardım eder — ve pazartesi sabahı önemli üç işi önünüze koyar.", "hero_cta1": "Ücretsiz başla", "hero_cta2": "Nasıl çalışır?", "hero_sources": "Google · WhatsApp · Instagram · yerel platformlar — önce Türkiye, küresel hazır.", "flow_eyebrow": "Nasıl çalışır", "flow_h2": "Gürültüden yapılacak işe.", "flow_sub": "Dört an, tek döngü. Tıklayıp gezin — bu bir metafor değil, ürünün kendisi.", "s1_t": "Her ses tek gelen kutusunda.", "s1_d": "Google, WhatsApp, Instagram, yerel platformlar — nerede yazılırsa yazılsın, yorum dakikalar içinde önünüzde. Tek listede, önce bekleyenler.", "s2_t": "Fairfame önce kendi okur.", "s2_d": "Duygu, konu, aciliyet — her mesaj anlaşılmış olarak gelir. Gecikme şikâyeti “nötr geri bildirim” diye dosyalanmaz.", "s3_t": "Sizin sesinizle bir cevap. İmza sizin.", "s3_d": "Taslak hazır bekler — sıcak, somut, sizin üslubunuzda, müşterinin dilinde. Bir insan onaylamadan hiçbir şey gönderilmez.", "s4_t": "Pazartesi 08.00 — planınız.", "s4_d": "Çözülecek bir panel değil. Bu hafta yapmaya değer üç iş, sıralı — kanıtı da her birinin bir tık arkasında.", "mock_inbox": "Gelen kutusu", "mock_all": "Tüm kaynaklar", "mock_understood": "Anlaşıldı", "mock_reply": "Cevap", "mock_digest": "Pazartesi planı", "r1_name": "D. K. · Google", "r1_text": "İki kahve için 40 dakika bekledik. Kimse masaya gelmedi.", "r2_name": "A. S. · Google", "r2_text": "Bu caddedeki en iyi kahvaltı. Ekip siparişimizi ezbere biliyor.", "r3_name": "WhatsApp mesajı", "r3_text": "Merhaba — cumartesi için grup rezervasyonu alıyor musunuz?", "b_negative": "ilgi bekliyor", "b_positive": "olumlu", "b_question": "soru", "t_service": "servis", "t_delay": "bekleme süresi", "t_praise": "ekibe övgü", "draft_label": "Cevap taslağı — sizin üslubunuz", "draft_text": "Salı günkü bekleme için üzgünüz — 40 dakika bizim tarzımız değil. Mutfakta eksik vardiya vardı, çizelgeyi düzelttik. Sonraki iki kahveniz bizden; Deniz'i sorun.", "btn_edit": "Düzenle", "btn_approve": "Onayla ve gönder", "sent_note": "Gönderildi. Kayda geçti, haftanın planına sayıldı.", "d1": "Hâlâ bekleyen 2 yoruma cevap verin — ikisi de aynı salıdan söz ediyor.", "d2": "Bekleme şikâyetleri bu hafta iki katına çıktı. Mutfak çizelgesine bakmaya değer.", "d3": "Üç müdavim ekibi adıyla övdü. Bir teşekkürün maliyeti yok.", "d_delta": "Bu ay puan: 4,6 → 4,8 · bir gün içinde cevap: %100", "feat_eyebrow": "Neler var", "feat_h2": "Küçük ekip. İyi anılan bir isim.", "f1_t": "Panel değil, pazartesi planı.", "f1_d": "Aksiyon Özeti haftanın üç hamlesini sıralar, gerekçesini gösterir. Yapılacak bir şey yoksa, öyle der.", "f2_t": "Her ses için tek gelen kutusu.", "f2_d": "Yorumlar, mesajlar, sorular — tek yerden ayrıştırılır, atanır, cevaplanır.", "f3_t": "Sizin sesinizle cevaplar.", "f3_d": "Taslaklar üslubunuzu ve menünüzü öğrenir. Her gönderimde bir insan imzası vardır.", "f4_t": "Gösterin.", "f4_d": "Siteniz için puan rozeti ve yorum sayfaları — iyi adınız aramada sizin için çalışsın.", "f5_t": "Yerinizi bilin.", "f5_d": "Sizin puanınız, caddenin puanının yanında — hareketin nedeni sözcüklerle, sadece çizgiyle değil.", "f6_t": "Önce KVKK.", "f6_d": "Rıza kayıtlı, veri sizin kontrolünüzde, onaysız hiçbir şey gönderilmez. Uyum bir özelliktir, dipnot değil.", "quote": "“Mal ölür, dost akraba ölür… ama iyi ad ölmez, hakkıyla kazananın.”", "quote_src": "— Hávamál, ~900. Hâlâ doğru.", "faq_h2": "Yerinde sorular.", "q1": "Hangi platformları izliyor?", "a1": "Google yorumları ve İşletme Profili, WhatsApp Business, Instagram ve yerel Türk platformları. Birinci taraf geri bildirim sayfaları da içeride — müşterileriniz nerede konuşuyorsa, dinleyebilir.", "q2": "Yapay zekâ kendi başına cevap gönderiyor mu?", "a2": "Hayır. Her cevap sizin için taslak olarak hazırlanır, sizin tarafınızdan gönderilir. Tek istisna açıkça sizin kurduğunuz kurallardır — onlarda bile eksiksiz denetim izi tutulur.", "q3": "KVKK'ya uygun mu?", "a3": "İlk satırından itibaren bunun için tasarlandı: rıza kayıtları, veri yerelliği seçenekleri, giden mesajlar için İYS entegrasyonu, istek üzerine dışa aktarma ve silme.", "q4": "Fiyatı ne?", "a4": "Tek şube için gerçekten işe yarar bir ücretsiz katman var. Ücretli planlar şube ve kaynak sayısıyla büyüyor — fiyatlandırma yolda; erken kullanıcılar lansman fiyatını kilitler.", "cta_h2": "İyi anılmaya hazır mısınız?", "cta_sub": "İlk şubeniz ücretsiz. İlk bağlı kaynağa on dakika.", "cta_b1": "Ücretsiz başla", "cta_b2": "Bizimle konuşun", "foot_note": "Önce Türkiye için yapıldı. Her yerde çalışır.", "foot_rights": "Fairfame — marka tescili taraması sürerken benimsenen ad.", "lang_btn": "EN"}};
+var COPY = {"en": {"nav_how": "How it works", "nav_features": "What you get", "nav_pricing": "Pricing", "nav_faq": "Questions", "nav_cta": "Start trial", "hero_eyebrow": "Review & customer-voice management", "hero_h1": "Your good name,<br>looked after.", "hero_sub": "More real reviews coming in. Every voice understood and answered well. And each Monday, a plan with the three things that matter.", "hero_cta1": "Start your 14-day trial", "hero_cta2": "See how it works", "hero_sources": "Google · WhatsApp · Instagram · Facebook · TripAdvisor · Trustpilot · + more — every source honestly labelled.", "flow_eyebrow": "How it works", "flow_h2": "From noise to next steps.", "flow_sub": "Five moments, one loop. Click through it — this is the product, not a metaphor.", "s0_t": "Ask, properly.", "s0_d": "Review requests go out by WhatsApp, email, SMS or a QR on the counter. Consent is checked in code before anything sends — and nobody is filtered by how happy they look. Ever.", "s1_t": "Every voice lands in one inbox.", "s1_d": "Google, WhatsApp, Instagram, Facebook, TripAdvisor — a review posted anywhere is in front of you in minutes, in one list, oldest wounds first.", "s2_t": "Fairfame reads it first.", "s2_d": "Sentiment, topic, urgency — each message arrives already understood. A delay complaint is not filed under “neutral feedback”.", "s3_t": "A reply in your voice. You sign it.", "s3_d": "A draft is waiting — warm, specific, in your tone, in the customer's language. Nothing is ever sent without a human pressing the button.", "s4_t": "Monday, 08:00 — your plan.", "s4_d": "Not a dashboard to decode. Three things worth doing this week, ranked, with the evidence one click behind each.", "mock_inbox": "Inbox", "mock_collect": "Review request", "mock_all": "All sources", "mock_understood": "Understood", "mock_reply": "Reply", "mock_digest": "Monday plan", "c_wa": "WhatsApp", "c_em": "Email", "c_sms": "SMS", "c_qr": "QR at the counter", "req_to": "Guest · table 12 · QR scanned", "req_msg": "How was your visit? A quick review helps us a lot →", "req_consent": "✓ consent on record — checked before send", "req_note": "Requests go to everyone. Filtering by rating doesn't exist here.", "r1_name": "D. K. · Google", "r1_text": "Waited 40 minutes for two coffees. Nobody came to the table.", "r2_name": "A. S. · Google", "r2_text": "Best breakfast on this street. The team remembers our order.", "r3_name": "WhatsApp message", "r3_text": "Hi — do you take group reservations for Saturday?", "b_negative": "needs attention", "b_positive": "positive", "b_question": "question", "t_service": "service", "t_delay": "waiting time", "t_praise": "team praised", "draft_label": "Draft reply — your tone", "draft_text": "We're sorry about the wait on Tuesday — 40 minutes is not who we are. The kitchen was short-staffed and we've fixed the roster. Your next two coffees are on us; ask for Deniz.", "btn_edit": "Edit", "btn_approve": "Approve & send", "sent_note": "Sent. Logged, and counted in the week's plan.", "d1": "Reply to the 2 reviews still waiting — both mention the same Tuesday.", "d2": "Waiting-time complaints doubled this week. Worth a look at the kitchen roster.", "d3": "Three regulars praised the team by name. A thank-you costs nothing.", "d_delta": "Rating this month: 4,6 → 4,8 · replies within a day: 100%", "feat_eyebrow": "What you get", "feat_h2": "Six jobs. One platform.", "f1_t": "A Monday plan, not a dashboard.", "f1_d": "The Action Digest names the week's three moves, quotes the customers behind them, and reports next week whether it worked.", "fc_t": "More real reviews, asked for properly.", "fc_d": "WhatsApp, email, SMS and QR campaigns. Consent checked in code — review-gating doesn't exist here.", "f3_t": "Replies in your voice.", "f3_d": "Drafts learn your tone, in the customer's language. Every send carries a human signature.", "fe_t": "Know them. Reach them.", "fe_d": "Contacts with history, NPS & CSAT surveys, two-way messaging, broadcasts.", "f4_t": "Show it off.", "f4_d": "Widgets, a rating badge and a hosted review page for search.", "fa_t": "AI analysis, with reasons.", "fa_d": "Sentiment, themes, staff mentions, one Reputation score, benchmarking — and a PDF that mails itself.", "ft_t": "Built for teams and branches.", "ft_d": "Triage, assignment, SLAs. Roles scoped per location; branches compared side by side.", "fw_t": "WhatsApp-native. Phone-first.", "fw_d": "Runs where your customers already chat — requests, alerts and conversations over WhatsApp. Installs on your phone, push included.", "f6_t": "Honest by construction.", "f6_d": "KVKK & GDPR export and erasure built in. Consent before every commercial send. Honest source labels. And no review-gating, ever.", "agency_eyebrow": "For agencies", "agency_h2": "Many good names, one seat.", "agency_d": "White-label the whole product under your brand, give clients a scoped role, manage every location in bulk, and price per deal. Agencies aren't an afterthought tier here — they're a first-class audience.", "agency_cta": "Talk to us", "pricing_eyebrow": "Pricing", "pricing_h2": "Public prices. No demo gate.", "pricing_sub": "Per location, per month. Every plan starts with a 14-day full-feature trial — not a crippled free tier.", "tier1_n": "Starter", "tier1_p": "₺1.299", "tier1_f1": "Google + your own collection page", "tier1_f2": "AI analysis & the weekly Action Digest", "tier1_f3": "Review requests & AI replies (capped)", "tier1_f4": "1 widget", "tier2_n": "Growth", "tier2_p": "₺3.499", "tier2_f1": "Social sources: WhatsApp & Instagram", "tier2_f2": "Unlimited requests (fair use)", "tier2_f3": "Full AI, widgets, trends & exports", "tier2_f4": "Digest on demand", "tier2_badge": "Start here", "tier3_n": "Pro", "tier3_p": "₺8.999", "tier3_f1": "Benchmarking & competitor watch", "tier3_f2": "Per-location reporting", "tier3_f3": "API + webhooks", "tier3_f4": "Priority support & SLAs", "tier4_n": "Agency", "tier4_p": "Per deal", "tier4_f1": "White-label + client roles", "tier4_f2": "Bulk management", "tier4_f3": "Reseller pricing", "tier4_f4": "Partner support", "per_loc": "/ location · month", "pricing_note": "TRY prices are repriced periodically. SMS/WhatsApp sends and heavy AI usage are metered add-ons at cost-plus — real costs, priced honestly. What's public stays public.", "quote": "“Cattle die, kindred die… but word-fame never dies, for the one who earns it well.”", "quote_src": "— Hávamál, c. 900. Still true.", "faq_h2": "Fair questions.", "q1": "Which platforms does it watch?", "a1": "Google reviews and Business Profile, WhatsApp Business, Instagram, plus first-party collection pages you own — with Facebook, TripAdvisor, Trustpilot and more on the roadmap, appearing only when they're real. Anywhere your customers talk, it can listen.", "q2": "Does AI send replies on its own?", "a2": "No. Every reply is drafted for you and sent by you. The one exception is the narrow auto-reply you explicitly configure (wordless five-star reviews) — and even that keeps a full audit trail.", "q3": "Is it compliant — KVKK & GDPR?", "a3": "Designed for it from the first line: consent records checked before every send, İYS integration for outbound messaging in Türkiye, data export and erasure on request — and review-gating is structurally impossible, not just against policy.", "q4": "What does it cost?", "a4": "Starter ₺1.299, Growth ₺3.499, Pro ₺8.999 — per location, per month, public, on the page above. Agency plans are priced per deal. Every plan starts with a 14-day full-feature trial. No sales call required to see a number.", "q5": "Do you fully sync every platform?", "a5": "No — and nobody honestly can. Platforms decide what's possible, so every source carries an honest label in the product: live sync, monitor-only, or display-only. We never claim a sync we can't deliver — check the label before you pay.", "cta_h2": "Ready to be well spoken of?", "cta_sub": "14 days, every feature, ten minutes to your first connected source.", "cta_b1": "Start your 14-day trial", "cta_b2": "Talk to us", "foot_note": "Built for anywhere your customers talk.", "foot_rights": "Fairfame — name adopted pending trademark screening.", "lang_btn": "TR", "lbl_live": "Live sync", "lbl_mon": "Monitor only", "lbl_disp": "Display only", "v_req": "Would you leave us a quick review? →", "v_consent": "consent ✓", "v_draft": "We're sorry about the wait — the next two coffees are on us.", "v_nps": "NPS", "v_sla": "SLA 4h ✓", "v_loc1": "Karşıyaka", "v_loc2": "Bornova", "v_loc3": "Alsancak", "v_push": "New review · ★★ · reply drafted", "dgm_t": "And it all connects.", "dgm_hint": "Touch the nodes — sources flow in, finished work flows out.", "n_g": "Google", "n_w": "WhatsApp", "n_i": "Instagram", "n_q": "QR & collection page", "n_r": "Replies, signed", "n_p": "Monday plan", "n_s": "Widgets & pages", "n_d": "Scheduled PDF", "c_more": "+ more", "n_more": "More sources", "n_a": "Sentiment & themes"}, "tr": {"nav_how": "Nasıl çalışır", "nav_features": "Neler var", "nav_pricing": "Fiyatlar", "nav_faq": "Sorular", "nav_cta": "Denemeyi başlat", "hero_eyebrow": "Yorum ve müşteri sesi yönetimi", "hero_h1": "İyi adınız,<br>emin ellerde.", "hero_sub": "Daha çok gerçek yorum gelsin. Her ses anlaşılsın, iyi cevaplansın. Ve her pazartesi, önemli üç işlik bir plan masanızda olsun.", "hero_cta1": "14 günlük denemeyi başlat", "hero_cta2": "Nasıl çalışır?", "hero_sources": "Google · WhatsApp · Instagram · Facebook · TripAdvisor · Trustpilot · + dahası — her kaynak dürüstçe etiketlenir.", "flow_eyebrow": "Nasıl çalışır", "flow_h2": "Gürültüden yapılacak işe.", "flow_sub": "Beş an, tek döngü. Tıklayıp gezin — bu bir metafor değil, ürünün kendisi.", "s0_t": "Usulünce isteyin.", "s0_d": "Yorum istekleri WhatsApp, e-posta, SMS veya tezgâhtaki QR ile gider. Gönderimden önce rıza kodda denetlenir — ve kimse memnuniyetine göre elenmez. Asla.", "s1_t": "Her ses tek gelen kutusunda.", "s1_d": "Google, WhatsApp, Instagram, Facebook, TripAdvisor — nerede yazılırsa yazılsın, yorum dakikalar içinde önünüzde. Tek listede, önce bekleyenler.", "s2_t": "Fairfame önce kendi okur.", "s2_d": "Duygu, konu, aciliyet — her mesaj anlaşılmış olarak gelir. Gecikme şikâyeti “nötr geri bildirim” diye dosyalanmaz.", "s3_t": "Sizin sesinizle bir cevap. İmza sizin.", "s3_d": "Taslak hazır bekler — sıcak, somut, sizin üslubunuzda, müşterinin dilinde. Bir insan onaylamadan hiçbir şey gönderilmez.", "s4_t": "Pazartesi 08.00 — planınız.", "s4_d": "Çözülecek bir panel değil. Bu hafta yapmaya değer üç iş, sıralı — kanıtı da her birinin bir tık arkasında.", "mock_inbox": "Gelen kutusu", "mock_collect": "Yorum isteği", "mock_all": "Tüm kaynaklar", "mock_understood": "Anlaşıldı", "mock_reply": "Cevap", "mock_digest": "Pazartesi planı", "c_wa": "WhatsApp", "c_em": "E-posta", "c_sms": "SMS", "c_qr": "Tezgâhta QR", "req_to": "Misafir · masa 12 · QR okutuldu", "req_msg": "Ziyaretiniz nasıldı? Kısa bir yorum bize çok yardımcı olur →", "req_consent": "✓ rıza kayıtlı — gönderimden önce denetlendi", "req_note": "İstek herkese gider. Puana göre eleme burada yok.", "r1_name": "D. K. · Google", "r1_text": "İki kahve için 40 dakika bekledik. Kimse masaya gelmedi.", "r2_name": "A. S. · Google", "r2_text": "Bu caddedeki en iyi kahvaltı. Ekip siparişimizi ezbere biliyor.", "r3_name": "WhatsApp mesajı", "r3_text": "Merhaba — cumartesi için grup rezervasyonu alıyor musunuz?", "b_negative": "ilgi bekliyor", "b_positive": "olumlu", "b_question": "soru", "t_service": "servis", "t_delay": "bekleme süresi", "t_praise": "ekibe övgü", "draft_label": "Cevap taslağı — sizin üslubunuz", "draft_text": "Salı günkü bekleme için üzgünüz — 40 dakika bizim tarzımız değil. Mutfakta eksik vardiya vardı, çizelgeyi düzelttik. Sonraki iki kahveniz bizden; Deniz'i sorun.", "btn_edit": "Düzenle", "btn_approve": "Onayla ve gönder", "sent_note": "Gönderildi. Kayda geçti, haftanın planına sayıldı.", "d1": "Hâlâ bekleyen 2 yoruma cevap verin — ikisi de aynı salıdan söz ediyor.", "d2": "Bekleme şikâyetleri bu hafta iki katına çıktı. Mutfak çizelgesine bakmaya değer.", "d3": "Üç müdavim ekibi adıyla övdü. Bir teşekkürün maliyeti yok.", "d_delta": "Bu ay puan: 4,6 → 4,8 · bir gün içinde cevap: %100", "feat_eyebrow": "Neler var", "feat_h2": "Altı iş. Tek platform.", "f1_t": "Panel değil, pazartesi planı.", "f1_d": "Aksiyon Özeti haftanın üç hamlesini söyler, arkasındaki müşterileri alıntılar, ertesi hafta işe yarayıp yaramadığını raporlar.", "fc_t": "Daha çok gerçek yorum — usulünce istenmiş.", "fc_d": "WhatsApp, e-posta, SMS ve QR kampanyaları. Rıza kodda denetlenir — puana göre eleme burada yok.", "f3_t": "Sizin sesinizle cevaplar.", "f3_d": "Taslaklar üslubunuzu öğrenir, müşterinin dilinde yazar. Her gönderimde insan imzası vardır.", "fe_t": "Tanıyın. Ulaşın.", "fe_d": "Geçmişiyle kişiler, NPS ve CSAT anketleri, çift yönlü mesajlaşma, duyurular.", "f4_t": "Gösterin.", "f4_d": "Widget'lar, puan rozeti ve arama için barındırılan yorum sayfası.", "fa_t": "Yapay zekâ analizi, nedeniyle birlikte.", "fa_d": "Duygu, temalar, personel övgüleri, tek İtibar puanı, kıyaslama — ve kendini postalayan PDF.", "ft_t": "Ekipler ve şubeler için.", "ft_d": "Önceliklendirme, atama, SLA. Şubeye göre roller; şubeler yan yana kıyaslanır.", "fw_t": "WhatsApp yerlisi. Önce telefon.", "fw_d": "Müşterileriniz nerede yazışıyorsa orada — istekler, uyarılar ve yazışmalar WhatsApp üzerinden. Telefonunuza kurulur, bildirimler dahil.", "f6_t": "Yapısı gereği dürüst.", "f6_d": "KVKK ve GDPR dışa aktarma ve silme içeride. Her ticari gönderimden önce rıza. Dürüst kaynak etiketleri. Ve puana göre eleme, asla.", "agency_eyebrow": "Ajanslar için", "agency_h2": "Bir koltuktan birçok iyi ad.", "agency_d": "Ürünü kendi markanızla beyaz etiketleyin, müşteriye sınırlı rol verin, tüm şubeleri toplu yönetin, anlaşma başına fiyatlayın. Ajanslar burada sonradan eklenmiş bir paket değil — birinci sınıf bir kitle.", "agency_cta": "Bizimle konuşun", "pricing_eyebrow": "Fiyatlar", "pricing_h2": "Fiyat açık. Demo kapısı yok.", "pricing_sub": "Şube başına, aylık. Her plan 14 günlük tam özellikli denemeyle başlar — kısıtlı bir ücretsiz katman değil.", "tier1_n": "Starter", "tier1_p": "₺1.299", "tier1_f1": "Google + kendi toplama sayfanız", "tier1_f2": "Yapay zekâ analizi ve haftalık Aksiyon Özeti", "tier1_f3": "Yorum istekleri ve yapay zekâ cevapları (kotalı)", "tier1_f4": "1 widget", "tier2_n": "Growth", "tier2_p": "₺3.499", "tier2_f1": "Sosyal kaynaklar: WhatsApp ve Instagram", "tier2_f2": "Sınırsız istek (adil kullanım)", "tier2_f3": "Tam yapay zekâ, widget'lar, eğilimler ve dışa aktarım", "tier2_f4": "İstek üzerine özet", "tier2_badge": "Buradan başlayın", "tier3_n": "Pro", "tier3_p": "₺8.999", "tier3_f1": "Kıyaslama ve rakip takibi", "tier3_f2": "Şube bazlı raporlama", "tier3_f3": "API + webhook'lar", "tier3_f4": "Öncelikli destek ve SLA", "tier4_n": "Agency", "tier4_p": "Anlaşma başına", "tier4_f1": "Beyaz etiket + müşteri rolleri", "tier4_f2": "Toplu yönetim", "tier4_f3": "Bayi fiyatlandırması", "tier4_f4": "İş ortağı desteği", "per_loc": "/ şube · ay", "pricing_note": "TL fiyatlar dönemsel olarak güncellenir. SMS/WhatsApp gönderimleri ve yoğun yapay zekâ kullanımı maliyet artı esasıyla ölçülür — gerçek maliyet, dürüst fiyat. Açık olan açık kalır.", "quote": "“Mal ölür, dost akraba ölür… ama iyi ad ölmez, hakkıyla kazananın.”", "quote_src": "— Hávamál, ~900. Hâlâ doğru.", "faq_h2": "Yerinde sorular.", "q1": "Hangi platformları izliyor?", "a1": "Google yorumları ve İşletme Profili, WhatsApp Business, Instagram ve size ait toplama sayfaları — Facebook, TripAdvisor, Trustpilot ve dahası yol haritasında, ancak gerçek olduklarında görünür. Müşterileriniz nerede konuşuyorsa, dinleyebilir.", "q2": "Yapay zekâ kendi başına cevap gönderiyor mu?", "a2": "Hayır. Her cevap sizin için taslak hazırlanır, sizin tarafınızdan gönderilir. Tek istisna açıkça yapılandırdığınız dar otomatik cevaptır (yazısız beş yıldızlı yorumlar) — onda bile eksiksiz denetim izi tutulur.", "q3": "Uyumlu mu — KVKK ve GDPR?", "a3": "İlk satırından itibaren bunun için tasarlandı: her gönderimden önce rıza kaydı denetimi, Türkiye'de giden mesajlar için İYS entegrasyonu, istek üzerine dışa aktarma ve silme — ve puana göre eleme kural olarak değil, yapısal olarak imkânsız.", "q4": "Fiyatı ne?", "a4": "Starter ₺1.299, Growth ₺3.499, Pro ₺8.999 — şube başına, aylık, açık, yukarıdaki sayfada. Ajans planları anlaşma başına. Her plan 14 günlük tam özellikli denemeyle başlar. Rakam görmek için satış görüşmesi gerekmez.", "q5": "Her platformu tam senkronize ediyor musunuz?", "a5": "Hayır — dürüst olan kimse edemez. Neyin mümkün olduğuna platformlar karar verir; bu yüzden her kaynak üründe dürüst etiketini taşır: canlı senkron, yalnız izleme veya yalnız gösterim. Veremeyeceğimiz senkronu asla iddia etmeyiz — ödemeden önce etikete bakın.", "cta_h2": "İyi anılmaya hazır mısınız?", "cta_sub": "14 gün, tüm özellikler, ilk bağlı kaynağa on dakika.", "cta_b1": "14 günlük denemeyi başlat", "cta_b2": "Bizimle konuşun", "foot_note": "Müşterinizin konuştuğu her yer için yapıldı.", "foot_rights": "Fairfame — marka tescili taraması sürerken benimsenen ad.", "lang_btn": "EN", "lbl_live": "Canlı senkron", "lbl_mon": "Yalnız izleme", "lbl_disp": "Yalnız gösterim", "v_req": "Bize kısa bir yorum bırakır mısınız? →", "v_consent": "rıza ✓", "v_draft": "Bekleme için üzgünüz — sonraki iki kahve bizden.", "v_nps": "NPS", "v_sla": "SLA 4s ✓", "v_loc1": "Karşıyaka", "v_loc2": "Bornova", "v_loc3": "Alsancak", "v_push": "Yeni yorum · ★★ · cevap taslağı hazır", "dgm_t": "Ve hepsi birbirine bağlı.", "dgm_hint": "Düğümlere dokunun — kaynaklar içeri, biten iş dışarı akar.", "n_g": "Google", "n_w": "WhatsApp", "n_i": "Instagram", "n_q": "QR ve toplama sayfası", "n_r": "İmzalı cevaplar", "n_p": "Pazartesi planı", "n_s": "Widget ve sayfalar", "n_d": "Zamanlı PDF", "c_more": "+ dahası", "n_more": "Daha fazla kaynak", "n_a": "Duygu ve temalar"}};
+var SEAL_GLYPH = "<path d=\"M23.60,13.20 C23.60,9.60 19.50,8.70 17.75,11.00 C16.60,12.50 16.40,14.60 16.40,17.30 L16.40,33.20\" stroke=\"#FFFFFF\" stroke-width=\"4.3\" fill=\"none\" stroke-linecap=\"round\"/><path d=\"M32.60,13.20 C32.60,9.60 28.50,8.70 26.75,11.00 C25.60,12.50 25.40,14.60 25.40,17.30 L25.40,33.20\" stroke=\"#FFFFFF\" stroke-width=\"4.3\" fill=\"none\" stroke-linecap=\"round\"/><path d=\"M12.20,21.40 L30.60,21.40\" stroke=\"#FFFFFF\" stroke-width=\"4.3\" fill=\"none\" stroke-linecap=\"round\"/>";
 var lang = "en";
 function applyLang(){
   var d = COPY[lang];
@@ -410,6 +604,8 @@ function applyLang(){
     var k = el.getAttribute("data-i18n-html"); if (d[k] !== undefined) el.innerHTML = d[k];
   });
   document.getElementById("langbtn").textContent = d.lang_btn;
+  Murmur.setPhrases(MURMUR_LANG[lang]);
+  if (window.__dgmResize) requestAnimationFrame(window.__dgmResize);
   resetTyping();
 }
 document.getElementById("langbtn").addEventListener("click", function(){ lang = lang==="en"?"tr":"en"; applyLang(); });
@@ -423,7 +619,11 @@ var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isI
 document.querySelectorAll(".reveal,.cell").forEach(function(el){ io.observe(el); });
 
 /* murmur on hero */
-Murmur.attach(document.getElementById("hero"), {carve:true});
+var MURMUR_LANG = {
+  en: ["highly recommend","we'll be back","worth the visit","lovely staff","they listened","spotless","quick to reply","felt looked after","best in the neighbourhood","ask for the usual"],
+  tr: ["tavsiye ederim","yine geleceğiz","harika ekip","çok ilgililer","bayıldık","sıcacık bir yer","güler yüzlü","hızlı ve özenli","kesinlikle öneririm","teşekkürler"]
+};
+Murmur.attach(document.getElementById("hero"), {carve:true, carveX:0.30, carveY:0.5, phrases:MURMUR_LANG.en});
 
 /* flow stepper */
 var STEP_MS = 5200; document.documentElement.style.setProperty("--stepms", STEP_MS+"ms");
@@ -436,11 +636,11 @@ function setStep(i, fromUser){
   steps.forEach(function(s,j){ s.classList.toggle("active", j===i);
     var bar=s.querySelector(".bar"); bar.style.animation="none"; void bar.offsetWidth; bar.style.animation=""; });
   panels.forEach(function(p,j){ p.classList.toggle("on", j===i); });
-  document.getElementById("crumb").textContent = COPY[lang][["mock_all","mock_understood","mock_reply","mock_digest"][i]];
-  if (i===2) startTyping(); else stopTyping();
+  document.getElementById("crumb").textContent = COPY[lang][["mock_collect","mock_all","mock_understood","mock_reply","mock_digest"][i]];
+  if (i===3) startTyping(); else stopTyping();
   if (fromUser){ userHold = true; clearInterval(timer); timer = setInterval(next, STEP_MS); }
 }
-function next(){ if(document.hidden) return; setStep((cur+1)%4); }
+function next(){ if(document.hidden) return; setStep((cur+1)%5); }
 steps.forEach(function(s){ s.addEventListener("click", function(){ setStep(+s.dataset.step, true); }); });
 var flowIo = new IntersectionObserver(function(es){
   es.forEach(function(e){
@@ -457,7 +657,7 @@ flowRoot.addEventListener("pointerleave", function(){ flowRoot.classList.remove(
 var reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 function stopTyping(){ if(typTimer){ clearInterval(typTimer); typTimer=null; } }
 function resetTyping(){ stopTyping(); var el=document.getElementById("dtext"); el.textContent=""; document.getElementById("sent").style.display="none";
-  if (panels[2].classList.contains("on")) startTyping(); }
+  if (panels[3].classList.contains("on")) startTyping(); }
 function startTyping(){
   stopTyping();
   var el=document.getElementById("dtext"), full=COPY[lang].draft_text, i=0;
@@ -472,8 +672,64 @@ document.getElementById("approve").addEventListener("click", function(){
   stopTyping();
   var el=document.getElementById("dtext"); el.textContent=COPY[lang].draft_text;
   document.getElementById("sent").style.display="block";
-  setTimeout(function(){ setStep(3, true); }, 1400);
+  setTimeout(function(){ setStep(4, true); }, 1400);
 });
+
+/* diagram */
+(function(){
+  var svg=document.querySelector(".dgm"), NE=document.getElementById("nodes"), EE=document.getElementById("edges");
+  var seal=44;
+  var srcs=[["n_g",32],["n_w",86],["n_i",140],["n_q",194],["n_more",248]];
+  var outs=[["n_a",32],["n_r",86],["n_p",140],["n_s",194],["n_d",248]];
+  var CX=460, CY=140;
+  function path(x1,y1,x2,y2){ var mx=(x1+x2)/2; return "M"+x1+","+y1+" C"+mx+","+y1+" "+mx+","+y2+" "+x2+","+y2; }
+  var edges=[];
+  var allNodes=[];
+  function sizeNode(n){
+    var w=n.t.getBBox().width+28;
+    n.t.setAttribute("x", n.anchor==="start" ? 34 : 914-w);
+    n.r.setAttribute("x", n.anchor==="start" ? 20 : 900-w);
+    n.r.setAttribute("y", n.y-16); n.r.setAttribute("width", w); n.r.setAttribute("height", 32); n.r.setAttribute("rx", 9);
+  }
+  window.__dgmResize=function(){ allNodes.forEach(sizeNode); };
+  function node(id,x,y,anchor,ei){
+    var g=document.createElementNS("http://www.w3.org/2000/svg","g");
+    g.setAttribute("class","node"); g.dataset.edge=ei;
+    var r=document.createElementNS("http://www.w3.org/2000/svg","rect");
+    var t=document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("data-i18n",id); t.setAttribute("y",y+4);
+    g.appendChild(r); g.appendChild(t); NE.appendChild(g);
+    var n={t:t,r:r,y:y,anchor:anchor}; allNodes.push(n);
+    requestAnimationFrame(function(){ sizeNode(n); });
+    g.addEventListener("pointerenter",function(){ edges[ei].classList.add("hot"); g.classList.add("hot"); });
+    g.addEventListener("pointerleave",function(){ edges[ei].classList.remove("hot"); g.classList.remove("hot"); });
+    return g;
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ window.__dgmResize(); });
+  var ei=0;
+  srcs.forEach(function(sp){
+    var e=document.createElementNS("http://www.w3.org/2000/svg","path");
+    e.setAttribute("class","edge"); e.setAttribute("d", path(160, sp[1], CX-seal-6, CY));
+    var f=e.cloneNode(); f.setAttribute("class","flowd");
+    EE.appendChild(e); EE.appendChild(f); edges.push(e);
+    node(sp[0], 20, sp[1], "start", ei); ei++;
+  });
+  outs.forEach(function(sp){
+    var e=document.createElementNS("http://www.w3.org/2000/svg","path");
+    e.setAttribute("class","edge"); e.setAttribute("d", path(CX+seal+6, CY, 760, sp[1]));
+    var f=e.cloneNode(); f.setAttribute("class","flowd");
+    EE.appendChild(e); EE.appendChild(f); edges.push(e);
+    node(sp[0], 900, sp[1], "end", ei); ei++;
+  });
+  var c=document.createElementNS("http://www.w3.org/2000/svg","g");
+  c.innerHTML='<circle cx="'+CX+'" cy="'+CY+'" r="'+seal+'" fill="#10193A"/>';
+  var img=document.createElementNS("http://www.w3.org/2000/svg","g");
+  EE.parentNode.appendChild(c);
+  var glyph=document.createElementNS("http://www.w3.org/2000/svg","g");
+  glyph.setAttribute("transform","translate("+(CX-30)+","+(CY-30)+") scale(1.36)");
+  glyph.innerHTML=SEAL_GLYPH;
+  EE.parentNode.appendChild(glyph);
+})();
 
 /* faq */
 document.querySelectorAll(".qa button").forEach(function(b){

@@ -4,15 +4,16 @@
    you can hear the talk), and a click sends a ring through them.
    Usage: Murmur.attach(containerEl, {carve:true}) — canvas is inserted as first child.
 
-   Two options exist for embedding, both added when the app mounted this file and
-   both backwards compatible — the defaults are what the brand sheet already ran:
-     opts.family — the font-family string to draw with, default "Lora". The face's
-       name belongs to whatever loaded it: a bundler that hashes it (next/font has
-       emitted "__Lora_<hash>") must pass its own, or the texture falls back to
-       Georgia — still a serif, still fine-looking, and nobody notices.
-     the return value — {detach}. A single-page app unmounts this container while
-       the tab stays open; without a way to stop, the loop draws forever into a
-       canvas nobody can see. */
+   Two embedding options, re-applied 11 Aug 2026 after a regenerated copy of this
+   file dropped them. Both are backwards compatible — the defaults are what the
+   brand sheet and the landing concept already run — and the app depends on both:
+     opts.family — the font-family to draw with, default "Lora". The face's name
+       belongs to whatever loaded it: a bundler that hashes it (next/font has
+       emitted "__Lora_<hash>") must pass its own, or the texture quietly falls
+       back to Georgia — still a serif, still handsome, and nobody notices.
+     the return value — {detach}. A single-page app unmounts the container while
+       the tab stays open; with nothing to stop it the loop draws forever into a
+       canvas nobody can see, and React's cleanup calls detach(). */
 (function (global) {
   var PHRASES = [
     "tavsiye ederim","yine geleceğiz","harika ekip","çok ilgililer",
@@ -23,8 +24,10 @@
     "best in the neighbourhood","ask for the usual"
   ];
   var INK = [16, 25, 58], AMBER = [245, 165, 36];
+  var instances = [];
   function attach(el, opts) {
     opts = opts || {};
+    var phrases = opts.phrases || PHRASES;
     var canvas = document.createElement("canvas");
     canvas.setAttribute("aria-hidden", "true");
     canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;";
@@ -37,9 +40,11 @@
     var FACE = (opts.family || "Lora") + ", Georgia, serif";
     var raf = 0, live = true;
 
+    var cvx = opts.carveX === undefined ? 0.5 : opts.carveX;
+    var cvy = opts.carveY === undefined ? 0.5 : opts.carveY;
     function carved(x, y) {
       if (!opts.carve) return false;
-      var dx = (x - W / 2) / (W * 0.34), dy = (y - H * 0.50) / (H * 0.50);
+      var dx = (x - W * cvx) / (W * 0.34), dy = (y - H * cvy) / (H * 0.50);
       return dx * dx + dy * dy < 1;
     }
     function seed() {
@@ -48,7 +53,7 @@
       var guard = 0;
       while (words.length < target && guard++ < target * 40) {
         var x = 20 + Math.random() * (W - 40), y = 24 + Math.random() * (H - 34);
-        var text = PHRASES[(Math.random() * PHRASES.length) | 0];
+        var text = phrases[(Math.random() * phrases.length) | 0];
         var size = 12 + Math.random() * 8;
         ctx.font = "italic " + size.toFixed(1) + "px " + FACE;
         var tw = ctx.measureText(text).width;
@@ -133,6 +138,9 @@
     global.addEventListener("resize", resize);
     resize(); raf = requestAnimationFrame(frame);
 
+    var instance = { setPhrases: function (list) { phrases = list; seed(); } };
+    instances.push(instance);
+
     return {
       detach: function () {
         live = false;
@@ -141,9 +149,13 @@
         el.removeEventListener("pointerleave", onLeave);
         el.removeEventListener("pointerdown", onDown);
         global.removeEventListener("resize", resize);
+        // Out of the registry too, or setPhrases() reseeds a canvas that is gone.
+        var at = instances.indexOf(instance);
+        if (at !== -1) instances.splice(at, 1);
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
       }
     };
   }
-  global.Murmur = { attach: attach };
+  function setPhrases(list) { instances.forEach(function (i) { i.setPhrases(list); }); }
+  global.Murmur = { attach: attach, setPhrases: setPhrases };
 })(window);
