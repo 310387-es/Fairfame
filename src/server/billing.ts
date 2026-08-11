@@ -20,9 +20,20 @@ import { invalidInput, toActionResult, type ActionResult } from "@/server/action
 
 const log = childLogger({ module: "server/billing" });
 
-const schema = z.object({ planKey: z.enum(PLAN_KEYS) });
+/**
+ * `interval` is optional and defaults to monthly, which is what every caller
+ * wanted before annual was purchasable at all. Validated as an enum rather than
+ * trusted: it decides which price is charged.
+ */
+const schema = z.object({
+  planKey: z.enum(PLAN_KEYS),
+  interval: z.enum(["month", "year"]).optional(),
+});
 
-export async function startCheckoutAction(input: { planKey: string }): Promise<ActionResult> {
+export async function startCheckoutAction(input: {
+  planKey: string;
+  interval?: string;
+}): Promise<ActionResult> {
   const parsed = schema.safeParse(input);
   if (!parsed.success) return invalidInput(parsed.error, "Unknown plan.");
 
@@ -35,6 +46,7 @@ export async function startCheckoutAction(input: { planKey: string }): Promise<A
     const outcome = await startCheckout({
       organizationId: actor.organizationId,
       planKey: parsed.data.planKey,
+      ...(parsed.data.interval ? { interval: parsed.data.interval } : {}),
       // Back to the plan section either way, so the answer to "did that work"
       // is on the screen that asked the question.
       successUrl: `${dashboardBaseUrl()}/settings?checkout=done#plan`,

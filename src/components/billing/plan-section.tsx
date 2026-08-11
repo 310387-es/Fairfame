@@ -2,6 +2,9 @@
 
 import { Check, CreditCard } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
+import { Tabs } from "radix-ui";
+import { useState } from "react";
+import { segmentedItem, segmentedTrough } from "@/components/ds/segmented";
 import { SectionCard } from "@/components/ds/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,21 +78,49 @@ export function PlanSection({
       maximumFractionDigits: 0,
     });
 
-  const price = (plan: PlanOption) =>
-    plan.priceMonth === null
-      ? t("quoted")
-      : t("perMonth", { amount: money(plan.priceMonth, plan.currency) });
+  /**
+   * Monthly or annual, and it is a toggle now (11 Aug 2026).
+   *
+   * This card used to print the annual figure as a line under the monthly one,
+   * on the argument that "a billing card in settings is read to check what is
+   * being paid, not to reconfigure a subscription, and a switch would ask a
+   * question nobody came here with". That was right while annual was
+   * unbuyable — checkout sent one line item at `priceMonth` regardless, so a
+   * switch would have offered a choice the payment path could not honour.
+   *
+   * Both prices are now real, so the question is one somebody *does* arrive
+   * with, and it has to be asked before the button is pressed rather than
+   * afterwards.
+   *
+   * **Local state, not the URL**, and Radix `Tabs` rather than links — the rule
+   * `docs/15` §5 states: the URL owns what the server needs to know, local state
+   * owns which of several things already on the page you are looking at. Both
+   * prices ship with the page, so switching is a re-render and not a round trip.
+   */
+  const [interval, setInterval] = useState<"month" | "year">("month");
+
+  const price = (plan: PlanOption) => {
+    if (plan.priceMonth === null) return t("quoted");
+
+    return interval === "month"
+      ? t("perMonth", { amount: money(plan.priceMonth, plan.currency) })
+      : t("perYear", { amount: money(plan.priceYear ?? 0, plan.currency) });
+  };
 
   /**
-   * The annual line, and it only says something when it says something new.
+   * What the other option costs, as the line underneath.
    *
-   * Rendered under the monthly price rather than as a toggle: a billing card in
-   * settings is read to check what is being paid, not to reconfigure a
-   * subscription, and a switch would ask a question nobody came here with.
-   * Absent for Agency, which is quoted, so there is no annual figure to show.
+   * Always the *alternative* to whatever is selected, so the card answers "and
+   * if I picked the other one?" without making anybody flip the switch to find
+   * out. Absent for Agency, which is quoted and has no second figure.
    */
-  const perYear = (plan: PlanOption) =>
-    plan.priceYear === null ? null : t("perYear", { amount: money(plan.priceYear, plan.currency) });
+  const alternative = (plan: PlanOption) => {
+    if (plan.priceMonth === null || plan.priceYear === null) return null;
+
+    return interval === "month"
+      ? t("orPerYear", { amount: money(plan.priceYear, plan.currency) })
+      : t("orPerMonth", { amount: money(plan.priceMonth, plan.currency) });
+  };
 
   return (
     <SectionCard
@@ -173,6 +204,31 @@ export function PlanSection({
           size next to the plan name and the whole surface flattened. This is the
           screen where the product asks for money; it can afford the height.
         */}
+        {/*
+          Directly above the prices it changes, and only where it can do
+          anything: an owner who cannot check out is shown the tiers as a price
+          list, and a switch there would be a control that changes numbers
+          nobody can act on.
+        */}
+        {canManage && canCheckout ? (
+          <Tabs.Root
+            value={interval}
+            onValueChange={(value) => setInterval(value === "year" ? "year" : "month")}
+          >
+            <Tabs.List aria-label={t("billingPeriod")} className={segmentedTrough("sm")}>
+              {(["month", "year"] as const).map((value) => (
+                <Tabs.Trigger
+                  key={value}
+                  value={value}
+                  className={segmentedItem("sm", interval === value)}
+                >
+                  {value === "month" ? t("monthly") : t("annual")}
+                </Tabs.Trigger>
+              ))}
+            </Tabs.List>
+          </Tabs.Root>
+        ) : null}
+
         <ul className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
           {plans.map((plan, index) => {
             const isCurrent = plan.key === current;
@@ -221,8 +277,8 @@ export function PlanSection({
                   puts the pieces in the wrong order in the launch locale.
                 */}
                 <p className="text-metric text-foreground tabular-nums">{price(plan)}</p>
-                {perYear(plan) === null ? null : (
-                  <p className="text-copy text-ink-400 tabular-nums">{perYear(plan)}</p>
+                {alternative(plan) === null ? null : (
+                  <p className="text-copy text-ink-400 tabular-nums">{alternative(plan)}</p>
                 )}
 
                 <ul className="flex flex-1 flex-col gap-1.5">
@@ -257,7 +313,7 @@ export function PlanSection({
                     // the offer.
                     variant={isUpgrade ? "default" : "outline"}
                     disabled={pending}
-                    onClick={() => run(() => startCheckoutAction({ planKey: plan.key }))}
+                    onClick={() => run(() => startCheckoutAction({ planKey: plan.key, interval }))}
                   >
                     {t("choose", { plan: plan.name })}
                   </Button>

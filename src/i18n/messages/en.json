@@ -1699,7 +1699,12 @@
       "agency1": "Unlimited locations",
       "agency2": "White-label and the client console",
       "agency3": "API access"
-    }
+    },
+    "billingPeriod": "Billing period",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "orPerYear": "or {amount} / year — two months free",
+    "orPerMonth": "or {amount} / month"
   },
   "channels": {
     "title": "Channels",

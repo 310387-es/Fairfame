@@ -1699,7 +1699,12 @@
       "agency1": "Sınırsız şube",
       "agency2": "Beyaz etiket ve müşteri konsolu",
       "agency3": "API erişimi"
-    }
+    },
+    "billingPeriod": "Fatura dönemi",
+    "monthly": "Aylık",
+    "annual": "Yıllık",
+    "orPerYear": "ya da {amount} / yıl — iki ay bedava",
+    "orPerMonth": "ya da {amount} / ay"
   },
   "channels": {
     "title": "Kanallar",
