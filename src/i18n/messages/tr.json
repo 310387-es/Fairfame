@@ -2037,7 +2037,7 @@
     "pricing": {
       "eyebrow": "Fiyatlar",
       "title": "Fiyat açık. Demo kapısı yok.",
-      "sub": "Şube başına, aylık. Her plan 14 günlük tam özellikli denemeyle başlar — kısıtlı bir ücretsiz katman değil.",
+      "sub": "Her plan belirli sayıda şube içerir, fazlasını ayrı fiyatlar — yeni bir şube, üst pakete geçmek yerine bir satır kalemi olur. Her plan 14 günlük tam özellikli denemeyle başlar; kısıtlı bir ücretsiz katman değil.",
       "note": "Fiyatlar dönemsel olarak güncellenir. SMS/WhatsApp gönderimleri ve yoğun yapay zekâ kullanımı maliyet artı esasıyla ölçülür — gerçek maliyet, dürüst fiyat. Açık olan açık kalır.",
       "starterName": "Starter",
       "starterOne": "Google + kendi toplama sayfanız",
@@ -2062,7 +2062,8 @@
       "agencyOne": "Beyaz etiket + müşteri rolleri",
       "agencyTwo": "Toplu yönetim",
       "agencyThree": "Bayi fiyatlandırması",
-      "agencyFour": "İş ortağı desteği"
+      "agencyFour": "İş ortağı desteği",
+      "annual": "Gösterilen fiyatlar aylıktır. Yıllık ödemede iki ay bedava."
     },
     "quote": {
       "text": "“Mal ölür, dost akraba ölür… ama iyi ad ölmez, hakkıyla kazananın.”",

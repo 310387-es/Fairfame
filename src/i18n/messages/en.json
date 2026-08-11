@@ -2037,7 +2037,7 @@
     "pricing": {
       "eyebrow": "Pricing",
       "title": "Public prices. No demo gate.",
-      "sub": "Per location, per month. Every plan starts with a 14-day full-feature trial — not a crippled free tier.",
+      "sub": "Each plan includes locations and prices any beyond them, so growing a branch is a line item rather than a tier jump. Every plan starts with a 14-day full-feature trial — not a crippled free tier.",
       "note": "Prices are repriced periodically. SMS/WhatsApp sends and heavy AI usage are metered add-ons at cost-plus — real costs, priced honestly. What's public stays public.",
       "starterName": "Starter",
       "starterOne": "Google + your own collection page",
@@ -2062,7 +2062,8 @@
       "agencyOne": "White-label + client roles",
       "agencyTwo": "Bulk management",
       "agencyThree": "Reseller pricing",
-      "agencyFour": "Partner support"
+      "agencyFour": "Partner support",
+      "annual": "Prices shown are monthly. Pay annually and two months are free."
     },
     "quote": {
       "text": "“Cattle die, kindred die… but word-fame never dies, for the one who earns it well.”",

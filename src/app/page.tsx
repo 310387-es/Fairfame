@@ -265,7 +265,21 @@ export default async function RootPage() {
           <Pricing />
 
           <Reveal>
-            <p className="mt-4 max-w-[640px] text-copy text-paper-faint">{t("pricing.note")}</p>
+            {/*
+              The billing period, said where the numbers are (11 Aug 2026).
+
+              Annual became purchasable that day — until then checkout sent one
+              line item at the monthly price whatever a screen offered, so a page
+              advertising "two months free" would have been quoting a discount
+              the payment path could not honour. It can now, and a public pricing
+              page that omits the cheaper option is the kind of quiet omission
+              this section's own headline is positioned against.
+
+              Its own line above the footnote rather than inside it: the footnote
+              is about what *else* costs money, and this is about paying less.
+            */}
+            <p className="mt-4 max-w-[640px] text-copy text-paper-body">{t("pricing.annual")}</p>
+            <p className="mt-2 max-w-[640px] text-copy text-paper-faint">{t("pricing.note")}</p>
           </Reveal>
         </section>
 
