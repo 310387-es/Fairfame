@@ -101,6 +101,21 @@ A simple spreadsheet with these as inputs beats an elaborate 5\-year forecast at
 
 ## 6\. Brand & Naming
 
+**Decided 10 Aug 2026: Fairfame.** One word, capital F, in English and Turkish alike. The identity — logo, colour, type, texture, voice — is [`24-brand-guidelines.md`](./24-brand-guidelines.md); this section records the *commercial* decision and what it is still exposed to.
+
+**Why this name.** The shortlist below was drawn from **product territory** — every entry says *review*, *opinion* or *voice*, which is what the software reads. Fairfame is drawn from **outcome territory**: what the customer is left with. "Fair fame" is a real English phrase, early\-modern through 19th\-century, meaning **good reputation, honourably earned** — and the honourably\-earned half is the product's whole compliance posture said in two words, in a market whose grey edge sells the opposite. It follows the pattern the category's own winners already took: **Podium** and **Birdeye** name a result and a vantage point, not a feature; nobody had to be told what a "review management platform" was to remember them. A name in product territory competes inside a crowded, descriptive, hard\-to\-register space — which is where the shortlist's availability problem came from in the first place.
+
+It also survives Turkish: no `w`, `q`, `x`, no hard `c`, and *fair* already arrives via *fair play*. Suffixation takes an apostrophe — **Fairfame'e, Fairfame'in, Fairfame'de**.
+
+**Adopted at risk.** Two gates are open, and the name is in use internally ahead of both:
+
+1. **Trademark — unscreened.** TÜRKPATENT and EUIPO **classes 9, 35 and 42**, plus a USPTO knock\-out search. Until that clears, nothing customer\-facing ships under it.
+2. **Domain — not bought.** `fairfame.com` sits with **HugeDomains** on a fixed\-price reseller listing: a purchase, not a negotiation, so the cost is known and the only risk is delay. `fairfame.com.tr` is unchecked. Buy before any public use.
+
+Accepting that risk is deliberate — the alternative is another month of the product having no name, and the reversible cost is small: the sweep is display copy, and no table, module, env var or test identifier carries the name ([`24`](./24-brand-guidelines.md) §8). If a gate fails, the fallback is the shortlist below, re\-screened.
+
+*Superseded — the shortlist that produced the provisional name **Revira**, kept because it is the argument the decision above departs from:*
+
 **Direction chosen:** global\-English brandable; global brand, Türkiye as first market; must read as a *clear, legitimate* brand (explicitly not the grey "buy reviews" crowd).
 
 **Shortlist** (all require domain \+ TÜRKPATENT/USPTO/EUIPO verification before commit — the reviews space is crowded and many short names are taken):
@@ -116,7 +131,7 @@ A simple spreadsheet with these as inputs beats an elaborate 5\-year forecast at
 
 **Recommendation:** **Revira** as primary for its clarity \+ brandability, with **Reviora** as the more\-ownable alternative if trademark/domain checks flag Revira. Names verified as already in use and set aside: Echora, Voxly, Revya, Reevoo/Reevo (existing review company), Reviewly.
 
-**Next branding steps:** (1) run domain \+ trademark checks on the top 2–3; (2) lock the name; (3) I design clean SVG logo concepts; (4) define color/type and voice in a one\-page brand guide.
+**Next branding steps:** (1) run domain \+ trademark checks on the top 2–3; (2) lock the name; (3) I design clean SVG logo concepts; (4) define color/type and voice in a one\-page brand guide. *(Steps 2–4 are done under Fairfame; step 1 is the trademark gate above, still open.)*
 
 * * *
 

@@ -61,7 +61,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
           <LocaleSwitcher locale={locale} />
         </div>
 
-        <Logo className="mb-8 [&>span:last-child]:text-xl" markClassName="size-8" />
+        <Logo className="mb-8 h-10" />
         <div className="w-full max-w-sm">{children}</div>
 
         {/*

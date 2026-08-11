@@ -17,14 +17,16 @@ import {
   Users,
 } from "lucide-react";
 import type { Metadata } from "next";
+import { Lora } from "next/font/google";
 import { getTranslations } from "next-intl/server";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/auth/session";
 import { IconTile } from "@/components/ds/icon-tile";
-import { Logo, LogoMark } from "@/components/brand/logo";
+import { Logo } from "@/components/brand/logo";
 import { Briefing } from "@/components/marketing/briefing";
+import { MurmurField } from "@/components/marketing/murmur-field";
 import { Pricing } from "@/components/marketing/pricing";
 import { PipelineFlow } from "@/components/marketing/pipeline-flow";
 import { LocaleSwitcher } from "@/components/shell/locale-switcher";
@@ -48,6 +50,28 @@ import { themeLabel } from "@/reviews/taxonomy";
  * bad day) and a visitor cannot trigger a model call more than once an hour per
  * locale — both properties are why this page can render an AI artefact at all.
  */
+
+/**
+ * The brand's display face, on this page and nowhere else (docs/24 §4).
+ *
+ * Declared here rather than in the root layout, which is what keeps the promise
+ * "the app shell stays Geist-only" structural instead of a matter of
+ * discipline: `--font-lora` is defined on this page's own wrapper, so no
+ * surface inside `(app)` can reach it even by accident. `globals.css` decides
+ * *which* roles use it, and the fallback stack there means a rule that escaped
+ * would degrade to Georgia rather than break.
+ *
+ * `latin-ext` is not optional — ğ, ş and ı live there, and the headline this
+ * face was chosen for is read in Turkish first. No `weight`: Lora ships as a
+ * variable font, so one file covers the range and the display rule asks for
+ * 600. `italic` is loaded for the murmur, which draws in nothing else.
+ */
+const lora = Lora({
+  variable: "--font-lora",
+  subsets: ["latin", "latin-ext"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
@@ -250,7 +274,7 @@ export default async function RootPage() {
   ];
 
   return (
-    <div className="marketing flex min-h-full flex-col">
+    <div className={`marketing ${lora.variable} flex min-h-full flex-col`}>
       <div hidden dangerouslySetInnerHTML={{ __html: `<!--${DIRECTION_CONTRACT}-->` }} />
 
       <a
@@ -265,10 +289,10 @@ export default async function RootPage() {
           like marketing bolted onto it. */}
       <header className="bg-ink-900">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-          {/* The ring is meant to match whatever surface the mark sits on, so it
-              reads as a token rather than a hex: the masthead is `--ink-900`,
-              and if that value ever moves the notification dot moves with it. */}
-          <LogoMark className="size-7" ringColor="var(--ink-900)" title="Revira" />
+          {/* The on-ink lockup, because the masthead is ink. One image: the
+              white seal, the white wordmark and its amber full stop are all in
+              the file, which is why nothing here names a colour. */}
+          <Logo tone="ink" className="h-8" />
 
           <div className="flex items-center gap-1">
             <LocaleSwitcher locale={locale} className="tap text-on-ink-muted hover:bg-white/10" />
@@ -289,34 +313,45 @@ export default async function RootPage() {
             First viewport: the claim at poster scale, then the artefact
             entering underneath it and running past the fold.
         --------------------------------------------------------------- */}
-        <div className="mx-auto w-full max-w-6xl px-4 pt-8 sm:px-6 lg:pt-12">
-          {/* The headline takes the whole content measure. It was capped at
+        {/* The murmur runs behind the claim and nowhere else on the page: it is
+            the brand's picture of word of mouth, and its place is beside the
+            sentence that makes the promise, not behind the evidence that keeps
+            it. `carve` holds a clear ellipse through the middle so nothing
+            drifts under the headline — the words gather at the margins, which
+            is where talk you are not part of actually sits. */}
+        <MurmurField
+          family={lora.style.fontFamily}
+          className="mx-auto w-full max-w-6xl px-4 pt-8 sm:px-6 lg:pt-12"
+        >
+          <div>
+            {/* The headline takes the whole content measure. It was capped at
               `max-w-4xl` inside a `max-w-6xl` column, which left the upper-right
               quadrant of the fold empty and rendered the page's thesis word —
               poster — as a large h1. The subtitle keeps its cap, because a
               15px lead across 1152px is a different mistake. */}
-          <h1 className="text-poster text-balance">{t("headline")}</h1>
-          <p className="mt-5 max-w-argument text-marketing text-pretty text-ink-600">
-            {t("subhead")}
-          </p>
+            <h1 className="text-poster text-balance">{t("headline")}</h1>
+            <p className="mt-5 max-w-argument text-marketing text-pretty text-ink-600">
+              {t("subhead")}
+            </p>
 
-          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-            <Button asChild size="lg" className="tap">
-              <Link href="/sample">
-                {t("ctaPrimary")}
-                <ArrowRight aria-hidden className="size-4" />
+            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <Button asChild size="lg" className="tap">
+                <Link href="/sample">
+                  {t("ctaPrimary")}
+                  <ArrowRight aria-hidden className="size-4" />
+                </Link>
+              </Button>
+              <Link
+                href="/sign-up"
+                className="tap rounded-sm text-body font-medium underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
+                {t("ctaSecondary")}
               </Link>
-            </Button>
-            <Link
-              href="/sign-up"
-              className="tap rounded-sm text-body font-medium underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-            >
-              {t("ctaSecondary")}
-            </Link>
-          </div>
+            </div>
 
-          <p className="mt-2 max-w-argument text-meta text-faint">{t("noCard")}</p>
-        </div>
+            <p className="mt-2 max-w-argument text-meta text-faint">{t("noCard")}</p>
+          </div>
+        </MurmurField>
 
         {/* ---------------------------------------------------------------
             The mechanism, before the deliverable.
@@ -797,7 +832,7 @@ export default async function RootPage() {
       <footer className="border-t border-line">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
-            <Logo markClassName="size-6" />
+            <Logo className="h-8" />
             <p className="mt-2 text-meta text-faint">{t("footerTagline")}</p>
           </div>
 

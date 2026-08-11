@@ -69,7 +69,10 @@ const MAY_WRITE_HEX: Record<string, string> = {
     "surface a recipient reaches from an email footer.",
   "src/components/connections/provider-mark.tsx":
     "A brand colour is a fact about another company, not a value in our palette.",
-  "src/components/brand/logo.tsx": "Our own mark. A logo's colours are the logo.",
+  // `src/components/brand/logo.tsx` used to be here, and is not any more: the
+  // Fairfame mark is a file in `brand/`, served from `public/`, so the
+  // component names no colour at all. The exemption disappeared with the
+  // drawing it was covering for.
   "src/app/manifest.ts":
     "The operating system reads a manifest before any stylesheet exists — it is " +
     "what paints the splash screen and the task-switcher chrome, so a custom " +
@@ -253,7 +256,7 @@ describe("the design system's own rule", () => {
   /**
    * A brand family's shades are ours, and only the ones we declared exist.
    *
-   * `indigo`, `amber` and `ink` are Revira's palette *and* three of Tailwind's
+   * `indigo`, `amber` and `ink` are Fairfame's palette *and* three of Tailwind's
    * default palette names. Where the two overlap, Tailwind's built-in shade is
    * always there as a fallback — so `fill-amber-400` compiles, renders, and
    * quietly paints **#fbbf24** instead of the brand's **#f5a524**, because

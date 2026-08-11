@@ -34,7 +34,7 @@ function localeOf(value: string | null): Locale {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const campaign = await resolveCampaignBySlug(slug);
-  if (!campaign) return { title: "Revira" };
+  if (!campaign) return { title: "Fairfame" };
 
   const t = await getTranslations({ locale: localeOf(campaign.locale), namespace: "collect" });
 

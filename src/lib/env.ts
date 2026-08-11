@@ -216,7 +216,7 @@ const envSchema = z.object({
       message: "must start with smtp:// or smtps://",
     })
     .default("smtp://localhost:1025"),
-  EMAIL_FROM: z.string().min(3).default("Revira <no-reply@revira.local>"),
+  EMAIL_FROM: z.string().min(3).default("Fairfame <no-reply@fairfame.local>"),
 
   /**
    * Abuse guard on the unauthenticated submission endpoint: at most N

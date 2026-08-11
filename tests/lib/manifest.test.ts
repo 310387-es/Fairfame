@@ -51,9 +51,11 @@ describe("the manifest", () => {
   it("ships icons that exist", () => {
     for (const icon of manifest().icons ?? []) {
       const path = icon.src.startsWith("/") ? icon.src.slice(1) : icon.src;
-      // Next serves `src/app/icon.svg` and `src/app/apple-icon.png` at the
-      // root; a manifest pointing at a 404 is an install with no icon.
-      expect(() => readFileSync(`src/app/${path}`)).not.toThrow();
+      // The icons moved out of Next's `src/app/icon.svg` file convention and
+      // into `public/`, because file-based metadata silently overrides the
+      // `metadata.icons` object in `layout.tsx` and only one of them can win.
+      // A manifest pointing at a 404 is an install with no icon.
+      expect(() => readFileSync(`public/${path}`)).not.toThrow();
     }
   });
 });

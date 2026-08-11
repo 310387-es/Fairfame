@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // no description, and `notFound()` below. Nothing distinguishes "there is no
   // such page" from "there is one and it is not live", which is what keeps this
   // route from being a way to enumerate businesses.
-  if (!page?.published) return { title: "Revira" };
+  if (!page?.published) return { title: "Fairfame" };
 
   const t = await getTranslations({ locale: page.locale, namespace: "publicPage" });
   const canonical = locationPageUrl(publicBaseUrl(), page.slug);
@@ -213,7 +213,7 @@ export default async function LocationReviewsPage({ params }: PageProps) {
         {/*
           The credit line goes with the mark. An agency that has bought the
           right to remove ours has bought the sentence too — leaving "Powered by
-          Revira" under somebody else's logo would be the worst of both.
+          Fairfame" under somebody else's logo would be the worst of both.
         */}
         {brand.whiteLabelled || !brand.showPoweredBy ? null : (
           <p className="text-meta text-faint">{t("poweredBy")}</p>

@@ -84,7 +84,7 @@ function build(
      * tested for exactly this.
      */
     filename: (scope, start) =>
-      `revira-${slugify(scope).slice(0, 48).replace(/-+$/, "") || "report"}-${start
+      `fairfame-${slugify(scope).slice(0, 48).replace(/-+$/, "") || "report"}-${start
         .toISOString()
         .slice(0, 10)}.pdf`,
   };
@@ -113,7 +113,7 @@ const COPY: Record<Locale, ReportCopy> = {
       empty: "Bu dönemde veri yok.",
     },
     {
-      generated: (date) => `Revira · ${date} tarihinde oluşturuldu`,
+      generated: (date) => `Fairfame · ${date} tarihinde oluşturuldu`,
       page: (page, total) => `${page} / ${total}`,
     },
   ),
@@ -139,7 +139,7 @@ const COPY: Record<Locale, ReportCopy> = {
       empty: "Nothing in this period.",
     },
     {
-      generated: (date) => `Revira · generated ${date}`,
+      generated: (date) => `Fairfame · generated ${date}`,
       page: (page, total) => `${page} of ${total}`,
     },
   ),

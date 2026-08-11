@@ -136,7 +136,7 @@ export const widgetStyleSchema = z.object({
   theme: z.enum(WIDGET_THEMES).default("light"),
   /** Null follows the location's locale, then the organization's. */
   locale: z.enum(LOCALES).nullable().default(null),
-  /** Null uses Revira indigo. */
+  /** Null uses Fairfame indigo. */
   accent: hexColor.nullable().default(null),
   showAuthor: z.boolean().default(true),
   showSource: z.boolean().default(true),

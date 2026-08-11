@@ -1,6 +1,6 @@
-# Revira — Planning Docs
+# Fairfame — Planning Docs
 
-Planning and design documentation for **Revira** *(provisional name)* — a review & customer-voice management SaaS. Launch market: Türkiye. Built global-ready.
+Planning and design documentation for **Fairfame** — a review & customer-voice management SaaS. Launch market: Türkiye. Built global-ready.
 
 > Source-of-truth planning docs. `CLAUDE.md` (repo root) gives Claude Code its project context. Build plans: `09` (Phase 0), `10` (Phase 1a), `11` (Phase 1b), `17` (Phase 2), `19` (Phase 3) — all built; `20` (Phase 4) is planned and not started. `13` is what to do when credentials arrive.
 >
@@ -33,6 +33,7 @@ Planning and design documentation for **Revira** *(provisional name)* — a revi
 | 21 | [Visual Language](./21-visual-language.md) | ✅ In force — refines [15](./15-design-system.md) after judging the running app on real data at 1440px and 390px, EN and TR. Re-spaced type scale, elevation, the selection surface, and a prioritised list of what to elevate. **Read with 15; where they disagree, 21 wins.** |
 | 22 | [Post-Test Fix Plan](./22-post-test-fix-plan.md) | ✅ Done — a cold café-owner run over 73 items, worked as Waves A (stop the bleeding), B (the first five minutes) and C (trust and polish). |
 | 23 | [Build Log](./23-build-log.md) | **The decision record** — every phase and wave, with the argument behind each rule. Lived at the top of `CLAUDE.md` until that file passed the 150k-character agent limit. Read the relevant entry before reversing a decision. |
+| 24 | [Brand Guidelines](./24-brand-guidelines.md) | The decided identity — the name **Fairfame**, the ff-ligature logo, colour and type rules, asset inventory in `brand/`. Two gates still open: trademark screening and the domain purchase. |
 | — | [Remediation Plan](./remediation-plan.md) | The founder audit's prioritised fix list (Waves 1–5). Unnumbered because it cuts across phases rather than following one. |
 | — | [Home — Live Dashboard](./home-live-dashboard.md) | Implementation handoff for the Home redesign: tokens, layout, the ten widgets, data notes. |
 
@@ -40,7 +41,8 @@ Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude
 
 ## Assets
 
-- [`assets/revira-logo-concepts.svg`](./assets/revira-logo-concepts.svg) — three logo directions (monogram chosen).
+- [`../brand/`](../brand/) — **the decided identity** (Fairfame ff-ligature): lockups, symbol, favicon, PNG exports. Rules in [`24-brand-guidelines.md`](./24-brand-guidelines.md).
+- [`assets/revira-logo-concepts.svg`](./assets/revira-logo-concepts.svg) — three logo directions from the Revira era; superseded by `brand/`.
 - [`assets/revira-how-it-works.html`](./assets/revira-how-it-works.html) — visual product map (account model + user flows).
 
 ## Roadmap status
@@ -59,4 +61,4 @@ Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude
 
 Next.js + TypeScript · self-hosted Postgres + pgvector (Docker) · Drizzle · BetterAuth (org plugin) · Redis + BullMQ · Zod · next-intl (TR/EN) · LLM abstraction · Stripe skeleton.
 
-*Working name "Revira" is provisional — pending domain + trademark verification.*
+*The name is decided: **Fairfame** (10 Aug 2026, [`24-brand-guidelines.md`](./24-brand-guidelines.md)) — adopted-at-risk pending trademark screening and the fairfame.com purchase. The display-name sweep has run: every surface a customer reads says Fairfame. "Revira" survives on purpose in three places — **identifiers** (cookie names, the `revira_app` database role, the `data-revira-widget` embed attribute, log fields, test hostnames), which are contracts rather than copy; **the dated headers of these planning docs**, which were written under the working name; and **three comments** that explain what was replaced and why. A rename that reaches into any of those buys nothing and breaks something.*

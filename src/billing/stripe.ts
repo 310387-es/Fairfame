@@ -120,7 +120,7 @@ export const stripeProvider: BillingProvider = {
             currency: request.currency.toLowerCase(),
             unit_amount: plan.priceMonth,
             recurring: { interval: plan.interval },
-            product_data: { name: `Revira ${plan.name}` },
+            product_data: { name: `Fairfame ${plan.name}` },
           },
         },
       ],

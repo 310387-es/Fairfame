@@ -93,7 +93,7 @@ describe("values that would run", () => {
 describe("the filename", () => {
   it("says what it holds and when it was taken", () => {
     expect(csvFilename("themes", "30d", new Date("2026-08-05T09:00:00Z"))).toBe(
-      "revira-themes-30d-2026-08-05.csv",
+      "fairfame-themes-30d-2026-08-05.csv",
     );
   });
 });

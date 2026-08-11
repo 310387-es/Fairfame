@@ -1,6 +1,6 @@
-# CLAUDE.md — Revira
+# CLAUDE.md — Fairfame
 
-**Revira** *(provisional name)* is a review & customer-voice management SaaS: businesses connect their review and social sources and receive new-review notifications, AI analysis, and a weekly **Action Digest** (the hero feature). Launch market is Türkiye; the product is built global-ready (EN + TR). The full plan lives in `docs/` — read `docs/02-prd.md`, `docs/03-technical-architecture.md`, and `docs/06-ux-roles-and-flows.md` before building.
+**Fairfame** is a review & customer-voice management SaaS: businesses connect their review and social sources and receive new-review notifications, AI analysis, and a weekly **Action Digest** (the hero feature). Launch market is Türkiye; the product is built global-ready (EN + TR). The full plan lives in `docs/` — read `docs/02-prd.md`, `docs/03-technical-architecture.md`, and `docs/06-ux-roles-and-flows.md` before building.
 
 ## Current state
 
@@ -56,6 +56,8 @@ Build tasks **in order** within a phase, pausing after each for review.
 ## Design system (in force)
 
 **Every screen follows `docs/15-design-system.md`. Read it before building any UI.** One theme only — there is no dark mode and no `dark:` variant; never add one. Tokens live in `src/app/globals.css`; shared components in `src/components/ds`; `src/app/(app)/dashboard` is the reference implementation. Never type a hex code, font size or corner radius — the value is already a token. **Two files are exempt and both say why in their own comment:** `src/widgets/theme.ts`, because a widget renders on a stranger's site where `globals.css` does not exist, and `src/components/connections/provider-mark.tsx`, because a brand colour is a fact about another company rather than a value in our palette. Reach for `SectionCard`, `Eyebrow`, `Metric`, `IconTile`, `Meter`, `Stars` before writing a div. The shell (dark rail, top bar, page container) is app-wide, so a new page inherits the layout by existing.
+
+**The brand is a second layer, and it stops at the product's edge (`docs/24-brand-guidelines.md`).** Paper, Lora and the murmur texture belong to the marketing front door, documents that leave the app, email chrome, social and print. Inside the app nothing changes: cool canvas, Geist only, no texture, no Lora. The two layers share ink, amber, indigo and the seal, which is what keeps them one company rather than two. **The logo is an asset, never a redraw** — the seal's shared crossbar *is* the identity, so a hand-drawn `<svg>` that approximates it has drawn a different logo; embed the files in `brand/`. `brand/` is the only place new hex may appear, for the same reason `src/widgets/theme.ts` is exempt: a brand asset ships where `globals.css` does not exist.
 
 ## Architecture principles
 
@@ -153,7 +155,7 @@ Other operator commands: `pnpm reviews:rescore` recomputes derived triage after 
 
 ## Docs
 
-`docs/` holds the full plan (01 master → 23; `docs/README.md` is the index). Read 02, 03, 06 before building; 09 (Phase 0), 10 (1a), 11 (1b), 17 (Phase 2), 19 (Phase 3) and 20 (Phase 4) are the build plans; 12 is the AI-guardrail evidence, 13 the go-live runbook, 14 the digest-surfaces plan, **15 the design system — read it before any UI work**, 16 code hygiene, 18 the accessibility and mobile evidence, 21 the visual language, 22 the post-test fix plan. Numbering is chronological, so a build plan's number is not its phase number.
+`docs/` holds the full plan (01 master → 24; `docs/README.md` is the index). Read 02, 03, 06 before building; 09 (Phase 0), 10 (1a), 11 (1b), 17 (Phase 2), 19 (Phase 3) and 20 (Phase 4) are the build plans; 12 is the AI-guardrail evidence, 13 the go-live runbook, 14 the digest-surfaces plan, **15 the design system — read it before any UI work**, 16 code hygiene, 18 the accessibility and mobile evidence, 21 the visual language, 22 the post-test fix plan, **24 the brand guidelines — read it before touching the name, the logo or the marketing front door**. Numbering is chronological, so a build plan's number is not its phase number.
 
 **`docs/23-build-log.md` is the decision record** — every phase and wave, with the argument behind each rule. It was the top of this file until 9 Aug 2026, when `CLAUDE.md` passed the 150k-character limit the agent tooling enforces; 135k of its 160k was that one section. Moved rather than trimmed, because the arguments are what stop a rule being quietly re-litigated by somebody who only sees the code it produced. **This file keeps the rules; 23 keeps the reasons.**
 

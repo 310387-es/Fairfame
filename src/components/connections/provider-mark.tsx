@@ -21,12 +21,19 @@
  * to — which is what every integrations directory does. No mark is used as our
  * own, and none is placed on anything a customer's visitor sees.
  *
+ * **`firstparty` is the exception, and it proves the rule**: that tile is our
+ * own seal, so it is the shipped asset rather than geometry. The whole argument
+ * above is about artwork we have no right to commit; there is no such argument
+ * against our own, and there is a strong one against re-drawing it.
+ *
  * ## Rules for adding one
  *
  * Server-renderable (no `"use client"`, no hooks), sized entirely by the `size`
  * prop, and `aria-hidden` — the provider's name is always beside it as text, so
  * a screen reader announcing the mark as well would read every source twice.
  */
+
+import { LogoMark } from "@/components/brand/logo";
 
 export type ProviderMarkProps = { provider: string; size?: number };
 
@@ -40,7 +47,6 @@ const BRAND = {
   yemeksepeti: "#FA0050",
   getir: "#5D3EBC",
   trendyol: "#F27A1A",
-  revira: "#4F46E5",
 } as const;
 
 export function ProviderMark({ provider, size = 32 }: ProviderMarkProps) {
@@ -186,9 +192,17 @@ export function ProviderMark({ provider, size = 32 }: ProviderMarkProps) {
      * Our own sources. `firstparty` is the hosted collection page, which is
      * this product — so it wears this product's mark rather than borrowing a
      * generic globe.
+     *
+     * The one mark on this screen that is *not* constructed from geometry, and
+     * the reason is the reason at the top of this file read backwards: every
+     * other tile is drawn because shipping somebody else's artwork is the wrong
+     * thing to do with a trademark we do not own. This one is ours, the artwork
+     * is in the repository already, and drawing our own seal by hand would be
+     * inventing a second version of the logo (docs/24 §2). It replaced an "R"
+     * monogram in a fifth indigo that was never in the palette.
      */
     case "firstparty":
-      return <Monogram letter="R" fill={BRAND.revira} size={size} />;
+      return <LogoMark size={size} />;
 
     default:
       // Development connectors and anything added to `PROVIDERS` without a mark

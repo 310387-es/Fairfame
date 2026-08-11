@@ -208,7 +208,7 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Revira brand tokens (docs/08-design-brief.md §Palette)
+ * Fairfame brand tokens (docs/08-design-brief.md §Palette, docs/24 §3)
  *
  *   Indigo #3D5AF1  primary / trust
  *   Amber  #F5A524  accent — ratings and energy
@@ -366,8 +366,10 @@
 }
 
 /* ===========================================================================
- * Revira Design System — imported from the approved Home redesign (option 1a)
- * in the "Revira home page redesign review" project on claude.ai/design.
+ * Fairfame Design System — imported from the approved Home redesign (option 1a)
+ * in the "Revira home page redesign review" project on claude.ai/design. That
+ * project keeps its name: it is a citation, and a citation that has been tidied
+ * up points at nothing.
  *
  * This block is the contract every screen inherits. It is deliberately the
  * *last* word in this file: it re-points the shadcn aliases above at the
@@ -886,6 +888,75 @@
   .marketing [class*="transition-"] {
     transition: none !important;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * The brand's display face, and only where the brand speaks (docs/24 §4).
+ *
+ * "Serif says it; sans runs it." Lora carries the page's own claims; Geist
+ * runs everything else, unchanged. The interesting part is **where the line
+ * falls**, because it is not "headings":
+ *
+ *   - `poster` and `hero` are the two roles that exist for public surfaces
+ *     alone — grep says they appear nowhere but `src/app/page.tsx`, which is
+ *     the page talking in its own voice. Those become Lora.
+ *   - `display` (27px) stays Geist, and that is the point rather than an
+ *     oversight: it is the role the *briefing card* sets its headline in. That
+ *     card is the product, quoted on a marketing page, and a demo that renders
+ *     the product in a typeface the product does not have is a demo that lies
+ *     about what you get. The brand may frame the artefact; it may not restyle
+ *     it.
+ *
+ * Unlayered on purpose. `text-poster` and `text-hero` are Tailwind utilities
+ * carrying their own `font-weight`, and `@layer utilities` outranks
+ * `@layer components` — a rule inside a layer would set the family and lose the
+ * weight, which is how you get Lora at 650 next to Lora at 600 on one page.
+ *
+ * The weight drops to 600 and the tracking opens up because both values were
+ * chosen for Geist: -0.036em is optical compensation for a large geometric
+ * sans, and a serif at poster size tightened that far runs its serifs into each
+ * other. Same size, same leading, different face — so the two numbers the face
+ * owns move with it.
+ *
+ * `--font-lora` is defined by `next/font` on the marketing subtree only, so
+ * this rule is inert anywhere else even if `.marketing` were somehow applied
+ * elsewhere: the fallback stack is the whole answer, not a hidden dependency.
+ * ------------------------------------------------------------------------ */
+.marketing :is(.text-poster, .text-hero) {
+  font-family: var(--font-lora), Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  letter-spacing: -0.014em;
+}
+
+/* ---------------------------------------------------------------------------
+ * The murmur's canvas (docs/24 §5), which has to be put in its place twice.
+ *
+ * `murmur.js` inserts the canvas as the container's first child with
+ * `position:absolute`, and a positioned element paints above its in-flow
+ * siblings regardless of DOM order. Left alone it would sit over the headline
+ * and eat the call to action — a texture that swallows the one button on the
+ * page. So: pinned behind, and transparent to the pointer.
+ *
+ * `pointer-events: none` on the canvas costs nothing, because the script's
+ * listeners are on the container, not on the canvas. The pointer still reaches
+ * it through the text.
+ *
+ * The children are given a stacking context of their own rather than a `z-10`
+ * utility per element: this is one structural fact about the container, and
+ * spreading it across the call sites is how one of them gets forgotten.
+ * ------------------------------------------------------------------------ */
+.murmur-field {
+  position: relative;
+}
+
+.murmur-field > canvas {
+  z-index: 0;
+  pointer-events: none;
+}
+
+.murmur-field > :not(canvas) {
+  position: relative;
+  z-index: 1;
 }
 
 @layer components {

@@ -11,6 +11,14 @@ src/db/migrations
 docs
 *.md
 
+# Brand assets. Delivered artwork and a delivered document: the SVGs are
+# exports, `fairfame-brand-sheet.html` is the visual form of docs/24, and
+# `murmur.js` is a self-contained drop-in. Reformatting any of them would put a
+# diff between what is in the repo and what was handed over, for no reader's
+# benefit — and `public/` (which holds the served copies) is already ignored
+# above for the same reason.
+brand
+
 # impeccable tool state — machine-written JSON (session journals, hook cache,
 # comp sidecars). Not source, and rewritten by tools that do not run prettier.
 .impeccable

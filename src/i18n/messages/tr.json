@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Revira",
+    "name": "Fairfame",
     "tagline": "Yorum ve müşteri sesi yönetimi",
     "authPanelBody": "Bağladığınız her kaynak, haftada tek bir kısa plana dönüşür — ne değişti ve bu konuda yapmaya değer üç şey.",
     "authPanelLink": "Örnek bir haftalık plan görün"
@@ -709,7 +709,7 @@
     "noRatings": "Henüz puan yok.",
     "empty": "Burada henüz yayımlanmış yorum yok.",
     "viewOriginal": "Yorumu kaynağında okuyun",
-    "poweredBy": "Yorumlar Revira ile"
+    "poweredBy": "Yorumlar Fairfame ile"
   },
   "sources": {
     "monitorOnly": "Yalnızca izleme",
@@ -999,7 +999,7 @@
       "title": "Kişi ekle",
       "description": "Tek kişi — bir isim ve e-posta ya da telefon.",
       "body": "Karşınızdaki bir müşteri için kullanın. Liste için dosya içe aktarın.",
-      "noPermission": "Kişi eklemek bilgilerini kaydeder; mesaj gönderme izni vermez. O izin kişinin kendisinden gelir ve Revira göndermeden önce kontrol eder.",
+      "noPermission": "Kişi eklemek bilgilerini kaydeder; mesaj gönderme izni vermez. O izin kişinin kendisinden gelir ve Fairfame göndermeden önce kontrol eder.",
       "name": "İsim",
       "email": "E-posta",
       "phone": "Telefon",
@@ -1278,7 +1278,7 @@
     "logoUrl": "Logo adresi",
     "agencyOnly": "Ajans paketi",
     "locked": "Markamızı kaldırmak ve kendi alan adınızı kullanmak Ajans paketinden itibaren geliyor.",
-    "hidePoweredBy": "Herkese açık sayfalardan “Powered by Revira” ibaresini kaldır",
+    "hidePoweredBy": "Herkese açık sayfalardan “Powered by Fairfame” ibaresini kaldır",
     "customDomain": "Özel alan adı",
     "customDomainHint": "DNS kaydınızın bu adı bize yönlendirmesi ve bir sertifikanın bulunması gerekir. Buraya yazmak yalnızca yazdırdığımız bağlantıları değiştirir — go-live kılavuzuna bakın.",
     "save": "Kaydet",
@@ -1519,8 +1519,8 @@
     "openOnPlatform": "Platformda aç"
   },
   "sample": {
-    "metaTitle": "Örnek haftalık plan — Revira",
-    "metaDescription": "Revira'nın her hafta bir işletme sahibine gönderdiği şeyi görün: itibar puanı, neyin değiştiği ve bu hafta yapılacak üç iş.",
+    "metaTitle": "Örnek haftalık plan — Fairfame",
+    "metaDescription": "Fairfame'in her hafta bir işletme sahibine gönderdiği şeyi görün: itibar puanı, neyin değiştiği ve bu hafta yapılacak üç iş.",
     "eyebrow": "Örnek",
     "title": "Her pazartesi kutunuza düşecek olan şey bu",
     "intro": "Gerçek bir haftalık plan — şablondan değil, yorumlardan hazırlandı. Aşağıdaki kafe hayalî; süreç ise sizin yorumlarınızın geçeceği süreç.",
@@ -1564,7 +1564,7 @@
     "badgeNoRatings": "Henüz puan yok",
     "badgeLink": "Tüm yorumları gör",
     "viewOriginal": "Yorumu kaynağında okuyun",
-    "poweredBy": "Yorumlar Revira ile"
+    "poweredBy": "Yorumlar Fairfame ile"
   },
   "widgets": {
     "title": "Sitedeki yorumlar",
@@ -1706,7 +1706,7 @@
       "not_live": "Canlı değil"
     },
     "blocker": {
-      "not_connected": "Gönderim için yapılandırılmış bir şey yok. Bir hesap bağlayın — Revira'yı kendiniz barındırıyorsanız {envVar} değişkenini ayarlayın.",
+      "not_connected": "Gönderim için yapılandırılmış bir şey yok. Bir hesap bağlayın — Fairfame'i kendiniz barındırıyorsanız {envVar} değişkenini ayarlayın.",
       "connection_error": "Bu kimlik bilgileriyle yapılan son deneme başarısız oldu. Yeniden bağlayıp tekrar deneyin.",
       "no_consent_registry": "Kayıtlı bir izin sistemi (İYS) bağlı değil; bu kanal ne kadar iyi yapılandırılmış olursa olsun hiçbir ticari mesaj çıkamaz.",
       "not_live": "Bu kanal mesajları kabul eder ama kimseye ulaşmaz. Buradan gönderilen hiçbir mesaj bugüne kadar bir telefona ulaşmadı."
@@ -1882,12 +1882,12 @@
     "hostname": "reviews.ornek.com gibi bir alan adı kullanın."
   },
   "marketing": {
-    "metaTitle": "Revira — müşterileriniz ne yapmanız gerektiğini zaten yazdı",
+    "metaTitle": "Fairfame — müşterileriniz ne yapmanız gerektiğini zaten yazdı",
     "metaDescription": "Yorumlarınızı her hafta üç maddelik bir iş listesine çeviren yorum ve müşteri sesi platformu. Örnek haftalık planı hesap açmadan görün.",
     "skipToContent": "İçeriğe geç",
     "signIn": "Giriş yap",
     "headline": "Müşterileriniz ne yapmanız gerektiğini zaten yazdı.",
-    "subhead": "Revira her hafta yorumlarınızı okur ve üç maddelik bir iş listesi çıkarır. Her maddenin altında, onu söyleyen müşterinin kendi cümlesi durur.",
+    "subhead": "Fairfame her hafta yorumlarınızı okur ve üç maddelik bir iş listesi çıkarır. Her maddenin altında, onu söyleyen müşterinin kendi cümlesi durur.",
     "ctaPrimary": "Örnek planı açın",
     "ctaSecondary": "Hesap oluşturun",
     "noCard": "Kart gerekmiyor · 14 gün boyunca her şey açık",
@@ -1993,7 +1993,7 @@
     "statNote": "Aşağıdaki örnek haftada. Sizin haftanızda sayılar değişir; her hafta yine üç iş çıkar.",
     "briefingTitle": "Ve cuma sabahı eline bu geçer",
     "briefingBody": "Aynı hafta, tek bir belge olarak: puan, neyin değiştiği ve üç iş — her birinin altında kanıtı.",
-    "shotReviewsAlt": "Revira'nın yorum kuyruğu: sol tarafta sıralar, ortada filtreler, altta yıldızlı yorumlar ve yanıt durumları.",
+    "shotReviewsAlt": "Fairfame'in yorum kuyruğu: sol tarafta sıralar, ortada filtreler, altta yıldızlı yorumlar ve yanıt durumları.",
     "themeNew": "Yeni",
     "whyTitle": "Bu planı diğer raporlardan ayıran üç şey",
     "flowEvidence": "Bu işi doğuran yorumlar",
@@ -2001,7 +2001,7 @@
     "featureCompetitors": "Rakip takibi ve kıyaslama",
     "changeThemeHeader": "Tema",
     "changeCountHeader": "Yorum",
-    "shotCollectAlt": "Revira'nın yorum toplama ekranı: bir kampanya, QR kodu, herkese açık bağlantı, poster ve masa kartı çıktıları, kişi seçici ve CSV içe aktarma.",
+    "shotCollectAlt": "Fairfame'in yorum toplama ekranı: bir kampanya, QR kodu, herkese açık bağlantı, poster ve masa kartı çıktıları, kişi seçici ve CSV içe aktarma.",
     "shotCollectCaption": "Ekranın üstündeki satır ürünün kendi kuralı: puanı ne olursa olsun her müşteri aynı sayfayı görür. Puana göre yönlendirme seçeneği burada yok — kapatılmış değil, hiç yok."
   }
 }

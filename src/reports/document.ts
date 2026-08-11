@@ -33,6 +33,40 @@ import { REPORT_FONT, registerReportFonts } from "./fonts.ts";
  * which is the property that actually matters — not which token they equal.
  */
 
+/**
+ * Where the footer sits, measured from the *top* of the page — and it has to
+ * be, which is the whole of this comment.
+ *
+ * The footer used to be `bottom: 28`, and **it never rendered**. Every report
+ * this product has sent went out with the brand line, the generation date and
+ * "1 of 2" simply absent; nothing failed, the tables were right, and the one
+ * band of a page nobody proof-reads was blank.
+ *
+ * Reproduced against `@react-pdf/renderer` 4 down to a single property: a
+ * `fixed` child positioned with `bottom` disappears when the `Page` carries a
+ * `lineHeight`. Its own `lineHeight` makes no difference, and no value of
+ * `bottom` — 0, 28, 56, 100, a percentage — brings it back. The engine resolves
+ * `bottom` against a content box the inherited leading has already stretched
+ * and puts the element off the paper. `top` is unaffected.
+ *
+ * **Moving the leading off the Page was tried first and is the worse fix.**
+ * Rendered and measured band by band: leading on the text roles instead shifts
+ * the summary card by a few points *and clips the first glyph of a
+ * right-aligned cell* — "Sentiment" printed as "entiment", "4.3" as ".3" — in a
+ * document sent to a customer. Wrapping the content in one leading View pushes
+ * the last table 135pt down; dropping the leading pulls it 35pt up. Anchoring
+ * the footer from the top changes nothing else on the page at all.
+ *
+ * So the page height is written down. A4 is 841.89pt (297mm) — a fact about
+ * the paper, not a guess — and the two numbers below are the inset the footer
+ * used to ask for and its own line box at `fontSize: 8`. **If the page size
+ * ever stops being A4, this constant moves with it.**
+ */
+const A4_HEIGHT_PT = 841.89;
+const FOOTER_INSET_PT = 28;
+const FOOTER_LINE_PT = 12;
+const FOOTER_TOP_PT = A4_HEIGHT_PT - FOOTER_INSET_PT - FOOTER_LINE_PT;
+
 const INK = "#10193a";
 const INK_MUTED = "#5a6180";
 const LINE = "#e5e8f2";
@@ -82,7 +116,7 @@ const styles = StyleSheet.create({
   empty: { fontSize: 9, color: INK_MUTED, paddingVertical: 6 },
   footer: {
     position: "absolute",
-    bottom: 28,
+    top: FOOTER_TOP_PT,
     left: 44,
     right: 44,
     flexDirection: "row",
@@ -184,7 +218,7 @@ function table(spec: ReportTable): ReactElement {
 export function reportDocument(content: ReportContent): ReactElement {
   return createElement(
     Document,
-    { title: content.title, author: "Revira" },
+    { title: content.title, author: "Fairfame" },
     createElement(
       Page,
       { size: "A4", style: styles.page },

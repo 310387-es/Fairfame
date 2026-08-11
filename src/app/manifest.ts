@@ -34,8 +34,8 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Revira",
-    short_name: "Revira",
+    name: "Fairfame",
+    short_name: "Fairfame",
     description: "Reviews, replies and your weekly plan.",
     start_url: "/dashboard",
     scope: "/",
@@ -47,17 +47,23 @@ export default function manifest(): MetadataRoute.Manifest {
     // `lang` and `dir` are deliberately absent. The product is bilingual and the
     // manifest is fetched once, without a session — declaring `tr` here would
     // tell the operating system something false for half the users.
+    // Served from `public/`, copied verbatim out of `brand/` — the same files
+    // `layout.tsx` declares, so the tab, the home screen and the install prompt
+    // cannot show three different marks.
     icons: [
       {
-        src: "/icon.svg",
+        src: "/favicon.svg",
         sizes: "any",
         type: "image/svg+xml",
-        // `any` rather than `maskable`: the mark is full-bleed with rounded
-        // corners of its own, and a maskable icon is cropped to the platform's
-        // shape — which would take a bite out of the amber dot.
+        // `any` rather than `maskable`: the seal is a full-bleed circle, and a
+        // maskable icon is padded and then cropped to the platform's shape —
+        // which on a round mask would shave the circle it is already the shape
+        // of, and on a squircle would ring it in dead space.
         purpose: "any",
       },
-      { src: "/apple-icon.png", sizes: "180x180", type: "image/png", purpose: "any" },
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/apple-touch-icon.png", sizes: "180x180", type: "image/png", purpose: "any" },
     ],
   };
 }
