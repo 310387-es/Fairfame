@@ -31,7 +31,7 @@ const page = (overrides: Partial<PublicLocationPage> = {}): PublicLocationPage =
   ...overrides,
 });
 
-const URL_ = "https://revira.example/reviews/kadikoy-kahve-sisli-subesi";
+const URL_ = "https://fairfame.example/reviews/kadikoy-kahve-sisli-subesi";
 
 describe("what the page claims about the business", () => {
   it("is a LocalBusiness at the page's own address", () => {

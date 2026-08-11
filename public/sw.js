@@ -57,7 +57,7 @@ self.addEventListener("push", (event) => {
       // The dedupe key, so a retried delivery replaces rather than stacks. It
       // is a string the platform compares to itself, not a name anybody reads,
       // which is why the rename left it alone.
-      tag: tag ?? "revira",
+      tag: tag ?? "fairfame",
       data: { url: url ?? "/dashboard" },
       // Never `requireInteraction`: a notification that will not go away until
       // it is tapped is the behaviour that gets an app's permission revoked.

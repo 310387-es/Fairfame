@@ -1,5 +1,5 @@
 ---
-name: Revira
+name: Fairfame
 description: Cool indigo-led, hairline-first document system — extended once, for a marketing front door that is itself the artefact.
 colors:
   indigo-600: "#3D5AF1"
@@ -106,12 +106,12 @@ components:
     height: "56px"
 ---
 
-# Design System: Revira
+# Design System: Fairfame
 
 > **This file is a pointer, not an authority.** The design system is
 > [`docs/15-design-system.md`](docs/15-design-system.md), refined by
 > [`docs/21-visual-language.md`](docs/21-visual-language.md); **where 15 and 21 disagree, 21
-> wins.** The normative token values live in `src/app/globals.css` under `Revira Design
+> wins.** The normative token values live in `src/app/globals.css` under `Fairfame Design
 > System`, the shared components in `src/components/ds/`, and three tests enforce them
 > (`design-tokens`, `design-contrast`, `class-merge`). The frontmatter above mirrors that
 > source for tooling; if it ever disagrees with `globals.css`, `globals.css` is right.
@@ -124,7 +124,7 @@ components:
 
 **Creative North Star: "The Annotated Document"**
 
-Revira's system was built entirely for **Operate** surfaces — a review queue, a dashboard,
+Fairfame's system was built entirely for **Operate** surfaces — a review queue, a dashboard,
 an analytics workspace — where the reader already believes the product and needs to work.
 The landing page at `/` is the first **Persuade** surface, and it was built without
 softening a single rule: same tokens, same hairlines, same refusal of imagery. The delta is

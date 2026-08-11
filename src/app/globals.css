@@ -1007,6 +1007,24 @@
   .faq-item[open] .faq-plus {
     transform: rotate(45deg);
   }
+
+  /**
+   * An anchored section stops below the masthead, not behind it.
+   *
+   * `scroll-margin-top` was 0, so `#faq` — and every other nav link — scrolled
+   * the section's top edge to the viewport's, which is 65px underneath a bar
+   * that is `sticky top-0`. The section's own 56px of padding went behind the
+   * masthead and the heading landed 5px below it, reading as a scroll that
+   * stopped just short of where it was aimed.
+   *
+   * The value is the masthead's height: `h-16` plus the hairline it grows once
+   * the page has moved (`site-nav.tsx`). Stated once, on every `section[id]`
+   * inside `.marketing`, because the alternative is a utility class on each
+   * section and a section added later that forgets it.
+   */
+  .marketing section[id] {
+    scroll-margin-top: calc(4rem + 1px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

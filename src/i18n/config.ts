@@ -14,7 +14,7 @@ export type Locale = (typeof LOCALES)[number];
 /** Türkiye is the launch market. */
 export const DEFAULT_LOCALE: Locale = "tr";
 
-export const LOCALE_COOKIE = "revira_locale";
+export const LOCALE_COOKIE = "fairfame_locale";
 
 /** One year — a language choice should not quietly expire. */
 export const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;

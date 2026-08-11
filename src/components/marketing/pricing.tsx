@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import { HashLink } from "@/components/marketing/hash-link";
 import { Reveal } from "@/components/marketing/reveal";
 import { cn } from "@/lib/utils";
 
@@ -134,7 +135,7 @@ export function Pricing() {
                 ))}
               </ul>
 
-              <a
+              <HashLink
                 href="#cta"
                 className={cn(
                   "tap justify-center rounded-[10px] border px-3.5 py-2.5 text-center text-copy font-semibold",
@@ -144,7 +145,7 @@ export function Pricing() {
                 )}
               >
                 {agency ? t("agency.cta") : t("hero.cta1")}
-              </a>
+              </HashLink>
             </div>
           </Reveal>
         );

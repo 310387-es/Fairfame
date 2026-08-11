@@ -38,13 +38,13 @@ const LOADER = `(function () {
   "use strict";
 
   var MESSAGE_TYPE = ${JSON.stringify(SIZE_MESSAGE_TYPE)};
-  var MOUNTED = "reviraMounted";
+  var MOUNTED = "fairfameMounted";
 
   /* Where this script came from is where the widget lives. The customer pasted
      one absolute URL; asking them to keep a second one in step would be a
      support ticket waiting to happen. */
   function originOf(script) {
-    var override = script.getAttribute("data-revira-base");
+    var override = script.getAttribute("data-fairfame-base");
     if (override) return override.replace(/\\/+$/, "");
     var link = document.createElement("a");
     link.href = script.src;
@@ -53,7 +53,7 @@ const LOADER = `(function () {
 
   function mount(script) {
     if (script.getAttribute(MOUNTED) === "1") return;
-    var key = script.getAttribute("data-revira-widget");
+    var key = script.getAttribute("data-fairfame-widget");
     if (!key || !/^[a-z0-9]{1,64}$/.test(key)) return;
     script.setAttribute(MOUNTED, "1");
 
@@ -61,7 +61,7 @@ const LOADER = `(function () {
     frame.src = originOf(script) + "/embed/w/" + key;
     /* A frame with no accessible name is announced as "frame" and nothing else.
        The host page may override it for a more specific one. */
-    frame.title = script.getAttribute("data-revira-title") || "Customer reviews";
+    frame.title = script.getAttribute("data-fairfame-title") || "Customer reviews";
     frame.loading = "lazy";
     frame.setAttribute("scrolling", "no");
     /* No same-origin, so the frame cannot reach this page's storage or DOM even
@@ -79,7 +79,7 @@ const LOADER = `(function () {
        Starting at zero would make the page jump; starting tall would leave a
        gap on a one-review widget. The builder writes a small one into the
        snippet for a badge, where 420 would be a visible flash of nothing. */
-    frame.style.height = (script.getAttribute("data-revira-height") || "420") + "px";
+    frame.style.height = (script.getAttribute("data-fairfame-height") || "420") + "px";
 
     if (script.parentNode) script.parentNode.insertBefore(frame, script.nextSibling);
 
@@ -109,7 +109,7 @@ const LOADER = `(function () {
   }
 
   function mountAll() {
-    var scripts = document.querySelectorAll("script[data-revira-widget]");
+    var scripts = document.querySelectorAll("script[data-fairfame-widget]");
     for (var i = 0; i < scripts.length; i++) mount(scripts[i]);
   }
 

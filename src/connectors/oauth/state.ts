@@ -43,7 +43,7 @@ export type OAuthSession = {
 /** Ten minutes: long enough to read a consent screen, short enough to be useless later. */
 export const OAUTH_SESSION_TTL_MS = 10 * 60 * 1_000;
 
-export const OAUTH_COOKIE = "revira_oauth";
+export const OAUTH_COOKIE = "fairfame_oauth";
 
 function sign(payload: string, secret: string): string {
   return createHmac("sha256", secret).update(payload).digest("base64url");

@@ -86,8 +86,10 @@ describe("pushMessageFor", () => {
 
 describe("vapidSubject", () => {
   it("keeps a configured https or mailto contact", () => {
-    expect(vapidSubject("mailto:destek@revira.app", "https://x")).toBe("mailto:destek@revira.app");
-    expect(vapidSubject("https://revira.app", "http://x")).toBe("https://revira.app");
+    expect(vapidSubject("mailto:destek@fairfame.app", "https://x")).toBe(
+      "mailto:destek@fairfame.app",
+    );
+    expect(vapidSubject("https://fairfame.app", "http://x")).toBe("https://fairfame.app");
   });
 
   it("rescues an http origin, which is every development machine", () => {

@@ -291,11 +291,11 @@ describe("the rating badge", () => {
     // "links to the SEO page", and that page only came into existence in T3.
     const linked = badge();
     const html = renderWidgetBody(
-      content([], { ...linked, pageUrl: "https://revira.example/reviews/kadikoy-kahve" }),
+      content([], { ...linked, pageUrl: "https://fairfame.example/reviews/kadikoy-kahve" }),
       labels,
     );
 
-    expect(html).toContain('href="https://revira.example/reviews/kadikoy-kahve"');
+    expect(html).toContain('href="https://fairfame.example/reviews/kadikoy-kahve"');
     // The whole badge is the target, so the anchor wraps the box.
     expect(html).toContain('class="rvw-badge-link"');
     // An accessible name, because "3,8 · 12 reviews" does not say where it goes.

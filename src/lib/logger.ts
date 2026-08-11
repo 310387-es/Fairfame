@@ -42,7 +42,7 @@ export const loggerOptions: LoggerOptions = {
   // Named `app`, not `service`: a base binding called "service" collides with
   // the natural field name for "which dependency/queue/provider is this
   // about?", and the pretty transport then hides the more specific one.
-  base: { app: "revira" },
+  base: { app: "fairfame" },
   redact: { paths: redactPaths, censor: "[redacted]" },
   formatters: {
     level: (label) => ({ level: label }),

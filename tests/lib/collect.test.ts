@@ -276,7 +276,7 @@ describe("public submission input", () => {
 });
 
 describe("destination routing (no rating-gating)", () => {
-  const base = "https://app.revira.test";
+  const base = "https://app.fairfame.test";
 
   it("sends a first-party campaign to our own page", () => {
     expect(
@@ -284,7 +284,7 @@ describe("destination routing (no rating-gating)", () => {
         { slug: "kadikoy-h7m2qp", destination: "firstparty", destinationUrl: null },
         base,
       ),
-    ).toEqual({ kind: "firstparty", url: "https://app.revira.test/c/kadikoy-h7m2qp" });
+    ).toEqual({ kind: "firstparty", url: "https://app.fairfame.test/c/kadikoy-h7m2qp" });
   });
 
   it("sends an external campaign to the platform", () => {
@@ -318,8 +318,8 @@ describe("review request email", () => {
     contactName: "Ayşe",
     businessName: "Kahve Dünyası",
     locationName: "Kadıköy Şubesi",
-    link: "https://app.revira.test/r/abcdefghjkmnpqrstuvwx",
-    unsubscribeUrl: "https://app.revira.test/u/abcdefghjkmnpqrstuvwx",
+    link: "https://app.fairfame.test/r/abcdefghjkmnpqrstuvwx",
+    unsubscribeUrl: "https://app.fairfame.test/u/abcdefghjkmnpqrstuvwx",
   };
 
   it("renders Turkish for a Turkish recipient", () => {

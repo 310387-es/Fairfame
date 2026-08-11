@@ -153,7 +153,7 @@ export type IysGateway = {
  * deployment.** A per-bundle gateway is not a thing that can meaningfully
  * exist, so a per-bundle variable was always the wrong container.
  */
-const GATEWAY_KEY = Symbol.for("revira.iys.gateway");
+const GATEWAY_KEY = Symbol.for("fairfame.iys.gateway");
 
 type GatewayHolder = { [GATEWAY_KEY]?: IysGateway | null };
 

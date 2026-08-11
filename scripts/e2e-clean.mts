@@ -12,7 +12,7 @@ import { like } from "drizzle-orm";
 import { closeDatabasePools, getAdminDb, schema } from "../src/db/client.ts";
 
 /** Kept in step with `E2E_EMAIL_DOMAIN` in e2e/auth.setup.ts. */
-const DOMAIN = "e2e.revira.test";
+const DOMAIN = "e2e.fairfame.test";
 
 const removed = await getAdminDb()
   .delete(schema.users)

@@ -14,7 +14,7 @@ import type { TenantDatabase } from "./tenancy.ts";
  * location id just falls back to your own first location.
  */
 
-export const ACTIVE_LOCATION_COOKIE = "revira_location";
+export const ACTIVE_LOCATION_COOKIE = "fairfame_location";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 export type LocationOption = {

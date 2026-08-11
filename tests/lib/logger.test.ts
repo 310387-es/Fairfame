@@ -36,7 +36,7 @@ describe("logger", () => {
     const entry = captureLog({ orgId: "org_123" }, "hello");
 
     expect(entry.level).toBe("info");
-    expect(entry.app).toBe("revira");
+    expect(entry.app).toBe("fairfame");
     expect(entry.msg).toBe("hello");
     expect(entry.orgId).toBe("org_123");
     expect(String(entry.time)).toMatch(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/);
@@ -67,7 +67,7 @@ describe("logger", () => {
     // per-record meaning: which dependency, queue or provider this is about.
     const entry = captureLog({ service: "redis", ok: false }, "probe failed");
 
-    expect(entry.app).toBe("revira");
+    expect(entry.app).toBe("fairfame");
     expect(entry.service).toBe("redis");
   });
 

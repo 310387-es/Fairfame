@@ -28,8 +28,8 @@ export type Database = NodePgDatabase<typeof schema>;
 declare global {
   // Reused across Next.js dev hot reloads so we do not leak a pool per reload.
   // `var` is required here: only var declarations augment globalThis.
-  var __reviraAdminPool: Pool | undefined;
-  var __reviraAppPool: Pool | undefined;
+  var __fairfameAdminPool: Pool | undefined;
+  var __fairfameAppPool: Pool | undefined;
 }
 
 function createPool(connectionString: string, max: number): Pool {
@@ -45,13 +45,13 @@ let adminDbHandle: Database | undefined;
 let appDbHandle: Database | undefined;
 
 export function getAdminPool(): Pool {
-  globalThis.__reviraAdminPool ??= createPool(getEnv().DATABASE_URL, 4);
-  return globalThis.__reviraAdminPool;
+  globalThis.__fairfameAdminPool ??= createPool(getEnv().DATABASE_URL, 4);
+  return globalThis.__fairfameAdminPool;
 }
 
 export function getAppPool(): Pool {
-  globalThis.__reviraAppPool ??= createPool(getEnv().APP_DATABASE_URL, 10);
-  return globalThis.__reviraAppPool;
+  globalThis.__fairfameAppPool ??= createPool(getEnv().APP_DATABASE_URL, 10);
+  return globalThis.__fairfameAppPool;
 }
 
 /** Unrestricted. Migrations, seeding, BetterAuth, and the plans catalog only. */
@@ -68,12 +68,12 @@ export function getAppDb(): Database {
 
 /** Closes whatever was actually opened. For scripts and test teardown. */
 export async function closeDatabasePools(): Promise<void> {
-  const pools = [globalThis.__reviraAdminPool, globalThis.__reviraAppPool].filter(
+  const pools = [globalThis.__fairfameAdminPool, globalThis.__fairfameAppPool].filter(
     (pool): pool is Pool => pool !== undefined,
   );
 
-  globalThis.__reviraAdminPool = undefined;
-  globalThis.__reviraAppPool = undefined;
+  globalThis.__fairfameAdminPool = undefined;
+  globalThis.__fairfameAppPool = undefined;
   adminDbHandle = undefined;
   appDbHandle = undefined;
 

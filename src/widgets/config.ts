@@ -107,7 +107,7 @@ export function isBadgeLayout(layout: WidgetLayout): boolean {
  * new loader given no width leaves the frame full-bleed, which is what every
  * layout but the badge wants anyway.
  */
-export const SIZE_MESSAGE_TYPE = "revira-widget-height";
+export const SIZE_MESSAGE_TYPE = "fairfame-widget-height";
 
 /**
  * A widget theme is **not** the app's dark mode.

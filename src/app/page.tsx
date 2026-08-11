@@ -7,6 +7,7 @@ import { getSession } from "@/auth/session";
 import { Logo } from "@/components/brand/logo";
 import { Faq } from "@/components/marketing/faq";
 import { FlowTour } from "@/components/marketing/flow-tour";
+import { HashLink } from "@/components/marketing/hash-link";
 import { MurmurField } from "@/components/marketing/murmur-field";
 import { Pillars } from "@/components/marketing/pillars";
 import { Pricing } from "@/components/marketing/pricing";
@@ -146,12 +147,16 @@ export default async function RootPage() {
 
   return (
     <div className={`marketing ${lora.variable} bg-paper text-brand-ink`} id="top">
-      <a
+      {/* `HashLink` like every other same-page anchor here — a plain `<a>`
+          leaves a history entry the router cannot restore, and a bare `Link`
+          stops scrolling once the reader is already on that hash. The argument
+          is in `hash-link.tsx`. */}
+      <HashLink
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-100 focus:rounded-lg focus:bg-brand-ink focus:px-4 focus:py-2 focus:text-body focus:text-white"
       >
         {t("skipToContent")}
-      </a>
+      </HashLink>
 
       <SiteNav locale={locale} />
 
@@ -194,12 +199,12 @@ export default async function RootPage() {
                 >
                   {t("hero.cta1")}
                 </Link>
-                <a
+                <HashLink
                   href="#how"
                   className="tap rounded-[10px] border border-paper-line px-5 py-3 text-title hover:border-brand-ink"
                 >
                   {t("hero.cta2")}
-                </a>
+                </HashLink>
               </div>
 
               <p className="mx-auto mt-9 max-w-[560px] text-copy text-paper-faint">
@@ -237,12 +242,12 @@ export default async function RootPage() {
                 <h2 className="mt-1.5 mb-2 text-display">{t("agency.title")}</h2>
                 <p className="max-w-[560px] text-copy text-paper-body">{t("agency.body")}</p>
               </div>
-              <a
+              <HashLink
                 href="#cta"
                 className="tap rounded-[10px] border border-paper-line px-5 py-3 text-title hover:border-brand-ink"
               >
                 {t("agency.cta")}
-              </a>
+              </HashLink>
             </div>
           </Reveal>
         </section>
@@ -296,12 +301,12 @@ export default async function RootPage() {
                 >
                   {t("cta.primary")}
                 </Link>
-                <a
+                <HashLink
                   href="#agency"
                   className="tap rounded-[10px] border border-white/25 px-5 py-3 text-title text-white"
                 >
                   {t("cta.secondary")}
-                </a>
+                </HashLink>
               </div>
             </div>
           </Reveal>

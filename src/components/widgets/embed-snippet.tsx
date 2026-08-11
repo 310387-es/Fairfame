@@ -60,7 +60,7 @@ export function EmbedSnippet({
 
   const snippet =
     flavour === "script"
-      ? `<script src="${origin}/embed/widget.js" data-revira-widget="${publicKey}"${isBadgeLayout(layout) ? ` data-revira-height="${BADGE_HEIGHT}"` : ""}></script>`
+      ? `<script src="${origin}/embed/widget.js" data-fairfame-widget="${publicKey}"${isBadgeLayout(layout) ? ` data-fairfame-height="${BADGE_HEIGHT}"` : ""}></script>`
       : `<iframe src="${origin}/embed/w/${publicKey}" title="${widgetName.replace(/"/g, "&quot;")}"\n        style="width:100%;height:${height}px;border:0;display:block"></iframe>`;
 
   const copy = async () => {

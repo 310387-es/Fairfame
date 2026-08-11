@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-08-09T00:00:00.000Z",
-  "title": "Design System: Revira",
+  "title": "Design System: Fairfame",
   "extensions": {
     "authority": {
-      "note": "DESIGN.md is a pointer plus delta. The normative system is docs/15-design-system.md refined by docs/21-visual-language.md (21 wins on disagreement); normative token values live in src/app/globals.css under 'Revira Design System'. This sidecar records only what the marketing front door at / added or taught.",
+      "note": "DESIGN.md is a pointer plus delta. The normative system is docs/15-design-system.md refined by docs/21-visual-language.md (21 wins on disagreement); normative token values live in src/app/globals.css under 'Fairfame Design System'. This sidecar records only what the marketing front door at / added or taught.",
       "primary": "docs/15-design-system.md",
       "refinement": "docs/21-visual-language.md",
       "tokenSource": "src/app/globals.css",
@@ -394,7 +394,7 @@
   ],
   "narrative": {
     "northStar": "The Annotated Document",
-    "overview": "Revira's system was built entirely for Operate surfaces — a review queue, a dashboard, an analytics workspace — where the reader already believes the product and needs to work. The landing page at / is the first Persuade surface, and it was built without softening a single rule: same tokens, same hairlines, same refusal of imagery. The delta is therefore small on purpose. One new type role, one scoped stylesheet block, and one new layout pattern.\n\nThe page's thesis is that it IS the artefact. It renders a real weekly briefing from getSampleDigest() — the same pipeline, arithmetic and model that runs on a customer's own reviews — and puts the marketing argument in the margins beside it, each note anchored to the element it explains. It refuses the category arrangement of a slogan over a device-framed screenshot followed by three feature cards, and it refuses it structurally: there is no screenshot to frame and no card grid to fill.\n\nTwo things carried across from Operate that a marketing surface would normally abandon, and both held. Zero raster — docs/15 §7's 'the product's imagery is its data' survives on a surface whose category default is photography, and the built page contains no photograph, illustration, gradient or texture of any kind. And hairline-first — the briefing card, the pricing table and the disclosure notice all carry a 1px --line border and no shadow, on a page where floating cards are the convention.",
+    "overview": "Fairfame's system was built entirely for Operate surfaces — a review queue, a dashboard, an analytics workspace — where the reader already believes the product and needs to work. The landing page at / is the first Persuade surface, and it was built without softening a single rule: same tokens, same hairlines, same refusal of imagery. The delta is therefore small on purpose. One new type role, one scoped stylesheet block, and one new layout pattern.\n\nThe page's thesis is that it IS the artefact. It renders a real weekly briefing from getSampleDigest() — the same pipeline, arithmetic and model that runs on a customer's own reviews — and puts the marketing argument in the margins beside it, each note anchored to the element it explains. It refuses the category arrangement of a slogan over a device-framed screenshot followed by three feature cards, and it refuses it structurally: there is no screenshot to frame and no card grid to fill.\n\nTwo things carried across from Operate that a marketing surface would normally abandon, and both held. Zero raster — docs/15 §7's 'the product's imagery is its data' survives on a surface whose category default is photography, and the built page contains no photograph, illustration, gradient or texture of any kind. And hairline-first — the briefing card, the pricing table and the disclosure notice all carry a 1px --line border and no shadow, on a page where floating cards are the convention.",
     "keyCharacteristics": [
       "Marginalia instead of feature cards; the argument sits beside its evidence, never three screens from it.",
       "One fluid type role, and it exists only here.",

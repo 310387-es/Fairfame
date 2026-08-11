@@ -103,7 +103,7 @@ test.describe("building a widget", () => {
     const snippet = await page.locator("pre code").first().textContent();
     expect(snippet).toContain("/embed/widget.js");
 
-    const key = snippet?.match(/data-revira-widget="([a-z0-9]{24})"/)?.[1];
+    const key = snippet?.match(/data-fairfame-widget="([a-z0-9]{24})"/)?.[1];
     expect(key, "the snippet should carry a public key").toBeTruthy();
 
     // --- What the public actually gets -------------------------------------
@@ -378,11 +378,11 @@ test.describe("building a widget", () => {
     await expect(page.getByRole("button", { name: /yayından kaldır|unpublish/i })).toBeVisible();
 
     const snippet = await page.locator("pre code").first().textContent();
-    const key = snippet?.match(/data-revira-widget="([a-z0-9]{24})"/)?.[1];
+    const key = snippet?.match(/data-fairfame-widget="([a-z0-9]{24})"/)?.[1];
 
     // A first-paint height in the snippet itself, so the badge does not open a
     // 420px hole in the customer's page for the tick before it measures itself.
-    expect(snippet).toContain('data-revira-height="64"');
+    expect(snippet).toContain('data-fairfame-height="64"');
 
     // The JSON says what the number is drawn from, on the wire, so a consumer
     // rendering the badge themselves cannot mistake it for a curated average.
@@ -424,7 +424,7 @@ test.describe("building a widget", () => {
       response.end(
         `<!doctype html><meta charset="utf-8"><body style="margin:0">` +
           `<span>Book now</span>` +
-          `<script src="${loader}" data-revira-widget="${key}" data-revira-height="64"></script>` +
+          `<script src="${loader}" data-fairfame-widget="${key}" data-fairfame-height="64"></script>` +
           `</body>`,
       );
     });
@@ -507,7 +507,7 @@ test.describe("building a widget", () => {
     await expect(page).toHaveURL(/\/widgets\/[0-9a-f-]{36}$/);
 
     const snippet = await page.locator("pre code").first().textContent();
-    const key = snippet?.match(/data-revira-widget="([a-z0-9]{24})"/)?.[1];
+    const key = snippet?.match(/data-fairfame-widget="([a-z0-9]{24})"/)?.[1];
 
     // Never published, so the public route must not know it exists — and must
     // answer exactly as it would for a key that never existed.

@@ -4,6 +4,7 @@ import { Menu, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/brand/logo";
+import { HashLink } from "@/components/marketing/hash-link";
 import { LocaleSwitcher } from "@/components/shell/locale-switcher";
 import { type Locale } from "@/i18n/config";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,14 @@ import { cn } from "@/lib/utils";
  *
  * `className` is the one concession to the surface: the shell's ghost button
  * inherits its colour from an ink rail, and this masthead is paper.
+ *
+ * ## Every section link is a `HashLink`, and neither `<a>` nor `Link` would do
+ *
+ * A plain `<a href="#faq">` leaves a history entry the App Router cannot
+ * restore; a bare `<Link href="#faq">` fixes that and stops scrolling when the
+ * reader is already on that hash. `hash-link.tsx` holds both halves and the
+ * argument for them. The rule is the marketing surface's, not this file's —
+ * `page.tsx` and `pricing.tsx` use it too.
  */
 
 /* `[href, key]`. The key is a literal so `scripts/check-i18n.mts` can see
@@ -81,27 +90,27 @@ export function SiteNav({ locale }: { locale: Locale }) {
       )}
     >
       <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-7">
-        <a href="#top" aria-label="Fairfame" className="tap flex items-center">
+        <HashLink href="#top" aria-label="Fairfame" className="tap flex items-center">
           <Logo className="h-7" />
-        </a>
+        </HashLink>
 
         <div className="ms-auto hidden gap-5 text-body font-medium text-paper-body md:flex">
           {SECTIONS.map(([id, key]) => (
-            <a key={id} href={`#${id}`} className="tap hover:text-brand-ink">
+            <HashLink key={id} href={`#${id}`} className="tap hover:text-brand-ink">
               {t(key)}
-            </a>
+            </HashLink>
           ))}
         </div>
 
         <div className={cn("flex items-center gap-2.5", "ms-auto md:ms-0")}>
           <LocaleSwitcher locale={locale} className="tap text-paper-body hover:bg-white" />
 
-          <a
+          <HashLink
             href="#cta"
             className="tap hidden rounded-[10px] border border-brand-ink bg-brand-ink px-4 py-2.5 text-body font-semibold text-white sm:inline-flex"
           >
             {t("nav.cta")}
-          </a>
+          </HashLink>
 
           <button
             type="button"
@@ -127,23 +136,23 @@ export function SiteNav({ locale }: { locale: Locale }) {
         <ul className="flex flex-col">
           {SECTIONS.map(([id, key]) => (
             <li key={id}>
-              <a
+              <HashLink
                 href={`#${id}`}
                 onClick={() => setOpen(false)}
                 className="tap block border-b border-paper-line py-3 text-body font-medium text-paper-body"
               >
                 {t(key)}
-              </a>
+              </HashLink>
             </li>
           ))}
           <li className="sm:hidden">
-            <a
+            <HashLink
               href="#cta"
               onClick={() => setOpen(false)}
               className="tap mt-4 block rounded-[10px] bg-brand-ink px-4 py-3 text-center text-body font-semibold text-white"
             >
               {t("nav.cta")}
-            </a>
+            </HashLink>
           </li>
         </ul>
       </div>

@@ -114,8 +114,8 @@ describe("everywhere a customer is handed a review destination", () => {
       destinationUrl: "https://maps.example/place/kadikoy",
     };
 
-    expect(surveyReviewInvite({ reviewCampaign: campaign }, "https://revira.test")).toEqual(
-      resolveDestination(campaign, "https://revira.test"),
+    expect(surveyReviewInvite({ reviewCampaign: campaign }, "https://fairfame.test")).toEqual(
+      resolveDestination(campaign, "https://fairfame.test"),
     );
   });
 });

@@ -20,7 +20,7 @@ import { bandFor, scalePoints, SCALE, SURVEY_TYPES } from "@/surveys/scoring";
  * checkable instead of asserted.
  */
 
-const BASE = "https://revira.test";
+const BASE = "https://fairfame.test";
 
 const firstparty: RoutableCampaign = {
   slug: "kadikoy-kahve-h7m2qp",

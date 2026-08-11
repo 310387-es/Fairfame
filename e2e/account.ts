@@ -18,7 +18,7 @@ import { expect, type Page } from "@playwright/test";
  */
 
 /** Recognisable at a glance in a dev database, and easy to delete in bulk. */
-export const E2E_EMAIL_DOMAIN = "e2e.revira.test";
+export const E2E_EMAIL_DOMAIN = "e2e.fairfame.test";
 
 export type Account = { email: string; slug: string; stamp: number };
 

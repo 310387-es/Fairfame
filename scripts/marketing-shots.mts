@@ -31,7 +31,7 @@ const BASE = process.env.MARKETING_SHOTS_URL ?? "http://localhost:3000";
 const OUT = "public/marketing";
 
 /** Matches `e2e/account.ts`, so the existing cleanup script finds this too. */
-const EMAIL_DOMAIN = "e2e.revira.test";
+const EMAIL_DOMAIN = "e2e.fairfame.test";
 
 /** The business the landing page's briefing is already about. */
 const BUSINESS = "Kahve Molası";
