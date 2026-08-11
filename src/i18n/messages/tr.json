@@ -1704,7 +1704,9 @@
     "monthly": "Aylık",
     "annual": "Yıllık",
     "orPerYear": "ya da {amount} / yıl — iki ay bedava",
-    "orPerMonth": "ya da {amount} / ay"
+    "orPerMonth": "ya da {amount} / ay",
+    "savepercent": "%{percent} tasarruf",
+    "savesPerYear": "Yılda {amount} tasarruf"
   },
   "channels": {
     "title": "Kanallar",

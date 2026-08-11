@@ -1704,7 +1704,9 @@
     "monthly": "Monthly",
     "annual": "Annual",
     "orPerYear": "or {amount} / year — two months free",
-    "orPerMonth": "or {amount} / month"
+    "orPerMonth": "or {amount} / month",
+    "savepercent": "Save {percent}%",
+    "savesPerYear": "Saves {amount} a year"
   },
   "channels": {
     "title": "Channels",

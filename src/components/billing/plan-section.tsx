@@ -122,6 +122,49 @@ export function PlanSection({
       : t("orPerMonth", { amount: money(plan.priceMonth, plan.currency) });
   };
 
+  /**
+   * What annual actually saves, in money, per plan.
+   *
+   * **Derived from the two prices rather than written down.** The catalog sets
+   * annual at ten months for twelve, so the saving is arithmetic — and a typed
+   * "17%" would be a third place the ladder lives, free to drift the day
+   * somebody reprices one interval and not the other. If the two prices ever
+   * stop implying a discount this returns null and the badge disappears, which
+   * is the correct behaviour rather than a claim that has quietly stopped being
+   * true.
+   *
+   * Shown as an amount and not only a percentage: "$458 a year" is a number a
+   * reader can weigh against what they were about to spend, and a percentage
+   * alone asks them to do the multiplication.
+   */
+  const annualSaving = (plan: PlanOption) => {
+    if (plan.priceMonth === null || plan.priceYear === null) return null;
+
+    const saved = plan.priceMonth * 12 - plan.priceYear;
+    return saved > 0 ? saved : null;
+  };
+
+  /**
+   * The headline discount, for the toggle itself.
+   *
+   * One figure for the whole ladder rather than per plan, because the ratio is
+   * the same on every tier by construction — and it is read from the tiers that
+   * actually have both prices, so a catalog where that stopped being true shows
+   * nothing rather than the first plan's number labelled as everyone's.
+   */
+  const headlineDiscount = (() => {
+    const ratios = plans
+      .filter((plan) => plan.priceMonth !== null && plan.priceYear !== null)
+      .map((plan) => 1 - plan.priceYear! / (plan.priceMonth! * 12));
+
+    if (ratios.length === 0) return null;
+
+    const first = ratios[0]!;
+    // Only claim a single number when every tier genuinely shares it.
+    const uniform = ratios.every((ratio) => Math.abs(ratio - first) < 0.005);
+    return uniform && first > 0 ? Math.round(first * 100) : null;
+  })();
+
   return (
     <SectionCard
       id="plan"
@@ -223,6 +266,21 @@ export function PlanSection({
                   className={segmentedItem("sm", interval === value)}
                 >
                   {value === "month" ? t("monthly") : t("annual")}
+                  {/*
+                    The saving, on the control that grants it.
+
+                    `docs/15` §3: "never say it in colour alone" — the chip
+                    carries the words, and the colour only makes them findable.
+                    `--state-positive-*` rather than amber, which this system
+                    reserves for ratings and never puts on a white surface, and
+                    rather than indigo, which means *interaction* here and not
+                    "good".
+                  */}
+                  {value === "year" && headlineDiscount !== null ? (
+                    <span className="ml-1.5 rounded-sm bg-state-positive-bg px-1 py-px text-eyebrow text-state-positive-text">
+                      {t("savepercent", { percent: headlineDiscount })}
+                    </span>
+                  ) : null}
                 </Tabs.Trigger>
               ))}
             </Tabs.List>
@@ -277,6 +335,14 @@ export function PlanSection({
                   puts the pieces in the wrong order in the launch locale.
                 */}
                 <p className="text-metric text-foreground tabular-nums">{price(plan)}</p>
+                {interval === "year" && annualSaving(plan) !== null ? (
+                  <p className="text-copy font-medium text-state-positive-text tabular-nums">
+                    {t("savesPerYear", {
+                      amount: money(annualSaving(plan)!, plan.currency),
+                    })}
+                  </p>
+                ) : null}
+
                 {alternative(plan) === null ? null : (
                   <p className="text-copy text-ink-400 tabular-nums">{alternative(plan)}</p>
                 )}
