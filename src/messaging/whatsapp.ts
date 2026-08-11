@@ -99,7 +99,7 @@ export function getWhatsAppClient(): WhatsAppClient | null {
     return createWhatsAppClient({
       accessToken: env.WHATSAPP_ACCESS_TOKEN,
       phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
-      ...(env.WHATSAPP_BASE_URL ? { baseUrl: env.WHATSAPP_BASE_URL } : {}),
+      ...(env.META_GRAPH_BASE_URL ? { baseUrl: env.META_GRAPH_BASE_URL } : {}),
     });
   }
 
@@ -133,7 +133,7 @@ export async function whatsAppClientFor(
     return createWhatsAppClient({
       accessToken: credentials.accessToken,
       phoneNumberId: credentials.externalId,
-      ...(env.WHATSAPP_BASE_URL ? { baseUrl: env.WHATSAPP_BASE_URL } : {}),
+      ...(env.META_GRAPH_BASE_URL ? { baseUrl: env.META_GRAPH_BASE_URL } : {}),
     });
   }
 

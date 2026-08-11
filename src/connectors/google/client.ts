@@ -1,3 +1,4 @@
+import { getEnv } from "../../lib/env.ts";
 import { ConnectorError, type Connection } from "../types.ts";
 import { assertNotRateLimited } from "../throttle.ts";
 import { accessTokenForConnection } from "../tokens.ts";
@@ -16,7 +17,8 @@ import type { z } from "zod";
  * Three base URLs, because Google splits this across three APIs and never
  * migrated reviews off v4 (see ./schemas.ts). They are constructor options so a
  * contract test — or the go-live suite in T6 — can point the whole client at a
- * local server without touching this file.
+ * local server without touching this file, and they fall back to
+ * `GOOGLE_*_BASE_URL` so `pnpm mock:platform` can do the same from `.env`.
  *
  * Everything funnels through `request()`, so authentication, throttle handling
  * and error classification happen in exactly one place. That matters most for
@@ -68,10 +70,29 @@ export function createGoogleClient(options: GoogleClientOptions = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const readToken = options.readToken ?? ((connection) => accessTokenForConnection(connection));
 
+  /*
+    Option, then environment, then Google.
+
+    The middle step is what `pnpm mock:platform` needs: it serves a fake Google
+    and prints three base URLs to copy into `.env`, and until 12 Aug 2026
+    nothing read them — the option existed, only tests passed it, and a
+    developer following the documented instructions pointed nothing anywhere.
+
+    Read here rather than at module load so a test that sets the variable and
+    resets the cache is answered, and so importing this module never depends on
+    a validated environment.
+  */
+  const env = getEnv();
   const bases = {
-    accountManagement: options.accountManagementBaseUrl ?? DEFAULTS.accountManagement,
-    businessInformation: options.businessInformationBaseUrl ?? DEFAULTS.businessInformation,
-    reviews: options.reviewsBaseUrl ?? DEFAULTS.reviews,
+    accountManagement:
+      options.accountManagementBaseUrl ??
+      env.GOOGLE_ACCOUNT_MANAGEMENT_BASE_URL ??
+      DEFAULTS.accountManagement,
+    businessInformation:
+      options.businessInformationBaseUrl ??
+      env.GOOGLE_BUSINESS_INFORMATION_BASE_URL ??
+      DEFAULTS.businessInformation,
+    reviews: options.reviewsBaseUrl ?? env.GOOGLE_REVIEWS_BASE_URL ?? DEFAULTS.reviews,
   };
 
   async function request<T>(

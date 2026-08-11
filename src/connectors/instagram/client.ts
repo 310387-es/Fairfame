@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getEnv } from "../../lib/env.ts";
 import { RateLimitError } from "../throttle.ts";
 import { accessTokenForConnection } from "../tokens.ts";
 import { ConnectorError, type Connection } from "../types.ts";
@@ -125,7 +126,19 @@ export type InstagramClient = {
 export function createInstagramClient(options: InstagramClientOptions = {}): InstagramClient {
   const fetchImpl = options.fetchImpl ?? fetch;
   const readToken = options.readToken ?? accessTokenForConnection;
-  const baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+  /*
+    Option, then environment, then Meta's own Graph API.
+
+    `META_GRAPH_BASE_URL` is what `pnpm mock:platform` prints, and this line is
+    why copying it into `.env` now does something: the option below existed from
+    the start and only tests ever passed it, so the fake Meta answered requests
+    Instagram never sent it. Read per call, not at module load, so a test that
+    sets the variable and resets the cache is answered.
+  */
+  const baseUrl = (options.baseUrl ?? getEnv().META_GRAPH_BASE_URL ?? DEFAULT_BASE_URL).replace(
+    /\/+$/,
+    "",
+  );
 
   async function request<T>(
     connection: Connection,

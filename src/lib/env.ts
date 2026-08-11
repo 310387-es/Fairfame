@@ -68,8 +68,22 @@ const envSchema = z.object({
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   /** The sending phone number *id*, not the display number. */
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
-  /** Overridden by contract tests to point at a local server. */
-  WHATSAPP_BASE_URL: z.string().url().optional(),
+  /**
+   * Where the Graph API lives, for **Instagram and WhatsApp both** — one Meta
+   * app, one Graph API, one variable.
+   *
+   * This is what `pnpm mock:platform` prints for its fake Meta, and until
+   * 12 Aug 2026 copying that line into `.env` did nothing at all: the script
+   * printed `META_GRAPH_BASE_URL`, the schema knew a differently-named
+   * `WHATSAPP_BASE_URL` that only the messaging client read, and Instagram had
+   * no env plumbing whatsoever — its client took a `baseUrl` option that
+   * nothing outside a test ever passed. So the documented way to exercise T3/T4
+   * without credentials sent the connector at the real graph.facebook.com.
+   *
+   * Absent in every ordinary deployment: the clients default to the real Graph
+   * API, which is the only correct answer for a customer.
+   */
+  META_GRAPH_BASE_URL: z.string().url().optional(),
   /** The token Meta echoes back when verifying the webhook subscription. */
   WHATSAPP_VERIFY_TOKEN: z.string().optional(),
   /** App secret, for the `X-Hub-Signature-256` check on inbound webhooks. */
@@ -325,6 +339,24 @@ const envSchema = z.object({
   META_APP_SECRET: optionalSecret,
 
   /**
+   * Where Google's Business Profile APIs live — **three services, three base
+   * URLs**, which is Google's own shape rather than a complication of ours:
+   * account management and business information are separate v1 hosts, and
+   * reviews are still only on `mybusiness.googleapis.com/v4`.
+   *
+   * They exist so `pnpm mock:platform` can be pointed at, per the promise in
+   * `CLAUDE.md`. The client has always accepted these as options; nothing
+   * outside a test passed them, so the fake Google served requests that the
+   * connector was never sent. Set all three or none — a half-redirected
+   * connector reads locations from a fake and reviews from the real API.
+   *
+   * Never set in a real deployment: absent means Google's own hosts.
+   */
+  GOOGLE_ACCOUNT_MANAGEMENT_BASE_URL: z.string().url().optional(),
+  GOOGLE_BUSINESS_INFORMATION_BASE_URL: z.string().url().optional(),
+  GOOGLE_REVIEWS_BASE_URL: z.string().url().optional(),
+
+  /**
    * **Signing in with Google, which is not the same Google as the four lines
    * above.**
    *
@@ -465,6 +497,18 @@ export function getEnv(): Env {
 export function parseEnvForTesting(source: NodeJS.ProcessEnv): Env {
   return parseEnv(source);
 }
+
+/**
+ * Every variable this application reads, derived from the schema itself.
+ *
+ * Exists so `.env.example` can be checked against it rather than maintained
+ * beside it. A variable added here and not documented there is invisible to
+ * everyone who did not write it, and the reverse — a documented variable the
+ * schema has never heard of — is worse: `pnpm mock:platform` printed four such
+ * lines to copy into `.env`, and following those instructions pointed the
+ * connectors at nothing while looking exactly like it had worked.
+ */
+export const ENV_KEYS: readonly string[] = Object.keys(envSchema.shape).sort();
 
 /**
  * Test-only: forget the cached environment so the next `getEnv()` re-reads
