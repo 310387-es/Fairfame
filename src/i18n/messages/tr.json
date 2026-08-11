@@ -2065,7 +2065,13 @@
       "agencyTwo": "Toplu yönetim",
       "agencyThree": "Bayi fiyatlandırması",
       "agencyFour": "İş ortağı desteği",
-      "annual": "Gösterilen fiyatlar aylıktır. Yıllık ödemede iki ay bedava."
+      "annual": "Yıllık",
+      "billingPeriod": "Fatura dönemi",
+      "monthly": "Aylık",
+      "savePercent": "%{percent} tasarruf",
+      "savesPerYear": "Yılda {amount} tasarruf",
+      "priceExactYear": "yıllık <big>{amount}</big>",
+      "priceFromYear": "yıllık <big>{amount}</big>'dan"
     },
     "quote": {
       "text": "“Mal ölür, dost akraba ölür… ama iyi ad ölmez, hakkıyla kazananın.”",

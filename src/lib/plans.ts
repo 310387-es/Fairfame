@@ -533,3 +533,46 @@ export function applyOverrides(base: Entitlements, overrides: EntitlementOverrid
 export function parseEntitlements(value: unknown): Entitlements {
   return entitlementsSchema.parse(value);
 }
+
+/**
+ * What paying annually saves on one plan, in minor units — or null.
+ *
+ * **Arithmetic, never copy.** The catalog sets annual at ten months for twelve,
+ * so the saving is derivable; a written "17%" would be a third place the ladder
+ * lives, free to drift the day somebody reprices one interval and not the
+ * other, and wrong in the most embarrassing place a number can be wrong.
+ *
+ * Null when there is nothing to claim — Agency has no self-serve price, and a
+ * catalog whose two intervals stopped implying a discount should show nothing
+ * rather than a promise that has quietly become false.
+ *
+ * Here rather than in a component because **two surfaces show it**: the plan
+ * screen in settings and the public pricing section. Those are different
+ * layers with different palettes and they must still agree on the number.
+ */
+export function annualSaving(plan: PlanConfig): number | null {
+  if (plan.priceMonth === null || plan.priceYear === null) return null;
+
+  const saved = plan.priceMonth * 12 - plan.priceYear;
+  return saved > 0 ? saved : null;
+}
+
+/**
+ * The one discount percentage the whole ladder shares, or null.
+ *
+ * Only claimed when **every** priced tier agrees on it. It is uniform today by
+ * construction, but a catalog where that stopped being true would otherwise
+ * show the first plan's number labelled as everyone's — which is the kind of
+ * wrong that survives review because it still looks like a percentage.
+ */
+export function uniformAnnualDiscount(): number | null {
+  const ratios = Object.values(PLAN_CATALOG)
+    .filter((plan) => plan.priceMonth !== null && plan.priceYear !== null)
+    .map((plan) => 1 - plan.priceYear! / (plan.priceMonth! * 12));
+
+  if (ratios.length === 0) return null;
+
+  const first = ratios[0]!;
+  const uniform = ratios.every((ratio) => Math.abs(ratio - first) < 0.005);
+  return uniform && first > 0 ? Math.round(first * 100) : null;
+}

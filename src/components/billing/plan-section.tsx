@@ -12,7 +12,7 @@ import { Meter } from "@/components/ds/meter";
 import { useAction } from "@/components/ui/use-action";
 import { startCheckoutAction } from "@/server/billing";
 import { cn } from "@/lib/utils";
-import type { PlanKey } from "@/lib/plans";
+import { PLAN_CATALOG, annualSaving, uniformAnnualDiscount, type PlanKey } from "@/lib/plans";
 
 /**
  * What this business is on, what else there is, and how to move (W1.8).
@@ -123,47 +123,15 @@ export function PlanSection({
   };
 
   /**
-   * What annual actually saves, in money, per plan.
+   * The saving, from `src/lib/plans.ts` rather than computed here.
    *
-   * **Derived from the two prices rather than written down.** The catalog sets
-   * annual at ten months for twelve, so the saving is arithmetic — and a typed
-   * "17%" would be a third place the ladder lives, free to drift the day
-   * somebody reprices one interval and not the other. If the two prices ever
-   * stop implying a discount this returns null and the badge disappears, which
-   * is the correct behaviour rather than a claim that has quietly stopped being
-   * true.
-   *
-   * Shown as an amount and not only a percentage: "$458 a year" is a number a
-   * reader can weigh against what they were about to spend, and a percentage
-   * alone asks them to do the multiplication.
+   * The public pricing section shows the same figure in a different palette,
+   * and two components deriving it separately is two places for it to drift.
+   * `PlanOption` is this screen's own shape, so the catalog entry is what gets
+   * asked.
    */
-  const annualSaving = (plan: PlanOption) => {
-    if (plan.priceMonth === null || plan.priceYear === null) return null;
-
-    const saved = plan.priceMonth * 12 - plan.priceYear;
-    return saved > 0 ? saved : null;
-  };
-
-  /**
-   * The headline discount, for the toggle itself.
-   *
-   * One figure for the whole ladder rather than per plan, because the ratio is
-   * the same on every tier by construction — and it is read from the tiers that
-   * actually have both prices, so a catalog where that stopped being true shows
-   * nothing rather than the first plan's number labelled as everyone's.
-   */
-  const headlineDiscount = (() => {
-    const ratios = plans
-      .filter((plan) => plan.priceMonth !== null && plan.priceYear !== null)
-      .map((plan) => 1 - plan.priceYear! / (plan.priceMonth! * 12));
-
-    if (ratios.length === 0) return null;
-
-    const first = ratios[0]!;
-    // Only claim a single number when every tier genuinely shares it.
-    const uniform = ratios.every((ratio) => Math.abs(ratio - first) < 0.005);
-    return uniform && first > 0 ? Math.round(first * 100) : null;
-  })();
+  const saving = (plan: PlanOption) => annualSaving(PLAN_CATALOG[plan.key]);
+  const headlineDiscount = uniformAnnualDiscount();
 
   return (
     <SectionCard
@@ -335,10 +303,10 @@ export function PlanSection({
                   puts the pieces in the wrong order in the launch locale.
                 */}
                 <p className="text-metric text-foreground tabular-nums">{price(plan)}</p>
-                {interval === "year" && annualSaving(plan) !== null ? (
+                {interval === "year" && saving(plan) !== null ? (
                   <p className="text-copy font-medium text-state-positive-text tabular-nums">
                     {t("savesPerYear", {
-                      amount: money(annualSaving(plan)!, plan.currency),
+                      amount: money(saving(plan)!, plan.currency),
                     })}
                   </p>
                 ) : null}

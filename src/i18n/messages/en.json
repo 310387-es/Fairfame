@@ -2065,7 +2065,13 @@
       "agencyTwo": "Bulk management",
       "agencyThree": "Reseller pricing",
       "agencyFour": "Partner support",
-      "annual": "Prices shown are monthly. Pay annually and two months are free."
+      "annual": "Annual",
+      "billingPeriod": "Billing period",
+      "monthly": "Monthly",
+      "savePercent": "Save {percent}%",
+      "savesPerYear": "Saves {amount} a year",
+      "priceExactYear": "<big>{amount}</big> / year",
+      "priceFromYear": "from <big>{amount}</big> / year"
     },
     "quote": {
       "text": "“Cattle die, kindred die… but word-fame never dies, for the one who earns it well.”",

@@ -1,7 +1,11 @@
+"use client";
+
 import { useFormatter, useTranslations } from "next-intl";
+import { Tabs } from "radix-ui";
+import { useState } from "react";
 import { HashLink } from "@/components/marketing/hash-link";
 import { Reveal } from "@/components/marketing/reveal";
-import { PLAN_CATALOG, type PlanKey } from "@/lib/plans";
+import { PLAN_CATALOG, annualSaving, uniformAnnualDiscount, type PlanKey } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
 /**
@@ -123,6 +127,17 @@ export function Pricing() {
    * not a starting price, it is the price; saying "from" there would overstate
    * the cost in the one place a visitor is deciding whether to bother.
    */
+  const [interval, setInterval] = useState<"month" | "year">("month");
+
+  const money = (minorUnits: number, currency: string) =>
+    format.number(minorUnits / 100, {
+      style: "currency",
+      // From the row, never a typed "$": a hardcoded symbol is how a price ends
+      // up rendered in a currency nobody is charged in.
+      currency,
+      maximumFractionDigits: 0,
+    });
+
   const priceLine = (key: PlanKey) => {
     const plan = PLAN_CATALOG[key];
     const big = (chunks: React.ReactNode) => (
@@ -133,69 +148,137 @@ export function Pricing() {
     // would be one sales will not honour.
     if (plan.priceMonth === null) return big(t("pricing.agencyPrice"));
 
-    const amount = format.number(plan.priceMonth / 100, {
-      style: "currency",
-      // From the row, never a typed "$": a hardcoded symbol is how a price ends
-      // up rendered in a currency nobody is charged in.
-      currency: plan.currency,
-      maximumFractionDigits: 0,
-    });
+    if (interval === "year" && plan.priceYear !== null) {
+      const amount = money(plan.priceYear, plan.currency);
+      return plan.priceExtraLocationYear === null
+        ? t.rich("pricing.priceExactYear", { amount, big })
+        : t.rich("pricing.priceFromYear", { amount, big });
+    }
 
+    const amount = money(plan.priceMonth, plan.currency);
     return plan.priceExtraLocationMonth === null
       ? t.rich("pricing.priceExact", { amount, big })
       : t.rich("pricing.priceFrom", { amount, big });
   };
 
+  const discount = uniformAnnualDiscount();
+
   return (
-    <div className="grid items-stretch gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-      {TIERS.map(({ id, name, features, featured }) => {
-        const agency = id === "agency";
-        return (
-          <Reveal key={id}>
-            <div
+    <>
+      {/*
+        The billing-period toggle, in the **brand** layer's own palette.
+        `docs/24`: paper and the app's cool canvas share ink, amber, indigo and
+        the seal and nothing else, so this is not the settings control restyled
+        — it is the same idea drawn in the other language. Amber carries the
+        saving here because amber is this layer's accent; the app's version uses
+        the product's positive green, which has no meaning on paper.
+
+        Local state and Radix `Tabs`, same rule as the settings screen: both
+        prices ship with the page, so switching is a re-render.
+      */}
+      <Tabs.Root
+        value={interval}
+        onValueChange={(value) => setInterval(value === "year" ? "year" : "month")}
+        className="mb-6"
+      >
+        <Tabs.List
+          aria-label={t("pricing.billingPeriod")}
+          className="inline-flex rounded-full border border-paper-line bg-white p-1"
+        >
+          {(["month", "year"] as const).map((value) => (
+            <Tabs.Trigger
+              key={value}
+              value={value}
               className={cn(
-                "relative flex h-full flex-col rounded-2xl border bg-white p-6",
-                featured ? "border-brand-ink" : "border-paper-line",
+                "tap rounded-full px-4 py-1.5 text-copy font-semibold transition-colors",
+                interval === value
+                  ? "bg-brand-ink text-white"
+                  : "text-paper-faint hover:text-brand-ink",
               )}
             >
-              {featured && (
-                <span className="absolute start-5 -top-2.5 rounded-md bg-amber-500 px-2.5 py-0.5 text-eyebrow font-bold text-brand-rail uppercase">
-                  {t("pricing.growthBadge")}
+              {value === "month" ? t("pricing.monthly") : t("pricing.annual")}
+              {/*
+                Words, not colour alone (`docs/15` §3) — and inside the trigger,
+                so the saving is part of the control's accessible name rather
+                than a chip a screen reader never reaches.
+              */}
+              {value === "year" && discount !== null ? (
+                <span
+                  className={cn(
+                    "ms-1.5 text-eyebrow",
+                    // `--amber-ink` is 5.5:1 on paper and 5.9:1 on white, so it
+                    // is legible on the pill in both states.
+                    interval === "year" ? "text-brand-amber" : "text-amber-ink",
+                  )}
+                >
+                  {t("pricing.savePercent", { percent: discount })}
                 </span>
-              )}
+              ) : null}
+            </Tabs.Trigger>
+          ))}
+        </Tabs.List>
+      </Tabs.Root>
 
-              <h3 className="mb-2 text-lead font-semibold">{t(name)}</h3>
-
-              {/* The qualifier is the paragraph's own size; the figure inside
-                  it is promoted by the `big` tag the translation places. */}
-              <p className="mb-3.5 text-meta text-paper-faint">{priceLine(id)}</p>
-
-              <ul className="mb-4 flex flex-1 flex-col gap-2">
-                {features.map((feature) => (
-                  <li key={feature} className="relative ps-4 text-copy text-paper-body">
-                    <span aria-hidden className="absolute start-0 text-amber-ink">
-                      —
-                    </span>
-                    {t(feature)}
-                  </li>
-                ))}
-              </ul>
-
-              <HashLink
-                href="#cta"
+      <div className="grid items-stretch gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        {TIERS.map(({ id, name, features, featured }) => {
+          const agency = id === "agency";
+          return (
+            <Reveal key={id}>
+              <div
                 className={cn(
-                  "tap justify-center rounded-[10px] border px-3.5 py-2.5 text-center text-copy font-semibold",
-                  featured
-                    ? "border-brand-ink bg-brand-ink text-white"
-                    : "border-paper-line hover:border-brand-ink",
+                  "relative flex h-full flex-col rounded-2xl border bg-white p-6",
+                  featured ? "border-brand-ink" : "border-paper-line",
                 )}
               >
-                {agency ? t("agency.cta") : t("hero.cta1")}
-              </HashLink>
-            </div>
-          </Reveal>
-        );
-      })}
-    </div>
+                {featured && (
+                  <span className="absolute start-5 -top-2.5 rounded-md bg-amber-500 px-2.5 py-0.5 text-eyebrow font-bold text-brand-rail uppercase">
+                    {t("pricing.growthBadge")}
+                  </span>
+                )}
+
+                <h3 className="mb-2 text-lead font-semibold">{t(name)}</h3>
+
+                {/* The qualifier is the paragraph's own size; the figure inside
+                  it is promoted by the `big` tag the translation places. */}
+                <p className="mb-1 text-meta text-paper-faint">{priceLine(id)}</p>
+
+                {/* The amount, not just the ratio — a figure a reader can weigh
+                  against what they were about to spend. */}
+                <p className="mb-3.5 h-4 text-meta font-semibold text-amber-ink">
+                  {interval === "year" && annualSaving(PLAN_CATALOG[id]) !== null
+                    ? t("pricing.savesPerYear", {
+                        amount: money(annualSaving(PLAN_CATALOG[id])!, PLAN_CATALOG[id].currency),
+                      })
+                    : ""}
+                </p>
+
+                <ul className="mb-4 flex flex-1 flex-col gap-2">
+                  {features.map((feature) => (
+                    <li key={feature} className="relative ps-4 text-copy text-paper-body">
+                      <span aria-hidden className="absolute start-0 text-amber-ink">
+                        —
+                      </span>
+                      {t(feature)}
+                    </li>
+                  ))}
+                </ul>
+
+                <HashLink
+                  href="#cta"
+                  className={cn(
+                    "tap justify-center rounded-[10px] border px-3.5 py-2.5 text-center text-copy font-semibold",
+                    featured
+                      ? "border-brand-ink bg-brand-ink text-white"
+                      : "border-paper-line hover:border-brand-ink",
+                  )}
+                >
+                  {agency ? t("agency.cta") : t("hero.cta1")}
+                </HashLink>
+              </div>
+            </Reveal>
+          );
+        })}
+      </div>
+    </>
   );
 }
