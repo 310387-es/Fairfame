@@ -59,5 +59,36 @@ playwright-report/
 # Local machine state, not a shared setting.
 .claude/settings.local.json
 
+# Installed agent skills — a vendored tree, not source.
+#
+# `.agents/skills/` and `.claude/skills/` hold third-party skill packages
+# fetched from GitHub (1.2MB and growing). They are `node_modules` by another
+# name: nothing here imports them, nothing here builds without them, and they
+# belong to whoever is driving the editor rather than to Fairfame.
+#
+# `skills-lock.json` is their lockfile and goes with them. Normally a lockfile
+# is committed precisely so the vendored tree can be rebuilt — that rule is for
+# dependencies the *project* needs, and these are personal tooling for image
+# generation and brand kits with no bearing on this codebase. Committing a lock
+# for packages the build never touches would oblige every clone to reason about
+# them. Delete these three lines if the team ever adopts a shared skill set.
+#
+# **Only `skills/` is ignored under `.claude/`, not the directory.** The line
+# above already treats `settings.local.json` as the local half, which means
+# `.claude/settings.json` and any shared commands are meant to be committable.
+# Ignoring the whole folder would quietly reverse that.
+.claude/skills/
+.agents/
+skills-lock.json
+
+# Editor-local configuration.
+#
+# `.vscode/` here holds one personal MCP server pointing at a Sentry endpoint —
+# a preference about somebody's editor, not a fact about the project. Committed
+# `.vscode/extensions.json` is a reasonable thing for a team to want later; add
+# a `!` exception for it rather than removing this line.
+.vscode/
+.idea/
+
 # Sentry Config File
 .env.sentry-build-plugin
