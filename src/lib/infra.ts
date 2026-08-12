@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 import { Client } from "pg";
-// Relative + explicit extension (not the `@/*` alias) so `scripts/check-infra.ts`
+// Relative + explicit extension (not the `@/*` alias) so `scripts/check-infra.mts`
 // can import this module under Node's native TypeScript stripping, which does
 // not read tsconfig path mappings.
 import { getEnv } from "./env.ts";

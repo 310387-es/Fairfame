@@ -325,7 +325,7 @@ export type InboxFilters = {
    * Exactly these review ids (W2.1).
    *
    * The one filter that names rows rather than describing them. Callers pass a
-   * list already parsed by `src/inbox/filters.ts`, which caps and shape-checks
+   * list already parsed by `src/reviews/filters.ts`, which caps and shape-checks
    * it — this layer trusts that, the same way it trusts `rating` to be 1–5.
    */
   reviews?: string[] | null;

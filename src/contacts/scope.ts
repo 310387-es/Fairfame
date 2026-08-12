@@ -12,7 +12,7 @@ import type { LocationScope } from "../auth/scope.ts";
  * pinned to one branch — which would leave a Kadıköy shift manager, or an
  * agency's `client` user, reading the whole customer file of a chain.
  *
- * `src/insights/facts.ts` settled the shape of the answer for Phase 3 and this
+ * `src/analytics/facts.ts` settled the shape of the answer for Phase 3 and this
  * follows it exactly: **the member's scope is the filter, and an empty scope
  * returns nothing rather than everything.** That is the failure mode worth
  * naming twice — an unrestricted admin never sees the bug, so a version that

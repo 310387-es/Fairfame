@@ -246,7 +246,7 @@ export default async function InboxPage({
       // the mock connector has ever produced, so it was blind to the real
       // Google `reviewReply` — and it fed this badge and nothing else, which is
       // how a review could read "answered on Google" while the chips beside it
-      // counted it unanswered and overdue. See `src/inbox/answered.ts`.
+      // counted it unanswered and overdue. See `src/reviews/answered.ts`.
       hasOwnerReply: review.ownerRepliedAt !== null,
       reply_: review.reply,
     };

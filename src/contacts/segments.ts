@@ -14,7 +14,7 @@ import {
 /**
  * Segments — a named contact filter (P4-T1).
  *
- * Stores the **query string**, flat, for the reason `src/inbox/views.ts` sets
+ * Stores the **query string**, flat, for the reason `src/reviews/views.ts` sets
  * out: `parseContactFilters` is already the tolerant validator for exactly this
  * shape, so a segment is checked by the code that was going to check it anyway,
  * and a filter removed in a later release degrades to "ignore that key" rather

@@ -1,7 +1,7 @@
 /**
  * What the contact list is currently showing, as one object (P4-T1).
  *
- * The Phase 4 counterpart to `src/inbox/filters.ts`, and it exists for the same
+ * The Phase 4 counterpart to `src/reviews/filters.ts`, and it exists for the same
  * reason: the URL shape is defined **once, here**, rather than rebuilt by the
  * page, the pager, the filter bar and the segment store from four private lists
  * of parameter names. In the Inbox that saved a filter from being silently
@@ -119,7 +119,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * fail — JavaScript rolls it forward to 2 March — so a shape check plus
  * `isNaN` would accept a day that does not exist and silently filter from the
  * wrong one. Re-formatting the parsed date and comparing is the only way to
- * catch it. (`src/inbox/filters.ts` has the same guard, for the same reason.)
+ * catch it. (`src/reviews/filters.ts` has the same guard, for the same reason.)
  */
 function isoDate(value: string | null): string | null {
   if (value === null || !ISO_DATE.test(value)) return null;

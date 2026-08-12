@@ -589,7 +589,7 @@ export const locations = pgTable(
      * is staffed: a flagship with a full front desk answers within four hours,
      * an airport kiosk cannot promise the same. Null falls through to the
      * organization's setting and then to `DEFAULT_SLA_HOURS` — one resolution
-     * order, in src/inbox/workflow.ts, rather than a default repeated per query.
+     * order, in src/reviews/workflow.ts, rather than a default repeated per query.
      */
     slaHours: integer("sla_hours"),
     /**
@@ -826,7 +826,7 @@ export const reviews = pgTable(
     assigneeUserId: uuid("assignee_user_id").references(() => users.id, { onDelete: "set null" }),
     /**
      * Triage severity, 0–100. Derived, never entered by hand — see
-     * src/inbox/workflow.ts for the formula and for why recency is *not* in it:
+     * src/reviews/workflow.ts for the formula and for why recency is *not* in it:
      * a score that decays with age is wrong an hour after it is written, so age
      * enters the sort (`priority desc, posted_at desc`) instead of the column.
      *
@@ -861,7 +861,7 @@ export const reviews = pgTable(
      *
      * Unlike the workflow columns, a re-sync *does* update this one — learning
      * that the owner has since answered on Google is the entire point.
-     * `src/inbox/answered.ts` is the only interpreter.
+     * `src/reviews/answered.ts` is the only interpreter.
      */
     ownerRepliedAt: timestamp("owner_replied_at", { withTimezone: true }),
     /**
@@ -2279,7 +2279,7 @@ export const savedViews = pgTable(
     /** Null = shared with the organization. Otherwise private to this user. */
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    /** The inbox filter state. Validated by Zod on read — see src/inbox/views.ts. */
+    /** The inbox filter state. Validated by Zod on read — see src/reviews/views.ts. */
     filters: jsonb("filters").notNull().default({}),
     /** Display order within the owner's list. Ties break on name. */
     position: integer("position").notNull().default(0),

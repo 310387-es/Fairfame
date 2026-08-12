@@ -61,7 +61,7 @@ import { ANALYZE_PROMPT_ID } from "@/prompts";
  * this answers "what is happening to us" across all of them, which is why it
  * loads every location the member may see rather than the active one.
  *
- * Every number comes from `src/insights/trends.ts`, which is pure and tested.
+ * Every number comes from `src/analytics/trends.ts`, which is pure and tested.
  * Nothing is computed in this file: a figure derived in a component is a figure
  * with no test, and each of these is something a business might act on.
  *

@@ -23,7 +23,7 @@ import { invalidInput, toActionResult, type ActionResult } from "@/server/action
  * Bulk actions (P2-T6).
  *
  * Every one of these is a thin wrapper: parse, resolve the caller's scope,
- * delegate to `src/inbox/bulk.ts`, report what was skipped. The authorization is
+ * delegate to `src/reviews/bulk.ts`, report what was skipped. The authorization is
  * per item and it lives in that module, not here — so a future caller that is
  * not a form submission gets the same enforcement.
  *
@@ -145,7 +145,7 @@ export async function bulkUntagAction(input: {
 /**
  * Writes a template into a draft on each selected review.
  *
- * Drafts, never posts — see `src/inbox/bulk.ts`. What the caller gets back is a
+ * Drafts, never posts — see `src/reviews/bulk.ts`. What the caller gets back is a
  * count of drafts *waiting for someone to read them*, which is deliberately not
  * the same sentence as "replies sent".
  */
