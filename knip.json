@@ -7,7 +7,7 @@
     "*.config.{ts,mts,js,mjs}"
   ],
   "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mts"],
-  "ignore": ["src/components/ui/**", "src/components/digest/**", "src/server/digests.ts"],
+  "ignore": ["src/components/ui/**"],
   "ignoreDependencies": ["shadcn", "tailwindcss", "tw-animate-css", "pino-pretty"],
   "ignoreExportsUsedInFile": true,
   "tags": ["-public"]

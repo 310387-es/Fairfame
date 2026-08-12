@@ -47,8 +47,10 @@ jobs:
 
       # The browser suite verifies the shared account's email address by
       # following the real link out of the inbox, so it needs somewhere for the
-      # mail to land. Without this the setup fails at ECONNREFUSED :8025 and all
-      # 64 tests are skipped — which is what happened for six runs.
+      # mail to land. Without this the setup fails at ECONNREFUSED :8025 and
+      # every test in the suite is skipped — which is what happened for six
+      # runs, 64 tests at the time. Stated without a count deliberately: the
+      # number drifts, and what matters is that the failure is total and silent.
       #
       # No healthcheck: the image ships no shell and no curl, so every form of
       # `--health-cmd` fails and the container never reports healthy. The suite

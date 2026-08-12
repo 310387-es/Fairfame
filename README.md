@@ -120,7 +120,7 @@ Start with [`02` the PRD](./docs/02-prd.md), [`03` the technical architecture](.
 
 [**`docs/23-build-log.md`**](./docs/23-build-log.md) is the decision record — what was built, in what order, and the argument behind each rule. Read the relevant entry before reversing a decision; there is a fair chance the alternative was tried and the entry says what went wrong.
 
-At the repo root: `CLAUDE.md` is the project context and locked stack for Claude Code, `PRODUCT.md` the product definition, `DESIGN.md` the design system as shipped.
+At the repo root: `CLAUDE.md` is the project context and locked stack for Claude Code, `PRODUCT.md` the product definition. The design system has no root summary on purpose — `src/app/globals.css` holds the tokens, `docs/15` and `docs/21` the rules, and a fourth copy at the root drifted from all three before it was removed.
 
 ---
 

@@ -30,6 +30,7 @@ Construction, 44-unit grid: circle r 22; stems at x 16.4 and 25.4, hooks curving
 | Wordmark only | `brand/fairfame-wordmark.svg` | Where the seal already appears nearby (e.g. page footer). |
 | Seal | `brand/fairfame-symbol.svg` | App tile, favicon, avatar, social. Holds at 16px. |
 | Seal on dark | `brand/fairfame-symbol-on-dark.svg` | Dark surfaces without the wordmark. |
+| Seal, mono | `brand/fairfame-symbol-mono.svg` | The mono lockup's counterpart: single-colour print/PDF where the wordmark is already nearby. |
 | Seal, amber | `brand/fairfame-symbol-amber.svg` | Sparingly: social avatars, stickers, moments of celebration. Never in the app shell. |
 | Bare glyph | `brand/fairfame-glyph.svg` | Watermarks and pattern use only. |
 | Favicon + PNGs | `brand/favicon.svg`, `brand/png/` | favicon.svg; PNG at 512 / 192 / 180 / 32; lockup at 1200 for social cards. |
