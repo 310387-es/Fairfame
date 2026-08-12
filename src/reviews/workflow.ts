@@ -15,7 +15,7 @@ import { answeredAt, liveReplyJoin, needsReply } from "./answered.ts";
  * is a formula that lives in an ingest path, a SQL backfill and a sort clause
  * and means something slightly different in each.
  *
- * Deliberately free of business-hours arithmetic. `src/lib/business-days.ts`
+ * Deliberately free of business-hours arithmetic. `src/compliance/business-days.ts`
  * exists for İYS, whose deadline is defined in *business* days by law; an SLA is
  * a promise a business makes to a customer who is waiting in wall-clock time,
  * and quietly pausing it over a weekend would make "we answer within 4 hours"

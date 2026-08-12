@@ -8,7 +8,7 @@ import { scoreSurvey, SURVEY_TYPES, type SurveyScore, type SurveyType } from "./
  * Survey scores, for the Insights workspace (P4-T2).
  *
  * `docs/20` asks that scores "feed insights", and this is that feed. It follows
- * the rules `src/insights/facts.ts` established in P3-T4 rather than inventing
+ * the rules `src/analytics/facts.ts` established in P3-T4 rather than inventing
  * its own:
  *
  *   - **The member's location scope is the filter**, passed in as an explicit

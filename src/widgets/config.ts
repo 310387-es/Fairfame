@@ -181,7 +181,7 @@ export function parseStyle(value: unknown): WidgetStyle {
  * The builder's live preview is an iframe, and an iframe is addressed by URL —
  * so the config has to survive a round trip through one.
  *
- * Same reasoning as `src/inbox/filters.ts`: this is the **only** place a widget
+ * Same reasoning as `src/reviews/filters.ts`: this is the **only** place a widget
  * config becomes a query string and back. The preview route parses what the
  * builder wrote with the same schema the database column is read through, so a
  * preview cannot show something the saved widget would not.

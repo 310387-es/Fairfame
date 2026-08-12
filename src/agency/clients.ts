@@ -175,7 +175,7 @@ async function summarise(
         locations: locations?.value ?? 0,
         reviews: recent?.value ?? 0,
         // Null, never 0: a quiet month did not score nought stars. Same rule as
-        // `src/insights/trends.ts`.
+        // `src/analytics/trends.ts`.
         rating:
           recent?.rating === null || recent?.rating === undefined ? null : Number(recent.rating),
         openItems: open?.value ?? 0,

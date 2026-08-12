@@ -25,7 +25,7 @@ import { assignReviewAction, setReviewStatusAction } from "@/server/triage";
  *
  * Optimistic in the narrow sense: the select shows the new value immediately and
  * puts it back if the server refuses. The server is the authority on whether the
- * change is allowed (`src/inbox/triage.ts`); this only decides how long the
+ * change is allowed (`src/reviews/triage.ts`); this only decides how long the
  * screen looks wrong when it is not.
  */
 

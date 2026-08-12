@@ -147,7 +147,7 @@ export const DRAFTED: SQL = and(
  * in a way `f.repliedAt === null && isUnhappy(f)` does not, and the screen that
  * shows it then has to say so too.
  *
- * `tests/lib/needs-reply.test.ts` pins this against the SQL above, which is the
+ * `tests/db/answered.test.ts` pins this against the SQL above, which is the
  * only way two implementations of one rule stay one rule.
  */
 export type ReplyStateFact = { repliedAt: Date | null };

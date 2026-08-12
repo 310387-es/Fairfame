@@ -81,7 +81,7 @@ export type SurveyScore = {
    * zero is a real and quite common result — as many promoters as detractors —
    * so a codebase that used 0 for "nobody answered" would show a business a
    * score it had genuinely not earned, in either direction. Same rule as
-   * `src/insights/trends.ts`, with sharper teeth.
+   * `src/analytics/trends.ts`, with sharper teeth.
    */
   nps: number | null;
   /** The mean answer on the type's own scale. Null with no responses. */

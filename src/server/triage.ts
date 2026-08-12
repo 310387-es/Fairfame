@@ -12,7 +12,7 @@ import { invalidInput, toActionResult, type ActionResult } from "@/server/action
  * Triage actions (P2-T4).
  *
  * Thin: parse, resolve the caller's scope, delegate. The role rule, the location
- * rule and the audit trail live in `src/inbox/triage.ts`, so the bulk actions in
+ * rule and the audit trail live in `src/reviews/triage.ts`, so the bulk actions in
  * P2-T6 get the same enforcement by calling the same function rather than by
  * remembering the same checks.
  *

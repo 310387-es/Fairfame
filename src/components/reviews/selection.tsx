@@ -36,7 +36,7 @@ import {
  *
  * The bar itself offers status, assignee, tag, and drafting from a template or
  * with AI. It does **not** offer post or approve, and it never will: see the
- * guardrail in `src/inbox/bulk.ts`. Publishing forty replies is not a bulk
+ * guardrail in `src/reviews/bulk.ts`. Publishing forty replies is not a bulk
  * operation, it is forty decisions.
  */
 
