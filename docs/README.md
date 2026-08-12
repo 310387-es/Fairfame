@@ -43,6 +43,7 @@ Repo root also has **`CLAUDE.md`** — project context + locked stack for Claude
 
 - [`../brand/`](../brand/) — **the decided identity** (Fairfame ff-ligature): lockups, symbol, favicon, PNG exports. Rules in [`24-brand-guidelines.md`](./24-brand-guidelines.md).
 - [`assets/fairfame-how-it-works.html`](./assets/fairfame-how-it-works.html) — visual product map (account model + user flows).
+- [`assets/home-live-dashboard.html`](./assets/home-live-dashboard.html) — the Home redesign's visual reference, and the source of truth for that screen's look. Its handoff is [`home-live-dashboard.md`](./home-live-dashboard.md).
 
 ## Roadmap status
 

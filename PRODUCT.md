@@ -1,7 +1,5 @@
 # Product
 
-<!-- impeccable:product-schema 1 -->
-
 ## Platform
 
 web
@@ -87,7 +85,7 @@ Four supporting pillars, each aimed at a structural weakness of the incumbents (
 Real and usable:
 
 - **The running product itself** — screenshots of any built screen are legitimate proof.
-- **The public sample digest** (no sign-up) and the sample workspace, which composes a real briefing over vertical-appropriate sample data. Usable as a live demo and lead magnet.
+- **The public sample digest** at `/sample` (no sign-up), which composes a real briefing over sample data through the same pipeline a customer's own reviews take. Usable as a live demo and lead magnet. *The signed-in "explore with sample data" workspace that used to sit beside it was removed on 11 Aug 2026 (`docs/23`); the public page is what remains.*
 - **Compliance posture as proof** — KVKK export/erasure, İYS consent capture with the registry gap stated honestly, the `/compliance` page, and the structural impossibility of review-gating. This is trust evidence the incumbents cannot easily copy.
 - **Accessibility and mobile verification** — `docs/18`, including screen-reader passes.
 
@@ -118,7 +116,7 @@ Explicitly absent — must never be fabricated: customer logos, testimonials, ca
 
 - **The application** — the signed-in product, thirteen rail entries in three groups.
 - **Public product surfaces** — widgets, rating badge, hosted SEO review pages, collection pages, public surveys, the sample digest.
-- **A public marketing site — confirmed in scope for this repository.** Landing and pricing belong here. Today `/` only redirects to sign-in and no marketing surface exists. This is a Persuade surface and does not yet have a brief.
+- **The public marketing site — built, and in this repository.** `/` is the front door: murmur hero, five-step flow tour, bento, system map, agency band, public pricing, pull quote, five questions, ink CTA — structure and copy in both languages, rendered by real components rather than a screenshot. It is the product's only **Persuade** surface, and the one place the brand layer of `docs/24` applies (paper, Lora, the murmur); `docs/23` records what shipped and the three deliberate departures from the concept. Every claim it makes is bound by the Brand Commitments above.
 
 ## Accessibility & Inclusion
 

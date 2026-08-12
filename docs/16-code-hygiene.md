@@ -25,9 +25,15 @@ Mark a deliberate export with `@public` in its JSDoc and say why:
 | Path | Reason |
 |---|---|
 | `src/components/ui/**` | shadcn primitives. They ship a full variant surface on purpose; using half of it is normal. |
-| `src/components/digest/**`, `src/server/digests.ts` | **Unshipped, not dead.** The weekly digest is generated, stored and tested — the workers run and `tests/db/digest.test.ts` covers it. Only the `/weekly-plan` route was never built; `docs/14-digest-surfaces.md` is the plan. Delete none of it. |
 | `shadcn`, `tailwindcss`, `tw-animate-css` | Imported from `globals.css`, which knip does not follow. |
 | `pino-pretty` | Loaded by name at runtime when `LOG_PRETTY=true`, never imported. |
+
+`src/components/digest/**` and `src/server/digests.ts` sat on this list as
+*unshipped, not dead* for as long as `/weekly-plan` was unbuilt. The route
+exists now (`docs/14-digest-surfaces.md`, D2), the code is reachable from it,
+and knip reported both entries as unnecessary — so they are gone. An ignore
+that outlives its reason is worse than no ignore: it hides the next genuinely
+dead file behind a rule nobody re-reads.
 
 ## `pnpm check:i18n` — translation parity
 
@@ -61,8 +67,8 @@ a half-truth. `drizzle.config.ts` stays for `db:studio`.
 `meta/_journal.json` (`idx`, `tag`, and a `when` after the previous one), and
 run `pnpm db:migrate`. The journal is what `migrate()` reads; snapshots are
 not involved. A fresh database applies the full sequence — verified by
-migrating an empty one from `0001`.
+migrating an empty one from `0000_phase0_baseline`.
 
 **Every tenant-owned table needs its RLS block in the same migration.** A table
 created without one is readable across tenants until somebody notices, and
-`tests/db/tenant-isolation.test.ts` is what notices.
+`tests/db/rls.test.ts` is what notices.
