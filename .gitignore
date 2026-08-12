@@ -44,40 +44,27 @@ e2e/.auth/
 test-results/
 playwright-report/
 
-# impeccable tool artefacts.
+# Agent tooling — editor-local state, not project source.
 #
-# The written records are kept — the surface brief, the comp approval sidecars
-# and their prompts are design documentation and belong in the repo. What is
-# ignored is the generated weight: review screenshots and the decision comps
-# run to ~22MB of PNG that nothing reads twice, and session journals and the
-# hook cache are machine state.
-.impeccable/review/
-.impeccable/mocks/*.png
-.impeccable/live/sessions/
-.impeccable/hook.cache.json
-
-# Local machine state, not a shared setting.
-.claude/settings.local.json
-
-# Installed agent skills — a vendored tree, not source.
+# `.claude/` is this machine's Claude Code state: `settings.local.json` is a
+# per-machine permission allowlist, and an installed skill set vendors a
+# `skills/` tree fetched from GitHub. `.agents/` is where that tree actually
+# lives and `skills-lock.json` is its lockfile. All of it is `node_modules` by
+# another name: nothing here imports it, nothing here builds without it, and it
+# belongs to whoever is driving the editor rather than to Fairfame. A lockfile
+# is normally committed so a vendored tree can be rebuilt — that rule is for
+# dependencies the *project* needs, and committing one for packages the build
+# never touches would oblige every clone to reason about them.
 #
-# `.agents/skills/` and `.claude/skills/` hold third-party skill packages
-# fetched from GitHub (1.2MB and growing). They are `node_modules` by another
-# name: nothing here imports them, nothing here builds without them, and they
-# belong to whoever is driving the editor rather than to Fairfame.
-#
-# `skills-lock.json` is their lockfile and goes with them. Normally a lockfile
-# is committed precisely so the vendored tree can be rebuilt — that rule is for
-# dependencies the *project* needs, and these are personal tooling for image
-# generation and brand kits with no bearing on this codebase. Committing a lock
-# for packages the build never touches would oblige every clone to reason about
-# them. Delete these three lines if the team ever adopts a shared skill set.
-#
-# **Only `skills/` is ignored under `.claude/`, not the directory.** The line
-# above already treats `settings.local.json` as the local half, which means
-# `.claude/settings.json` and any shared commands are meant to be committable.
-# Ignoring the whole folder would quietly reverse that.
-.claude/skills/
+# **The whole `.claude/` directory is ignored, not only its local half** (12 Aug
+# 2026). Previously just `settings.local.json` and `skills/` were, to leave the
+# door open for a committable `.claude/settings.json` of shared permissions and
+# commands. No such file was ever written, and the cost of holding the door open
+# is that anything the tooling invents next shows up untracked in `git status`
+# and has to be judged one file at a time. Add a `!.claude/settings.json`
+# exception the day the team agrees a shared one — that is a single line, and it
+# records the sharing as deliberate rather than as an oversight.
+.claude/
 .agents/
 skills-lock.json
 

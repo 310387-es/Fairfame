@@ -18,7 +18,3 @@ docs
 # benefit — and `public/` (which holds the served copies) is already ignored
 # above for the same reason.
 brand
-
-# impeccable tool state — machine-written JSON (session journals, hook cache,
-# comp sidecars). Not source, and rewritten by tools that do not run prettier.
-.impeccable
