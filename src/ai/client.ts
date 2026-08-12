@@ -7,6 +7,10 @@ import type { BuiltPrompt } from "../prompts/index.ts";
 import { estimateCost } from "./pricing.ts";
 import { createAnthropicProvider } from "./providers/anthropic.ts";
 import { createGeminiProvider } from "./providers/gemini.ts";
+import {
+  createOpenAiCompatibleProvider,
+  OPENAI_COMPATIBLE_PROVIDER,
+} from "./providers/openai-compatible.ts";
 import { createStubProvider } from "./providers/stub.ts";
 import {
   LlmError,
@@ -127,6 +131,37 @@ function resolveBaseProvider(): LlmProvider {
         model: env.ANTHROPIC_MODEL,
         baseUrl: env.ANTHROPIC_BASE_URL,
       });
+      break;
+    }
+
+    case "openai-compatible": {
+      // Three variables, no defaults, so the failure names exactly what is
+      // missing rather than reporting a connection error against a host nobody
+      // chose. See `createOpenAiCompatibleProvider` for why this is one
+      // provider rather than one per vendor.
+      const {
+        OPENAI_COMPAT_BASE_URL: baseUrl,
+        OPENAI_COMPAT_API_KEY: apiKey,
+        OPENAI_COMPAT_MODEL: model,
+      } = env;
+
+      if (!baseUrl || !apiKey || !model) {
+        const missing = [
+          baseUrl ? null : "OPENAI_COMPAT_BASE_URL",
+          apiKey ? null : "OPENAI_COMPAT_API_KEY",
+          model ? null : "OPENAI_COMPAT_MODEL",
+        ].filter((name): name is string => name !== null);
+
+        throw new LlmError(
+          `AI_PROVIDER is openai-compatible but ${missing.join(", ")} ${
+            missing.length === 1 ? "is" : "are"
+          } not set. ` +
+            "The base URL includes the host's version segment, e.g. https://api.cerebras.ai/v1.",
+          { provider: OPENAI_COMPATIBLE_PROVIDER, retryable: false },
+        );
+      }
+
+      cachedProvider = createOpenAiCompatibleProvider({ apiKey, model, baseUrl });
       break;
     }
 

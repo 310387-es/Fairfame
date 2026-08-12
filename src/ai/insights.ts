@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
 import { EMBEDDING_DIMENSIONS } from "../db/schema.ts";
 import type { TenantDatabase } from "../lib/tenancy.ts";
@@ -119,6 +119,101 @@ export async function upsertInsight(
 
   if (!row) throw new Error("Could not persist the review insight.");
   return row.id;
+}
+
+/**
+ * An analysis already paid for that a different review may reuse.
+ *
+ * The category comes from the *source* review's location, and is part of the
+ * answer rather than context: see `findReusableInsights`.
+ */
+export type ReusableInsight = {
+  contentHash: string;
+  /** `locations.category` of the review this analysis was produced from. */
+  category: string | null;
+  sentiment: Sentiment;
+  sentimentScore: number;
+  topics: string[];
+  themes: string[] | null;
+  staff: string[];
+  language: string | null;
+  embedding: number[] | null;
+  /** What actually ran. Copied onto the new row, because it is what produced the words. */
+  promptId: string;
+  model: string;
+};
+
+/**
+ * Analyses of the same text, in this organization, that a new review could be
+ * given instead of a model call.
+ *
+ * Three conditions, and each one is load-bearing:
+ *
+ *   - **Same organization.** Never a cross-tenant read, for the same reason
+ *     `CLAUDE.md` forbids another org's data in a prompt: two businesses can
+ *     receive the identical sentence, and an analysis is derived from a
+ *     customer's words. It stays inside the tenant transaction and filters on
+ *     `organization_id` explicitly, so RLS is the second lock rather than the
+ *     only one.
+ *   - **Same prompt id.** A different prompt is a different question, and the
+ *     answer to the old one is not the answer to the new one. This is also what
+ *     makes a prompt revision behave: `analyze_review@4` finds no donors and
+ *     re-analyses, which is the entire point of bumping the version.
+ *   - **Same vertical.** Themes are narrowed per `locations.category` (W3.2), so
+ *     "Harika" at a hotel and "Harika" at a barber were offered different closed
+ *     lists and did not answer the same question. The caller compares it, via
+ *     one key function, rather than this query — a null category must match a
+ *     null category, and `=` in SQL says nothing at all about that.
+ *
+ * One row per (text, vertical), newest first, so a hot phrase repeated five
+ * hundred times returns one donor rather than five hundred.
+ */
+export async function findReusableInsights(
+  tx: TenantDatabase,
+  organizationId: string,
+  args: { contentHashes: string[]; promptId: string; excludeReviewIds?: string[] },
+): Promise<ReusableInsight[]> {
+  if (args.contentHashes.length === 0) return [];
+
+  const rows = await tx
+    .selectDistinctOn([schema.reviewInsights.contentHash, schema.locations.category], {
+      contentHash: schema.reviewInsights.contentHash,
+      category: schema.locations.category,
+      sentiment: schema.reviewInsights.sentiment,
+      sentimentScore: schema.reviewInsights.sentimentScore,
+      topics: schema.reviewInsights.topics,
+      themes: schema.reviewInsights.themes,
+      staff: schema.reviewInsights.staff,
+      language: schema.reviewInsights.language,
+      embedding: schema.reviewInsights.embedding,
+      promptId: schema.reviewInsights.promptId,
+      model: schema.reviewInsights.model,
+    })
+    .from(schema.reviewInsights)
+    .innerJoin(schema.reviews, eq(schema.reviews.id, schema.reviewInsights.reviewId))
+    .innerJoin(schema.locations, eq(schema.locations.id, schema.reviews.locationId))
+    .where(
+      and(
+        eq(schema.reviewInsights.organizationId, organizationId),
+        inArray(schema.reviewInsights.contentHash, args.contentHashes),
+        eq(schema.reviewInsights.promptId, args.promptId),
+        // The reviews being analysed right now are never their own donors —
+        // otherwise `--recompute` would copy each row from itself and re-analyse
+        // nothing, which is the one thing the operator asked for.
+        args.excludeReviewIds?.length
+          ? notInArray(schema.reviewInsights.reviewId, args.excludeReviewIds)
+          : undefined,
+      ),
+    )
+    .orderBy(
+      schema.reviewInsights.contentHash,
+      schema.locations.category,
+      desc(schema.reviewInsights.analyzedAt),
+    );
+
+  // `content_hash` is nullable in the schema; every row here matched one of the
+  // hashes we asked for, so the narrowing is a type formality.
+  return rows.flatMap((row) => (row.contentHash ? [{ ...row, contentHash: row.contentHash }] : []));
 }
 
 /** Attaches an embedding to an existing insight, leaving the analysis alone. */

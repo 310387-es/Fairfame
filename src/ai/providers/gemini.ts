@@ -69,6 +69,20 @@ const errorSchema = z
         code: z.number().int().optional(),
         message: z.string().optional(),
         status: z.string().optional(),
+        // Google puts the *useful* half of a 400 in here: `message` is the
+        // useless "Request contains an invalid argument", and the field that
+        // was actually rejected is in these violations.
+        details: z
+          .array(
+            z
+              .object({
+                fieldViolations: z
+                  .array(z.object({ field: z.string().optional() }).loose())
+                  .optional(),
+              })
+              .loose(),
+          )
+          .optional(),
       })
       .loose(),
   })
@@ -101,6 +115,39 @@ function retryAfterFrom(response: Response): number | undefined {
  */
 const THINKING_HEADROOM_TOKENS = 1_024;
 
+/**
+ * The same reserve for a call that asked for no reasoning at all.
+ *
+ * Smaller, not absent, and that is the whole point. Every thinking control here
+ * is a *request*, not a guarantee — the comment above records 381 thoughts
+ * against a requested 128 — so a model that thinks a little anyway would eat
+ * the caller's own budget and truncate. 256 tokens absorbs that overshoot; it
+ * is nowhere near enough to pay for a reasoning pass, which is the spend the
+ * caller is opting out of. Unused headroom costs nothing: `maxOutputTokens` is
+ * a ceiling, not an allocation.
+ */
+const NO_REASONING_HEADROOM_TOKENS = 256;
+
+/**
+ * How "I want no reasoning" is said to Gemini.
+ *
+ * `thinkingLevel: "minimal"`, and **not** `thinkingBudget: 0`, which is the
+ * obvious answer and is wrong here. Measured against the live API on 12 Aug
+ * 2026, with the three models this project routes tasks to:
+ *
+ *   | model                 | budget: 0 | level: minimal | default   |
+ *   | gemini-3.5-flash-lite | **400**   | 0 thoughts     | 0 thoughts|
+ *   | gemini-3.5-flash      | 0         | 0 thoughts     | 66        |
+ *   | gemini-3.6-flash      | **400**   | 0 thoughts     | 57        |
+ *
+ * A 400 is not a degraded answer, it is *no* analysis — so the budget field
+ * would have taken the whole analyze path down on the model analysis actually
+ * runs on. `minimal` is accepted by every model reachable with this key and
+ * measured 0 thinking tokens on all of them. `thinkingLevel: "off"`/`"none"`
+ * are not enum members and 400 everywhere.
+ */
+const NO_REASONING_CONFIG = { thinkingLevel: "minimal" } as const;
+
 export function createGeminiProvider(options: GeminiOptions): LlmProvider {
   const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = (options.baseUrl ?? "https://generativelanguage.googleapis.com").replace(
@@ -117,6 +164,11 @@ export function createGeminiProvider(options: GeminiOptions): LlmProvider {
       // routing (src/ai/client.ts) reaches the wire.
       const model = request.model ?? options.model;
       const url = `${baseUrl}/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+
+      // A prompt that declares it wants no reasoning (`LlmRequest.reasoning`).
+      // Gemini has a control for it; a provider without one would ignore the
+      // field, which is why it is a hint rather than a knob.
+      const noReasoning = request.reasoning === "none";
 
       const body = {
         contents: request.messages.map((message) => ({
@@ -139,7 +191,15 @@ export function createGeminiProvider(options: GeminiOptions): LlmProvider {
           // headroom costs nothing extra: those thinking tokens are billed
           // either way, and a truncated call pays for them while producing
           // nothing usable.
-          maxOutputTokens: request.maxOutputTokens + THINKING_HEADROOM_TOKENS,
+          //
+          // Which is the argument for headroom, not for *paying* to think. A
+          // prompt that says it wants no reasoning asks for that too, and keeps
+          // a reduced reserve for the overshoot the paragraph above measured —
+          // belt and braces, because the braces are advisory.
+          maxOutputTokens:
+            request.maxOutputTokens +
+            (noReasoning ? NO_REASONING_HEADROOM_TOKENS : THINKING_HEADROOM_TOKENS),
+          ...(noReasoning ? { thinkingConfig: NO_REASONING_CONFIG } : {}),
           ...(request.responseSchema
             ? {
                 responseMimeType: "application/json",
@@ -233,12 +293,16 @@ export function createGeminiProvider(options: GeminiOptions): LlmProvider {
 async function classify(response: Response): Promise<LlmError> {
   let message = `Gemini returned ${response.status}.`;
   let status: string | undefined;
+  let fields: string[] = [];
 
   try {
     const parsed = errorSchema.safeParse(JSON.parse(await response.text()));
     if (parsed.success) {
       message = parsed.data.error.message ?? message;
       status = parsed.data.error.status;
+      fields = (parsed.data.error.details ?? []).flatMap((detail) =>
+        (detail.fieldViolations ?? []).map((violation) => violation.field ?? ""),
+      );
     }
   } catch {
     // Non-JSON error body; the status code is enough to classify.
@@ -249,6 +313,20 @@ async function classify(response: Response): Promise<LlmError> {
     status: response.status,
     ...(status ? { code: status } : {}),
   };
+
+  // The one 400 this provider can cause by itself. Gemini's message for it is
+  // "Request contains an invalid argument", which sends the reader looking at
+  // their prompt; the model rejecting the no-reasoning hint is a different
+  // problem with a different fix, and it fails *every* call on that model
+  // rather than one, so it says so.
+  if (response.status === 400 && fields.some((field) => field.includes("thinking_config"))) {
+    return new LlmError(
+      `This Gemini model does not accept the no-reasoning hint (${message}). ` +
+        "The thinking control's shape differs by model generation — see NO_REASONING_CONFIG " +
+        "in src/ai/providers/gemini.ts, and re-measure it against this model before changing it.",
+      { ...options, retryable: false },
+    );
+  }
 
   if (response.status === 429) {
     return new LlmError(

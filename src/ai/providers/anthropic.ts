@@ -86,6 +86,10 @@ export function createAnthropicProvider(options: AnthropicOptions): LlmProvider 
         // routing (src/ai/client.ts) reaches the wire.
         model: request.model ?? options.model,
         max_tokens: request.maxOutputTokens,
+        // `request.reasoning` is deliberately not read here. Extended thinking
+        // is off unless asked for, so a prompt saying "no reasoning" is already
+        // getting what it asked for, and the field is a hint a provider may
+        // ignore — see `LlmRequest`.
         ...(request.system ? { system: request.system } : {}),
         messages: request.messages.map((message) => ({
           role: message.role,

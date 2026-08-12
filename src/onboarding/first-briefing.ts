@@ -362,22 +362,28 @@ export async function stepFirstBriefing(args: {
         // of the way of somebody watching a progress bar.
       });
 
-      // Metered by what was actually analysed, never by what was attempted.
+      // Metered by the model calls actually made, never by what was attempted —
+      // and never by a copy, which produced an analysis and spent nothing.
       if (result.analyzed > 0) {
         await recordUsage(organizationId, "ai_analyses_per_month", result.analyzed);
       }
 
-      const remaining = Math.max(0, pending - result.analyzed - result.failed);
+      // Progress is insights written, not calls made: a location whose reviews
+      // are mostly "Harika" would otherwise look stalled, and the loop below
+      // would give up on a batch that had in fact analysed everything in it.
+      const analysed = result.analyzed + result.copied;
+
+      const remaining = Math.max(0, pending - analysed - result.failed);
       log.info(
-        { organizationId, locationId, analyzed: result.analyzed, remaining },
+        { organizationId, locationId, analyzed: result.analyzed, copied: result.copied, remaining },
         "First-briefing analysis batch",
       );
 
       // Still work to do — unless nothing moved, in which case looping would
       // spin: every remaining review is one analysis refuses, and waiting for
       // them would mean never composing a briefing at all.
-      if (remaining > 0 && result.analyzed > 0) {
-        return { status: "analysing", analysed: result.analyzed, remaining };
+      if (remaining > 0 && analysed > 0) {
+        return { status: "analysing", analysed, remaining };
       }
     }
   }

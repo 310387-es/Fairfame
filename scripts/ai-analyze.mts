@@ -67,6 +67,10 @@ try {
   process.stdout.write("\r\x1b[K");
 
   console.log(`analyzed:   ${result.analyzed}`);
+  // Reviews that said the same thing as another review in this organization and
+  // were given its analysis. Printed rather than folded into `analyzed`: it is
+  // the difference between a run that was cheap and a run that skipped work.
+  console.log(`copied:     ${result.copied}`);
   console.log(`cached:     ${result.skipped}`);
   console.log(`failed:     ${result.failed}`);
   if (withEmbeddings) console.log(`embedded:   ${result.embedded}`);

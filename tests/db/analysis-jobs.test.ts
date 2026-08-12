@@ -335,7 +335,7 @@ describe("the monthly plan limit", () => {
     return limit;
   }
 
-  it("meters each analyzed review against the allowance", async () => {
+  it("meters model calls against the allowance, not rows written", async () => {
     const target = await makeOrgWithLocation("meter");
     const connectionId = await connectMock(target.orgId, target.locationId);
 
@@ -343,7 +343,15 @@ describe("the monthly plan limit", () => {
     await drain();
 
     const insights = await insightsFor(target.orgId);
-    expect(await usageOf(target.orgId, "ai_analyses_per_month")).toBe(insights.length);
+    // Reviews saying the same thing are analysed once and copied, so the meter
+    // counts distinct texts rather than insight rows: the allowance exists to
+    // bound model spend, and a copy spends nothing. This used to assert the two
+    // were equal, which held only while the mock happened to generate no
+    // repeats.
+    const called = new Set(insights.map((row) => row.contentHash)).size;
+
+    expect(insights.length).toBeGreaterThanOrEqual(called);
+    expect(await usageOf(target.orgId, "ai_analyses_per_month")).toBe(called);
   });
 
   it("stops analyzing once the allowance is spent", async () => {
@@ -393,8 +401,14 @@ describe("the monthly plan limit", () => {
       queue,
     );
 
-    expect(result.analyzed).toBe(3);
-    expect(await usageOf(target.orgId, "ai_analyses_per_month")).toBe(allowance);
+    // Three reviews are analysed, however they were produced — a duplicate
+    // among them is copied rather than sent, which is the one way this can
+    // finish *under* the ceiling. Over it is the failure worth pinning.
+    expect(result.analyzed + result.copied).toBe(3);
+    expect(await usageOf(target.orgId, "ai_analyses_per_month")).toBe(
+      allowance - 3 + result.analyzed,
+    );
+    expect(await usageOf(target.orgId, "ai_analyses_per_month")).toBeLessThanOrEqual(allowance);
   });
 });
 

@@ -44,6 +44,11 @@ export function buildPrompt(args: {
   untrustedText?: string | undefined;
   maxOutputTokens: number;
   responseSchema?: Record<string, unknown> | undefined;
+  /**
+   * Whether this prompt wants reasoning. Omitted means `"auto"` — the
+   * provider's own default — so a prompt only opts out by saying so.
+   */
+  reasoning?: "none" | "auto" | undefined;
 }): BuiltPrompt {
   const untrusted = args.untrustedText === undefined ? null : wrapUntrusted(args.untrustedText);
 
@@ -58,6 +63,7 @@ export function buildPrompt(args: {
       messages: [{ role: "user", text: userText }],
       maxOutputTokens: args.maxOutputTokens,
       ...(args.responseSchema ? { responseSchema: args.responseSchema } : {}),
+      ...(args.reasoning ? { reasoning: args.reasoning } : {}),
     },
   };
 }
@@ -184,6 +190,23 @@ export function analyzeReviewPrompt(args: {
     // Generous enough for five tags in Turkish, far too small for prose.
     maxOutputTokens: 512,
     responseSchema: schema,
+    /**
+     * The one prompt that asks for no reasoning.
+     *
+     * Analysis is a *classification* into an enum, a closed theme list and a
+     * handful of tags copied from text the model is already looking at — there
+     * is nothing here to deliberate about, and the eval set is what proves it:
+     * the thresholds hold with reasoning off. It is also the only prompt that
+     * runs per review, so on the flash tier its ~350–620 billed thinking tokens
+     * were the majority of both the cost and the daily request quota.
+     *
+     * The other three keep the default deliberately. `draft_reply` and
+     * `social_post` write prose that goes out under the business's name, and
+     * the digest is a once-a-week call that has to prioritise a whole week and
+     * cite its evidence — a saving of a fraction of a cent is not worth
+     * spending on any of them.
+     */
+    reasoning: "none",
   });
 }
 

@@ -37,6 +37,20 @@ export const MODEL_RATES: Record<string, ModelRate> = {
   "claude-opus-5": { input: 5, output: 25 },
   "claude-sonnet-5": { input: 3, output: 15 },
   "claude-haiku-4-5": { input: 1, output: 5 },
+
+  /*
+    Nothing for `openai-compatible`, and that is the intended state rather than
+    an omission to fix later.
+
+    One dialect reaches Cerebras, Groq, Mistral, OpenRouter and a local Ollama,
+    and the *same model id* costs a different amount on each of them — zero on
+    a machine under your desk. A rate keyed on the model name alone would
+    therefore be a guess presented as a number, which is worse than the honest
+    answer this table already gives: `priced: false`, logged as unpriced, and
+    `listUsd: 0` meaning "no rate" rather than "cheap". If a host becomes a
+    production path, price it by the model ids that host actually serves and
+    say which host in the comment.
+  */
 };
 
 export type CostEstimate = {

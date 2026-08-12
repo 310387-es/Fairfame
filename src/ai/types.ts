@@ -49,6 +49,21 @@ export type LlmRequest = {
    * or the audit row records a model that never ran.
    */
   model?: string;
+  /**
+   * Whether this prompt wants the model to reason before answering.
+   *
+   * A **hint, not a knob**: a provider with no such control ignores it, and one
+   * whose control is advisory (Gemini's `thinkingBudget`) must still behave
+   * correctly when the model overspends anyway. That is what keeps this inside
+   * the intersection the contract is shaped around — `"none"` says something
+   * about the *task* ("classification, not deliberation") that any vendor can
+   * act on or disregard, rather than naming a vendor's field.
+   *
+   * Defaults to `"auto"`: leave the provider's own default alone. Set `"none"`
+   * only where reasoning demonstrably buys nothing, because thinking tokens are
+   * billed as output while being invisible in it.
+   */
+  reasoning?: "none" | "auto";
 };
 
 export type LlmUsage = {

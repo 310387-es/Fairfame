@@ -6,7 +6,7 @@ import type { ReplyStyle } from "../replies/style.ts";
 import { normalizeThemes } from "../reviews/taxonomy.ts";
 import { runAi } from "./client.ts";
 import { boundOutput } from "./guardrails.ts";
-import { LlmError, type LlmProvider } from "./types.ts";
+import { LlmError, type LlmProvider, type LlmResponse } from "./types.ts";
 
 /**
  * The two AI operations P1a-T1's Definition of Done names: `analyze` and
@@ -58,6 +58,8 @@ const wireSchema = z.object({
   themes: z.array(z.string()).optional(),
 });
 
+type WireAnalysis = z.infer<typeof wireSchema>;
+
 export type AnalyzeArgs = {
   /** Null for a call with no tenant — see `RunAiArgs` in ./client.ts. */
   organizationId: string | null;
@@ -97,6 +99,23 @@ export async function analyzeReview(args: AnalyzeArgs): Promise<AnalyzeOutcome> 
     category: args.category ?? null,
   });
 
+  /*
+    The shape check happens *inside* the call, through W1.6's `validate` hook.
+
+    It used to run after `runAi` returned, which meant a mangled answer — a code
+    fence the extractor could not find, a truncated-looking body, a missing
+    field — was final. The call was already paid for, the retry budget was
+    already there, and the review waited for the next sweep to try again. The
+    digest fixed this when W1.6 added the hook; analysis predates it and never
+    got it.
+
+    The parsed value is stashed rather than returned, because a validator's job
+    is to reject. Re-parsing it afterwards would mean the bytes proved good and
+    the bytes used were checked twice, and would leave two parsers to keep in
+    step.
+  */
+  let validated: WireAnalysis | undefined;
+
   const { response, costUsd, listCostUsd } = await runAi({
     organizationId: args.organizationId,
     actorUserId: args.actorUserId ?? null,
@@ -104,8 +123,60 @@ export async function analyzeReview(args: AnalyzeArgs): Promise<AnalyzeOutcome> 
     prompt,
     tx: args.tx,
     provider: args.provider,
+    validate: (candidate) => {
+      validated = parseAnalysis(candidate);
+    },
   });
 
+  // Unreachable: `runAi` returns only after `validate` has run without
+  // throwing. Asserted rather than assumed, because "undefined" here would
+  // otherwise surface as a sentiment of `undefined` three layers downstream.
+  if (!validated) {
+    throw new LlmError("The analysis passed validation but produced nothing to store.", {
+      provider: response.provider,
+      retryable: false,
+      code: "bad_shape",
+    });
+  }
+
+  return {
+    promptId: prompt.id,
+    analysis: {
+      sentiment: validated.sentiment,
+      // Clamp rather than reject: a model returning 1.2 is directionally right
+      // and failing the whole analysis over it would be pedantry.
+      sentimentScore: Math.max(-1, Math.min(1, validated.sentiment_score)),
+      topics: normalizeTopics(validated.topics),
+      // Dropped rather than kept when the model invents one: it was handed a
+      // closed list, so an unlisted value is a failure to follow instructions,
+      // not a discovery. The free tags above already carry the long tail.
+      themes: normalizeThemes(validated.themes ?? []),
+      language: normalizeLanguage(validated.language),
+      staff: normalizeStaff(validated.staff ?? []),
+    },
+    costUsd,
+    listCostUsd,
+    model: response.model,
+  };
+}
+
+/**
+ * The response as an analysis, or a reason it is not one.
+ *
+ * Written to be thrown from `validate`, so what it decides is whether the call
+ * gets another attempt:
+ *
+ *   - **Malformed is retryable.** A model that answered with prose, half an
+ *     object or a field missing will usually answer correctly when asked again,
+ *     and the attempt is already budgeted for.
+ *   - **Truncated is not**, and that is the one distinction worth keeping. The
+ *     next attempt has the identical `maxOutputTokens` and the identical
+ *     prompt, so it produces the identical stump — three times, slowly, before
+ *     failing anyway. The fix is a bigger budget, and the message says so
+ *     rather than reporting a parse failure the reader would go looking for in
+ *     the model's wording.
+ */
+function parseAnalysis(response: LlmResponse): WireAnalysis {
   let parsed: unknown;
   try {
     parsed = JSON.parse(extractJson(response.text));
@@ -114,7 +185,7 @@ export async function analyzeReview(args: AnalyzeArgs): Promise<AnalyzeOutcome> 
       response.truncated
         ? "The analysis was cut off before it produced complete JSON — raise maxOutputTokens."
         : "The analysis was not valid JSON.",
-      { provider: response.provider, retryable: false, code: "bad_json" },
+      { provider: response.provider, retryable: !response.truncated, code: "bad_json" },
     );
   }
 
@@ -124,29 +195,13 @@ export async function analyzeReview(args: AnalyzeArgs): Promise<AnalyzeOutcome> 
       `The analysis did not match the expected shape: ${result.error.issues
         .map((issue) => `${issue.path.join(".")} ${issue.message}`)
         .join("; ")}`,
-      { provider: response.provider, retryable: false, code: "bad_shape" },
+      // Same rule as above: a truncated body that still parsed is missing its
+      // last fields, and asking again inside the same budget cannot add them.
+      { provider: response.provider, retryable: !response.truncated, code: "bad_shape" },
     );
   }
 
-  return {
-    promptId: prompt.id,
-    analysis: {
-      sentiment: result.data.sentiment,
-      // Clamp rather than reject: a model returning 1.2 is directionally right
-      // and failing the whole analysis over it would be pedantry.
-      sentimentScore: Math.max(-1, Math.min(1, result.data.sentiment_score)),
-      topics: normalizeTopics(result.data.topics),
-      // Dropped rather than kept when the model invents one: it was handed a
-      // closed list, so an unlisted value is a failure to follow instructions,
-      // not a discovery. The free tags above already carry the long tail.
-      themes: normalizeThemes(result.data.themes ?? []),
-      language: normalizeLanguage(result.data.language),
-      staff: normalizeStaff(result.data.staff ?? []),
-    },
-    costUsd,
-    listCostUsd,
-    model: response.model,
-  };
+  return result.data;
 }
 
 export type DraftArgs = {

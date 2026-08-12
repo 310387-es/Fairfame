@@ -59,6 +59,7 @@ export const SEALED_CREDENTIALS = [
   // Model providers. `pnpm ai:eval` and `ai:smoke` are how you call a real one.
   "ANTHROPIC_API_KEY",
   "GEMINI_API_KEY",
+  "OPENAI_COMPAT_API_KEY",
   // Anything that could put a message in front of a person.
   "EMAIL_TRANSPORT",
   "SMTP_URL",

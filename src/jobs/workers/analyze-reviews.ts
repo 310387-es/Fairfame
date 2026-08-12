@@ -89,7 +89,10 @@ export async function runAnalyzeSweep(queue: Queue<ReviewJob>): Promise<AnalyzeS
 
 export type AnalyzeJobResult = {
   organizationId: string;
+  /** Model calls made. */
   analyzed: number;
+  /** Reviews given an identical analysis without a call. */
+  copied: number;
   failed: number;
   embedded: number;
   /** Set when nothing ran. `limit_reached` is a plan ceiling, not an error. */
@@ -124,6 +127,7 @@ export async function runAnalyze(
     return {
       organizationId,
       analyzed: 0,
+      copied: 0,
       failed: 0,
       embedded: 0,
       skipped: "limit_reached",
@@ -140,9 +144,23 @@ export async function runAnalyze(
     ...(recompute ? { recompute: true } : {}),
   });
 
-  // Metered after the fact, by what was actually analyzed. A failed call cost
-  // tokens (already metered separately as `ai_tokens`) but produced no
-  // analysis, so it must not consume the tenant's analysis allowance.
+  /*
+    Insights written this batch, however they were produced.
+
+    `analyzed` is the number of model calls and `copied` the number of reviews
+    given an identical analysis for free, so everything downstream that means
+    "did any review just gain a sentiment" has to read both. Reading `analyzed`
+    alone would make a batch of duplicates look like a batch that did nothing:
+    no duplicate scan, no notification, and the sweep stopping a page early.
+  */
+  const written = result.analyzed + result.copied;
+
+  // Metered after the fact, by the model calls actually made. A failed call
+  // cost tokens (already metered separately as `ai_tokens`) but produced no
+  // analysis, so it must not consume the tenant's analysis allowance — and
+  // neither may a copy, which produced an analysis but spent nothing. The
+  // limit exists to bound model spend; charging for a call nobody made would
+  // bill a business for its own repeat customers.
   if (result.analyzed > 0) {
     await recordUsage(organizationId, "ai_analyses_per_month", result.analyzed);
   }
@@ -156,7 +174,7 @@ export async function runAnalyze(
     Never fatal to the batch: analysis is what a plan is metered for, and a
     failure to link two rows must not lose the insights that were just written.
   */
-  if (result.analyzed > 0) {
+  if (written > 0) {
     try {
       await scanForDuplicates(organizationId);
     } catch (error) {
@@ -166,18 +184,19 @@ export async function runAnalyze(
 
   // A full batch means there is probably more. Re-enqueue rather than looping
   // here, so the work stays interruptible and visible in the queue.
-  const continued = result.analyzed >= allowance && allowance > 0;
+  const continued = written >= allowance && allowance > 0;
   if (continued) await enqueueAnalyze(queue, { organizationId });
 
   // Hand off to notification: sentiment is now known, so an alert that has not
   // gone out yet can leave with the right urgency. The notify job is
   // idempotent, so enqueuing it after every batch costs nothing.
-  if (result.analyzed > 0) await enqueueNotify(queue, { organizationId });
+  if (written > 0) await enqueueNotify(queue, { organizationId });
 
   log.info(
     {
       organizationId,
       analyzed: result.analyzed,
+      copied: result.copied,
       skipped: result.skipped,
       failed: result.failed,
       embedded: result.embedded,
@@ -190,6 +209,7 @@ export async function runAnalyze(
   return {
     organizationId,
     analyzed: result.analyzed,
+    copied: result.copied,
     failed: result.failed,
     embedded: result.embedded,
     continued,

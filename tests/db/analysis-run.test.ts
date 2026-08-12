@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { analyzeBatch, clearInsights, embedMissing, selectTargets } from "@/ai/analysis-run";
 import { contentHash, type EmbeddingProvider } from "@/ai/embeddings";
 import { createStubProvider } from "@/ai/providers/stub";
+import type { LlmProvider, LlmRequest } from "@/ai/types";
 import { closeDatabasePools, getAdminDb, schema } from "@/db/client";
 import { EMBEDDING_DIMENSIONS } from "@/db/schema";
 import { withTenant } from "@/lib/tenancy";
@@ -63,6 +64,10 @@ async function makeOrg(label: string, texts: (string | null)[]): Promise<Fixture
     .returning({ id: schema.locations.id });
   if (!location) throw new Error("location insert returned nothing");
 
+  // An organization with no reviews yet is a legitimate fixture: the duplicate
+  // tests add their own, on locations they choose.
+  if (texts.length === 0) return { orgId: org.id, locationId: location.id, reviewIds: [] };
+
   const reviews = await getAdminDb()
     .insert(schema.reviews)
     .values(
@@ -79,6 +84,51 @@ async function makeOrg(label: string, texts: (string | null)[]): Promise<Fixture
     .returning({ id: schema.reviews.id });
 
   return { orgId: org.id, locationId: location.id, reviewIds: reviews.map((row) => row.id) };
+}
+
+/** The stub, with a tally — the number these tests are actually about. */
+function countingProvider(model = "stub-1"): LlmProvider & { calls: number } {
+  const stub = createStubProvider({ model });
+  const provider = {
+    name: stub.name,
+    model,
+    requestsPerMinute: null,
+    calls: 0,
+    complete(request: LlmRequest, signal: AbortSignal) {
+      provider.calls += 1;
+      return stub.complete(request, signal);
+    },
+  };
+  return provider;
+}
+
+/** A second branch in an existing organization, optionally in another vertical. */
+async function addLocation(orgId: string, name: string, category?: string): Promise<string> {
+  const [location] = await getAdminDb()
+    .insert(schema.locations)
+    .values({ organizationId: orgId, name, ...(category ? { category } : {}) })
+    .returning({ id: schema.locations.id });
+  if (!location) throw new Error("location insert returned nothing");
+  return location.id;
+}
+
+let reviewCounter = 0;
+
+async function addReview(orgId: string, locationId: string, text: string): Promise<string> {
+  const [review] = await getAdminDb()
+    .insert(schema.reviews)
+    .values({
+      organizationId: orgId,
+      locationId,
+      source: "mock" as const,
+      sourceReviewId: `dup-${suffix}-${reviewCounter++}`,
+      rating: 5,
+      text,
+      rawPayload: {},
+    })
+    .returning({ id: schema.reviews.id });
+  if (!review) throw new Error("review insert returned nothing");
+  return review.id;
 }
 
 function run(orgId: string, overrides: Record<string, unknown> = {}) {
@@ -396,5 +446,169 @@ describe("tenant isolation", () => {
 
     expect(result.analyzed).toBe(1);
     expect(await insightsFor(fixture.orgId)).toHaveLength(1);
+  });
+});
+
+/**
+ * Reviews that say the same thing cost one call, not one call each.
+ *
+ * Short reviews repeat endlessly — "Harika", "Great place 👍" — and the content
+ * hash was per *review row*, so ten of them bought ten identical answers. The
+ * three tests that matter are the ones about where reuse must *stop*: another
+ * organization, another vertical, and a review's own row on a recompute. A
+ * cache that is too eager is not a cheaper product, it is a wrong one.
+ */
+describe("identical reviews", () => {
+  it("asks the model once and writes an insight for each", async () => {
+    const fixture = await makeOrg("dup-one", ["Harika", "Harika"]);
+    const provider = countingProvider();
+
+    const result = await run(fixture.orgId, { provider });
+
+    expect(provider.calls).toBe(1);
+    expect(result.analyzed).toBe(1);
+    expect(result.copied).toBe(1);
+    expect(result.failed).toBe(0);
+
+    const rows = await insightsFor(fixture.orgId);
+    expect(rows).toHaveLength(2);
+    // Same words, same answer — and the same cache key, so neither row comes
+    // back as stale on the next run.
+    expect(new Set(rows.map((row) => row.sentiment)).size).toBe(1);
+    expect(new Set(rows.map((row) => row.topics.join("|"))).size).toBe(1);
+    expect(new Set(rows.map((row) => row.contentHash)).size).toBe(1);
+  });
+
+  it("never reuses another organization's analysis", async () => {
+    // Two businesses can receive the identical sentence. An analysis is derived
+    // from a customer's words, and the tenant wall does not have exceptions for
+    // cheapness.
+    const mine = await makeOrg("dup-mine", ["Harika"]);
+    const theirs = await makeOrg("dup-theirs", ["Harika"]);
+
+    const mineProvider = countingProvider();
+    const theirsProvider = countingProvider();
+
+    await run(mine.orgId, { provider: mineProvider });
+    await run(theirs.orgId, { provider: theirsProvider });
+
+    expect(mineProvider.calls).toBe(1);
+    expect(theirsProvider.calls).toBe(1);
+
+    const [row] = await insightsFor(theirs.orgId);
+    expect(row?.organizationId).toBe(theirs.orgId);
+  });
+
+  it("never reuses an analysis from another vertical", async () => {
+    // `analyzeReviewPrompt` narrows the canonical themes to the location's
+    // category (W3.2), so "Harika" at a hotel was offered `room_comfort` and
+    // "Harika" at a café was not. Same words, different question.
+    const fixture = await makeOrg("dup-vertical", []);
+    const hotel = await addLocation(fixture.orgId, "Otel", "hotel");
+    const cafe = await addLocation(fixture.orgId, "Kafe", "cafe");
+
+    await addReview(fixture.orgId, hotel, "Harika");
+    await addReview(fixture.orgId, cafe, "Harika");
+
+    const provider = countingProvider();
+    const result = await run(fixture.orgId, { provider });
+
+    expect(provider.calls).toBe(2);
+    expect(result.analyzed).toBe(2);
+    expect(result.copied).toBe(0);
+  });
+
+  it("reuses an analysis stored by an earlier run, and records what produced it", async () => {
+    const fixture = await makeOrg("dup-later", ["Harika"]);
+    await run(fixture.orgId, { provider: countingProvider("old-model") });
+
+    const laterId = await addReview(fixture.orgId, fixture.locationId, "Harika");
+
+    const provider = countingProvider("new-model");
+    const result = await run(fixture.orgId, { provider });
+
+    expect(provider.calls).toBe(0);
+    expect(result.analyzed).toBe(0);
+    expect(result.copied).toBe(1);
+
+    const rows = await insightsFor(fixture.orgId);
+    const copied = rows.find((row) => row.reviewId === laterId);
+    // The model named on the row is the one that produced the words. Writing
+    // this run's model would put a model in the record that was never asked
+    // about this review — and `audit_logs`, which records calls, would disagree.
+    expect(copied?.model).toBe("old-model");
+    expect(copied?.sentiment).toBe(rows.find((row) => row.reviewId !== laterId)?.sentiment);
+  });
+
+  it("still asks the model on a recompute, rather than copying a row from itself", async () => {
+    const fixture = await makeOrg("dup-recompute", ["Harika", "Harika"]);
+    await run(fixture.orgId, { provider: countingProvider() });
+
+    const provider = countingProvider();
+    const result = await run(fixture.orgId, { provider, recompute: true });
+
+    // One call, not zero: a recompute that copied each row from itself would
+    // report success and change nothing, which is the one thing the operator
+    // asked it not to do.
+    expect(provider.calls).toBe(1);
+    expect(result.analyzed).toBe(1);
+    expect(result.copied).toBe(1);
+  });
+
+  it("copies the vector too, so a duplicate is findable by the same search", async () => {
+    const fixture = await makeOrg("dup-vector", ["Harika"]);
+    await run(fixture.orgId, { withEmbeddings: true, embeddings: countingEmbeddings() });
+
+    const laterId = await addReview(fixture.orgId, fixture.locationId, "Harika");
+    const embeddings = countingEmbeddings();
+    await run(fixture.orgId, { provider: countingProvider(), embeddings });
+
+    // Identical text embeds identically, so no embedding call is needed — and
+    // withholding the vector would leave the duplicate out of a similarity
+    // search its twin is in.
+    expect(embeddings.calls).toBe(0);
+
+    const rows = await insightsFor(fixture.orgId);
+    const original = rows.find((row) => row.reviewId !== laterId);
+    const copied = rows.find((row) => row.reviewId === laterId);
+    expect(copied?.embedding).not.toBeNull();
+    expect(copied?.embedding).toEqual(original?.embedding);
+  });
+
+  it("gives every copied row a priority, not just the one that was analyzed", async () => {
+    // Same text *and* same rating, so the only thing that could make the two
+    // rows differ is whether the copied one was re-scored.
+    const fixture = await makeOrg("dup-priority", []);
+    await addReview(fixture.orgId, fixture.locationId, "Berbat");
+    await addReview(fixture.orgId, fixture.locationId, "Berbat");
+
+    await run(fixture.orgId, { provider: countingProvider() });
+
+    const rows = await getAdminDb()
+      .select({ id: schema.reviews.id, priority: schema.reviews.priority })
+      .from(schema.reviews)
+      .where(eq(schema.reviews.organizationId, fixture.orgId));
+
+    // Sentiment is the strongest input to triage. A copied row carries one, so
+    // it must be re-scored like any other — otherwise half a duplicate pair
+    // sorts by its star rating alone.
+    expect(rows).toHaveLength(2);
+    expect(new Set(rows.map((row) => row.priority)).size).toBe(1);
+  });
+
+  it("reports every review of a group whose one call failed", async () => {
+    const fixture = await makeOrg("dup-failed", ["Harika", "Harika"]);
+
+    const result = await run(fixture.orgId, {
+      provider: createStubProvider({ simulate: { failures: 1, retryable: false } }),
+      concurrency: 1,
+    });
+
+    // Neither review was analysed, and both are still stale. Reporting only the
+    // one that was sent would call the other a success it never was.
+    expect(result.analyzed).toBe(0);
+    expect(result.failed).toBe(2);
+    expect(result.failures.some((failure) => failure.reason.includes("identical to"))).toBe(true);
+    expect(await insightsFor(fixture.orgId)).toHaveLength(0);
   });
 });

@@ -1,10 +1,12 @@
 import { and, eq, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { schema } from "../db/client.ts";
+import type { Sentiment } from "../db/schema.ts";
 import { refreshPriority } from "../reviews/workflow.ts";
 import { getEnv } from "../lib/env.ts";
 import { childLogger } from "../lib/logger.ts";
 import { createPacer } from "../lib/pacer.ts";
 import { withTenant, type TenantDatabase } from "../lib/tenancy.ts";
+import { ANALYZE_PROMPT_ID } from "../prompts/index.ts";
 import { analyzeReview, type ReviewAnalysis } from "./analyze.ts";
 import {
   CONTENT_HASH_LENGTH,
@@ -12,7 +14,7 @@ import {
   getEmbeddingProvider,
   type EmbeddingProvider,
 } from "./embeddings.ts";
-import { syncTags, upsertInsight } from "./insights.ts";
+import { findReusableInsights, syncTags, upsertInsight } from "./insights.ts";
 import { getLlmProvider } from "./client.ts";
 import { LlmRefusalError, type LlmProvider } from "./types.ts";
 
@@ -36,6 +38,11 @@ import { LlmRefusalError, type LlmProvider } from "./types.ts";
  *   - **One bad review does not fail the batch.** A refusal or a malformed
  *     response is recorded and skipped. A backfill over a thousand reviews that
  *     aborts on the first oddity is a backfill that never completes.
+ *   - **The cache key is the text, so identical text is one call.** The content
+ *     hash was already per *review row*, which meant ten "Harika"s cost ten
+ *     calls to be told ten times that "Harika" is positive. `reuseKey` below
+ *     decides when two reviews are the same question; a match is copied and
+ *     counted as `copied`, never as analysed.
  */
 
 const log = childLogger({ module: "ai/analysis-run" });
@@ -83,7 +90,17 @@ export type BatchOptions = {
 };
 
 export type BatchResult = {
+  /** Reviews the model was actually asked about. */
   analyzed: number;
+  /**
+   * Reviews written from an identical analysis instead of a model call.
+   *
+   * Reported rather than folded into `analyzed`, because the two numbers answer
+   * different questions — what a run cost, and what it saved. A saving nobody
+   * is shown is indistinguishable from a bug that skipped work.
+   */
+  copied: number;
+  /** Reviews in scope that were already analysed — the cache hits. */
   skipped: number;
   failed: number;
   embedded: number;
@@ -171,6 +188,52 @@ export async function selectTargets(
 }
 
 /**
+ * When two reviews are the same question, and may therefore share one answer.
+ *
+ * The one definition of it: the in-memory grouping of a batch and the lookup of
+ * an already-stored analysis both key on this, so a donor the database offered
+ * and a duplicate found inside the batch can never be judged by different rules.
+ *
+ * The text, because that is what the model reads — and the vertical, because
+ * `analyzeReviewPrompt` narrows the canonical themes to `locations.category`
+ * (W3.2). "Harika" at a hotel was offered `room_comfort`; at a barber it was
+ * not. Same words, different closed list, different answer. A null category is
+ * itself a value here — the universal theme set is a real vertical, and every
+ * location that has never set one shares it.
+ *
+ * Organization is deliberately *not* part of the key: it is not a narrower
+ * match, it is a wall. Nothing may reach across it, so it is a filter on the
+ * query rather than a component of a string that could be got wrong.
+ */
+function reuseKey(hash: string, category: string | null | undefined): string {
+  return `${hash} ${category ?? ""}`;
+}
+
+/** A target with its cache key resolved once, rather than per comparison. */
+type KeyedTarget = AnalysisTarget & { text: string; hash: string; key: string };
+
+function keyedTarget(target: AnalysisTarget, text: string): KeyedTarget {
+  const hash = contentHash(text);
+  return { ...target, text, hash, key: reuseKey(hash, target.category) };
+}
+
+/** What gets written to `review_insights`, whether the model or a copy produced it. */
+type InsightWrite = {
+  sentiment: Sentiment;
+  sentimentScore: number;
+  topics: string[];
+  /** Null stays null: it means "analysed before the taxonomy", not "no theme fits". */
+  themes: string[] | null;
+  staff: string[];
+  language: string | null;
+  text: string;
+  model: string;
+  promptId: string;
+  embedding: number[] | null;
+  copied: boolean;
+};
+
+/**
  * Analyzes every review in scope and persists the insights.
  *
  * Returns counts rather than throwing on individual failures — see the module
@@ -201,6 +264,7 @@ export async function analyzeBatch(options: BatchOptions): Promise<BatchResult> 
 
   const result: BatchResult = {
     analyzed: 0,
+    copied: 0,
     skipped: 0,
     failed: 0,
     embedded: 0,
@@ -214,6 +278,43 @@ export async function analyzeBatch(options: BatchOptions): Promise<BatchResult> 
 
   if (targets.length === 0) return result;
 
+  const keyed: KeyedTarget[] = targets.flatMap((target) =>
+    target.text ? [keyedTarget(target, target.text)] : [],
+  );
+
+  // Reviews saying the same thing, gathered before anything is sent. Insertion
+  // order decides which one the model is asked about; the rest copy its answer.
+  const groups = new Map<string, KeyedTarget[]>();
+  for (const target of keyed) {
+    const group = groups.get(target.key);
+    if (group) group.push(target);
+    else groups.set(target.key, [target]);
+  }
+
+  /*
+    An analysis already stored in *this* organization that answers the same
+    question. Looked up once for the whole batch rather than per review, and
+    excluding the batch's own rows — see `findReusableInsights` for why each
+    condition is there, and why organization is a filter rather than a key.
+  */
+  const donors = await withTenant({ organizationId: options.organizationId }, (tx) =>
+    findReusableInsights(tx, options.organizationId, {
+      contentHashes: [...new Set(keyed.map((target) => target.hash))],
+      promptId: ANALYZE_PROMPT_ID,
+      excludeReviewIds: keyed.map((target) => target.id),
+    }),
+  );
+
+  const donorByKey = new Map(
+    donors.map((donor) => [reuseKey(donor.contentHash, donor.category), donor]),
+  );
+
+  // One representative per group with no donor. This array — not `targets` — is
+  // what the model is asked about, and it is the whole saving.
+  const toAnalyze = [...groups.values()].flatMap((group) =>
+    group[0] && !donorByKey.has(group[0].key) ? [group[0]] : [],
+  );
+
   const pace =
     perMinute > 0
       ? createPacer(perMinute, options.sleep ? { sleep: options.sleep } : {})
@@ -222,12 +323,14 @@ export async function analyzeBatch(options: BatchOptions): Promise<BatchResult> 
     string,
     { analysis: ReviewAnalysis; text: string; model: string; promptId: string }
   >();
+  /** Why a group produced nothing, so its duplicates can say so too. */
+  const groupFailures = new Map<string, string>();
   let cursor = 0;
 
   async function worker(): Promise<void> {
-    while (cursor < targets.length) {
-      const target = targets[cursor++];
-      if (!target?.text) continue;
+    while (cursor < toAnalyze.length) {
+      const target = toAnalyze[cursor++];
+      if (!target) continue;
 
       await pace();
 
@@ -255,6 +358,7 @@ export async function analyzeBatch(options: BatchOptions): Promise<BatchResult> 
               ? error.message
               : "unknown error";
 
+        groupFailures.set(target.key, reason);
         result.failed += 1;
         result.failures.push({ reviewId: target.id, reason });
         log.warn(
@@ -263,11 +367,11 @@ export async function analyzeBatch(options: BatchOptions): Promise<BatchResult> 
         );
       }
 
-      options.onProgress?.(result.analyzed + result.failed, targets.length);
+      options.onProgress?.(result.analyzed + result.failed, toAnalyze.length);
     }
   }
 
-  await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(concurrency, toAnalyze.length) }, worker));
 
   // Embeddings are batched separately: one request covers many reviews, so
   // interleaving them with per-review analysis would waste the batch endpoint.
@@ -293,39 +397,120 @@ export async function analyzeBatch(options: BatchOptions): Promise<BatchResult> 
     }
   }
 
+  /*
+    Every row to be written, model-produced and copied alike, resolved before a
+    single statement runs.
+
+    A copy carries the *source* row's `promptId` and `model`, because those name
+    what produced the words. Writing this run's configured model onto a copied
+    row would put a model in the audit trail that was never asked about this
+    review — and `audit_logs`, which records calls, would disagree with it.
+  */
+  const writes = new Map<string, InsightWrite>();
+
+  for (const [key, group] of groups) {
+    const representative = group[0];
+    if (!representative) continue;
+
+    const donor = donorByKey.get(key);
+    const analysed = analyses.get(representative.id);
+
+    for (const target of group) {
+      if (donor) {
+        writes.set(target.id, {
+          sentiment: donor.sentiment,
+          sentimentScore: donor.sentimentScore,
+          topics: donor.topics,
+          themes: donor.themes,
+          staff: donor.staff,
+          language: donor.language,
+          text: target.text,
+          model: donor.model,
+          promptId: donor.promptId,
+          // Identical text embeds identically, so the vector comes free — and
+          // it is copied whether or not this run asked for embeddings, because
+          // copying costs nothing and withholding it would leave a duplicate
+          // out of the similarity search its twin is in.
+          embedding: donor.embedding,
+          copied: true,
+        });
+        continue;
+      }
+
+      if (analysed) {
+        writes.set(target.id, {
+          sentiment: analysed.analysis.sentiment,
+          sentimentScore: analysed.analysis.sentimentScore,
+          topics: analysed.analysis.topics,
+          themes: analysed.analysis.themes,
+          staff: analysed.analysis.staff,
+          language: analysed.analysis.language,
+          text: target.text,
+          model: analysed.model,
+          promptId: analysed.promptId,
+          // The representative's vector, where the embedding pass produced one.
+          embedding: embeddingsByReview.get(representative.id) ?? null,
+          copied: target.id !== representative.id,
+        });
+        continue;
+      }
+
+      // The one call this group had failed. Its duplicates are reported rather
+      // than dropped: they are still unanalysed, they are still stale, and the
+      // next run will try them again.
+      if (target.id !== representative.id) {
+        result.failed += 1;
+        result.failures.push({
+          reviewId: target.id,
+          reason: `identical to ${representative.id}: ${groupFailures.get(key) ?? "unknown error"}`,
+        });
+      }
+    }
+  }
+
+  result.copied = [...writes.values()].filter((write) => write.copied).length;
+
   await withTenant({ organizationId: options.organizationId }, async (tx) => {
-    for (const [reviewId, { analysis, text, model, promptId }] of analyses) {
+    for (const [reviewId, write] of writes) {
       await upsertInsight(tx, options.organizationId, {
         reviewId,
-        sentiment: analysis.sentiment,
-        sentimentScore: analysis.sentimentScore,
-        topics: analysis.topics,
-        themes: analysis.themes,
-        staff: analysis.staff,
-        language: analysis.language,
-        embedding: embeddingsByReview.get(reviewId) ?? null,
-        contentHash: contentHash(text),
+        sentiment: write.sentiment,
+        sentimentScore: write.sentimentScore,
+        topics: write.topics,
+        // Undefined rather than null, which is what `upsertInsight` reads as
+        // "the caller has none to offer" — a donor analysed before the taxonomy
+        // must not overwrite a row that already has themes.
+        ...(write.themes ? { themes: write.themes } : {}),
+        staff: write.staff,
+        language: write.language,
+        embedding: write.embedding,
+        contentHash: contentHash(write.text),
         // What actually ran, not what we intended to run — the difference
         // matters the moment a fallback or an override is in play.
-        promptId,
-        model,
+        promptId: write.promptId,
+        model: write.model,
       });
 
-      await syncTags(tx, options.organizationId, analysis.topics);
+      await syncTags(tx, options.organizationId, write.topics);
     }
 
     // Sentiment is the strongest input to triage priority, and until now these
     // rows were scored on their star rating alone — which says nothing at all
     // about a comment or a DM. Re-score them here rather than inside
     // `upsertInsight`, so one analysis batch costs one extra statement instead
-    // of one per review.
-    await refreshPriority(tx, options.organizationId, [...analyses.keys()]);
+    // of one per review. Copied rows are in this list for the same reason the
+    // analysed ones are: they now carry a sentiment they did not have.
+    await refreshPriority(tx, options.organizationId, [...writes.keys()]);
   });
 
   log.info(
     {
       organizationId: options.organizationId,
       analyzed: result.analyzed,
+      // The calls this batch did not have to make. Logged beside the ones it
+      // did, because a saving nobody can see reads exactly like work skipped by
+      // mistake — and this one is invisible in the bill by design.
+      copied: result.copied,
       skipped: result.skipped,
       failed: result.failed,
       embedded: result.embedded,

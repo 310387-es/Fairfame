@@ -392,7 +392,7 @@ const envSchema = z.object({
    * the default, so no test run or unconfigured environment can spend money or
    * reach a provider.
    */
-  AI_PROVIDER: z.enum(["stub", "gemini", "anthropic"]).default("stub"),
+  AI_PROVIDER: z.enum(["stub", "gemini", "anthropic", "openai-compatible"]).default("stub"),
 
   /** Wall-clock budget for a single completion, including retries' own waits. */
   AI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(600_000).default(60_000),
@@ -422,6 +422,25 @@ const envSchema = z.object({
   /** Anthropic — the documented production path. Needs API credits. */
   ANTHROPIC_API_KEY: optionalSecret,
   ANTHROPIC_MODEL: z.string().min(1).default("claude-opus-5"),
+
+  /**
+   * Any host speaking OpenAI's chat-completions dialect — Cerebras, Groq,
+   * Mistral, OpenRouter, a local Ollama. One provider, many vendors; see
+   * `src/ai/providers/openai-compatible.ts`.
+   *
+   * All three are optional and none has a default, deliberately: there is no
+   * sensible host, no sensible model, and a default base URL would point
+   * somebody's development traffic at whichever company we happened to pick.
+   * Selecting `AI_PROVIDER=openai-compatible` without them fails at startup
+   * naming the ones that are missing.
+   *
+   * The base URL includes the version segment the host serves —
+   * `https://api.cerebras.ai/v1`, `http://localhost:11434/v1` — because that
+   * part is not standard either.
+   */
+  OPENAI_COMPAT_BASE_URL: z.url().optional(),
+  OPENAI_COMPAT_API_KEY: optionalSecret,
+  OPENAI_COMPAT_MODEL: z.string().min(1).optional(),
 
   /**
    * Per-task model overrides. Empty means "use the provider's default model".

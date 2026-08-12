@@ -14,15 +14,24 @@ import { estimateCost, MODEL_RATES } from "@/ai/pricing";
 import { resetEnvForTesting } from "@/lib/env";
 import { createAnthropicProvider } from "@/ai/providers/anthropic";
 import { createGeminiProvider } from "@/ai/providers/gemini";
+import { createOpenAiCompatibleProvider } from "@/ai/providers/openai-compatible";
 import { createStubProvider } from "@/ai/providers/stub";
-import { LlmError, LlmRefusalError, type LlmProvider, type LlmRequest } from "@/ai/types";
+import {
+  LlmError,
+  LlmRefusalError,
+  type LlmProvider,
+  type LlmRequest,
+  type LlmResponse,
+} from "@/ai/types";
 import {
   analyzeReviewPrompt,
   buildPrompt,
   DEFAULT_BRAND_TONE,
+  digestPrompt,
   draftReplyPrompt,
   MAX_BRAND_TONE_CHARS,
   normalizeBrandTone,
+  socialPostPrompt,
 } from "@/prompts/index";
 
 /**
@@ -64,6 +73,38 @@ function recordingProvider(text: string): LlmProvider & { calls: LlmRequest[] } 
       };
     },
   };
+}
+
+/**
+ * A provider that answers with each text in turn, and keeps repeating the last.
+ *
+ * Counts its calls, because "did this earn another attempt" is a fact about how
+ * many times the model was asked, not about what came back.
+ */
+function scriptedProvider(
+  texts: string[],
+  options: { truncated?: boolean } = {},
+): LlmProvider & { calls: number } {
+  const provider = {
+    name: "scripted",
+    model: "scripted-1",
+    requestsPerMinute: null,
+    calls: 0,
+    async complete(): Promise<LlmResponse> {
+      const text = texts[Math.min(provider.calls, texts.length - 1)] ?? "";
+      provider.calls += 1;
+
+      return {
+        text,
+        usage: { inputTokens: 10, outputTokens: 5, thinkingTokens: 0 },
+        provider: "scripted",
+        model: "scripted-1",
+        finishReason: options.truncated ? "max_tokens" : "stop",
+        truncated: options.truncated ?? false,
+      };
+    },
+  };
+  return provider;
 }
 
 /** Awaits a rejection and returns it typed — `.catch(e => e as T)` widens. */
@@ -521,6 +562,304 @@ describe("the Anthropic provider", () => {
   });
 });
 
+/**
+ * The OpenAI chat-completions dialect — one file, many hosts.
+ *
+ * The same contract as the two above, because that is the point: a provider is
+ * swappable only if every one of them answers the same questions about a 429, a
+ * truncation, a refusal and a token count. The one genuinely new question here
+ * is the token count, where this dialect disagrees with Gemini about what
+ * `completion_tokens` includes.
+ */
+describe("the OpenAI-compatible provider", () => {
+  const base = {
+    apiKey: "sk-host",
+    model: "qwen-3-235b",
+    baseUrl: "https://api.example.ai/v1",
+  };
+
+  const ok = (over: Record<string, unknown> = {}) => ({
+    model: "qwen-3-235b",
+    choices: [{ message: { content: "ok" }, finish_reason: "stop" }],
+    usage: { prompt_tokens: 12, completion_tokens: 4 },
+    ...over,
+  });
+
+  it("posts to /chat/completions with a bearer key and the system turn first", async () => {
+    let seenUrl = "";
+    let seenHeaders: Record<string, string> = {};
+    let body: Record<string, unknown> = {};
+
+    const provider = createOpenAiCompatibleProvider({
+      ...base,
+      // A trailing slash on the base URL is the commonest .env typo; it must
+      // not produce a double slash the host 404s on.
+      baseUrl: `${base.baseUrl}/`,
+      fetchImpl: async (url, init) => {
+        seenUrl = url;
+        seenHeaders = init?.headers as Record<string, string>;
+        body = JSON.parse(String(init?.body));
+        return jsonResponse(ok());
+      },
+    });
+
+    await provider.complete(
+      {
+        system: "SYSTEM RULES",
+        messages: [{ role: "user", text: "hi" }],
+        maxOutputTokens: 64,
+      },
+      new AbortController().signal,
+    );
+
+    expect(seenUrl).toBe("https://api.example.ai/v1/chat/completions");
+    expect(seenHeaders.authorization).toBe("Bearer sk-host");
+    // The system prompt is its own turn, ahead of the user's: merging it into
+    // the user message would put our instructions where customer text lives.
+    expect(body.messages).toEqual([
+      { role: "system", content: "SYSTEM RULES" },
+      { role: "user", content: "hi" },
+    ]);
+    expect(body.max_tokens).toBe(64);
+    // Nothing about reasoning unless a prompt asked for it — an unsupported
+    // field is a 400 on some hosts.
+    expect(body.reasoning_effort).toBeUndefined();
+  });
+
+  it("asks for the schema in the dialect's own field, in strict mode", async () => {
+    let body: Record<string, unknown> = {};
+
+    const provider = createOpenAiCompatibleProvider({
+      ...base,
+      fetchImpl: async (_url, init) => {
+        body = JSON.parse(String(init?.body));
+        return jsonResponse(
+          ok({ choices: [{ message: { content: "{}" }, finish_reason: "stop" }] }),
+        );
+      },
+    });
+
+    await provider.complete(
+      {
+        messages: [{ role: "user", text: "hi" }],
+        maxOutputTokens: 64,
+        responseSchema: { type: "object", properties: { a: { type: "string" } } },
+        reasoning: "none",
+      },
+      new AbortController().signal,
+    );
+
+    expect(body.response_format).toEqual({
+      type: "json_schema",
+      json_schema: {
+        name: "response",
+        schema: { type: "object", properties: { a: { type: "string" } } },
+        strict: true,
+      },
+    });
+    expect(body.reasoning_effort).toBe("none");
+  });
+
+  it("separates reasoning tokens back out of the completion total", async () => {
+    const provider = createOpenAiCompatibleProvider({
+      ...base,
+      fetchImpl: async () =>
+        jsonResponse(
+          ok({
+            usage: {
+              prompt_tokens: 100,
+              completion_tokens: 50,
+              completion_tokens_details: { reasoning_tokens: 30 },
+            },
+          }),
+        ),
+    });
+
+    const response = await provider.complete(
+      { messages: [{ role: "user", text: "hi" }], maxOutputTokens: 64 },
+      new AbortController().signal,
+    );
+
+    // 50 is the whole billed completion, 30 of it reasoning. Reporting 50 and
+    // 30 would bill 80 — `estimateCost` charges output + thinking — and this
+    // dialect disagrees with Gemini precisely here.
+    expect(response.usage).toEqual({ inputTokens: 100, outputTokens: 20, thinkingTokens: 30 });
+  });
+
+  it("reports the model the host says it ran", async () => {
+    const provider = createOpenAiCompatibleProvider({
+      ...base,
+      fetchImpl: async () => jsonResponse(ok({ model: "qwen-3-235b-instruct-2026" })),
+    });
+
+    const response = await provider.complete(
+      { messages: [{ role: "user", text: "hi" }], maxOutputTokens: 64, model: "qwen-3-235b" },
+      new AbortController().signal,
+    );
+
+    // A routed or aliased model (OpenRouter does both) would otherwise be
+    // audited under a name that never served the request.
+    expect(response.model).toBe("qwen-3-235b-instruct-2026");
+  });
+
+  it("marks a length stop as truncated rather than as an answer", async () => {
+    const provider = createOpenAiCompatibleProvider({
+      ...base,
+      fetchImpl: async () =>
+        jsonResponse(
+          ok({ choices: [{ message: { content: '{"sentiment":"pos' }, finish_reason: "length" }] }),
+        ),
+    });
+
+    const response = await provider.complete(
+      { messages: [{ role: "user", text: "hi" }], maxOutputTokens: 8 },
+      new AbortController().signal,
+    );
+
+    // The caller treats this as a budget failure, not a parse failure.
+    expect(response.truncated).toBe(true);
+    expect(response.finishReason).toBe("length");
+  });
+
+  it("treats a refusal as a refusal, whichever way the host spells it", async () => {
+    const refusalInMessage = createOpenAiCompatibleProvider({
+      ...base,
+      fetchImpl: async () =>
+        jsonResponse(
+          ok({
+            choices: [
+              {
+                message: { content: null, refusal: "I can't help with that" },
+                finish_reason: "stop",
+              },
+            ],
+          }),
+        ),
+    });
+
+    const filtered = createOpenAiCompatibleProvider({
+      ...base,
+      fetchImpl: async () =>
+        jsonResponse(
+          ok({ choices: [{ message: { content: null }, finish_reason: "content_filter" }] }),
+        ),
+    });
+
+    const call = (provider: LlmProvider) =>
+      provider.complete(
+        { messages: [{ role: "user", text: "hi" }], maxOutputTokens: 64 },
+        new AbortController().signal,
+      );
+
+    // Both arrive as HTTP 200 with no content. Reading `content` blindly would
+    // record a refusal as a successful analysis of an empty string.
+    await expect(call(refusalInMessage)).rejects.toBeInstanceOf(LlmRefusalError);
+    await expect(call(filtered)).rejects.toBeInstanceOf(LlmRefusalError);
+  });
+
+  it("classifies 429 as retryable and honours Retry-After", async () => {
+    const provider = createOpenAiCompatibleProvider({
+      ...base,
+      fetchImpl: async () =>
+        jsonResponse(
+          { error: { message: "Too many requests", type: "rate_limit_exceeded" } },
+          429,
+          {
+            "retry-after": "30",
+          },
+        ),
+    });
+
+    const error = await captureError(
+      provider.complete(
+        { messages: [{ role: "user", text: "hi" }], maxOutputTokens: 64 },
+        new AbortController().signal,
+      ),
+    );
+
+    expect(error.retryable).toBe(true);
+    expect(error.retryAfterMs).toBe(30_000);
+    expect(error.code).toBe("rate_limit_exceeded");
+  });
+
+  it("prefers the millisecond backoff header when the host sends one", async () => {
+    const provider = createOpenAiCompatibleProvider({
+      ...base,
+      fetchImpl: async () =>
+        jsonResponse({ error: { message: "slow down" } }, 429, { "retry-after-ms": "1500" }),
+    });
+
+    const error = await captureError(
+      provider.complete(
+        { messages: [{ role: "user", text: "hi" }], maxOutputTokens: 64 },
+        new AbortController().signal,
+      ),
+    );
+
+    expect(error.retryAfterMs).toBe(1_500);
+  });
+
+  it("retries a 500 but never a bad key, and names the variable to fix", async () => {
+    const call = (status: number) =>
+      captureError(
+        createOpenAiCompatibleProvider({
+          ...base,
+          fetchImpl: async () => jsonResponse({ error: { message: "nope" } }, status),
+        }).complete(
+          { messages: [{ role: "user", text: "x" }], maxOutputTokens: 8 },
+          new AbortController().signal,
+        ),
+      );
+
+    expect((await call(500)).retryable).toBe(true);
+    expect((await call(400)).retryable).toBe(false);
+
+    const unauthorized = await call(401);
+    expect(unauthorized.retryable).toBe(false);
+    expect(unauthorized.message).toMatch(/OPENAI_COMPAT_API_KEY/);
+
+    // The commonest misconfiguration: a base URL missing its version segment.
+    const missing = await call(404);
+    expect(missing.message).toMatch(/OPENAI_COMPAT_MODEL/);
+    expect(missing.message).toMatch(/version segment/i);
+  });
+
+  it("treats an unreachable host as retryable, and an abort as our own", async () => {
+    const unreachable = createOpenAiCompatibleProvider({
+      ...base,
+      fetchImpl: async () => {
+        throw new TypeError("fetch failed");
+      },
+    });
+
+    const error = await captureError(
+      unreachable.complete(
+        { messages: [{ role: "user", text: "x" }], maxOutputTokens: 8 },
+        new AbortController().signal,
+      ),
+    );
+    expect(error.retryable).toBe(true);
+
+    const aborted = createOpenAiCompatibleProvider({
+      ...base,
+      fetchImpl: async () => {
+        const abort = new Error("aborted");
+        abort.name = "AbortError";
+        throw abort;
+      },
+    });
+
+    // Our own deadline, not the provider's fault — it must not be reclassified
+    // as a retryable provider failure, or the deadline would be spent twice.
+    await expect(
+      aborted.complete(
+        { messages: [{ role: "user", text: "x" }], maxOutputTokens: 8 },
+        new AbortController().signal,
+      ),
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
+});
+
 describe("the AI client", () => {
   it("retries a retryable failure and reports the attempt count", async () => {
     const provider = createStubProvider({ simulate: { failures: 2, retryable: true } });
@@ -691,6 +1030,50 @@ describe("analyze()", () => {
     await expect(
       analyzeReview({ organizationId: ORG, text: "x", rating: 5, provider }),
     ).rejects.toThrow(/did not match the expected shape/i);
+  });
+
+  it("retries a malformed answer inside the same call instead of spending it", async () => {
+    // W1.6's `validate` hook. The shape is proven before `runAi` returns, so a
+    // model that answers with prose earns another attempt from the retry budget
+    // the call already has. Until now the parse happened after the call was
+    // over: the tokens were spent, the attempt was recorded as a success, and
+    // the review waited for the next sweep to be tried again.
+    const provider = scriptedProvider([
+      "Certainly! Overall the customer sounds pleased.",
+      JSON.stringify({
+        sentiment: "positive",
+        sentiment_score: 0.6,
+        topics: ["kahve"],
+        language: "tr",
+      }),
+    ]);
+
+    const { analysis } = await analyzeReview({
+      organizationId: null,
+      text: "Kahve güzeldi.",
+      rating: 5,
+      provider,
+    });
+
+    expect(provider.calls).toBe(2);
+    expect(analysis.sentiment).toBe("positive");
+    expect(analysis.topics).toEqual(["kahve"]);
+  });
+
+  it("does not retry a truncated answer, because the next attempt has the same budget", async () => {
+    // Same prompt, same `maxOutputTokens`, same stump — three times, slowly,
+    // and then the same failure. The fix is a bigger budget, and the message
+    // says so rather than describing a parse error.
+    const provider = scriptedProvider(['{"sentiment":"positi'], { truncated: true });
+
+    const error = await captureError(
+      analyzeReview({ organizationId: null, text: "Kahve güzeldi.", rating: 5, provider }),
+    );
+
+    expect(provider.calls).toBe(1);
+    expect(error.code).toBe("bad_json");
+    expect(error.message).toMatch(/cut off/i);
+    expect(error.message).toMatch(/maxOutputTokens/);
   });
 
   /**
@@ -871,7 +1254,7 @@ describe("thinking headroom", () => {
 
     const [, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
     const body = JSON.parse(String(init.body)) as {
-      generationConfig: { maxOutputTokens: number };
+      generationConfig: { maxOutputTokens: number; thinkingConfig?: Record<string, unknown> };
     };
 
     // Gemini counts thinking tokens against this ceiling. Measured: the flash
@@ -879,6 +1262,162 @@ describe("thinking headroom", () => {
     // tokens of truncated text. Without headroom, every thinking model
     // truncates and the empty-reply retry burns the deadline.
     expect(body.generationConfig.maxOutputTokens).toBeGreaterThan(640);
+    // "auto" is the default and must stay hands-off: no thinking control sent.
+    expect(body.generationConfig.thinkingConfig).toBeUndefined();
+  });
+
+  it("turns thinking off, and keeps a smaller reserve, when a prompt asks for none", async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            candidates: [{ content: { parts: [{ text: "{}" }] }, finishReason: "STOP" }],
+            usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 3 },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    );
+    const provider = createGeminiProvider({ apiKey: "k", model: "m", fetchImpl });
+
+    await provider.complete(
+      { messages: [{ role: "user", text: "hi" }], maxOutputTokens: 512, reasoning: "none" },
+      new AbortController().signal,
+    );
+
+    const [, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    const body = JSON.parse(String(init.body)) as {
+      generationConfig: {
+        maxOutputTokens: number;
+        thinkingConfig?: Record<string, unknown>;
+      };
+    };
+
+    // `thinkingLevel: "minimal"`, not `thinkingBudget: 0` — measured, the
+    // budget field is a 400 on gemini-3.5-flash-lite and gemini-3.6-flash. See
+    // NO_REASONING_CONFIG.
+    expect(body.generationConfig.thinkingConfig).toEqual({ thinkingLevel: "minimal" });
+    // Reduced, never removed: `thinkingBudget` is advisory (measured: 381
+    // thoughts against a requested 128), and a truncated analysis costs a whole
+    // call. The caller's own budget is untouched either way.
+    expect(body.generationConfig.maxOutputTokens).toBeGreaterThan(512);
+    expect(body.generationConfig.maxOutputTokens).toBeLessThan(512 + 1_024);
+  });
+
+  it("opts analysis out of reasoning and leaves every other prompt alone", () => {
+    // Analysis is a classification that runs on every review; the rest write
+    // prose the business publishes, or the once-a-week digest.
+    expect(analyzeReviewPrompt({ text: "Kahve güzeldi.", rating: 5 }).request.reasoning).toBe(
+      "none",
+    );
+
+    expect(
+      draftReplyPrompt({
+        text: "Kahve güzeldi.",
+        rating: 5,
+        businessName: "Kahve Dünyası",
+        brandTone: "warm",
+      }).request.reasoning,
+    ).toBeUndefined();
+
+    expect(
+      socialPostPrompt({
+        locale: "tr",
+        businessName: "Kahve Dünyası",
+        reviewText: "Kahve güzeldi.",
+        rating: 5,
+      }).request.reasoning,
+    ).toBeUndefined();
+
+    expect(
+      digestPrompt({
+        locale: "en",
+        businessName: "Kahve Dünyası",
+        locationName: "Moda",
+        periodLabel: "this week",
+        pulse: 70,
+        priorPulse: 68,
+        reviewCount: 12,
+        priorReviewCount: 9,
+        themes: [],
+        changes: [],
+        quotes: [{ theme: "coffee", text: "Kahve güzeldi." }],
+      }).request.reasoning,
+    ).toBeUndefined();
+  });
+
+  it("still reports a cut-off analysis as a budget failure, not a parse failure", async () => {
+    // The bug the headroom originally fixed. Thinking off makes truncation
+    // rarer, not impossible, so the caller must still be told which of the two
+    // things went wrong — "raise maxOutputTokens" and "the model wrote rubbish"
+    // have completely different answers.
+    const provider = createGeminiProvider({
+      apiKey: "k",
+      model: "m",
+      fetchImpl: async () =>
+        jsonResponse({
+          candidates: [
+            {
+              content: { parts: [{ text: '{"sentiment":"positi' }] },
+              finishReason: "MAX_TOKENS",
+            },
+          ],
+          usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 512 },
+        }),
+    });
+
+    const response = await provider.complete(
+      { messages: [{ role: "user", text: "hi" }], maxOutputTokens: 512, reasoning: "none" },
+      new AbortController().signal,
+    );
+    expect(response.truncated).toBe(true);
+
+    const error = await captureError(
+      analyzeReview({ organizationId: null, text: "Kahve güzeldi.", rating: 5, provider }),
+    );
+
+    expect(error).toBeInstanceOf(LlmError);
+    expect(error.code).toBe("bad_json");
+    expect(error.message).toMatch(/cut off/i);
+    expect(error.message).toMatch(/maxOutputTokens/);
+  });
+
+  it("names the model that rejects the no-reasoning hint, instead of Google's phrasing", async () => {
+    // What a model generation that does not know this control actually returns.
+    // "Request contains an invalid argument" sends the reader to their prompt;
+    // this fails every call on that model, so the error has to say which knob.
+    const provider = createGeminiProvider({
+      apiKey: "k",
+      model: "m",
+      fetchImpl: async () =>
+        jsonResponse(
+          {
+            error: {
+              code: 400,
+              message: "Request contains an invalid argument.",
+              status: "INVALID_ARGUMENT",
+              details: [
+                {
+                  "@type": "type.googleapis.com/google.rpc.BadRequest",
+                  fieldViolations: [{ field: "generation_config.thinking_config.thinking_level" }],
+                },
+              ],
+            },
+          },
+          400,
+        ),
+    });
+
+    const error = await captureError(
+      provider.complete(
+        { messages: [{ role: "user", text: "hi" }], maxOutputTokens: 512, reasoning: "none" },
+        new AbortController().signal,
+      ),
+    );
+
+    expect(error.message).toMatch(/no-reasoning hint/i);
+    expect(error.message).toMatch(/gemini\.ts/);
+    // Retrying it produces the identical 400 until the config changes.
+    expect(error.retryable).toBe(false);
   });
 });
 
