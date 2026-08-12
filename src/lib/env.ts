@@ -464,8 +464,33 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+/**
+ * In a `.env` file, blank means absent.
+ *
+ * There is no way to write "not set" in dotenv syntax except by deleting the
+ * line, so `.env.example` documents an optional variable as `KEY=` — which
+ * arrives here as `""` and fails `.url()`, `.min(1)` and every enum. Copying
+ * `.env.example` to `.env`, which is the first instruction anybody follows and
+ * the one this file's own error message gives, produced a boot failure listing
+ * five optional variables as invalid: three Sentry and push lines that had been
+ * that way for months, and the connector base URLs added on 12 Aug 2026.
+ *
+ * `optionalSecret` had solved this one field at a time with a transform, which
+ * is why the problem stayed invisible — the fields that used the helper were
+ * fine and the fields that spelled out their own type were not. The rule is
+ * about dotenv rather than about secrets, so it belongs here, once, over
+ * everything. A variable with a `.default()` gets its default rather than an
+ * error, which is what a blank line plainly means.
+ */
 function parseEnv(source: NodeJS.ProcessEnv): Env {
-  const result = envSchema.safeParse(source);
+  // `Record`, not `NodeJS.ProcessEnv`: Next augments that type to require
+  // NODE_ENV, and this is a filtered copy rather than a whole environment.
+  const present: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (value !== "") present[key] = value;
+  }
+
+  const result = envSchema.safeParse(present);
 
   if (!result.success) {
     const details = result.error.issues

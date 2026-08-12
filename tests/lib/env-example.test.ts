@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ENV_KEYS } from "@/lib/env";
+import { ENV_KEYS, parseEnvForTesting } from "@/lib/env";
 
 /**
  * `.env.example` and the schema say the same thing.
@@ -80,5 +80,36 @@ describe(".env.example documents the environment", () => {
     for (const key of printed) {
       expect(ENV_KEYS, `mock:platform prints ${key}=, which the app never reads`).toContain(key);
     }
+  });
+
+  it("boots when copied to .env, which is the first instruction anybody follows", () => {
+    /*
+      The file is parsed as dotenv would parse it and handed to the real schema.
+
+      It did not boot. Five optional variables were documented as `KEY=`, which
+      is the only way dotenv can spell "not set", and arrived as `""` — failing
+      `.url()` and `.min(1)`. Three of them (Sentry's DSN and environment, the
+      VAPID subject) had been that way for months; the connector base URLs
+      joined them on 12 Aug 2026. Nobody hit it because nobody copies the file
+      twice, and the error names variables you were told to leave blank.
+
+      `parseEnv` now drops empty values before validating — in a `.env` file
+      blank means absent — and this is what keeps that true.
+    */
+    const source: NodeJS.ProcessEnv = { NODE_ENV: "development" };
+    for (const line of EXAMPLE.split("\n")) {
+      const match = line.match(/^([A-Z][A-Z0-9_]*)=(.*)$/);
+      if (match) source[match[1]!] = match[2]!.trim();
+    }
+
+    expect(() =>
+      parseEnvForTesting({
+        ...source,
+        // The one line the file means for you to replace rather than keep:
+        // `change-me` is deliberately too short, so an unset auth secret fails
+        // loudly at boot instead of signing sessions with a public string.
+        BETTER_AUTH_SECRET: "a-real-secret-of-at-least-32-characters",
+      }),
+    ).not.toThrow();
   });
 });
