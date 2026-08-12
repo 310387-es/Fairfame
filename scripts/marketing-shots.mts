@@ -1,5 +1,12 @@
 /**
- * Captures the product screenshots the landing page shows.
+ * Captures real product screenshots for the places that show one.
+ *
+ * **The landing page is no longer one of them** (11 Aug 2026). `/` draws its
+ * own product windows instead — `components/marketing/flow-tour.tsx` and
+ * `pillars.tsx` both say why: a screenshot goes stale silently and has to be
+ * re-shot per locale, while a drawn window is translated by the same message
+ * catalogue as the app. What still shows a genuine capture is the **README**,
+ * whose header is `public/marketing/reviews.png`.
  *
  * **Why this exists rather than reusing the e2e fixture.** The browser suite
  * builds an account called "E2E Runner" in an organization called "E2E
@@ -39,12 +46,15 @@ const BRANCH = "Moda";
 const OWNER = "Deniz Yılmaz";
 
 /**
- * What the landing page shows, and why each one.
+ * What gets captured, and why each one.
  *
- * The queue is the daily loop; Analytics is the screen the page's "tema × zaman
- * ısı haritası" line describes and never showed; Get reviews is the QR-on-a-
- * table story, which is how a Turkish cafe actually collects. Each is a claim
- * the page makes in prose, shown as the thing itself.
+ * The queue is the daily loop, and it is the one the README header shows.
+ * Analytics and Get reviews are captured but displayed nowhere today — kept
+ * because they cost one page visit each on a run that is already signing up an
+ * account, and they are what a doc or a post reaches for. **Anything written
+ * here that nothing displays is a spare, not an asset**: leave it out of the
+ * repo unless a page actually points at it, or it becomes 300KB of binary
+ * nobody can tell is dead.
  */
 const ROUTES = [
   { route: "/reviews", name: "reviews", needsAnalysis: false },
