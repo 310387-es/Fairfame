@@ -51,10 +51,10 @@ openssl rand -base64 32
 
 # Token vault — without it, no OAuth connector and no channel connection can work.
 # The failure names the variable, so you will know if you skipped it.
-node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+node -e "console.log('k1:' + require('node:crypto').randomBytes(32).toString('base64'))"
 ```
 
-Put the first in `BETTER_AUTH_SECRET` and the second in `TOKEN_VAULT_KEYS`. Everything else in `.env.example` has a working local default.
+Put the first in `BETTER_AUTH_SECRET` and the second in `TOKEN_VAULT_KEYS`. The `k1:` is the key's id, not decoration — a vault key is stored as `<id>:<base64>` so that rotation can prepend a new key and leave the old one readable, and a bare key without an id is rejected. Everything else in `.env.example` has a working local default.
 
 ```bash
 docker compose up -d   # Postgres 5432 · Redis 6379 · Mailpit 1025/8025
